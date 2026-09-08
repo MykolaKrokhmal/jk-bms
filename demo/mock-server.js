@@ -589,6 +589,25 @@ const clients = new Set();
 // has connected).
 seedEntities();
 
+// NOTE on wire-format fidelity: real ESPHome's web_server component
+// actually publishes each entity's "id" as "<domain>/<configured name>"
+// WITH SPACES INTACT (verified against a real device: "sensor/wifi
+// signal", "binary_sensor/charging float mode") -- NOT this mock's own
+// internal hyphen-and-underscore bookkeeping key ("sensor-wifi_signal").
+// jk_bms.js's entityByWireId already registers both forms as aliases, so
+// this mock's format keeps working for state resolution -- but it DID
+// let a real bug in the register-list renderer go completely undetected
+// through this project's demo-based test suite (diagnosticObjectId used
+// to re-derive a key via a hyphen-only regex that happened to accidentally
+// match THIS mock's format while silently breaking against real ESPHome's
+// space-containing one -- see jk_bms.js's diagnosticObjectId/
+// recordDiagnosticReadout comments for the actual fix). Reproducing the
+// real slash+space format here was deliberately NOT done: it would touch
+// this file's ~1000 setEntity call sites and this project's entire
+// test/topology/run.js harness (which asserts against the current
+// hyphenated ids throughout) for a fidelity improvement the real fix
+// above no longer depends on. Left as a known, documented gap rather than
+// a rushed rewrite risking the existing 615-check regression suite.
 function sseFormat(domain, payload) {
   return `event: ${domain}\ndata: ${JSON.stringify(payload)}\n\n`;
 }

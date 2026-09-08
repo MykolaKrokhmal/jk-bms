@@ -1145,6 +1145,67 @@ interval:
                     for (size_t b = 0; b < need; b++) v = (v << 8) | uint32_t(data[b]);
                     id(g_wtx_readback_raw)[i] = v;
                     id(g_wtx_readback_done)[i] = 1;
+                    // BUG FIX: a CONFIRMED transaction only ever proved the
+                    // register itself changed -- it never told the entity
+                    // the REST of the UI actually displays that value from
+                    // (a separate sensor with its own slow, independent
+                    // poll cycle, e.g. cell_ovp or charging_control_raw).
+                    // That display entity kept its stale pre-write value
+                    // until its own next poll happened to land, and a
+                    // template select/number re-evaluates and republishes
+                    // on ITS OWN timer too -- so a confirmed write could
+                    // visibly "revert" seconds later when that timer fired
+                    // before the underlying sensor's own poll caught up
+                    // (reported live: turning Заряд дозволено off, seeing
+                    // it confirm, then watching it flip back on). Publish
+                    // the just-verified readback directly into the display
+                    // entity here, for every simple (non-packed) generic
+                    // register, so there is no window where the display can
+                    // show anything other than what was just confirmed.
+                    // Packed sub-field registers (rcv/rfv time, lcd buzzer
+                    // trigger + dry contact 1 source sharing 0x14E4, heating
+                    // activation/deactivation sharing 0x111C, dry contact 2
+                    // source at 0x14E6) are NOT covered here yet -- each
+                    // needs its own byte/shift extraction matching its own
+                    // display sensor's read lambda; left as a follow-up.
+                    const uint16_t a = id(g_wtx_address)[i];
+                    if (a == 0x1070) { id(charging_control_raw)->publish_state(float(v)); }
+                    else if (a == 0x1074) { id(discharging_control_raw)->publish_state(float(v)); }
+                    else if (a == 0x1078) { id(balancing_control_raw)->publish_state(float(v)); }
+                    else if (a == 0x107C) { id(battery_capacity)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1014) { id(start_balance_trigger)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1084) { id(start_balance)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1048) { id(max_balance_current)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x100C) { id(cell_ovp)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1020) { id(cell_request_charge_voltage)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1018) { id(soc_100)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1010) { id(cell_ovpr)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1008) { id(cell_uvpr)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x101C) { id(soc_0)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1004) { id(cell_uvp)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1028) { id(system_power_off)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1024) { id(cell_request_float_voltage)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1000) { id(smart_sleep)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x102C) { id(continued_charge_current)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1030) { id(charge_ocp_delay)->publish_state(float(v)); }
+                    else if (a == 0x1034) { id(charge_ocpr_time)->publish_state(float(v)); }
+                    else if (a == 0x1038) { id(continued_discharge_current)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x103C) { id(discharge_ocp_delay)->publish_state(float(v)); }
+                    else if (a == 0x1040) { id(discharge_ocpr_time)->publish_state(float(v)); }
+                    else if (a == 0x1044) { id(scpr_time)->publish_state(float(v)); }
+                    else if (a == 0x1080) { id(scp_delay)->publish_state(float(v)); }
+                    else if (a == 0x1054) { id(discharge_otp)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x1058) { id(discharge_otpr)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x104C) { id(charge_otp)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x1050) { id(charge_otpr)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x1060) { id(charge_utpr)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x105C) { id(charge_utp)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x1064) { id(mos_otp)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x1068) { id(mos_otpr)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x14F0) { id(dry_contact_1_trigger_value)->publish_state(float(int32_t(v))); }
+                    else if (a == 0x14F4) { id(dry_contact_1_recovery_value)->publish_state(float(int32_t(v))); }
+                    else if (a == 0x14F8) { id(dry_contact_2_trigger_value)->publish_state(float(int32_t(v))); }
+                    else if (a == 0x14FC) { id(dry_contact_2_recovery_value)->publish_state(float(int32_t(v))); }
                   });
               id(bms0)->queue_command(std::move(read_cmd));
             }

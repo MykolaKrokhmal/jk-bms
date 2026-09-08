@@ -775,8 +775,8 @@
   function ingestPayload(payload) {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) return;
     const wireId = typeof payload.id === "string" ? payload.id : (typeof payload.object_id === "string" ? payload.object_id : "");
-    recordDiagnosticReadout(wireId, payload);
     const key = entityByWireId.get(wireId);
+    recordDiagnosticReadout(wireId, payload, key);
     if (!key) return;
     const rawState = payload.state !== undefined ? payload.state : payload.value;
     const rawValue = payload.value !== undefined ? payload.value : payload.state;
@@ -990,7 +990,16 @@
   }
 
   function diagnosticObjectId(entry) {
-    return entry.id.replace(/^(binary_sensor|text_sensor|sensor|number|select)[\-\/.]/, "").toLowerCase();
+    // entry.key is entityByWireId's own resolution for this entity (see
+    // recordDiagnosticReadout's comment) -- authoritative and already
+    // correct for both this project's demo wire format and real
+    // ESPHome's actual "<domain>/<configured name, spaces intact>" one.
+    // The regex fallback only matters for an entry that somehow reached
+    // here unregistered; it now also folds spaces to underscores so it
+    // degrades toward the same convention instead of a silently
+    // different one.
+    if (entry.key) return entry.key;
+    return entry.id.replace(/^(binary_sensor|text_sensor|sensor|number|select)[\-\/.]/, "").toLowerCase().replace(/\s+/g, "_");
   }
 
   function diagnosticNumberedSeries(entry) {
@@ -1056,7 +1065,18 @@
     "charge_status", "charge_status_time_elapsed", "charge_phase", "charge_phase_elapsed", "battery_state_elapsed",
     "battery_state_candidate", "battery_state_candidate_direction", "battery_state_candidate_fresh_samples",
     "battery_state_candidate_age", "battery_state_current_direction", "current_sample_age", "battery_state_unknown_reason",
-    "battery_state_last_known", "charge_phase_last_known", "idle_current_noise_min", "idle_current_noise_max", "alarms"
+    "battery_state_last_known", "charge_phase_last_known", "idle_current_noise_min", "idle_current_noise_max", "alarms",
+    // Topology resolver OUTPUTS and Write Transaction Manager bookkeeping —
+    // derived by combining several registers (or, for the tx_id/status/
+    // snapshot fields, not backed by any single Modbus register at all,
+    // purely ESP32-side transaction state) — not themselves a single
+    // addressable register, so they don't belong in the register list.
+    // The topology ones already have their own dedicated banner/resolver
+    // UI elsewhere; all of these surface in Diagnostics instead.
+    "topology_state", "topology_reason", "topology_revision", "topology_data_freshness",
+    "connected_cell_count", "measured_cell_count", "active_cells_voltage_sum",
+    "effective_cell_count", "last_confirmed_cell_count",
+    "cellcount_tx_id", "cellcount_tx_status_code", "setup_passcode_tx_status_code", "write_tx_snapshot"
   ]);
 
   function isBmsRegisterEntry(entry) {
@@ -1339,12 +1359,65 @@
     scroller.scrollTop = preservedScrollTop;
   }
 
-  function recordDiagnosticReadout(wireId, payload) {
+  // Companion to renderDiagnosticReadouts(): the register/BMS-parameter
+  // list on Налаштування deliberately EXCLUDES entries in
+  // NON_REGISTER_ENTITY_IDS (computed/software state -- resolver
+  // internals, connection health, derived power figures -- not a
+  // physical Modbus register with its own address). Those entries still
+  // need to be visible SOMEWHERE; they belong on Діагностика, read-only
+  // (none of them are writable, so no editor/OK button is ever built
+  // here, unlike renderDiagnosticReadouts). Was previously dead code
+  // pointing at a ".diag-entity-list" selector that matched nothing.
+  function renderDiagnosticSoftwareVariables() {
+    const list = getDom("diagSoftwareVarList");
+    if (!list) return;
+    const entries = Array.from(diagnosticReadouts.values())
+      .filter((entry) => NON_REGISTER_ENTITY_IDS.has(diagnosticObjectId(entry)))
+      .sort((a, b) => diagnosticEntityLabel(a).localeCompare(diagnosticEntityLabel(b), currentLang));
+    const fragment = document.createDocumentFragment();
+    for (const entry of entries) {
+      const row = document.createElement("div");
+      row.className = "diag-row diag-entity-row";
+      row.setAttribute("role", "row");
+      const label = document.createElement("span");
+      label.textContent = diagnosticEntityLabel(entry);
+      label.title = entry.id;
+      const value = document.createElement("b");
+      value.className = "num diag-entity-value";
+      value.textContent = diagnosticReadoutValue(entry);
+      value.title = value.textContent;
+      row.append(label, value);
+      fragment.appendChild(row);
+    }
+    list.replaceChildren(fragment);
+  }
+
+  function renderDiagnosticPanels() {
+    renderDiagnosticReadouts();
+    renderDiagnosticSoftwareVariables();
+  }
+
+  function recordDiagnosticReadout(wireId, payload, key) {
     const domain = readOnlyDomain(wireId);
     if (!domain) return;
     const rawState = payload.state !== undefined ? payload.state : payload.value;
     const rawValue = payload.value !== undefined ? payload.value : payload.state;
-    const entry = { id: wireId, domain, state: rawState, value: rawValue };
+    // `key` is entityByWireId's ALREADY-resolved lookup for this exact
+    // wireId (computed once in ingestPayload, the same resolution the
+    // rest of the app relies on for state[key]/writeTransaction/etc.) --
+    // diagnosticObjectId() below uses it directly instead of re-deriving
+    // a key from the raw wire id via its own regex. That regex assumed a
+    // hyphen-and-underscore wire format ("sensor-cell_ovp"); real
+    // ESPHome's web_server actually sends "<domain>/<configured name>"
+    // WITH SPACES ("sensor/cell OVP"), which the regex silently mismatched
+    // against every underscored SETTING_DEFS/NON_REGISTER_ENTITY_IDS key
+    // that has more than one word -- breaking writability, "set_"
+    // duplicate suppression, and the software-variable filter for nearly
+    // every multi-word register on real hardware (single-word ones like
+    // "charging" happened to still match, which is why this went
+    // undetected against the demo mock, whose own wire format happens to
+    // already be underscored).
+    const entry = { id: wireId, key, domain, state: rawState, value: rawValue };
     diagnosticReadouts.set(wireId, entry);
     const valueNode = diagnosticReadoutRows.get(wireId);
     if (valueNode) {
@@ -1378,7 +1451,7 @@
       diagnosticReadoutRebuildDeferred = true;
       return;
     }
-    if (!diagnosticReadoutRebuild) diagnosticReadoutRebuild = window.requestAnimationFrame(renderDiagnosticReadouts);
+    if (!diagnosticReadoutRebuild) diagnosticReadoutRebuild = window.requestAnimationFrame(renderDiagnosticPanels);
   }
 
   function ingestEvent(event) {
@@ -2928,6 +3001,9 @@
                   <div><label data-i18n="diagnostics.error">${t("diagnostics.error")}</label><b class="num" id="diagCountError">0</b></div>
                 </div>
 
+                <div class="section-head" style="margin-top:22px"><h2 data-i18n="diagnostics.readEntities">${t("diagnostics.readEntities")}</h2><span class="value" data-i18n="diagnostics.readEntitiesCaption">${t("diagnostics.readEntitiesCaption")}</span></div>
+                <div class="diag-list register-list" id="diagSoftwareVarList" role="table" aria-label="${t("diagnostics.readEntities")}"></div>
+
               </div>
             </div>
           </div>
@@ -3036,6 +3112,7 @@
     renderResolverDiagnostics();
     renderSohDiagnostics();
     renderDiagnosticReadouts();
+    renderDiagnosticSoftwareVariables();
     setText("sysFirmware", "v3.0.0");
     initTheme();
     initLanguage();
@@ -3770,7 +3847,8 @@
   function refreshAllDynamicText() {
     applyI18nToRoot(document);
     renderDiagnosticReadouts();
-    const readoutTable = document.querySelector(".diag-entity-list");
+    renderDiagnosticSoftwareVariables();
+    const readoutTable = getDom("diagSoftwareVarList");
     if (readoutTable) readoutTable.setAttribute("aria-label", t("diagnostics.readEntities"));
     lastAlarmMarkupKey = null; // force renderAlarmList to rebuild its cached innerHTML in the new language
     // Every bindText()-driven readout (Voltage/Current/Power/Balance/
@@ -5193,7 +5271,7 @@
         const list = getDom("configRegisterList");
         if (document.activeElement instanceof HTMLInputElement && list?.contains(document.activeElement)) return;
         diagnosticReadoutRebuildDeferred = false;
-        if (!diagnosticReadoutRebuild) diagnosticReadoutRebuild = window.requestAnimationFrame(renderDiagnosticReadouts);
+        if (!diagnosticReadoutRebuild) diagnosticReadoutRebuild = window.requestAnimationFrame(renderDiagnosticPanels);
       }, 0);
     });
     document.getElementById("passcodeOk").addEventListener("click", submitSettings);
