@@ -1,0 +1,4915 @@
+# Note:
+# If you have only 8 cells - comment out "cell voltage 9-16" and "cell 9-16 wire resistance".
+# Also adjust values in "cell voltage/wire resistance 8" and "cell voltage/wire resistance 16".
+# See details in the comments for these parameters.
+# Also you can comment out "cell 9-16 wire resistance" if you don't need this info.
+#
+#
+# Setup: adjust parameters in substitutions section
+#
+#
+# Some configuration details:
+#
+# JK Modbus protocol is not the same as standard Modbus RTU
+# Key difference is response on reading more than one value in one request.
+# Example:
+# We want to read "Smart sleep" and "Cell UVP" values, their register addresses are 0x1000 and 0x1004.
+# Each parameter has length of 4 bytes or 2 registers.
+# To read these parameters in one request we send command `01 03 10 00 00 02 <CRC>`
+#
+# Standard Modbus response: `01 03 0C XX XX XX XX 00 00 00 00 YY YY YY YY <CRC>`
+# where XXXXXXXX - "Smart sleep" value and YYYYYYYY - "Cell UVP". So, there's a gap between values.
+#
+# JK BMS response: `01 03 08 XX XX XX XX YY YY YY YY <CRC>. See - there is no gap between values.
+#
+# Why it's matters: We want as few requests as possible to reduce communication and processing time.
+# Good news: modbus_controller component will do this automatically for us if it detect adjacent entities
+# by their address and size and makes ranges that are read in one request.
+# Not so good news: because of JK Modbus specifics we have to do some tweaks.
+# 1. Explicitly define two settings for a sensor:
+#     register_count: 4
+#     response_size: 4
+# By defining register_count with value double of the actual size (**in registers**) of the sensor we cover gaps in the parameters addresses.
+# And by defining response_size to be the actual size (**in bytes**) of the sensor we cover absence of the gaps in the response.
+#
+# Described optimization applies only to the entities without custom commands and only for the entities of the same type!
+# To tackle the second limitation we define binary_sensors as templates and update their values based on the regular sensors,
+# while setting `disabled_by_default: true` in the regular sensor definition.
+
+substitutions:
+  name: jk-bms
+  friendly_name: "JK BMS"
+  # User-visible name from the JK mobile application. The JK-PB RS485 map
+  # exposes the hardware model at 0x1400, but not the editable BLE name.
+  bms_display_name: "LiFePO4-1S16P-00"
+  device_description: "Monitor a JK-BMS (JK-PB series) via Modbus"
+  external_components_source: github://syssi/esphome-jk-bms@main
+  tx_pin: GPIO22
+  rx_pin: GPIO21
+  flow_control_pin: GPIO17
+  device_addr: "1"    # NOTE: On change also update the first byte in `switch` custom_command and write_lambda
+  modbus_controller_update_interval: "15s"
+  bms_control_params_skip_updates: "20"   # 20 - update every 20th update cycle
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  comment: ${device_description}
+  project:
+    name: "syssi.esphome-jk-bms"
+    version: 3.0.0
+  # Pure, hardware-independent state machine for the generic RW-register
+  # write -> ACK -> forced-readback transaction manager (every RW register
+  # EXCEPT CellCount, which keeps its own bespoke topology-aware driver
+  # below). Desktop-testable — see test/jk_write_tx/test_jk_write_tx_core.cpp.
+  includes:
+    - components/jk_write_tx/jk_write_tx_core.h
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          // Single combined endpoint (not one per metric) so the UI does one
+          // fetch instead of nine. The buffer is a ring — hist_index is the
+          // *next write* slot, so readout starts one past it (oldest sample
+          // first) and wraps, giving the client points already in
+          // chronological order without it needing to know about the ring.
+          //
+          // AsyncCallbackWebHandler (ESPAsyncWebServer's Arduino-only
+          // shortcut) doesn't exist in ESPHome's ESP-IDF web_server_idf
+          // shim — this device builds with esp32: framework: type: esp-idf.
+          // Subclassing AsyncWebHandler directly, exactly the way ESPHome's
+          // own AsyncEventSource (the /events SSE handler) does it, is the
+          // pattern that's actually available here.
+          class HistoryHandler : public AsyncWebHandler {
+           public:
+            bool canHandle(AsyncWebServerRequest *request) const override {
+              if (request->method() != HTTP_GET) return false;
+              char url_buf[AsyncWebServerRequest::URL_BUF_SIZE];
+              return request->url_to(url_buf) == "/history.json";
+            }
+            void handleRequest(AsyncWebServerRequest *request) override {
+              auto append_series = [](std::string &out, const char *key, float *buf) {
+                out += "\"";
+                out += key;
+                out += "\":[";
+                const int count = id(hist_count);
+                const int start = count < 60 ? 0 : id(hist_index);
+                char num[16];
+                for (int i = 0; i < count; i++) {
+                  const int idx = (start + i) % 60;
+                  if (i > 0) out += ",";
+                  if (isnan(buf[idx])) {
+                    out += "null";
+                  } else {
+                    snprintf(num, sizeof(num), "%.3f", buf[idx]);
+                    out += num;
+                  }
+                }
+                out += "]";
+              };
+              std::string json;
+              json.reserve(4096);
+              json += "{\"interval_s\":30,";
+              append_series(json, "voltage", id(hist_voltage));
+              json += ",";
+              append_series(json, "current", id(hist_current));
+              json += ",";
+              append_series(json, "power", id(hist_power));
+              json += ",";
+              append_series(json, "balance", id(hist_balance));
+              json += ",";
+              append_series(json, "mosfet_temp", id(hist_mosfet_temp));
+              json += ",";
+              append_series(json, "temp1", id(hist_temp1));
+              json += ",";
+              append_series(json, "temp2", id(hist_temp2));
+              json += ",";
+              append_series(json, "temp4", id(hist_temp4));
+              json += ",";
+              append_series(json, "temp5", id(hist_temp5));
+              json += "}";
+              request->send(200, "application/json", json.c_str());
+            }
+          };
+          id(web_server_base_id)->add_handler(new HistoryHandler());
+
+          // Real 60-hour Charge Cycle history, replacing the old synthetic
+          // reference-profile curve. 6-hour windows (360 x 60s samples),
+          // offset 0 = most recent, addressed by URL PATH SEGMENT
+          // (/charge_history.json/<offset>) rather than a query string:
+          // the AsyncWebServerRequest shim this device actually builds
+          // against (web_server_idf.h, verified for HistoryHandler above)
+          // only confirms url_to()/method()/send() — no getParam()-style
+          // query API — so path-segment matching via plain string equality
+          // (the one operation already proven to compile here) is what's
+          // actually available, not a guessed convenience.
+          class ChargeHistoryHandler : public AsyncWebHandler {
+           public:
+            // A local class (defined inside this on_boot lambda) may not
+            // have static DATA members ([class.local]p1 — GCC only
+            // accepts it under -fpermissive, which this build doesn't
+            // enable, hence a real "shall not have static data member"
+            // compile error). An enum sidesteps this entirely: an
+            // enumerator isn't a data member, has no address/linkage
+            // question, and implicitly converts to int everywhere these
+            // were already used as plain values (array bounds, index
+            // math, std::to_string(kWindow)) — a drop-in replacement.
+            enum { kWindow = 360, kCapacity = 3600, kMaxOffset = 9 };
+
+            bool matchOffset(AsyncWebServerRequest *request, int *offset_out) const {
+              char url_buf[AsyncWebServerRequest::URL_BUF_SIZE];
+              auto url = request->url_to(url_buf);
+              if (url == "/charge_history.json") { *offset_out = 0; return true; }
+              char candidate[40];
+              for (int i = 0; i <= kMaxOffset; i++) {
+                snprintf(candidate, sizeof(candidate), "/charge_history.json/%d", i);
+                if (url == candidate) { *offset_out = i; return true; }
+              }
+              return false;
+            }
+
+            bool canHandle(AsyncWebServerRequest *request) const override {
+              if (request->method() != HTTP_GET) return false;
+              int offset = 0;
+              return matchOffset(request, &offset);
+            }
+
+            void handleRequest(AsyncWebServerRequest *request) override {
+              int offset = 0;
+              matchOffset(request, &offset);
+
+              const int count = id(cc_hist_count);
+              const int ring_start = count < kCapacity ? 0 : id(cc_hist_index);
+              const int windows_available = count > 0 ? (count + kWindow - 1) / kWindow : 0;
+              // Chronological position of the newest sample in THIS window
+              // (0 = oldest sample ever stored, count-1 = newest overall).
+              int window_end_p = count - 1 - offset * kWindow;
+              int window_start_p = window_end_p - (kWindow - 1);
+              if (window_start_p < 0) window_start_p = 0;
+              const bool any = count > 0 && window_end_p >= 0;
+
+              std::string json;
+              // Worst-case size, actually counted (not guessed) from this
+              // handler's own concatenation below: fixed fields (~92B,
+              // generous 4/2/1-digit headroom on count/windows/offset) +
+              // 360 voltage/current samples at "-327.67" (int16 centivolt/
+              // centiamp range, 7B) + 360 soc samples at worst-case "null"
+              // (4B, longer than any real 0-100 value) + 360 stage digits
+              // (1B) + separators = 8,414 bytes. 10240 (10 KiB) gives ~22%
+              // headroom above that — enough that the normal (non-null,
+              // non-negative) path never reallocates, without reserving
+              // for a size that can't actually occur.
+              json.reserve(10240);
+              char num[16];
+              json += "{\"interval_s\":60,\"window_samples\":";
+              json += std::to_string(kWindow);
+              json += ",\"total_samples\":";
+              json += std::to_string(count);
+              json += ",\"windows_available\":";
+              json += std::to_string(windows_available);
+              json += ",\"offset\":";
+              json += std::to_string(offset);
+
+              json += ",\"voltage\":[";
+              if (any) {
+                for (int p = window_start_p; p <= window_end_p; p++) {
+                  const int idx = (ring_start + p) % kCapacity;
+                  if (p > window_start_p) json += ",";
+                  const int16_t cv = id(cc_hist_voltage_cv)[idx];
+                  if (cv == INT16_MIN) { json += "null"; }
+                  else { snprintf(num, sizeof(num), "%.2f", cv / 100.0f); json += num; }
+                }
+              }
+              json += "],\"current\":[";
+              if (any) {
+                for (int p = window_start_p; p <= window_end_p; p++) {
+                  const int idx = (ring_start + p) % kCapacity;
+                  if (p > window_start_p) json += ",";
+                  const int16_t ca = id(cc_hist_current_ca)[idx];
+                  if (ca == INT16_MIN) { json += "null"; }
+                  else { snprintf(num, sizeof(num), "%.2f", ca / 100.0f); json += num; }
+                }
+              }
+              json += "],\"soc\":[";
+              if (any) {
+                for (int p = window_start_p; p <= window_end_p; p++) {
+                  const int idx = (ring_start + p) % kCapacity;
+                  if (p > window_start_p) json += ",";
+                  const uint8_t sc = id(cc_hist_soc)[idx];
+                  if (sc == 255) { json += "null"; }
+                  else { json += std::to_string(sc); }
+                }
+              }
+              json += "],\"stage\":[";
+              if (any) {
+                for (int p = window_start_p; p <= window_end_p; p++) {
+                  const int idx = (ring_start + p) % kCapacity;
+                  if (p > window_start_p) json += ",";
+                  json += std::to_string(id(cc_hist_stage)[idx]);
+                }
+              }
+              json += "]}";
+              request->send(200, "application/json", json.c_str());
+            }
+          };
+          id(web_server_base_id)->add_handler(new ChargeHistoryHandler());
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  min_auth_mode: WPA2
+  ap:
+    ssid: "JK-BMS Fallback"
+    # Was a hardcoded, checked-in placeholder ("change-this-password") --
+    # a real security gap per ESPHome's own security_best_practices guide
+    # ("ALWAYS SET THIS" for the fallback AP). Now a per-device secret;
+    # see secrets.yaml.example. Add the real value to your own
+    # (gitignored) secrets.yaml before flashing.
+    password: !secret jk_bms_ap_password
+  # This can help if you experience wifi connection issues and see errors like
+  # bssid=12:34:56:78:9A:CB[redacted] reason=‘Auth Expired’
+  # output_power: "8.5dB"
+
+ota:
+  - platform: esphome
+    # Was unset (any unauthenticated device on the network could push
+    # firmware). Per ESPHome's own security_best_practices guide, never
+    # reuse this across devices.
+    password: !secret jk_bms_ota_password
+
+captive_portal:
+
+logger:
+  # NOTE: In production this should be INFO or lower to reduce execution time and remove warnings like:
+  # [W][component:239]: Component modbus_controller took a long time for an operation (107 ms).
+  # [W][component:240]: Components should block for at most 30 ms.
+  level: INFO  # DEBUG
+
+# If you use Home Assistant please remove this `mqtt` section and uncomment the `api` component!
+# The native API has many advantages over MQTT: https://esphome.io/components/api.html#advantages-over-mqtt
+api:
+  encryption:
+    key: !secret jk_bms_api_key
+
+# Declared explicitly (rather than left to web_server: to create implicitly)
+# so on_boot below can reach the same AsyncWebServer instance via its id and
+# register the /history.json handler on it.
+web_server_base:
+  id: web_server_base_id
+
+web_server:
+  web_server_base_id: web_server_base_id
+  port: 80
+  version: 2
+  # ESPHome 2026.6.5's web_server CONF_AUTH schema had no `type:` key at
+  # all -- Basic was the only, implicit option. 2026.8.2 (verified by a
+  # real compile against that exact version) added `type: basic|digest`;
+  # Digest never puts the password on the wire in an easily-reversible
+  # form the way Basic does, so it's the better default now that it's
+  # available -- explicitly set rather than left to default (ESPHome
+  # itself warns the *default* stays 'basic' until 2027.1.0). Still NOT
+  # encryption -- HTTP stays plaintext; this only authenticates, and the
+  # threat model this device is designed for remains trusted LAN/VPN, not
+  # direct internet exposure. WebServerBase::add_handler()
+  # (web_server_base.cpp) wraps every handler registered through it --
+  # including this project's own HistoryHandler/ChargeHistoryHandler
+  # below, which both call id(web_server_base_id)->add_handler(...) -- in
+  # AuthMiddlewareHandler whenever credentials are set, so both custom
+  # endpoints are covered by this block automatically; a live 401 test
+  # against them is still the way to confirm this on real hardware, not
+  # just this source read.
+  auth:
+    type: digest
+    username: !secret jk_bms_web_username
+    password: !secret jk_bms_web_password
+  # jk_bms.js/jk_bms.css now live at the project root, not in a jk_bms_ui/
+  # subfolder — the paths below were pointing at a folder that doesn't
+  # exist here.
+  js_include: "./jk_bms.js"
+  css_include: "./jk_bms.css"
+  # ESPHome v2 loads js_include as a module. Load the same asset once as a
+  # classic script too; jk_bms.js contains a guard against a second start.
+  js_url: "/0.js"
+  css_url: ""
+
+# On-device history ring buffer for the UI's per-metric trend charts
+# (Voltage, Current, Power, Balance current, the four temperature probes).
+# 60 points x 30s apart = a real 30-minute window (the frontend derives its
+# "Last N minutes" label from interval_s x sample count in the JSON below,
+# not a hardcoded string, so this and the label can never drift apart
+# again the way "20 minutes" quietly did after this buffer was first
+# sized at 40 points). Sized for ESP32 RAM (9 series x 60 floats = 2.1KB)
+# rather than flash — history does not survive a reboot, which matches
+# "recent trend," not "logged history" (see the separate 60-hour charge-
+# cycle buffer for that).
+uart:
+  - id: uart_0
+    baud_rate: 115200
+    rx_buffer_size: 384
+    tx_pin: ${tx_pin}
+    rx_pin: ${rx_pin}
+
+modbus:
+  - id: modbus0
+    uart_id: uart_0
+    flow_control_pin: ${flow_control_pin}
+    # command_throttle used to live on modbus_controller: (below) but a
+    # real 2026.8.2 compile warned it "no longer has any effect... use
+    # 'turnaround_time' there instead" -- moved here, same 50ms value, to
+    # keep actually spacing commands rather than silently doing nothing.
+    turnaround_time: 50ms
+
+modbus_controller:
+  - id: bms0
+    # Dip switch configuration of a single pack setup / address 0x01
+    #  1    2    4    5
+    #  on, off, off, off (0x01)
+    #
+    # Don't turn off all dip switches / don't use device address 0x00.
+    # This is the Modbus Master mode. You must select a device address
+    # between 0x01 and 0x0f so the BMS acts as Modbus Slave.
+    address: ${device_addr}
+    modbus_id: modbus0
+    setup_priority: -10
+    update_interval: ${modbus_controller_update_interval}
+
+# Critical-path cache: each Modbus response is decoded once; template entities
+# only publish already-computed scalar values.
+globals:
+  - id: g_max_cell_v
+    type: float
+    restore_value: false
+    initial_value: "NAN"
+  - id: g_min_cell_v
+    type: float
+    restore_value: false
+    initial_value: "NAN"
+  - id: g_max_cell_idx
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_min_cell_idx
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_total_voltage_v
+    type: float
+    restore_value: false
+    initial_value: "NAN"
+  - id: g_current_a
+    type: float
+    restore_value: false
+    initial_value: "NAN"
+  - id: g_power_w
+    type: float
+    restore_value: false
+    initial_value: "NAN"
+  - id: g_charging_power_w
+    type: float
+    restore_value: false
+    initial_value: "NAN"
+  - id: g_discharging_power_w
+    type: float
+    restore_value: false
+    initial_value: "NAN"
+  - id: g_cell_poll_pending
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_cell_poll_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+  # V2 — BMS communication health, distinct from browser<->ESP32 network
+  # health. Updated only at the point below where a cell-poll response has
+  # actually been decoded as valid (right length AND at least one plausible
+  # cell voltage) — not merely "a response of the right size arrived".
+  # bms_health (text_sensor, further down) turns the elapsed time since
+  # this timestamp into LIVE/DEGRADED/STALE/OFFLINE.
+  - id: g_last_bms_response_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+  # V2.1 — when the current charge_phase (none/bulk/absorption/float) last
+  # CHANGED, in millis(). charge_status_time_elapsed (below) measures
+  # something different — time since the `charging` output last turned
+  # on — so the Overview "Timer" field was silently reusing the wrong
+  # clock: it read as a per-phase timer but never reset at a Bulk-to-
+  # Absorption transition, only at Charge-off/on. charge_phase_elapsed
+  # (sensor, near charge_status) turns this into the real thing.
+  # V2.2 semantic refactor: this now tracks charge_phase specifically
+  # (Charge Cycle's own concept), NOT battery_state — see
+  # g_battery_state_started_ms below for the main operating-state clock.
+  # The two coincide at every bulk/absorption/float transition (both
+  # concepts change together there) and diverge only when the pack
+  # leaves the charging path entirely (discharging/idle/offline all
+  # collapse to charge_phase="none", so this clock stops moving while
+  # battery_state keeps its own).
+  - id: g_charge_phase_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+  # V2.2 — when battery_state (idle/charging/discharging/absorption/
+  # float/offline/unknown) last CHANGED. This is the PUBLIC/HA-facing
+  # operating-state clock — separate from charge_phase's clock above,
+  # since the two concepts now live at different abstraction levels
+  # (see the charge_status resolver's own comment for the full model).
+  - id: g_battery_state_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+  # V2.2 — the resolver's own charge_phase result (0=none, 1=bulk,
+  # 2=absorption, 3=float), written once by charge_status's lambda and
+  # read by the separate charge_phase text_sensor below — one canonical
+  # computation, two thin presentation-layer entities reading its output,
+  # never two independent classifiers.
+  - id: g_charge_phase_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+
+  # V2.2 — timestamp of the most recent GENUINELY FRESH current sample
+  # (set in electrical_metrics_scan's own lambda, not here) — lets the
+  # battery_state resolver require actual new telemetry before confirming
+  # a transition, not just wall-clock time elapsing with no real new
+  # sample (Modbus polls roughly every 15s; a 15-30s wall-clock dwell
+  # alone could theoretically elapse from timer jitter without a fresh
+  # decode ever landing).
+  - id: g_last_current_sample_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+  # V2.2 hardening pass — resolver internals mirrored into globals purely
+  # so the diagnostic text_sensors/sensors further down can read them
+  # without re-deriving anything: the `charge_status` lambda remains the
+  # ONE place that actually decides these values every tick.
+  # Direction codes throughout: 0=neutral, 1=charge, 2=discharge.
+  - id: g_current_direction_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_candidate_direction_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_candidate_fresh_samples_g
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_candidate_since_ms_g
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # unknown_reason: 0=n/a (not currently unknown), 1=no valid telemetry
+  # yet since boot, 2=just reconnected, awaiting a fresh sample before
+  # trusting the resolved state again.
+  - id: g_unknown_reason_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  # battery_state/charge_phase codes for diagnostics decoding, and their
+  # LAST KNOWN (pre-offline) values — Diagnostics-only, per §10: these
+  # must never be exposed as the CURRENT live state (charge_status/
+  # charge_phase already correctly report offline/none during an outage;
+  # these two exist only so a technician can see "what was it doing
+  # before it went dark" without that ever being mistaken for live data).
+  # battery_state codes: 0=unknown,1=idle,2=charging,3=discharging,
+  # 4=absorption,5=float,6=offline.
+  - id: g_battery_state_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_last_known_battery_state_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_last_known_charge_phase_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+
+  # ---- Topology Resolver state (resolve_topology script, in scripts:
+  # below) — the single source of truth for whether CellCount can be
+  # trusted as the pack's real physical topology. state_code:
+  #   0=LOADING 1=CONFIRMED 2=MISMATCH 3=INVALID 4=WRITE_UNCERTAIN
+  #   5=OFFLINE 6=PENDING
+  # effective_cell_count/last_confirmed_cell_count mirror their published
+  # sensors as globals too so C++ code (the cell-poll callback, the
+  # transaction driver) never has to read them back through a
+  # Sensor::state float round-trip just to decide e.g. the inactive-
+  # channel blanking range or what to show while PENDING.
+  - id: g_topology_state_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_topology_reason_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "1"  # AWAITING_SNAPSHOT
+  - id: g_effective_cell_count
+    type: uint8_t
+    restore_value: false
+    initial_value: "16"
+  # The last count the resolver actually reached CONFIRMED for. Distinct
+  # from effective_cell_count (which is 16 — "trust nothing" — in every
+  # non-CONFIRMED state): while PENDING this is what the UI keeps
+  # rendering, so a write in flight never causes a visible, unconfirmed
+  # jump to either the old OR the requested topology (spec: "UI не
+  # повинен частково перейти на нову кількість комірок раніше, ніж
+  # resolver сформував остаточний узгоджений snapshot").
+  - id: g_last_confirmed_cell_count
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"  # 0 == "never confirmed since boot"
+  # Monotonic — bumped on every resolve_topology publish AND on every
+  # transaction-driven state override (PENDING/WRITE_UNCERTAIN), so a
+  # client can tell "this is a strictly newer determination" apart from
+  # "this looks the same as what I already rendered" without relying on
+  # wall-clock time.
+  - id: g_topology_revision
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_topology_last_publish_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # Sticky uncertainty flag: set the instant a CellCount write's ACK or
+  # forced readback is lost (the write *may* have applied on the BMS
+  # side), cleared ONLY when a freshly, independently re-read CellCount +
+  # mask snapshot lands — never by the ordinary 1Hz resolver tick reusing
+  # whatever stale register memory it already had cached. This is what
+  # stops "readback timeout" from silently reporting the OLD CONFIRMED
+  # topology as still trustworthy (spec §3: "не повертай старий стан
+  # CONFIRMED як достовірний, доки нове авторитетне читання не визначить
+  # фактичний стан").
+  - id: g_topology_uncertain
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  # Recovery probe (250ms interval, below) — while g_topology_uncertain is
+  # set and no transaction is currently in flight, periodically forces a
+  # fresh CellCount + mask read specifically to clear the uncertainty; a
+  # value that merely happens to match the old one via the ordinary slow
+  # poll is NOT proof of freshness, only a live round-trip completing here is.
+  - id: g_topology_recovery_pending
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_topology_recovery_cellcount_done
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_topology_recovery_mask_done
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_topology_recovery_last_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+  # ---- CellCount write transaction (set_cell_count's set_action + the
+  # dedicated 250ms interval below) — write -> wait for ACK -> forced
+  # readback of CellCount + connected mask -> wait for a cell-block decode
+  # newer than the write -> resolve_topology. No step is ever assumed to
+  # have happened just because a fixed delay elapsed.
+  - id: g_cellcount_tx_pending
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  # Correlation id for the currently (or most recently) active CellCount
+  # transaction — bumped once per set_action invocation, published
+  # alongside every topology/transaction sensor so the frontend can tell
+  # "this SSE event belongs to the transaction I'm watching" from a late
+  # event belonging to an OLDER transaction (spec §5: transaction_id
+  # correlation against the HTTP/SSE race).
+  - id: g_cellcount_tx_id
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_cellcount_tx_target
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_cellcount_tx_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_cellcount_write_acked
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_cellcount_readback_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_cellcount_readback_cellcount_done
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_cellcount_readback_mask_done
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+  # ---- Generic write transaction manager (jk_write_tx_core.h) — EVERY RW
+  # register except CellCount routes through this: write_bms_u32/u16 (the
+  # ~25 numeric configuration registers), the packed-subfield template
+  # numbers (heating thresholds, dry-contact sources/values), the
+  # charging/discharging/balancing control selects, and the setup
+  # passcode. 6 concurrent slots is enough headroom for the
+  # concurrent-different-register test scenario without allowing unbounded
+  # queuing — a write that arrives when every slot is busy is REJECTED
+  # outright (jk_write_tx::begin() returns -1), never silently dropped or
+  # interleaved with another register's in-flight transaction.
+  #
+  # ESPHome's globals codegen instantiates every `globals:` entry BEFORE
+  # any `esphome: includes:` file is #included in the generated main.cpp
+  # (verified by an actual failed compile: a std::array<CustomStruct, 6>
+  # global tried to instantiate the struct type ~120 lines before its
+  # #include), so the transaction slots cannot be a single global of the
+  # jk_write_tx::Slot struct type — only plain scalar/array-of-POD globals
+  # (already proven elsewhere in this file: hist_voltage's float[60],
+  # cc_hist_voltage_cv's int16_t[3600]) are visible that early. The 14
+  # parallel arrays below carry exactly Slot's fields; the YAML lambdas
+  # that call jk_write_tx::begin()/tick() (which DO run after the
+  # #include, well down in generated main.cpp) marshal a local
+  # jk_write_tx::Slot to/from these arrays around each call, so the
+  # actual state-machine LOGIC still lives in exactly one, unit-tested
+  # place (jk_write_tx_core.h) — only the storage is split.
+  - id: g_wtx_in_use          # 0/1
+    type: uint8_t[6]
+  - id: g_wtx_tx_id
+    type: uint32_t[6]
+  - id: g_wtx_address
+    type: uint16_t[6]
+  - id: g_wtx_word_count
+    type: uint8_t[6]
+  - id: g_wtx_requested_raw
+    type: uint32_t[6]
+  - id: g_wtx_readback_raw
+    type: uint32_t[6]
+  - id: g_wtx_compare_mask
+    type: uint32_t[6]
+  - id: g_wtx_status
+    type: uint8_t[6]
+  - id: g_wtx_started_ms
+    type: uint32_t[6]
+  - id: g_wtx_acked           # 0/1
+    type: uint8_t[6]
+  - id: g_wtx_readback_started_ms
+    type: uint32_t[6]
+  - id: g_wtx_readback_done   # 0/1
+    type: uint8_t[6]
+  - id: g_wtx_finished_ms
+    type: uint32_t[6]
+  - id: g_wtx_suppress_value  # 0/1
+    type: uint8_t[6]
+  - id: g_write_tx_next_id
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+  # ---- Setup passcode transaction (setup_passcode's set_action, below,
+  # + a dedicated servicer in the generic write-tx interval) — kept
+  # separate from jk_write_tx_core.h's slot pool because the passcode is
+  # an 8-word (16-byte) packed ASCII payload, wider than any other RW
+  # register here (which are all 1-2 words); the comparison logic is
+  # otherwise identical (write -> ACK -> forced readback -> compare), and
+  # publishes the SAME status-code vocabulary
+  # (setup_passcode_tx_status_code, sensor below) so the frontend handles
+  # it uniformly. Only ACK/readback SUCCESS is ever published — the
+  # actual bytes never leave this device (setup_passcode's own read
+  # lambda already always returns a masked "****************").
+  - id: g_passcode_tx_pending
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_passcode_tx_id
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_passcode_tx_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_passcode_write_acked
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_passcode_readback_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_passcode_readback_done
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_passcode_expected_words
+    type: uint16_t[8]
+  - id: g_passcode_readback_words
+    type: uint16_t[8]
+
+  # On-device history ring buffer for the UI's per-metric trend charts
+  # (Voltage, Current, Power, Balance current, the four temperature probes).
+  # 60 points x 30s apart = a real 30-minute window (see the fuller comment
+  # by the /history.json handler in on_boot above — this file used to say
+  # "20 minutes" here for a buffer that had already grown past that,
+  # exactly the drift the frontend's now-computed label avoids repeating).
+  - id: hist_index
+    type: int
+    restore_value: false
+    initial_value: '0'
+  - id: hist_count
+    type: int
+    restore_value: false
+    initial_value: '0'
+  - id: hist_voltage
+    type: float[60]
+  - id: hist_current
+    type: float[60]
+  - id: hist_power
+    type: float[60]
+  - id: hist_balance
+    type: float[60]
+  - id: hist_mosfet_temp
+    type: float[60]
+  - id: hist_temp1
+    type: float[60]
+  - id: hist_temp2
+    type: float[60]
+  - id: hist_temp4
+    type: float[60]
+  - id: hist_temp5
+    type: float[60]
+
+  # V2.1 — the real 60-hour Charge Cycle buffer, replacing the old
+  # synthetic reference-profile curve entirely. 1 sample/min x 60h = 3600
+  # samples. Voltage/current are fixed-point int16 (centivolts / centiamps)
+  # rather than float — half the RAM per sample for range/precision this
+  # buffer actually needs (+/-327.67 V or A, 0.01 resolution), not
+  # "whatever a float happens to cost". SOC and stage are single bytes;
+  # no PSRAM is assumed anywhere in this design.
+  #
+  # ACTUAL memory footprint, verified against the real declarations below
+  # (four separate globals, NOT a struct — so there is no compiler-padding
+  # question to ask; a plain array of a fixed-width POD type has zero
+  # padding between elements by definition):
+  #   cc_hist_voltage_cv  int16_t[3600]  = 2 x 3600 = 7200 bytes
+  #   cc_hist_current_ca  int16_t[3600]  = 2 x 3600 = 7200 bytes
+  #   cc_hist_soc         uint8_t[3600]  = 1 x 3600 = 3600 bytes
+  #   cc_hist_stage       uint8_t[3600]  = 1 x 3600 = 3600 bytes
+  #   cc_hist_index       int            = 4 bytes  (ESP32: 32-bit int)
+  #   cc_hist_count       int            = 4 bytes
+  #   TOTAL                              = 21,608 bytes (~21.1 KiB)
+  # Comfortably inside the ~320 KiB DRAM an ESP32 has for globals/heap
+  # alongside WiFi/TLS/ESPHome's own footprint — no PSRAM required.
+  - id: cc_hist_index
+    type: int
+    restore_value: false
+    initial_value: '0'
+  - id: cc_hist_count
+    type: int
+    restore_value: false
+    initial_value: '0'
+  - id: cc_hist_voltage_cv    # centivolts (V x 100), INT16_MIN = no sample
+    type: int16_t[3600]
+  - id: cc_hist_current_ca    # centiamps (A x 100), INT16_MIN = no sample
+    type: int16_t[3600]
+  - id: cc_hist_soc           # percent 0-100, 255 = no sample
+    type: uint8_t[3600]
+  - id: cc_hist_stage         # 0 idle, 1 bulk, 2 absorption, 3 float, 4 discharging, 5 offline
+    type: uint8_t[3600]       # (still 1 byte/sample — 5 is just another value of the same uint8_t)
+
+# A dedicated one-shot read keeps the Cell overview at 1 Hz without reducing
+# the 15 s interval of the remaining register map. JK-PB expects the requested
+# register count in bytes, so 106 is the required doubled count for 53 Modbus
+# words; the real response remains 106 bytes and is decoded exactly once.
+interval:
+  - interval: 1s
+    startup_delay: 2s
+    then:
+      - lambda: |-
+          const uint32_t now = millis();
+          if (id(g_cell_poll_pending) &&
+              uint32_t(now - id(g_cell_poll_started_ms)) < 15000U) {
+            return;
+          }
+          id(g_cell_poll_pending) = true;
+          id(g_cell_poll_started_ms) = now;
+          auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+              id(bms0), esphome::modbus::EntityType::HOLDING,
+              0x1200, 106,
+              [](auto, uint16_t, const auto &data) {
+                id(g_cell_poll_pending) = false;
+                if (data.size() < 106) {
+                  ESP_LOGW("jk_cells", "Short cell response: %u/106 bytes",
+                           static_cast<unsigned>(data.size()));
+                  return;
+                }
+
+                esphome::sensor::Sensor *const voltage_sensors[16] = {
+                  id(cell_voltage_1),  id(cell_voltage_2),  id(cell_voltage_3),  id(cell_voltage_4),
+                  id(cell_voltage_5),  id(cell_voltage_6),  id(cell_voltage_7),  id(cell_voltage_8),
+                  id(cell_voltage_9),  id(cell_voltage_10), id(cell_voltage_11), id(cell_voltage_12),
+                  id(cell_voltage_13), id(cell_voltage_14), id(cell_voltage_15), id(cell_voltage_16)
+                };
+                esphome::sensor::Sensor *const resistance_sensors[16] = {
+                  id(cell_resistance_1),  id(cell_resistance_2),  id(cell_resistance_3),  id(cell_resistance_4),
+                  id(cell_resistance_5),  id(cell_resistance_6),  id(cell_resistance_7),  id(cell_resistance_8),
+                  id(cell_resistance_9),  id(cell_resistance_10), id(cell_resistance_11), id(cell_resistance_12),
+                  id(cell_resistance_13), id(cell_resistance_14), id(cell_resistance_15), id(cell_resistance_16)
+                };
+
+                uint16_t min_mv = UINT16_MAX;
+                uint16_t max_mv = 0;
+                uint8_t min_index = 0;
+                uint8_t max_index = 0;
+                for (uint8_t i = 0; i < 16; ++i) {
+                  const size_t voltage_offset = size_t(i) * 2U;
+                  const size_t resistance_offset = 74U + size_t(i) * 2U;
+                  const uint16_t millivolts =
+                      (uint16_t(data[voltage_offset]) << 8) | data[voltage_offset + 1U];
+                  const uint16_t milliohms =
+                      (uint16_t(data[resistance_offset]) << 8) | data[resistance_offset + 1U];
+
+                  voltage_sensors[i]->publish_state(millivolts * 0.001f);
+                  resistance_sensors[i]->publish_state(milliohms * 0.001f);
+                  if (millivolts >= 500U && millivolts < min_mv) {
+                    min_mv = millivolts;
+                    min_index = i + 1U;
+                  }
+                  if (millivolts >= 500U && millivolts > max_mv) {
+                    max_mv = millivolts;
+                    max_index = i + 1U;
+                  }
+                }
+
+                if (min_index == 0U || max_index == 0U) return;
+                // This line only runs once the response has been fully
+                // decoded and at least one cell reported a plausible
+                // voltage — the actual confirmation that the BMS itself
+                // (not just the UART link) is responding correctly.
+                // Fresh millis() here, not the outer lambda's `now`: this
+                // callback is captureless ([]) by the ModbusCommandItem
+                // API's own requirement, and semantically this timestamp
+                // should be the moment the response was actually decoded,
+                // not the moment the request was queued (a real compile
+                // error caught this: `now` is a local of the ENCLOSING
+                // interval lambda and was never capturable here).
+                id(g_last_bms_response_ms) = millis();
+                id(g_min_cell_v) = min_mv * 0.001f;
+                id(g_max_cell_v) = max_mv * 0.001f;
+                id(g_min_cell_idx) = min_index;
+                id(g_max_cell_idx) = max_index;
+                id(min_cell_voltage).publish_state(id(g_min_cell_v));
+                id(max_cell_voltage).publish_state(id(g_max_cell_v));
+                id(min_voltage_cell).publish_state(float(min_index));
+                id(max_voltage_cell).publish_state(float(max_index));
+                // Every fresh, successfully-decoded cell-block response
+                // re-evaluates topology — cheap (a handful of comparisons
+                // over 16 floats), and this is what lets the resolver
+                // self-heal after a reboot or a transient mismatch without
+                // needing its own dedicated re-check logic (spec test 9).
+                id(resolve_topology)->execute();
+              });
+          id(bms0)->queue_command(std::move(command));
+
+  # ---- CellCount write transaction driver (jk_topology) — advances the
+  # state armed by set_cell_count's set_action, above, through:
+  #   1. wait for the write to be ACKed (g_cellcount_write_acked, set by
+  #      the write command's own on_data_func) — 3s timeout;
+  #   2. force one-shot re-reads of CellCount (0x106C) and the connected
+  #      mask (0x1240) the instant the ACK lands, instead of waiting for
+  #      their normal ~5-minute / 15s poll cadences;
+  #   3. wait for BOTH of those AND a fresh cell-block decode (a
+  #      g_last_bms_response_ms newer than the write) — 4s timeout;
+  #   4. resolve_topology, using the now-corroborated snapshot, then a
+  #      strict terminal check: success requires readback_raw_value ==
+  #      requested_raw_value AND topology_state == CONFIRMED AND
+  #      effective_cell_count == requested_raw_value, ALL THREE — matching
+  #      exactly a plausible-but-different value the BMS silently clamped
+  #      to is never reported as success just because that OTHER value
+  #      happens to resolve cleanly.
+  # No step is ever assumed to have happened just because a fixed delay
+  # elapsed. An ACK or readback timeout does NOT restore the old CONFIRMED
+  # state as if nothing happened — the BMS may well have applied the write
+  # and only the confirmation was lost — so it sets g_topology_uncertain
+  # and the resolver reports WRITE_UNCERTAIN until the separate recovery
+  # probe below (run only when no transaction is in flight) gets a
+  # genuinely fresh, independently re-verified snapshot.
+  - interval: 250ms
+    then:
+      - lambda: |-
+          const uint32_t now = millis();
+
+          if (id(g_cellcount_tx_pending)) {
+            if (!id(g_cellcount_write_acked)) {
+              id(cellcount_tx_status_code)->publish_state(2.0f);  // ack_wait
+              if (now - id(g_cellcount_tx_started_ms) > 3000U) {
+                ESP_LOGW("jk_topology", "CellCount write not acknowledged within 3s (tx_id=%u target=%d) -- WRITE_UNCERTAIN",
+                         unsigned(id(g_cellcount_tx_id)), int(id(g_cellcount_tx_target)));
+                id(g_cellcount_tx_pending) = false;
+                id(g_topology_uncertain) = true;
+                id(cellcount_tx_status_code)->publish_state(7.0f);  // ack_timeout
+                id(resolve_topology)->execute();
+              }
+              return;
+            }
+
+            if (id(g_cellcount_readback_started_ms) == 0U) {
+              id(g_cellcount_readback_started_ms) = now;
+              id(cellcount_tx_status_code)->publish_state(3.0f);  // readback_wait
+
+              auto cc_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+                  id(bms0), esphome::modbus::EntityType::HOLDING, 0x106C, 8,
+                  [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
+                    if (data.size() >= 4) {
+                      const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
+                                          (uint32_t(data[2]) << 8) | uint32_t(data[3]);
+                      id(cell_count)->publish_state(float(v));
+                    }
+                    id(g_cellcount_readback_cellcount_done) = true;
+                  });
+              id(bms0)->queue_command(std::move(cc_cmd));
+
+              auto mask_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+                  id(bms0), esphome::modbus::EntityType::HOLDING, 0x1240, 4,
+                  [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
+                    if (data.size() >= 4) {
+                      const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
+                                          (uint32_t(data[2]) << 8) | uint32_t(data[3]);
+                      id(cell_connected_mask)->publish_state(float(v));
+                    }
+                    id(g_cellcount_readback_mask_done) = true;
+                  });
+              id(bms0)->queue_command(std::move(mask_cmd));
+              return;
+            }
+
+            const bool have_fresh_cells = id(g_last_bms_response_ms) > id(g_cellcount_tx_started_ms);
+            if (id(g_cellcount_readback_cellcount_done) && id(g_cellcount_readback_mask_done) && have_fresh_cells) {
+              id(g_cellcount_tx_pending) = false;
+              id(resolve_topology)->execute();
+              const uint8_t target = id(g_cellcount_tx_target);
+              const float readback_raw = id(cell_count).state;
+              const bool readback_matches = !isnan(readback_raw) && uint8_t(lroundf(readback_raw)) == target;
+              const bool topo_confirmed = id(g_topology_state_code) == 1;
+              const bool effective_matches = id(g_effective_cell_count) == target;
+              if (readback_matches && topo_confirmed && effective_matches) {
+                id(cellcount_tx_status_code)->publish_state(4.0f);  // confirmed
+                ESP_LOGI("jk_topology", "CellCount transaction CONFIRMED (tx_id=%u target=%d)",
+                         unsigned(id(g_cellcount_tx_id)), int(target));
+              } else {
+                id(cellcount_tx_status_code)->publish_state(5.0f);  // mismatch
+                ESP_LOGW("jk_topology",
+                         "CellCount transaction MISMATCH (tx_id=%u target=%d readback=%.0f topology_state=%d effective=%d)",
+                         unsigned(id(g_cellcount_tx_id)), int(target), readback_raw, int(id(g_topology_state_code)),
+                         int(id(g_effective_cell_count)));
+              }
+              return;
+            }
+            if (now - id(g_cellcount_readback_started_ms) > 4000U) {
+              ESP_LOGW("jk_topology", "CellCount readback incomplete after 4s (tx_id=%u cellcount=%d mask=%d fresh_cells=%d) -- WRITE_UNCERTAIN",
+                       unsigned(id(g_cellcount_tx_id)), int(id(g_cellcount_readback_cellcount_done)),
+                       int(id(g_cellcount_readback_mask_done)), int(have_fresh_cells));
+              id(g_cellcount_tx_pending) = false;
+              id(g_topology_uncertain) = true;
+              id(cellcount_tx_status_code)->publish_state(8.0f);  // readback_timeout
+              id(resolve_topology)->execute();
+            }
+            return;
+          }
+
+          // ---- Uncertainty recovery probe — only runs when no
+          // transaction is in flight. A value that merely happens to
+          // match the old one via the ordinary slow poll is not proof of
+          // freshness; only a live round-trip completing here clears
+          // g_topology_uncertain. Retries every 5s, indefinitely, until
+          // it succeeds (a lost ACK/readback is a communication problem,
+          // not something a client-side timeout can wait out once). ----
+          if (!id(g_topology_uncertain)) return;
+
+          if (id(g_topology_recovery_pending)) {
+            if (id(g_topology_recovery_cellcount_done) && id(g_topology_recovery_mask_done)) {
+              id(g_topology_recovery_pending) = false;
+              id(g_topology_uncertain) = false;
+              ESP_LOGI("jk_topology", "Uncertainty recovery probe succeeded -- re-resolving topology");
+              id(resolve_topology)->execute();
+            } else if (now - id(g_topology_recovery_last_ms) > 4000U) {
+              // This probe attempt stalled; fall through to the throttle
+              // below and simply try again.
+              id(g_topology_recovery_pending) = false;
+            }
+            return;
+          }
+
+          if (now - id(g_topology_recovery_last_ms) < 5000U) return;
+          id(g_topology_recovery_last_ms) = now;
+          id(g_topology_recovery_pending) = true;
+          id(g_topology_recovery_cellcount_done) = false;
+          id(g_topology_recovery_mask_done) = false;
+
+          auto rec_cc_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+              id(bms0), esphome::modbus::EntityType::HOLDING, 0x106C, 8,
+              [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
+                if (data.size() >= 4) {
+                  const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
+                                      (uint32_t(data[2]) << 8) | uint32_t(data[3]);
+                  id(cell_count)->publish_state(float(v));
+                }
+                id(g_topology_recovery_cellcount_done) = true;
+              });
+          id(bms0)->queue_command(std::move(rec_cc_cmd));
+
+          auto rec_mask_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+              id(bms0), esphome::modbus::EntityType::HOLDING, 0x1240, 4,
+              [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
+                if (data.size() >= 4) {
+                  const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
+                                      (uint32_t(data[2]) << 8) | uint32_t(data[3]);
+                  id(cell_connected_mask)->publish_state(float(v));
+                }
+                id(g_topology_recovery_mask_done) = true;
+              });
+          id(bms0)->queue_command(std::move(rec_mask_cmd));
+
+  # ---- Generic write transaction servicer (jk_write_tx) — drives EVERY
+  # in-use slot in g_write_tx_slots through ACK_WAIT -> READBACK_WAIT ->
+  # CONFIRMED/MISMATCH/ACK_TIMEOUT/READBACK_TIMEOUT via
+  # jk_write_tx::tick() (pure logic, unit-tested in
+  # test/jk_write_tx/test_jk_write_tx_core.cpp). The ONLY hardware-facing
+  # work here is: issuing the forced one-shot readback the instant tick()
+  # first asks for one, and freeing a terminal slot ~3s later so a later
+  # write to a different register can reuse the capacity. Register count
+  # for the readback is passed as a BYTE count (word_count*2), matching
+  # this BMS's own count convention documented above the 1s cell-block
+  # poll ("JK-PB expects the requested register count in bytes").
+  - interval: 250ms
+    then:
+      - lambda: |-
+          const uint32_t now = millis();
+          bool changed = false;
+          for (size_t i = 0; i < 6; i++) {
+            if (!id(g_wtx_in_use)[i]) continue;
+
+            // Load -> tick() (the one, unit-tested state machine) -> store.
+            jk_write_tx::Slot s;
+            s.in_use = true;
+            s.tx_id = id(g_wtx_tx_id)[i];
+            s.address = id(g_wtx_address)[i];
+            s.word_count = id(g_wtx_word_count)[i];
+            s.requested_raw = id(g_wtx_requested_raw)[i];
+            s.readback_raw = id(g_wtx_readback_raw)[i];
+            s.compare_mask = id(g_wtx_compare_mask)[i];
+            s.status = id(g_wtx_status)[i];
+            s.started_ms = id(g_wtx_started_ms)[i];
+            s.acked = id(g_wtx_acked)[i] != 0;
+            s.readback_started_ms = id(g_wtx_readback_started_ms)[i];
+            s.readback_done = id(g_wtx_readback_done)[i] != 0;
+            s.finished_ms = id(g_wtx_finished_ms)[i];
+
+            const uint8_t prev_status = s.status;
+            const auto result = jk_write_tx::tick(s, now);
+
+            id(g_wtx_status)[i] = s.status;
+            id(g_wtx_readback_started_ms)[i] = s.readback_started_ms;
+            if (s.status != prev_status) changed = true;
+
+            if (result.issue_readback) {
+              const uint16_t addr = s.address;
+              const uint16_t byte_count = uint16_t(s.word_count) * 2U;
+              auto read_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+                  id(bms0), esphome::modbus::EntityType::HOLDING, addr, byte_count,
+                  [i](esphome::modbus::EntityType, uint16_t,
+                      std::span<const uint8_t> data) {
+                    const size_t need = size_t(id(g_wtx_word_count)[i]) * 2;
+                    if (data.size() < need) {
+                      ESP_LOGW("jk_write_tx", "Short readback for tx_id=%u addr=0x%04X (%u/%u bytes)",
+                               unsigned(id(g_wtx_tx_id)[i]), unsigned(id(g_wtx_address)[i]),
+                               unsigned(data.size()), unsigned(need));
+                      return;
+                    }
+                    uint32_t v = 0;
+                    for (size_t b = 0; b < need; b++) v = (v << 8) | uint32_t(data[b]);
+                    id(g_wtx_readback_raw)[i] = v;
+                    id(g_wtx_readback_done)[i] = 1;
+                  });
+              id(bms0)->queue_command(std::move(read_cmd));
+            }
+
+            if (result.terminal) {
+              id(g_wtx_finished_ms)[i] = now;
+              ESP_LOGI("jk_write_tx", "Transaction tx_id=%u addr=0x%04X terminal status=%u (requested=%u readback=%u)",
+                       unsigned(s.tx_id), unsigned(s.address), unsigned(s.status),
+                       unsigned(s.requested_raw), unsigned(id(g_wtx_readback_raw)[i]));
+            }
+
+            const bool still_pending = s.status == jk_write_tx::SENDING || s.status == jk_write_tx::ACK_WAIT ||
+                                        s.status == jk_write_tx::READBACK_WAIT;
+            const uint32_t finished_ms = id(g_wtx_finished_ms)[i];
+            if (!still_pending && finished_ms != 0 && now - finished_ms > 3000U) {
+              id(g_wtx_in_use)[i] = 0;
+              changed = true;
+            }
+          }
+          if (changed) id(publish_write_tx_snapshot)->execute();
+
+      # Setup passcode transaction (see g_passcode_tx_pending's comment,
+      # globals) -- same write -> ACK -> forced-readback shape as the
+      # generic manager above, kept separate only because it's an 8-word
+      # payload; shares this interval's 250ms cadence.
+      - lambda: |-
+          if (!id(g_passcode_tx_pending)) return;
+          const uint32_t now = millis();
+
+          if (!id(g_passcode_write_acked)) {
+            if (now - id(g_passcode_tx_started_ms) > 3000U) {
+              ESP_LOGW("jk_passcode", "Passcode write not acknowledged within 3s -- WRITE_UNCERTAIN");
+              id(g_passcode_tx_pending) = false;
+              id(setup_passcode_tx_status_code)->publish_state(7.0f);  // ack_timeout
+            }
+            return;
+          }
+
+          if (id(g_passcode_readback_started_ms) == 0U) {
+            id(g_passcode_readback_started_ms) = now;
+            id(setup_passcode_tx_status_code)->publish_state(3.0f);  // readback_wait
+            const uint32_t tx_id = id(g_passcode_tx_id);
+            auto read_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+                id(bms0), esphome::modbus::EntityType::HOLDING, 0x1470, 16,
+                [tx_id](esphome::modbus::EntityType, uint16_t,
+                        std::span<const uint8_t> data) {
+                  if (id(g_passcode_tx_id) != tx_id || data.size() < 16) return;
+                  for (size_t i = 0; i < 8; i++) {
+                    id(g_passcode_readback_words)[i] = (uint16_t(data[i * 2]) << 8) | uint16_t(data[i * 2 + 1]);
+                  }
+                  id(g_passcode_readback_done) = true;
+                });
+            id(bms0)->queue_command(std::move(read_cmd));
+            return;
+          }
+
+          if (id(g_passcode_readback_done)) {
+            id(g_passcode_tx_pending) = false;
+            bool matches = true;
+            for (size_t i = 0; i < 8; i++) {
+              if (id(g_passcode_readback_words)[i] != id(g_passcode_expected_words)[i]) { matches = false; break; }
+            }
+            id(setup_passcode_tx_status_code)->publish_state(matches ? 4.0f : 5.0f);  // confirmed / mismatch
+            ESP_LOGI("jk_passcode", "Passcode transaction terminal: %s", matches ? "CONFIRMED" : "MISMATCH");
+            return;
+          }
+
+          if (now - id(g_passcode_readback_started_ms) > 4000U) {
+            ESP_LOGW("jk_passcode", "Passcode readback incomplete after 4s -- WRITE_UNCERTAIN");
+            id(g_passcode_tx_pending) = false;
+            id(setup_passcode_tx_status_code)->publish_state(8.0f);  // readback_timeout
+          }
+
+  - interval: 30s
+    then:
+      - lambda: |-
+          const int idx = id(hist_index);
+          id(hist_voltage)[idx] = id(total_voltage).state;
+          id(hist_current)[idx] = id(current).state;
+          id(hist_power)[idx] = id(power).state;
+          id(hist_balance)[idx] = id(balance_current).state;
+          id(hist_mosfet_temp)[idx] = id(mosfet_temperature).state;
+          id(hist_temp1)[idx] = id(temperature_sensor_1).state;
+          id(hist_temp2)[idx] = id(temperature_sensor_2).state;
+          id(hist_temp4)[idx] = id(temperature_sensor_4).state;
+          id(hist_temp5)[idx] = id(jkbms_bat_temp4).state;
+          id(hist_index) = (idx + 1) % 60;
+          if (id(hist_count) < 60) id(hist_count) = id(hist_count) + 1;
+
+  # The real 60-hour Charge Cycle sampler — see cc_hist_* in globals for
+  # the memory reasoning. This buffer's own stage_code (0-4) is a
+  # deliberate VISUALIZATION-ONLY encoding, distinct from the strict
+  # battery_state/charge_phase split used everywhere else: it reads
+  # charge_phase (bulk/absorption/float/none) for codes 1-3, and layers
+  # in battery_state's "discharging" as code 4 so the chart can still
+  # show discharge periods — a real, previously-validated feature — WITHOUT
+  # a second history byte. That second-byte alternative was costed
+  # (§15 of the directive that requested this pass) at +1 byte/sample x
+  # 3600 samples = +3600 bytes (~3.6KB, before struct padding — these are
+  # four separate arrays, not a packed struct, so no padding applies) for
+  # zero additional information over what this single 5-value byte
+  # already encodes — not worth the RAM for a purely presentational
+  # buffer. Not reclassified here: stage_code is fully determined by
+  # reading charge_phase/charge_status's already-computed state, so there
+  # remains exactly one place that decides what the pack is actually doing.
+  #
+  # code 5 (offline) added for the Charge Cycle timeline rework: still
+  # zero RAM cost (uint8_t already had headroom to 255, this just uses
+  # one more of the values it always could hold) and lets the history
+  # state strip distinguish "communication was down" from "confirmed
+  # neutral" instead of collapsing both into one idle-looking segment.
+  - interval: 60s
+    then:
+      - lambda: |-
+          const int idx = id(cc_hist_index);
+          const float v = id(total_voltage).state;
+          const float a = id(current).state;
+          const float s = id(state_of_charge).state;
+          id(cc_hist_voltage_cv)[idx] = isnan(v) ? INT16_MIN : int16_t(roundf(v * 100.0f));
+          id(cc_hist_current_ca)[idx] = isnan(a) ? INT16_MIN : int16_t(roundf(a * 100.0f));
+          id(cc_hist_soc)[idx] = isnan(s) ? uint8_t(255) : uint8_t(roundf(s));
+          const std::string &status = id(charge_status).state;
+          const std::string &phase = id(charge_phase).state;
+          uint8_t stage_code = 0; // 0 = idle/unrecognized
+          if (status == "offline") stage_code = 5;
+          else if (phase == "bulk") stage_code = 1;
+          else if (phase == "absorption") stage_code = 2;
+          else if (phase == "float") stage_code = 3;
+          else if (status == "discharging") stage_code = 4;
+          id(cc_hist_stage)[idx] = stage_code;
+          id(cc_hist_index) = (idx + 1) % 3600;
+          if (id(cc_hist_count) < 3600) id(cc_hist_count) = id(cc_hist_count) + 1;
+
+# charging, discharging, and balancing binary_sensors made as the template sensors
+# to optimize number of modbus requests
+binary_sensor:
+  - platform: template
+    id: charging
+    name: "charging"
+    lambda: |-
+      return id(charging_raw).state == 1;
+
+  - platform: template
+    id: discharging
+    name: "discharging"
+    lambda: |-
+      return id(discharging_raw).state == 1;
+
+  - platform: template
+    id: balancing
+    name: "balancing"
+    lambda: |-
+      // Separate live BalanStatus from register 0x12A6. Values 1 and 2
+      // indicate active energy transfer in opposite directions; 0 is idle.
+      // This is intentionally independent of the enable switch at 0x1078.
+      if (isnan(id(balancing_raw).state)) return {};
+      return id(balancing_raw).state > 0.0f;
+
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: charging_float_mode
+    name: "charging float mode"
+    address: 0x1114
+    register_type: holding
+    bitmask: 0x0200
+
+sensor:
+  # ESP32 diagnostics exposed to the local web UI.
+  - platform: wifi_signal
+    id: wifi_signal_dbm
+    name: "wifi signal"
+    update_interval: 30s
+
+  - platform: uptime
+    id: system_uptime
+    name: "system uptime"
+    update_interval: 30s
+
+  # V2 — raw seconds since the last validly-decoded BMS response, for the
+  # Diagnostics screen ("last BMS update Xs ago"). bms_health (text_sensor)
+  # is the classified LIVE/DEGRADED/STALE/OFFLINE state derived from the
+  # same timestamp; this is the underlying number.
+  - platform: template
+    id: bms_last_update_age
+    name: "bms last update age"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    update_interval: 2s
+    lambda: |-
+      if (id(g_last_bms_response_ms) == 0) return NAN;
+      return float(millis() - id(g_last_bms_response_ms)) / 1000.0f;
+
+  # 0x1000 0 UINT32 4 RW    VolSmartSleep    mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: smart_sleep
+    name: "smart sleep"
+    address: 0x1000
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x1004 4 UINT32 4 RW    VolCellUV       mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: cell_uvp
+    name: "cell UVP"
+    address: 0x1004
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x1008 8 UINT32 4 RW    VolCellUVPR     mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: cell_uvpr
+    name: "cell UVPR"
+    address: 0x1008
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x100C 12  UINT32 4 RW    VolCellOV        mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: cell_ovp
+    name: "cell OVP"
+    address: 0x100C
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x1010 16  UINT32 4 RW    VolCellOVPR      mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: cell_ovpr
+    name: "cell OVPR"
+    address: 0x1010
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x1014 20  UINT32 4 RW    VolBalanTrig     mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: start_balance_trigger
+    name: "start balance trigger"
+    address: 0x1014
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x1018 24  UINT32 4 RW    VolSOC100%       mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: soc_100
+    name: "sOC-100%"
+    address: 0x1018
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x101C 28  UINT32 4 RW    VolSOC0%         mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: soc_0
+    name: "sOC-0%"
+    address: 0x101C
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x1020 32  UINT32 4 RW    VolCellRCV       mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: cell_request_charge_voltage
+    name: "cell RCV"
+    address: 0x1020
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x1024 36  UINT32 4 RW    VolCellRFV       mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: cell_request_float_voltage
+    name: "cell RFV"
+    address: 0x1024
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x1028 40  UINT32 4 RW    VolSysPwrOff     mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: system_power_off
+    name: "system power off"
+    address: 0x1028
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x102C 44  UINT32 4 RW    CurBatCOC        mA
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: continued_charge_current
+    name: "continued charge current"
+    address: 0x102C
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x1030 48  UINT32 4 RW    TIMBatCOCPDly    S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: charge_ocp_delay
+    name: "charge OCP delay"
+    address: 0x1030
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x1034 52  UINT32 4 RW    TIMBatCOCPRDly   S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: charge_ocpr_time
+    name: "charge OCPR time"
+    address: 0x1034
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x1038 56  UINT32 4 RW    CurBatDcOC       mA
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: continued_discharge_current
+    name: "continued discharge current"
+    address: 0x1038
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x103C 60  UINT32 4 RW    TIMBatDcOCPDly   S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: discharge_ocp_delay
+    name: "discharge OCP delay"
+    address: 0x103C
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x1040 64  UINT32 4 RW    TIMBatDcOCPRDly  S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: discharge_ocpr_time
+    name: "discharge OCPR time"
+    address: 0x1040
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x1044 68  UINT32 4 RW    TIMBatSCPRDly    S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: scpr_time
+    name: "sCPR time"
+    address: 0x1044
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x1048 72  UINT32 4 RW    CurBalanMax      mA
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: max_balance_current
+    name: "max balance current"
+    address: 0x1048
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x104C 76  INT32  4 RW    TMPBatCOT        0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: charge_otp
+    name: "charge OTP"
+    address: 0x104C
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x1050 80  INT32  4 RW    TMPBatCOTPR      0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: charge_otpr
+    name: "charge OTPR"
+    address: 0x1050
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x1054 84  INT32  4 RW    TMPBatDcOT       0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: discharge_otp
+    name: "discharge OTP"
+    address: 0x1054
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x1058 88  INT32  4 RW    TMPBatDcOTPR     0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: discharge_otpr
+    name: "discharge OTPR"
+    address: 0x1058
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x105C 92  INT32  4 RW    TMPBatCUT        0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: charge_utp
+    name: "charge UTP"
+    address: 0x105C
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x1060 96  INT32  4 RW    TMPBatCUTPR      0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: charge_utpr
+    name: "charge UTPR"
+    address: 0x1060
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x1064 100 INT32  4 RW    TMPMosOT         0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: mos_otp
+    name: "mOS OTP"
+    address: 0x1064
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x1068 104 INT32  4 RW    TMPMosOTPR       0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: mos_otpr
+    name: "mOS OTPR"
+    address: 0x1068
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x106C 108 UINT32 4 RW    CellCount
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: cell_count
+    name: "cell count"
+    address: 0x106C
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 8
+    response_size: 8
+    skip_updates: ${bms_control_params_skip_updates}
+    accuracy_decimals: 0
+
+  # 0x107C 124 UINT32 4 RW    CapBatCell       mAH
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: battery_capacity
+    name: "battery capacity"
+    address: 0x107C
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: Ah
+    device_class: energy_storage
+    state_class: measurement
+    accuracy_decimals: 0
+    filters:
+      - multiply: 0.001
+
+  # 0x1080 128 UINT32 4 RW    SCPDelay         us
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: scp_delay
+    name: "sCP delay"
+    address: 0x1080
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "uS"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x1084 132 UINT32 4 RW    VolStartBalan    mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: start_balance
+    name: "start balance"
+    address: 0x1084
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x111C is an undocumented JK-PB packed INT8/INT8 register used by recent
+  # firmware: high byte = heating activation, low byte = heating deactivation.
+  - platform: modbus_controller
+    id: heating_thresholds_raw
+    internal: true
+    modbus_controller_id: bms0
+    address: 0x111C
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    skip_updates: ${bms_control_params_skip_updates}
+    accuracy_decimals: 0
+
+  # 0x14E4 high/low bytes: LCD buzzer source / DRY1 source.
+  - platform: modbus_controller
+    id: lcd_dry1_sources_raw
+    internal: true
+    modbus_controller_id: bms0
+    address: 0x14E4
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    skip_updates: ${bms_control_params_skip_updates}
+    accuracy_decimals: 0
+
+  # 0x14E6 high/low bytes: DRY2 source / protocol-library version.
+  - platform: modbus_controller
+    id: dry2_protocol_raw
+    internal: true
+    modbus_controller_id: bms0
+    address: 0x14E6
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    skip_updates: ${bms_control_params_skip_updates}
+    accuracy_decimals: 0
+
+  - platform: template
+    name: "uart protocol library version"
+    update_interval: 15s
+    accuracy_decimals: 0
+    lambda: |-
+      if (isnan(id(dry2_protocol_raw).state)) return NAN;
+      return float(uint16_t(id(dry2_protocol_raw).state) & 0xFF);
+
+# ----
+
+  # 0x1200    0    UINT16    2    R    CellVol0    mV
+  - platform: template
+    id: cell_voltage_1
+    name: "cell voltage 1"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1202    2    UINT16    2    R    CellVol1    mV
+  - platform: template
+    id: cell_voltage_2
+    name: "cell voltage 2"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1204    4    UINT16    2    R    CellVol2    mV
+  - platform: template
+    id: cell_voltage_3
+    name: "cell voltage 3"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1206    6    UINT16    2    R    CellVol3    mV
+  - platform: template
+    id: cell_voltage_4
+    name: "cell voltage 4"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1208    8    UINT16    2    R    CellVol4    mV
+  - platform: template
+    id: cell_voltage_5
+    name: "cell voltage 5"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x120A   10    UINT16    2    R    CellVol5    mV
+  - platform: template
+    id: cell_voltage_6
+    name: "cell voltage 6"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x120C   12    UINT16    2    R    CellVol6    mV
+  - platform: template
+    id: cell_voltage_7
+    name: "cell voltage 7"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x120E   14    UINT16    2    R    CellVol7    mV
+  - platform: template
+    id: cell_voltage_8
+    name: "cell voltage 8"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # Comment following part if you have 8 cells,
+  # update `register_count` and `response_size` for cell #8 according to the comments
+
+  # 0x1210   16    UINT16    2    R    CellVol8    mV
+  - platform: template
+    id: cell_voltage_9
+    name: "cell voltage 9"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1212   18    UINT16    2    R    CellVol9    mV
+  - platform: template
+    id: cell_voltage_10
+    name: "cell voltage 10"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1214   20    UINT16    2    R    CellVol10    mV
+  - platform: template
+    id: cell_voltage_11
+    name: "cell voltage 11"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1216   22    UINT16    2    R    CellVol11    mV
+  - platform: template
+    id: cell_voltage_12
+    name: "cell voltage 12"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1218   24    UINT16    2    R    CellVol12    mV
+  - platform: template
+    id: cell_voltage_13
+    name: "cell voltage 13"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x121A   26    UINT16    2    R    CellVol13    mV
+  - platform: template
+    id: cell_voltage_14
+    name: "cell voltage 14"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x121C   28    UINT16    2    R    CellVol14    mV
+  - platform: template
+    id: cell_voltage_15
+    name: "cell voltage 15"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x121E   30    UINT16    2    R    CellVol15    mV
+  - platform: template
+    id: cell_voltage_16
+    name: "cell voltage 16"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # Min/max metrics are published by the dedicated 1 Hz gapless cell read.
+  - platform: template
+    id: max_cell_voltage
+    name: "max cell voltage"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    lambda: return id(g_max_cell_v);
+
+  - platform: template
+    id: min_cell_voltage
+    name: "min cell voltage"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    lambda: return id(g_min_cell_v);
+
+  - platform: template
+    id: max_voltage_cell
+    name: "max voltage cell"
+    update_interval: never
+    state_class: measurement
+    accuracy_decimals: 0
+    lambda: |-
+      return id(g_max_cell_idx) == 0 ? NAN : float(id(g_max_cell_idx));
+
+  - platform: template
+    id: min_voltage_cell
+    name: "min voltage cell"
+    update_interval: never
+    state_class: measurement
+    accuracy_decimals: 0
+    lambda: |-
+      return id(g_min_cell_idx) == 0 ? NAN : float(id(g_min_cell_idx));
+
+  # 0x1240   64    UINT32    4    R    CellStatus    (each bit indicates a attached cell)
+  # id added for the Topology Resolver (resolve_topology, in scripts below) —
+  # without an explicit id: this entity has no id(...) lambda accessor, so
+  # nothing else in this file could ever read it.
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: cell_connected_mask
+    name: "cell connected mask"
+    address: 0x1240
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    accuracy_decimals: 0
+
+  # ---- Topology Resolver outputs (resolve_topology script, below) ----
+  # configured_cell_count is just cell_count above (the same RW register) —
+  # not duplicated here. These five are the single source of truth every
+  # other consumer (this file's own aggregates/UI and jk_bms.js) must read
+  # instead of re-deriving topology locally. See resolve_topology's own
+  # comment for the full CONFIRMED/MISMATCH/INVALID/LOADING rules.
+  - platform: template
+    id: connected_cell_count
+    name: "connected cell count"
+    update_interval: never
+    accuracy_decimals: 0
+
+  - platform: template
+    id: measured_cell_count
+    name: "measured cell count"
+    update_interval: never
+    accuracy_decimals: 0
+
+  - platform: template
+    id: active_cells_voltage_sum
+    name: "active cells voltage sum"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # Safe by construction: only resolve_topology ever calls publish_state()
+  # on this sensor, and it only does so with the configured count once
+  # every other cross-check has passed — everywhere else (loading/mismatch/
+  # invalid, or simply "not yet resolved this boot") it publishes the full
+  # 16-channel protocol maximum, exactly like jk_bms.js's own
+  # activeCellCount() fallback. Nothing downstream needs its own guard.
+  - platform: template
+    id: effective_cell_count
+    name: "effective cell count"
+    update_interval: never
+    accuracy_decimals: 0
+
+  # The last count the resolver actually reached CONFIRMED for — mirrors
+  # g_last_confirmed_cell_count. What the UI keeps rendering while
+  # topology_state is PENDING (a write is in flight, outcome unknown yet)
+  # so nothing "partially" jumps to either the old or the requested
+  # topology before a new snapshot is fully confirmed.
+  - platform: template
+    id: last_confirmed_cell_count
+    name: "last confirmed cell count"
+    update_interval: never
+    accuracy_decimals: 0
+
+  # Monotonic — bumped on every resolver publish (including PENDING/
+  # WRITE_UNCERTAIN transaction overrides). Lets a client tell a strictly
+  # newer topology determination apart from a merely-identical-looking one.
+  - platform: template
+    id: topology_revision
+    name: "topology revision"
+    update_interval: never
+    accuracy_decimals: 0
+
+  # Seconds since the resolver last published ANY determination — the
+  # "data_freshness" field of the topology model. A large value means the
+  # resolver itself has stopped running (e.g. cell-poll wedged), which
+  # is a stronger signal than bms_last_update_age alone (that one only
+  # covers the raw Modbus link, not whether resolve_topology is actually
+  # completing its own logic each cycle).
+  - platform: template
+    id: topology_data_freshness
+    name: "topology data freshness"
+    update_interval: 2s
+    unit_of_measurement: "s"
+    accuracy_decimals: 1
+    lambda: |-
+      if (id(g_topology_last_publish_ms) == 0) return NAN;
+      return float(millis() - id(g_topology_last_publish_ms)) * 0.001f;
+
+  # ---- CellCount transaction status (set_cell_count / the 250ms
+  # transaction interval, below) — published so the frontend can
+  # correlate its own in-flight write against the SAME transaction_id
+  # instead of inferring completion from cell_count's value merely
+  # changing (the exact HTTP/SSE race spec §5 requires closing).
+  - platform: template
+    id: cellcount_tx_id
+    name: "cell count transaction id"
+    update_interval: never
+    accuracy_decimals: 0
+
+  # 0=idle 1=sending 2=ack_wait 3=readback_wait 4=confirmed 5=mismatch
+  # 6=write_uncertain 7=ack_timeout 8=readback_timeout
+  - platform: template
+    id: cellcount_tx_status_code
+    name: "cell count transaction status code"
+    update_interval: never
+    accuracy_decimals: 0
+
+  # Same 0-8 status vocabulary as cellcount_tx_status_code and the generic
+  # write_tx_snapshot slots -- see g_passcode_tx_pending's comment
+  # (globals) for why the passcode gets its own small transaction instead
+  # of a jk_write_tx_core.h slot.
+  - platform: template
+    id: setup_passcode_tx_status_code
+    name: "setup passcode transaction status code"
+    update_interval: never
+    accuracy_decimals: 0
+
+  # 0x1244   68    UINT16    2    R    CellVolAverage    mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "average cell voltage"
+    address: 0x1244
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x1246   70    UINT16    2    R    CellVoltageDifferenceMax    mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "delta cell voltage"
+    address: 0x1246
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+
+  # Comment out following part if you don't want monitor wire resistance
+  # Comment out Cells 9-16 if you have only 8 cells
+
+
+  # 0x124A   74    UINT16    2    R    CellWireRes0    mΩ
+  - platform: template
+    id: cell_resistance_1
+    name: "cell 1 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x124C   76    UINT16    2    R    CellWireRes1    mΩ
+  - platform: template
+    id: cell_resistance_2
+    name: "cell 2 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x124E   78    UINT16    2    R    CellWireRes2    mΩ
+  - platform: template
+    id: cell_resistance_3
+    name: "cell 3 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1250   80    UINT16    2    R    CellWireRes3    mΩ
+  - platform: template
+    id: cell_resistance_4
+    name: "cell 4 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1252   82    UINT16    2    R    CellWireRes4    mΩ
+  - platform: template
+    id: cell_resistance_5
+    name: "cell 5 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1254   84    UINT16    2    R    CellWireRes5    mΩ
+  - platform: template
+    id: cell_resistance_6
+    name: "cell 6 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1256   86    UINT16    2    R    CellWireRes6    mΩ
+  - platform: template
+    id: cell_resistance_7
+    name: "cell 7 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1258   88    UINT16    2    R    CellWireRes7    mΩ
+  - platform: template
+    id: cell_resistance_8
+    name: "cell 8 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x125A   90    UINT16    2    R    CellWireRes8    mΩ
+  - platform: template
+    id: cell_resistance_9
+    name: "cell 9 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x125C   92    UINT16    2    R    CellWireRes9    mΩ
+  - platform: template
+    id: cell_resistance_10
+    name: "cell 10 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x125E   94    UINT16    2    R    CellWireRes10   mΩ
+  - platform: template
+    id: cell_resistance_11
+    name: "cell 11 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1260   96    UINT16    2    R    CellWireRes11   mΩ
+  - platform: template
+    id: cell_resistance_12
+    name: "cell 12 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1262   98    UINT16    2    R    CellWireRes12   mΩ
+  - platform: template
+    id: cell_resistance_13
+    name: "cell 13 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1264   100   UINT16    2    R    CellWireRes13   mΩ
+  - platform: template
+    id: cell_resistance_14
+    name: "cell 14 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1266   102   UINT16    2    R    CellWireRes14   mΩ
+  - platform: template
+    id: cell_resistance_15
+    name: "cell 15 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1268   104   UINT16    2    R    CellWireRes15   mΩ
+  - platform: template
+    id: cell_resistance_16
+    name: "cell 16 wire resistance"
+    update_interval: never
+    unit_of_measurement: "Ω"
+    state_class: measurement
+    accuracy_decimals: 3
+
+
+  # 0x128A   138    INT16    2    R    TempMos         0.1 °C
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: mosfet_temperature
+    name: "mosfet temperature"
+    address: 0x128A
+    register_type: holding
+    value_type: S_WORD
+    register_count: 6
+    response_size: 6
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.1
+
+  # 0x1290 BatVol UINT32 mV, 0x1294 BatWatt UINT32 mW,
+  # 0x1298 BatCurrent INT32 mA. One gapless 12-byte response guarantees that
+  # voltage/current/power are from the same Modbus frame.
+  - platform: modbus_controller
+    id: electrical_metrics_scan
+    internal: true
+    modbus_controller_id: bms0
+    address: 0x1290
+    register_type: holding
+    register_count: 12  # JK gap hack: double the real six-register span.
+    response_size: 12   # Real response is three adjacent DWORD values.
+    accuracy_decimals: 3
+    lambda: |-
+      // ESPHome can merge this item with the preceding 0x128A range. Always
+      // decode relative to this item's byte offset inside the merged response.
+      const size_t base = item->offset;
+      if (data.size() < base + 12) {
+        id(g_total_voltage_v) = NAN;
+        id(g_current_a) = NAN;
+        id(g_power_w) = NAN;
+        id(g_charging_power_w) = NAN;
+        id(g_discharging_power_w) = NAN;
+        return NAN;
+      }
+
+      const uint32_t voltage_mv =
+          (uint32_t(data[base]) << 24) | (uint32_t(data[base + 1]) << 16) |
+          (uint32_t(data[base + 2]) << 8) | uint32_t(data[base + 3]);
+      const int32_t current_ma = int32_t(
+          (uint32_t(data[base + 8]) << 24) | (uint32_t(data[base + 9]) << 16) |
+          (uint32_t(data[base + 10]) << 8) | uint32_t(data[base + 11]));
+
+      id(g_total_voltage_v) = voltage_mv * 0.001f;
+      id(g_current_a) = current_ma * 0.001f;
+      id(g_last_current_sample_ms) = millis(); // a genuinely fresh decode just landed — see battery_state's fresh-sample confirmation
+      // ============================================================
+      // SIGN CONVENTION (audited from this exact register, not assumed):
+      // BatCurrent (0x1298, INT32) is read here with no sign inversion —
+      // POSITIVE current = charging (current flowing INTO the pack),
+      // NEGATIVE current = discharging (current flowing OUT of the pack).
+      // Confirmed by this file's own next two lines, which have always
+      // gated on this sign: charging_power is power>0, discharging_power
+      // is -power when power<0. Every other current/power consumer (the
+      // frontend's raw current/power readouts, demo/mock-server.js's
+      // "charging"/"discharging" scenarios) follows this same rule — the
+      // frontend never re-derives charge/discharge state from this sign
+      // itself (it uses the separate `charging`/`discharging` booleans),
+      // so there is no second sign-convention to keep in sync.
+      // ============================================================
+      // Derive every power metric from the same voltage/current sample. This
+      // removes the stale cross-sensor dependency and ignores BatWatt rounding.
+      id(g_power_w) = id(g_total_voltage_v) * id(g_current_a); // P = V x I, same sign as current
+      id(g_charging_power_w) = id(g_power_w) > 0.0f ? id(g_power_w) : 0.0f;
+      id(g_discharging_power_w) = id(g_power_w) < 0.0f ? -id(g_power_w) : 0.0f;
+      return id(g_power_w);
+    on_value:
+      then:
+        - component.update: total_voltage
+        - component.update: current
+        - component.update: power
+        - component.update: charging_power
+        - component.update: discharging_power
+        - component.update: charging_current
+        - component.update: discharging_current
+
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "native bms power"
+    address: 0x1294
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  - platform: template
+    id: total_voltage
+    name: "total voltage"
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 3
+    lambda: return id(g_total_voltage_v);
+
+  - platform: template
+    id: current
+    name: "current"
+    update_interval: never
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    accuracy_decimals: 3
+    lambda: return id(g_current_a);
+
+  - platform: template
+    id: power
+    name: "power"
+    update_interval: never
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 2
+    lambda: return id(g_power_w);
+
+  - platform: template
+    id: charging_power
+    name: "charging power"
+    update_interval: never
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 2
+    lambda: return id(g_charging_power_w);
+
+  - platform: template
+    id: discharging_power
+    name: "discharging power"
+    update_interval: never
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 2
+    lambda: return id(g_discharging_power_w);
+
+  - platform: template
+    id: charging_current
+    name: "charging current"
+    update_interval: never
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    accuracy_decimals: 3
+    lambda: |-
+      return isnan(id(g_current_a)) ? NAN : std::max(id(g_current_a), 0.0f);
+
+  - platform: template
+    id: discharging_current
+    name: "discharging current"
+    update_interval: never
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    accuracy_decimals: 3
+    lambda: |-
+      return isnan(id(g_current_a)) ? NAN : std::max(-id(g_current_a), 0.0f);
+
+  # The documented JK-PB Modbus map does not expose the BLE-only charge-stage
+  # timer. Publish a deterministic local elapsed value from the BMS charging
+  # flag, independent of the installation-specific current sign convention.
+  - platform: template
+    id: charge_status_time_elapsed
+    name: "charge status time elapsed"
+    update_interval: 1s
+    unit_of_measurement: "s"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+    lambda: |-
+      static bool was_charging = false;
+      static uint32_t started_ms = 0;
+      const uint32_t now = millis();
+      const bool charging_flag_active = id(charging).state;
+      if (!charging_flag_active) {
+        was_charging = false;
+        started_ms = now;
+        return 0.0f;
+      }
+      if (!was_charging) {
+        was_charging = true;
+        started_ms = now;
+      }
+      return float(uint32_t(now - started_ms) / 1000U);
+
+  # V2.1 — the REAL per-phase timer (charge_status_time_elapsed above is a
+  # different clock: time since the `charging` output last turned on, which
+  # never resets at a Bulk->Absorption transition). g_charge_phase_started_ms
+  # is set by charge_status's own lambda (further down) at the exact instant
+  # its classified charge_phase changes, so this is genuinely "how long has
+  # the pack been in its CURRENT charge phase" (bulk/absorption/float/none)
+  # — the Charge Cycle graph's own timer, not the whole charging session and
+  # NOT the main operating-state duration (see battery_state_elapsed below).
+  - platform: template
+    id: charge_phase_elapsed
+    name: "charge phase elapsed"
+    update_interval: 1s
+    unit_of_measurement: "s"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+    lambda: |-
+      if (id(g_charge_phase_started_ms) == 0) return 0.0f;
+      return float(uint32_t(millis() - id(g_charge_phase_started_ms)) / 1000U);
+
+  # V2.2 — the PUBLIC/main-status timer: how long the pack has been in its
+  # CURRENT battery_state (idle/charging/discharging/absorption/float/
+  # offline), driven by g_battery_state_started_ms (set by charge_status's
+  # own resolver whenever battery_state itself changes — a separate clock
+  # from charge_phase_elapsed above, since the two concepts now live at
+  # different abstraction levels and only coincide while actively charging).
+  - platform: template
+    id: battery_state_elapsed
+    name: "battery state elapsed"
+    update_interval: 1s
+    unit_of_measurement: "s"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+    lambda: |-
+      if (id(g_battery_state_started_ms) == 0) return 0.0f;
+      return float(uint32_t(millis() - id(g_battery_state_started_ms)) / 1000U);
+
+  # 0x129C   156    INT16    2    R    TempBat 1       0.1 °C
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: temperature_sensor_1
+    name: "temperature sensor 1"
+    address: 0x129C
+    register_type: holding
+    value_type: S_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x129E   158    INT16    2    R    TempBat 2       0.1 °C
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: temperature_sensor_2
+    name: "temperature sensor 2"
+    address: 0x129E
+    register_type: holding
+    value_type: S_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x12A0   160   UINT32    4    R    AlarmBitmask
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: alarms_bitmask
+    name: "alarms bitmask"
+    address: 0x12A0
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 2
+    response_size: 4
+    disabled_by_default: true
+    on_value:
+      - component.update: alarms
+
+  # 0x12A4   164    INT16    2    R    BalanCurrent    mA
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: balance_current
+    name: "balance current"
+    address: 0x12A4
+    register_type: holding
+    value_type: S_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+
+  # 0x12A6   166 UINT8+UINT8 2    R    BalanStatus (2: discharge direction;
+  # 1: charge direction; 0: inactive) in the high byte / SOC % in the low byte.
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: state_of_charge
+    name: "state of charge"
+    address: 0x12A6
+    register_type: holding
+    value_type: U_WORD
+    state_class: measurement
+    device_class: battery
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    bitmask: 0x00FF
+
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: balancing_raw
+    address: 0x12A6
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    disabled_by_default: true
+    # The previous 0x0001 mask inspected bit 0 of the SOC byte and therefore
+    # made the lamp depend on odd/even SOC. Preserve both documented active
+    # direction values by selecting the complete high BalanStatus byte.
+    bitmask: 0xFF00
+
+  # 0x12A8   168    INT32    2    R    SOCCapRemain    mAH
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "capacity remaining"
+    address: 0x12A8
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    state_class: measurement
+    device_class: energy_storage
+    unit_of_measurement: "Ah"
+    accuracy_decimals: 0
+    filters:
+      - multiply: 0.001
+
+  # 0x12AC   172   UINT32    4    R    SOCFullChargeCap    mAH
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "full charge capacity"
+    address: 0x12AC
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    state_class: measurement
+    device_class: energy_storage
+    unit_of_measurement: "Ah"
+    accuracy_decimals: 0
+    filters:
+      - multiply: 0.001
+
+  # 0x12B0   176   UINT32    4    R    SOCCycleCount   次
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "charging cycles"
+    address: 0x12B0
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x12B4   180   UINT32    4    R    SOCCycleCap     mAH
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "total charging cycle capacity"
+    address: 0x12B4
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    state_class: measurement
+    unit_of_measurement: "Ah"
+    accuracy_decimals: 0
+    filters:
+      - multiply: 0.001
+
+  # 0x12B8   184 UINT8+UINT8 2    R    StateOfHealth % / Precharge stats (1:打开 ; 0:关闭)
+  # Genuine native protocol field (matches the JK-PB register table, same
+  # packed-byte shape as charging_raw/discharging_raw at 0x12C0 below) —
+  # not derived/computed. register_count/response_size corrected to the
+  # register's real 2-byte width (was 4, copy-pasted from the neighboring
+  # UINT32 SOCCycleCap entry above; byte 0 was still read correctly either
+  # way, this just stops requesting 2 unrelated bytes past the register).
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "state of health"
+    address: 0x12B8
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    state_class: measurement
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    lambda: |-
+      return data[item->offset];
+
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "precharge status"
+    address: 0x12B8
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    accuracy_decimals: 0
+    lambda: |-
+      return data[item->offset + 1];
+
+  # 0x12BA   186   UINT16    2    R    UserAlarm
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "custom alarm 1"
+    address: 0x12BA
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    accuracy_decimals: 0
+
+  # 0x12BC   188   UINT32    4    R    RunTime         S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "total runtime in seconds"
+    address: 0x12BC
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+    id: total_runtime
+
+  # 0x12C0   192 UINT8+UINT8 Charge (1:打开 ; 0:关闭) / Discharge (1:打开 ; 0:关闭)
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: charging_raw
+    address: 0x12C0
+    register_type: holding
+    value_type: U_WORD
+    disabled_by_default: true
+    bitmask: 0xFF00
+
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: discharging_raw
+    address: 0x12C0
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    disabled_by_default: true
+    bitmask: 0x00FF
+
+  # 0x12C2   194   UINT16    2    R    UserAlarm2
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "custom alarm 2"
+    address: 0x12C2
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    accuracy_decimals: 0
+
+  # 0x12C4   196   UINT16    2    R    TimeDcOCPR      S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "disacharge OCPR left"
+    address: 0x12C4
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x12C6   198   UINT16    2    R    TimeDcSCPR      S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "disacharge SCPR left"
+    address: 0x12C6
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x12C8   200   UINT16    2    R    TimeCOCPR       S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "charge OCPR left"
+    address: 0x12C8
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x12CA   202   UINT16    2    R    TimeCSCPR       S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "charge SCPR left"
+    address: 0x12CA
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x12CC   204   UINT16    2    R    TimeUVPR        S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "uVPR left"
+    address: 0x12CC
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x12CE   206   UINT16    2    R    TimeOVPR        S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "oVPR left"
+    address: 0x12CE
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "S"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+
+  # 0x12D0   208 UINT8+UINT8 2    R    AbsentBitmask (Bit0: MOS TempSensorAbsent, Bit1: BATTempSensor1Absent, Bit2: BATTempSensor2Absent, Bit4: BATTempSensor4Absent, Bit5: BATTempSensor5Absent) / Heating
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "sensor heating mask"
+    address: 0x12D0
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    accuracy_decimals: 0
+
+  # 0x12D2   210   UINT16    2    R    Reserved
+  # 0x12D4   212   UINT16    2    R    TimeEmergency   S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "emergency timer"
+    address: 0x12D4
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "s"
+    device_class: duration
+    accuracy_decimals: 0
+
+  # 0x12D6   214   UINT16    2    R    BatCurCorrect
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "battery current correction"
+    address: 0x12D6
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    accuracy_decimals: 0
+
+  # 0x12D8   216   UINT16    2    R    VolChargCur     mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "charge current measurement voltage"
+    address: 0x12D8
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+
+  # 0x12DA   218   UINT16    2    R    VolDischargCur  mV
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "discharge current measurement voltage"
+    address: 0x12DA
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "mV"
+    accuracy_decimals: 0
+
+  # 0x12DC   214   FLOAT     4    R    BatVolCorrect
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "battery voltage correction"
+    address: 0x12DC
+    register_type: holding
+    value_type: FP32
+    register_count: 4
+    response_size: 4
+    accuracy_decimals: 6
+
+  # 0x12E4   228   UINT16    2    R    BatVol          0.01V
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "alternate battery voltage"
+    address: 0x12E4
+    register_type: holding
+    value_type: U_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+
+  # 0x12E6   230   INT16     2    R    HeatCurrent     mA
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "heating current"
+    address: 0x12E6
+    register_type: holding
+    value_type: S_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # 0x12F0   240   UINT32    4    R    SysRunTicks     0.1S
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "bms system ticks"
+    address: 0x12F0
+    register_type: holding
+    value_type: U_DWORD
+    register_count: 4
+    response_size: 4
+    unit_of_measurement: "s"
+    device_class: duration
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x12F8   248   INT16     2    R    TempBat 3       0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    name: "temperature sensor 3"
+    address: 0x12F8
+    register_type: holding
+    value_type: S_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x12FA   248   INT16     2    R    TempBat 4       0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: temperature_sensor_4
+    name: "temperature sensor 4"
+    address: 0x12FA
+    register_type: holding
+    value_type: S_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  # 0x12FC   248   INT16     2    R    TempBat 5       0.1℃
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: jkbms_bat_temp4
+    name: "temperature sensor 5"
+    address: 0x12FC
+    register_type: holding
+    value_type: S_WORD
+    register_count: 2
+    response_size: 2
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+# ----
+
+  # 0x1504   260 UINT8+UINT8 2    RW    RCV Time / RFV Time 0.1 H
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: rcv_time
+    name: "rCV Time"
+    address: 0x1504
+    register_type: holding
+    value_type: U_WORD
+    register_count: 1
+    response_size: 1
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "H"
+    device_class: duration
+    state_class: measurement
+    bitmask: 0xFF
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: rfv_time
+    name: "rFV Time"
+    address: 0x1504
+    register_type: holding
+    value_type: U_WORD
+    register_count: 1
+    response_size: 1
+    skip_updates: ${bms_control_params_skip_updates}
+    unit_of_measurement: "H"
+    device_class: duration
+    state_class: measurement
+    bitmask: 0xFF00
+    filters:
+      - multiply: 0.1
+
+  # Raw DRY values keep the JK-PB byte-addressed read geometry. Public RW
+  # entities below are template numbers, avoiding version-specific Number schema.
+  - platform: modbus_controller
+    id: dry_contact_1_trigger_value_raw
+    internal: true
+    modbus_controller_id: bms0
+    address: 0x14F0
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+
+  - platform: modbus_controller
+    id: dry_contact_1_recovery_value_raw
+    internal: true
+    modbus_controller_id: bms0
+    address: 0x14F4
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+
+  - platform: modbus_controller
+    id: dry_contact_2_trigger_value_raw
+    internal: true
+    modbus_controller_id: bms0
+    address: 0x14F8
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+
+  - platform: modbus_controller
+    id: dry_contact_2_recovery_value_raw
+    internal: true
+    modbus_controller_id: bms0
+    address: 0x14FC
+    register_type: holding
+    value_type: S_DWORD
+    register_count: 4
+    response_size: 4
+    skip_updates: ${bms_control_params_skip_updates}
+
+  # Moved here from text_sensor: (config-validation fix, pre-existing bug
+  # found while auditing for the auth/history work — these two return
+  # numeric durations via their lambdas and use sensor-only schema keys
+  # unit_of_measurement/device_class/state_class/accuracy_decimals, which
+  # text_sensor.template does not accept; esphome config rejected them
+  # under text_sensor with exactly that error).
+  - platform: template
+    id: battery_state_candidate_age
+    name: "battery state candidate age"
+    unit_of_measurement: "s"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      if (id(g_candidate_since_ms_g) == 0) return 0.0f;
+      return float(uint32_t(millis() - id(g_candidate_since_ms_g)) / 1000U);
+
+  - platform: template
+    id: current_sample_age
+    name: "current sample age"
+    unit_of_measurement: "s"
+    device_class: duration
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 2s
+    lambda: |-
+      if (id(g_last_current_sample_ms) == 0) return NAN;
+      return float(millis() - id(g_last_current_sample_ms)) / 1000.0f;
+
+  # Also moved here from text_sensor: (same config-validation fix as
+  # above — numeric value/schema keys, not a text_sensor).
+  - platform: template
+    id: battery_state_candidate_samples
+    name: "battery state candidate fresh samples"
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      return id(g_candidate_fresh_samples_g);
+
+  - platform: template
+    id: idle_current_noise_min
+    name: "idle current noise min"
+    unit_of_measurement: "A"
+    accuracy_decimals: 3
+    update_interval: 5s
+    lambda: |-
+      static float rolling_min = NAN;
+      const float amps = id(current).state;
+      const bool near_idle = !isnan(amps) && fabsf(amps) < 0.5f; // mirrors CURRENT_ENTER_A
+      if (id(g_current_direction_code) != 0) { rolling_min = NAN; return NAN; } // a real charge/discharge is confirmed — window not meaningful right now
+      if (near_idle) rolling_min = isnan(rolling_min) ? amps : std::min(rolling_min, amps);
+      return rolling_min;
+
+  - platform: template
+    id: idle_current_noise_max
+    name: "idle current noise max"
+    unit_of_measurement: "A"
+    accuracy_decimals: 3
+    update_interval: 5s
+    lambda: |-
+      static float rolling_max = NAN;
+      const float amps = id(current).state;
+      const bool near_idle = !isnan(amps) && fabsf(amps) < 0.5f;
+      if (id(g_current_direction_code) != 0) { rolling_max = NAN; return NAN; }
+      if (near_idle) rolling_max = isnan(rolling_max) ? amps : std::max(rolling_max, amps);
+      return rolling_max;
+
+  # Hidden raw readback source for the charging/discharging/balancing
+  # template selects (below) -- converting them from platform:
+  # modbus_controller to platform: template (to get a custom set_action
+  # that routes through the generic Write Transaction Manager) loses
+  # modbus_controller select's OWN built-in polling, so each needs an
+  # explicit sensor of its own, exactly like set_cell_count depends on
+  # the separate `cell_count` sensor. skip_updates matches the selects'
+  # former polling cadence (5 x 15s modbus_controller_update_interval).
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: charging_control_raw
+    internal: true
+    address: 0x1070
+    register_type: holding
+    value_type: U_DWORD
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: discharging_control_raw
+    internal: true
+    address: 0x1074
+    register_type: holding
+    value_type: U_DWORD
+    skip_updates: 5
+
+  - platform: modbus_controller
+    modbus_controller_id: bms0
+    id: balancing_control_raw
+    internal: true
+    address: 0x1078
+    register_type: holding
+    value_type: U_DWORD
+    skip_updates: 5
+
+script:
+  # Rebuilds and republishes the atomic JSON transaction snapshot
+  # (write_tx_snapshot, text_sensor above) from the current slot array.
+  # Called after begin_write_tx (so PENDING is visible before the write
+  # goes out) and after every state change the 250ms servicer interval
+  # below makes.
+  - id: publish_write_tx_snapshot
+    then:
+      - lambda: |-
+          std::string out = "[";
+          bool first = true;
+          char buf[160];
+          for (size_t i = 0; i < 6; i++) {
+            if (!id(g_wtx_in_use)[i]) continue;
+            if (!first) out += ",";
+            first = false;
+            if (id(g_wtx_suppress_value)[i]) {
+              snprintf(buf, sizeof(buf), "{\"addr\":%u,\"tx_id\":%u,\"status\":%u}",
+                       unsigned(id(g_wtx_address)[i]), unsigned(id(g_wtx_tx_id)[i]), unsigned(id(g_wtx_status)[i]));
+            } else {
+              snprintf(buf, sizeof(buf), "{\"addr\":%u,\"tx_id\":%u,\"status\":%u,\"req\":%u,\"rb\":%u}",
+                       unsigned(id(g_wtx_address)[i]), unsigned(id(g_wtx_tx_id)[i]), unsigned(id(g_wtx_status)[i]),
+                       unsigned(id(g_wtx_requested_raw)[i]), unsigned(id(g_wtx_readback_raw)[i]));
+            }
+            out += buf;
+          }
+          out += "]";
+          id(write_tx_snapshot)->publish_state(out);
+
+  # Generic Write Transaction Manager entry point (spec §4.1) — used by
+  # EVERY RW register except CellCount (which keeps its own bespoke
+  # topology-aware driver above/below). Starts a tracked transaction
+  # (jk_write_tx::begin) and immediately queues the actual Modbus write
+  # with a real on_data_func ACK handler — never assumes success from a
+  # fixed delay. word_count is 1 for a plain 16-bit register, 2 for a
+  # packed 32-bit pair; mask is -1 (all bits, i.e. 0xFFFFFFFF once
+  # reinterpreted unsigned) for a whole-register compare, or the specific
+  # bits for a packed sub-field (e.g. 0xFF00 for a register's high byte)
+  # so the readback comparison never flags the untouched sibling field as
+  # a mismatch. A write that arrives while a transaction for the SAME
+  # address is already in flight, or while every slot is busy, is
+  # REJECTED outright (nothing queued, nothing silently dropped later).
+  - id: begin_write_tx
+    parameters:
+      address: int
+      word_count: int
+      raw: int
+      mask: int
+      suppress: int
+    then:
+      - lambda: |-
+          // Marshal the parallel-array storage (see the globals: comment
+          // above g_wtx_in_use for why it isn't a single struct global)
+          // into a local jk_write_tx::Slot array so the actual
+          // single-flight/allocation LOGIC still runs through the one,
+          // unit-tested jk_write_tx::begin() implementation.
+          std::array<jk_write_tx::Slot, 6> local;
+          for (size_t i = 0; i < 6; i++) {
+            local[i].in_use = id(g_wtx_in_use)[i] != 0;
+            local[i].address = id(g_wtx_address)[i];
+          }
+          uint32_t next_id = id(g_write_tx_next_id);
+          const uint16_t addr = uint16_t(address);
+          const int idx = jk_write_tx::begin(local, next_id, addr, uint8_t(word_count),
+                                              uint32_t(raw), uint32_t(mask), millis(), suppress != 0);
+          id(g_write_tx_next_id) = next_id;
+          if (idx < 0) {
+            ESP_LOGW("jk_write_tx", "Write to 0x%04X rejected -- a transaction for this register "
+                     "is already in flight, or every transaction slot is busy", unsigned(addr));
+            return;
+          }
+          const auto &s = local[idx];
+          id(g_wtx_in_use)[idx] = 1;
+          id(g_wtx_tx_id)[idx] = s.tx_id;
+          id(g_wtx_address)[idx] = s.address;
+          id(g_wtx_word_count)[idx] = s.word_count;
+          id(g_wtx_requested_raw)[idx] = s.requested_raw;
+          id(g_wtx_readback_raw)[idx] = 0;
+          id(g_wtx_compare_mask)[idx] = s.compare_mask;
+          id(g_wtx_status)[idx] = s.status;
+          id(g_wtx_started_ms)[idx] = s.started_ms;
+          id(g_wtx_acked)[idx] = 0;
+          id(g_wtx_readback_started_ms)[idx] = 0;
+          id(g_wtx_readback_done)[idx] = 0;
+          id(g_wtx_finished_ms)[idx] = 0;
+          id(g_wtx_suppress_value)[idx] = uint8_t(s.suppress_value ? 1 : 0);
+
+          std::vector<uint16_t> words;
+          if (word_count >= 2) words = {uint16_t(uint32_t(raw) >> 16), uint16_t(uint32_t(raw) & 0xFFFFU)};
+          else words = {uint16_t(raw)};
+          auto command = esphome::modbus_controller::ModbusCommandItem::create_write_multiple_command(
+              id(bms0), addr, words.size(), words);
+          command.on_data_func = [idx](esphome::modbus::EntityType, uint16_t,
+                                        std::span<const uint8_t>) {
+            id(g_wtx_acked)[idx] = 1;
+          };
+          id(bms0)->queue_command(std::move(command));
+          id(publish_write_tx_snapshot)->execute();
+
+  # Shared Modbus write path for numeric RW registers exposed on the
+  # Configuration page — routes through the generic Write Transaction
+  # Manager above (full-register compare, mask=-1 i.e. all bits) instead
+  # of the old fire-and-forget queue_command-and-hope. Every UI write now
+  # gets a real ACK + forced readback before it is ever reported CONFIRMED.
+  - id: write_bms_u32
+    parameters:
+      address: int
+      raw: int
+    then:
+      - script.execute: {id: begin_write_tx, address: !lambda "return address;", word_count: 2, raw: !lambda "return raw;", mask: -1, suppress: 0}
+
+  - id: write_bms_u16
+    parameters:
+      address: int
+      raw: int
+    then:
+      - script.execute: {id: begin_write_tx, address: !lambda "return address;", word_count: 1, raw: !lambda "return raw;", mask: -1, suppress: 0}
+
+  # ---- Topology Resolver — the single source of truth for whether
+  # CellCount (BMS *configuration*) can be trusted as the pack's actual
+  # *physical* topology. Called after every 1s cell-block decode (below),
+  # after a CellCount write's forced readback lands, and after the
+  # uncertainty-recovery probe succeeds (250ms transaction interval,
+  # below) — so it continuously self-heals (covers a reboot mid-mismatch
+  # too) rather than only re-evaluating on a write.
+  #
+  # Inputs: cell_count (configured), cell_connected_mask (CellStatus, low
+  # 16 bits), cell_voltage_1..16 (already-decoded, from the cell-block
+  # poll), total_voltage (BMS's own direct pack measurement — NEVER
+  # replaced by a derived sum). Rules, in priority order:
+  #   LOADING          — no complete snapshot yet since boot.
+  #   WRITE_UNCERTAIN  — g_topology_uncertain is set (a CellCount write's
+  #                      ACK or readback was lost) and hasn't been cleared
+  #                      by a fresh, independently-verified re-read yet —
+  #                      overrides everything below; the old CONFIRMED
+  #                      snapshot is never reported as still trustworthy.
+  #   OFFLINE          — BMS communication itself has gone stale (>30s
+  #                      since the last valid cell-block decode) — a mask/
+  #                      count snapshot this old cannot be asserted CONFIRMED.
+  #   INVALID          — configured count outside 1..MAX_CELL_CHANNELS, OR
+  #                      zero connected channels, OR zero channels WITHIN
+  #                      THE CONFIGURED ACTIVE RANGE report a plausible
+  #                      voltage. Data is nonsensical, not just
+  #                      inconsistent with configuration.
+  #   MISMATCH         — the connected mask is not *exactly* the expected
+  #                      contiguous "first N bits set" pattern (checking
+  #                      popcount alone is NOT sufficient — a scattered
+  #                      mask with the right bit COUNT but wrong
+  #                      POSITIONS must still fail), OR a channel inside
+  #                      the configured range lacks a plausible voltage,
+  #                      OR the BMS's direct pack-voltage measurement
+  #                      doesn't match the sum of the active cell voltages
+  #                      within a reasonable tolerance (max(0.5V, 1.5% of
+  #                      pack voltage) — generous enough for real ADC-chain
+  #                      differences between the pack-level and per-cell-
+  #                      tap measurements, tight enough to catch a genuine
+  #                      8S/16S mix-up outright). Channels AT OR BEYOND the
+  #                      configured range are never examined for
+  #                      plausibility at all (measured_count is published
+  #                      purely as a diagnostic) — see the loop below for
+  #                      why gating on them would deadlock CONFIRMED.
+  #   CONFIRMED        — none of the above; effective_cell_count becomes
+  #                      the configured count, last_confirmed_cell_count
+  #                      is updated, and channels beyond it are blanked to
+  #                      NaN so no stale/foreign reading can linger
+  #                      anywhere in the UI (raw registers included).
+  # Every branch publishes the real diagnostic numbers (connected/measured
+  # count, active-cell voltage sum) — mismatch/invalid/offline/uncertain
+  # never hide physical data, only effective_cell_count (safely 16, the
+  # full transport range) and the blanking above are gated on CONFIRMED.
+  - id: resolve_topology
+    then:
+      - lambda: |-
+          static const char *const REASON_NAMES[12] = {
+            "OK", "AWAITING_SNAPSHOT", "COUNT_OUT_OF_RANGE", "NO_CONNECTED_CELLS",
+            "NO_VALID_VOLTAGE", "MASK_COUNT_DIFFERS", "VOLTAGE_COUNT_DIFFERS",
+            "ACTIVE_RANGE_GAP", "VOLTAGE_SUM_DIFFERS", "MASK_NOT_CONTIGUOUS",
+            "BMS_OFFLINE", "WRITE_UNCERTAIN"
+          };
+          static const char *const STATE_NAMES[7] = {
+            "LOADING", "CONFIRMED", "MISMATCH", "INVALID",
+            "WRITE_UNCERTAIN", "OFFLINE", "PENDING"
+          };
+
+          // publish() is the ONLY place that touches the published
+          // sensors/globals below, so every early-return branch (LOADING,
+          // WRITE_UNCERTAIN, OFFLINE, INVALID) goes through the exact same
+          // bookkeeping (revision bump, freshness timestamp, diagnostic
+          // numbers when available) as the full CONFIRMED/MISMATCH path.
+          auto publish = [](uint8_t state_code, uint8_t reason, uint8_t effective,
+                             float connected_count, float measured_count, float active_sum) {
+            id(g_topology_state_code) = state_code;
+            id(g_topology_reason_code) = reason;
+            id(g_effective_cell_count) = effective;
+            id(g_topology_revision) += 1;
+            id(g_topology_last_publish_ms) = millis();
+            id(effective_cell_count)->publish_state(float(effective));
+            id(last_confirmed_cell_count)->publish_state(float(id(g_last_confirmed_cell_count)));
+            id(topology_revision)->publish_state(float(id(g_topology_revision)));
+            id(topology_state)->publish_state(std::string(STATE_NAMES[state_code]));
+            id(topology_reason)->publish_state(std::string(REASON_NAMES[reason]));
+            if (!isnan(connected_count)) id(connected_cell_count)->publish_state(connected_count);
+            if (!isnan(measured_count)) id(measured_cell_count)->publish_state(measured_count);
+            if (!isnan(active_sum)) id(active_cells_voltage_sum)->publish_state(active_sum);
+          };
+
+          // ---- WRITE_UNCERTAIN: overrides everything else until the
+          // recovery probe (250ms interval) clears it with a genuinely
+          // fresh, independently re-read snapshot. ----
+          if (id(g_topology_uncertain)) {
+            publish(4, 11, 16, NAN, NAN, NAN);
+            return;
+          }
+
+          const bool have_cell_data = id(g_last_bms_response_ms) != 0;
+          if (!have_cell_data) {
+            publish(0, 1, 16, NAN, NAN, NAN);
+            return;
+          }
+
+          // ---- OFFLINE: BMS communication itself is stale. Mirrors
+          // bms_health's own OFFLINE threshold (30s) for consistency —
+          // a mask/count snapshot this old cannot be asserted CONFIRMED. ----
+          const uint32_t comm_elapsed_ms = millis() - id(g_last_bms_response_ms);
+          if (comm_elapsed_ms > 30000U) {
+            publish(5, 10, 16, NAN, NAN, NAN);
+            return;
+          }
+
+          const float configured_f = id(cell_count).state;
+          const float mask_f = id(cell_connected_mask).state;
+          if (isnan(configured_f) || isnan(mask_f)) {
+            publish(0, 1, 16, NAN, NAN, NAN);
+            return;
+          }
+
+          const int32_t configured_raw = int32_t(lroundf(configured_f));
+          // MAX_CELL_CHANNELS = 16: the JK-PB protocol's own physical
+          // ceiling (CellCount register 0x106C is documented RW 1..16;
+          // the cell-block read at 0x1200 always spans exactly 16
+          // channels regardless of configuration) — the transport
+          // maximum, never an assumed/default ACTIVE count. The active
+          // count is configured_raw, cross-checked below; it is never
+          // hardcoded.
+          const uint8_t MAX_CELL_CHANNELS = 16;
+          const bool count_in_range = configured_raw >= 1 && configured_raw <= int32_t(MAX_CELL_CHANNELS);
+          if (!count_in_range) {
+            publish(3, 2, MAX_CELL_CHANNELS, NAN, NAN, NAN);
+            return;
+          }
+          const uint8_t configured = uint8_t(configured_raw);
+
+          const uint32_t mask = uint32_t(mask_f) & 0xFFFFU;
+          // The ONE exact mask this configuration can ever legitimately
+          // produce: the first `configured` bits set, nothing else — a
+          // gap, an extra high bit, or a right POPCOUNT in the wrong
+          // POSITIONS all fail this, which a popcount-only check would miss.
+          const uint32_t expected_mask = (uint32_t(1) << configured) - 1U;
+          const bool mask_exact = mask == expected_mask;
+
+          uint8_t connected_count = 0;
+          for (uint8_t i = 0; i < 16; i++) if (mask & (1U << i)) connected_count++;
+          if (connected_count == 0) {
+            publish(3, 3, MAX_CELL_CHANNELS, 0.0f, NAN, NAN);
+            return;
+          }
+
+          esphome::sensor::Sensor *const voltage_sensors[16] = {
+            id(cell_voltage_1),  id(cell_voltage_2),  id(cell_voltage_3),  id(cell_voltage_4),
+            id(cell_voltage_5),  id(cell_voltage_6),  id(cell_voltage_7),  id(cell_voltage_8),
+            id(cell_voltage_9),  id(cell_voltage_10), id(cell_voltage_11), id(cell_voltage_12),
+            id(cell_voltage_13), id(cell_voltage_14), id(cell_voltage_15), id(cell_voltage_16)
+          };
+
+          // measured_count is a DIAGNOSTIC over all 16 physical channels —
+          // published for the operator to see, but deliberately NOT a
+          // CONFIRMED gate: whether a channel beyond `configured` happens
+          // to still report a plausible (possibly stale) voltage is a BMS
+          // firmware implementation detail this resolver has no verified
+          // way to depend on, and gating on it would create a genuine
+          // chicken-and-egg deadlock — the ONLY place a channel beyond
+          // `configured` gets blanked to NaN is the CONFIRMED branch
+          // below, so requiring it to ALREADY read as implausible before
+          // CONFIRMED can ever be reached would make a cell-count
+          // reduction permanently unconfirmable on any BMS that holds the
+          // last real reading on now-unused channels rather than zeroing
+          // them. Spec: "для кожного неактивної комірки значення не
+          // використовуються" — inactive-channel values are excluded from
+          // the determination entirely, not required to look a certain way.
+          uint8_t measured_count = 0;
+          uint8_t active_measured_count = 0;
+          bool active_range_gap = false;
+          float active_sum = 0.0f;
+          for (uint8_t i = 0; i < 16; i++) {
+            const float v = voltage_sensors[i]->state;
+            // isfinite() explicitly rejects NaN AND +/-infinity, not just
+            // the range check below (which would already exclude both,
+            // but this makes the exclusion an explicit, named intent
+            // rather than an accident of the bounds chosen).
+            const bool plausible = std::isfinite(v) && v > 0.5f && v < 10.0f;
+            if (plausible) measured_count++;
+            if (i < configured) {
+              if (plausible) { active_sum += v; active_measured_count++; } else active_range_gap = true;
+            }
+          }
+          if (active_measured_count == 0) {
+            publish(3, 4, MAX_CELL_CHANNELS, float(connected_count), float(measured_count), NAN);
+            return;
+          }
+
+          uint8_t state_code = 1;  // CONFIRMED, optimistically
+          uint8_t reason = 0;      // OK
+          if (!mask_exact) {
+            state_code = 2;
+            reason = (connected_count != configured) ? 5 : 9;  // MASK_COUNT_DIFFERS vs MASK_NOT_CONTIGUOUS
+          } else if (active_range_gap) { state_code = 2; reason = 7; }
+          else {
+            const float raw_pack_v = id(total_voltage).state;
+            const float tolerance = std::max(0.5f, fabsf(raw_pack_v) * 0.015f);
+            if (!std::isfinite(raw_pack_v) || fabsf(raw_pack_v - active_sum) > tolerance) { state_code = 2; reason = 8; }
+          }
+
+          const uint8_t effective = state_code == 1 ? configured : MAX_CELL_CHANNELS;
+          if (state_code == 1) id(g_last_confirmed_cell_count) = configured;
+          publish(state_code, reason, effective, float(connected_count), float(measured_count), active_sum);
+
+          if (state_code == 1) {
+            esphome::sensor::Sensor *const resistance_sensors[16] = {
+              id(cell_resistance_1),  id(cell_resistance_2),  id(cell_resistance_3),  id(cell_resistance_4),
+              id(cell_resistance_5),  id(cell_resistance_6),  id(cell_resistance_7),  id(cell_resistance_8),
+              id(cell_resistance_9),  id(cell_resistance_10), id(cell_resistance_11), id(cell_resistance_12),
+              id(cell_resistance_13), id(cell_resistance_14), id(cell_resistance_15), id(cell_resistance_16)
+            };
+            for (uint8_t i = configured; i < 16; i++) {
+              voltage_sensors[i]->publish_state(NAN);
+              resistance_sensors[i]->publish_state(NAN);
+            }
+          }
+
+number:
+  # RW mirrors for the configuration registers above. These are separate
+  # Number entities so ESPHome web_server provides a safe /number/.../set
+  # endpoint; the original Sensor entity remains the authoritative readback.
+  - platform: template
+    id: set_rcv_time
+    name: "set rcv time"
+    min_value: 0
+    max_value: 25.5
+    step: 0.1
+    lambda: return id(rcv_time).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u16
+          address: 0x1504
+          raw: !lambda "return (int(lroundf(id(rfv_time).state * 10.0f)) << 8) | int(lroundf(x * 10.0f));"
+
+  - platform: template
+    id: set_rfv_time
+    name: "set rfv time"
+    min_value: 0
+    max_value: 25.5
+    step: 0.1
+    lambda: return id(rfv_time).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u16
+          address: 0x1504
+          raw: !lambda "return (int(lroundf(x * 10.0f)) << 8) | int(lroundf(id(rcv_time).state * 10.0f));"
+
+  - platform: template
+    id: lcd_buzzer_trigger_source
+    name: "lcd buzzer trigger"
+    min_value: 0
+    max_value: 255
+    step: 1
+    lambda: |-
+      if (isnan(id(lcd_dry1_sources_raw).state)) return NAN;
+      return float((uint16_t(id(lcd_dry1_sources_raw).state) >> 8) & 0xFF);
+    set_action:
+      - script.execute:
+          id: write_bms_u16
+          address: 0x14E4
+          raw: !lambda "return (int(x) << 8) | (int(id(lcd_dry1_sources_raw).state) & 0xFF);"
+
+  # CellCount is the one write in this file that changes which channels
+  # every other consumer trusts as real (see resolve_topology and
+  # jk_bms.js's activeCellCount()), so unlike every other RW register here
+  # it does NOT go through the shared write_bms_u32 script / a fixed delay
+  # / component.update (component.update on a modbus_controller sensor is a
+  # no-op — ModbusSensor never overrides Component::update() — so that
+  # never actually re-read anything; the register only refreshed on its
+  # normal ~5-minute control-params poll, skip_updates: 20 at 15s). This
+  # entity instead runs a real write -> ACK -> forced readback -> resolver
+  # transaction: set_action only fires the write and arms the state
+  # machine; the 250ms interval below (jk_topology tag) drives it to
+  # completion and is the only place that ever calls resolve_topology for
+  # a CellCount change. See that interval's own comment for the full
+  # sequence and every timeout.
+  - platform: template
+    id: set_cell_count
+    name: "set cell count"
+    min_value: 1
+    max_value: 16
+    step: 1
+    lambda: return id(cell_count).state;
+    set_action:
+      - lambda: |-
+          if (id(g_cellcount_tx_pending)) {
+            ESP_LOGW("jk_topology", "CellCount write already in progress, ignoring new request");
+            return;
+          }
+          const int requested = int(lroundf(x));
+          if (requested < 1 || requested > 16) return;
+          id(g_cellcount_tx_pending) = true;
+          id(g_cellcount_tx_id) += 1;
+          id(g_cellcount_tx_target) = uint8_t(requested);
+          id(g_cellcount_tx_started_ms) = millis();
+          id(g_cellcount_write_acked) = false;
+          id(g_cellcount_readback_started_ms) = 0;
+          id(g_cellcount_readback_cellcount_done) = false;
+          id(g_cellcount_readback_mask_done) = false;
+
+          // Publish the transaction correlation id + PENDING topology
+          // state BEFORE the write goes out, so a client that starts
+          // watching right after its own POST resolves never has a
+          // window where topology_state still looks like the OLD
+          // terminal state (spec §5: the watcher must be armed before/at
+          // POST time, not racing a leftover previous determination).
+          id(cellcount_tx_id)->publish_state(float(id(g_cellcount_tx_id)));
+          id(cellcount_tx_status_code)->publish_state(1.0f);  // sending
+          id(g_topology_state_code) = 6;  // PENDING
+          id(g_topology_revision) += 1;
+          id(g_topology_last_publish_ms) = millis();
+          id(topology_state)->publish_state(std::string("PENDING"));
+          id(topology_reason)->publish_state(std::string("WRITE_IN_PROGRESS"));
+          id(topology_revision)->publish_state(float(id(g_topology_revision)));
+
+          const uint32_t value = uint32_t(requested);
+          std::vector<uint16_t> words{uint16_t(value >> 16), uint16_t(value & 0xFFFF)};
+          auto command = esphome::modbus_controller::ModbusCommandItem::create_write_multiple_command(
+              id(bms0), uint16_t(0x106C), words.size(), words);
+          // Overrides create_write_multiple_command's default handler (which
+          // just logs at VERBOSE via on_write_register_response) so the
+          // transaction can tell "acknowledged" from "still waiting" for
+          // real, instead of assuming success after a fixed delay.
+          command.on_data_func = [](esphome::modbus::EntityType, uint16_t,
+                                     std::span<const uint8_t>) {
+            id(g_cellcount_write_acked) = true;
+          };
+          id(bms0)->queue_command(std::move(command));
+
+  - platform: template
+    id: set_battery_capacity
+    name: "set battery capacity"
+    min_value: 1
+    max_value: 2000
+    step: 0.001
+    lambda: return id(battery_capacity).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x107C, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_start_balance_trigger
+    name: "set start balance trigger"
+    min_value: 0
+    max_value: 1
+    step: 0.001
+    lambda: return id(start_balance_trigger).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1014, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_start_balance
+    name: "set start balance"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(start_balance).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1084, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_max_balance_current
+    name: "set max balance current"
+    min_value: 0
+    max_value: 20
+    step: 0.001
+    lambda: return id(max_balance_current).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1048, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_cell_ovp
+    name: "set cell ovp"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_ovp).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x100C, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_cell_rcv
+    name: "set cell rcv"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_request_charge_voltage).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1020, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_soc_100
+    name: "set soc 100"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(soc_100).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1018, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_cell_ovpr
+    name: "set cell ovpr"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_ovpr).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1010, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_cell_uvpr
+    name: "set cell uvpr"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_uvpr).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1008, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_soc_0
+    name: "set soc 0"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(soc_0).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x101C, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_cell_uvp
+    name: "set cell uvp"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_uvp).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1004, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_system_power_off
+    name: "set system power off"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(system_power_off).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1028, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_cell_rfv
+    name: "set cell rfv"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_request_float_voltage).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1024, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_smart_sleep
+    name: "set smart sleep"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(smart_sleep).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1000, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_continued_charge_current
+    name: "set continued charge current"
+    min_value: 0
+    max_value: 2000
+    step: 0.001
+    lambda: return id(continued_charge_current).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x102C, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_charge_ocp_delay
+    name: "set charge ocp delay"
+    min_value: 0
+    max_value: 2147483647
+    step: 1
+    lambda: return id(charge_ocp_delay).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1030, raw: !lambda "return int(x);"}}]
+
+  - platform: template
+    id: set_charge_ocpr_time
+    name: "set charge ocpr time"
+    min_value: 0
+    max_value: 2147483647
+    step: 1
+    lambda: return id(charge_ocpr_time).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1034, raw: !lambda "return int(x);"}}]
+
+  - platform: template
+    id: set_continued_discharge_current
+    name: "set continued discharge current"
+    min_value: 0
+    max_value: 2000
+    step: 0.001
+    lambda: return id(continued_discharge_current).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1038, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+
+  - platform: template
+    id: set_discharge_ocp_delay
+    name: "set discharge ocp delay"
+    min_value: 0
+    max_value: 2147483647
+    step: 1
+    lambda: return id(discharge_ocp_delay).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x103C, raw: !lambda "return int(x);"}}]
+
+  - platform: template
+    id: set_discharge_ocpr_time
+    name: "set discharge ocpr time"
+    min_value: 0
+    max_value: 2147483647
+    step: 1
+    lambda: return id(discharge_ocpr_time).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1040, raw: !lambda "return int(x);"}}]
+
+  - platform: template
+    id: set_scpr_time
+    name: "set scpr time"
+    min_value: 0
+    max_value: 2147483647
+    step: 1
+    lambda: return id(scpr_time).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1044, raw: !lambda "return int(x);"}}]
+
+  - platform: template
+    id: set_scp_delay
+    name: "set scp delay"
+    min_value: 0
+    max_value: 2147483647
+    step: 1
+    lambda: return id(scp_delay).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1080, raw: !lambda "return int(x);"}}]
+
+  # Signed temperature registers use the same two-word frame; casting the
+  # scaled signed value to uint32_t preserves its two's-complement payload.
+  - platform: template
+    id: set_discharge_otp
+    name: "set discharge otp"
+    min_value: -100
+    max_value: 200
+    step: 0.1
+    lambda: return id(discharge_otp).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1054, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+
+  - platform: template
+    id: set_discharge_otpr
+    name: "set discharge otpr"
+    min_value: -100
+    max_value: 200
+    step: 0.1
+    lambda: return id(discharge_otpr).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1058, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+
+  - platform: template
+    id: set_charge_otp
+    name: "set charge otp"
+    min_value: -100
+    max_value: 200
+    step: 0.1
+    lambda: return id(charge_otp).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x104C, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+
+  - platform: template
+    id: set_charge_otpr
+    name: "set charge otpr"
+    min_value: -100
+    max_value: 200
+    step: 0.1
+    lambda: return id(charge_otpr).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1050, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+
+  - platform: template
+    id: set_charge_utpr
+    name: "set charge utpr"
+    min_value: -100
+    max_value: 200
+    step: 0.1
+    lambda: return id(charge_utpr).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1060, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+
+  - platform: template
+    id: set_charge_utp
+    name: "set charge utp"
+    min_value: -100
+    max_value: 200
+    step: 0.1
+    lambda: return id(charge_utp).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x105C, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+
+  - platform: template
+    id: set_mos_otp
+    name: "set mos otp"
+    min_value: -100
+    max_value: 200
+    step: 0.1
+    lambda: return id(mos_otp).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1064, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+
+  - platform: template
+    id: set_mos_otpr
+    name: "set mos otpr"
+    min_value: -100
+    max_value: 200
+    step: 0.1
+    lambda: return id(mos_otpr).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x1068, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+
+  # Template numbers write explicit function-0x10 frames. This works on ESPHome
+  # releases whose modbus_controller Number schema lacks register_count.
+  - platform: template
+    id: heating_activation_temperature
+    name: "heating activation temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    mode: box
+    min_value: -40
+    max_value: 100
+    step: 1
+    update_interval: 15s
+    lambda: |-
+      if (isnan(id(heating_thresholds_raw).state)) return NAN;
+      const uint16_t raw = uint16_t(id(heating_thresholds_raw).state);
+      return float(int8_t((raw >> 8) & 0xFF));
+    # Packed register (0x111C): the high byte is this field, the low byte
+    # is heating_deactivation_temperature's, below. The old (untouched)
+    # byte is read fresh at write time and merged in, then the FULL
+    # resulting word is routed through write_bms_u32/u16's now-generic
+    # write -> ACK -> forced-readback transaction (spec §4.1) — a
+    # whole-word compare is correct here (not just the changed byte)
+    # because the write itself already encodes the byte we intend to
+    # PRESERVE, not just the one we intend to change.
+    set_action:
+      - script.execute:
+          id: write_bms_u16
+          address: 0x111C
+          raw: !lambda |-
+            const uint16_t old_raw = isnan(id(heating_thresholds_raw).state)
+                ? 0U : uint16_t(id(heating_thresholds_raw).state);
+            return int((uint16_t(uint8_t(int8_t(x))) << 8) | (old_raw & 0x00FF));
+
+  - platform: template
+    id: heating_deactivation_temperature
+    name: "heating deactivation temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    mode: box
+    min_value: -40
+    max_value: 100
+    step: 1
+    update_interval: 15s
+    lambda: |-
+      if (isnan(id(heating_thresholds_raw).state)) return NAN;
+      const uint16_t raw = uint16_t(id(heating_thresholds_raw).state);
+      return float(int8_t(raw & 0xFF));
+    set_action:
+      - script.execute:
+          id: write_bms_u16
+          address: 0x111C
+          raw: !lambda |-
+            const uint16_t old_raw = isnan(id(heating_thresholds_raw).state)
+                ? 0U : uint16_t(id(heating_thresholds_raw).state);
+            return int((old_raw & 0xFF00) | uint16_t(uint8_t(int8_t(x))));
+
+  - platform: template
+    id: dry_contact_1_trigger_source
+    name: "dry contact 1 trigger source"
+    mode: box
+    min_value: 0
+    max_value: 12
+    step: 1
+    update_interval: 15s
+    lambda: |-
+      if (isnan(id(lcd_dry1_sources_raw).state)) return NAN;
+      return float(uint16_t(id(lcd_dry1_sources_raw).state) & 0x00FF);
+    set_action:
+      - script.execute:
+          id: write_bms_u16
+          address: 0x14E4
+          raw: !lambda |-
+            const uint16_t old_raw = isnan(id(lcd_dry1_sources_raw).state)
+                ? 0U : uint16_t(id(lcd_dry1_sources_raw).state);
+            return int((old_raw & 0xFF00) | (uint16_t(x) & 0x00FF));
+
+  - platform: template
+    id: dry_contact_2_trigger_source
+    name: "dry contact 2 trigger source"
+    mode: box
+    min_value: 0
+    max_value: 12
+    step: 1
+    update_interval: 15s
+    lambda: |-
+      if (isnan(id(dry2_protocol_raw).state)) return NAN;
+      return float((uint16_t(id(dry2_protocol_raw).state) >> 8) & 0x00FF);
+    set_action:
+      - script.execute:
+          id: write_bms_u16
+          address: 0x14E6
+          raw: !lambda |-
+            const uint16_t old_raw = isnan(id(dry2_protocol_raw).state)
+                ? 0U : uint16_t(id(dry2_protocol_raw).state);
+            return int(((uint16_t(x) & 0x00FF) << 8) | (old_raw & 0x00FF));
+
+  # Signed trigger and recovery values. Units depend on the selected DRY source.
+  - platform: template
+    id: dry_contact_1_trigger_value
+    name: "dry contact 1 trigger value"
+    min_value: -16777215
+    max_value: 16777215
+    step: 1
+    mode: box
+    update_interval: 15s
+    lambda: return id(dry_contact_1_trigger_value_raw).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x14F0, raw: !lambda "return int(int32_t(x));"}}]
+
+  - platform: template
+    id: dry_contact_1_recovery_value
+    name: "dry contact 1 recovery value"
+    min_value: -16777215
+    max_value: 16777215
+    step: 1
+    mode: box
+    update_interval: 15s
+    lambda: return id(dry_contact_1_recovery_value_raw).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x14F4, raw: !lambda "return int(int32_t(x));"}}]
+
+  - platform: template
+    id: dry_contact_2_trigger_value
+    name: "dry contact 2 trigger value"
+    min_value: -16777215
+    max_value: 16777215
+    step: 1
+    mode: box
+    update_interval: 15s
+    lambda: return id(dry_contact_2_trigger_value_raw).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x14F8, raw: !lambda "return int(int32_t(x));"}}]
+
+  - platform: template
+    id: dry_contact_2_recovery_value
+    name: "dry contact 2 recovery value"
+    min_value: -16777215
+    max_value: 16777215
+    step: 1
+    mode: box
+    update_interval: 15s
+    lambda: return id(dry_contact_2_recovery_value_raw).state;
+    set_action: [{script.execute: {id: write_bms_u32, address: 0x14FC, raw: !lambda "return int(int32_t(x));"}}]
+
+select:
+  # Converted from platform: modbus_controller to platform: template so
+  # each gets a custom set_action routing through the generic Write
+  # Transaction Manager (spec §4.1) instead of modbus_controller select's
+  # own optimistic, unconfirmed write. `name:`/object_id/web_server
+  # endpoint slug ("charging") is unchanged, so the frontend's existing
+  # `select-charging` entity key keeps working; the internal C++ `id:` is
+  # renamed (select_charging) only because `charging` is already taken by
+  # the separate live-status binary_sensor (a different register, 0x1218-
+  # family — charging_raw — NOT this control register at 0x1070). The
+  # displayed option is the LAST CONFIRMED register value
+  # (charging_control_raw, above), never an optimistic echo of the click.
+  - platform: template
+    id: select_charging
+    name: "charging"
+    icon: "mdi:battery-charging-100"
+    options:
+      - "Off"
+      - "On"
+    lambda: |-
+      if (isnan(id(charging_control_raw).state)) return {};
+      return uint32_t(id(charging_control_raw).state) != 0 ? std::string("On") : std::string("Off");
+    set_action:
+      - script.execute: {id: begin_write_tx, address: 0x1070, word_count: 2, raw: !lambda "return x == \"On\" ? 1 : 0;", mask: -1, suppress: 0}
+
+  - platform: template
+    id: select_discharging
+    name: "discharging"
+    icon: "mdi:power-plug-battery"
+    options:
+      - "Off"
+      - "On"
+    lambda: |-
+      if (isnan(id(discharging_control_raw).state)) return {};
+      return uint32_t(id(discharging_control_raw).state) != 0 ? std::string("On") : std::string("Off");
+    set_action:
+      - script.execute: {id: begin_write_tx, address: 0x1074, word_count: 2, raw: !lambda "return x == \"On\" ? 1 : 0;", mask: -1, suppress: 0}
+
+  - platform: template
+    id: select_balancing
+    name: "balancing"
+    icon: mdi:scale-balance
+    options:
+      - "Off"
+      - "On"
+    lambda: |-
+      if (isnan(id(balancing_control_raw).state)) return {};
+      return uint32_t(id(balancing_control_raw).state) != 0 ? std::string("On") : std::string("Off");
+    set_action:
+      - script.execute: {id: begin_write_tx, address: 0x1078, word_count: 2, raw: !lambda "return x == \"On\" ? 1 : 0;", mask: -1, suppress: 0}
+
+text:
+  # `bms_display_name` (text_sensor, elsewhere in this file) is a compile-
+  # time substitution — genuinely renaming the pack from the web UI needs
+  # an entity ESPHome itself persists across reboots. `optimistic: true` +
+  # `restore_value: true` on a template text is exactly that: no custom
+  # lambda/preferences code, ESPHome stores and restores it in flash on its
+  # own. Empty means "no override" — the UI falls back to bms_display_name.
+  - platform: template
+    id: device_name_override
+    name: "device name override"
+    icon: "mdi:rename-box"
+    mode: text
+    min_length: 0
+    max_length: 32
+    optimistic: true
+    restore_value: true
+
+  - platform: template
+    id: setup_passcode
+    name: "setup passcode"
+    icon: "mdi:form-textbox-password"
+    mode: password
+    min_length: 1
+    max_length: 16
+    update_interval: 60s
+    # Never publish the secret returned by 0x1470 to API/web clients.
+    lambda: return std::string("****************");
+    set_action:
+      - lambda: |-
+          if (x.empty() || x.size() > 16) {
+            ESP_LOGE("jk_passcode", "Passcode must contain 1..16 ASCII characters");
+            return;
+          }
+          if (id(g_passcode_tx_pending)) {
+            ESP_LOGW("jk_passcode", "Passcode write already in progress, ignoring new request");
+            return;
+          }
+
+          // One bounded allocation for this rare control-path operation.
+          std::vector<uint16_t> words(8, 0);
+          for (size_t i = 0; i < x.size(); ++i) {
+            const uint8_t c = static_cast<uint8_t>(x[i]);
+            if (c < 0x20 || c > 0x7E) {
+              ESP_LOGE("jk_passcode", "Passcode contains non-printable ASCII");
+              return;
+            }
+            if ((i & 1U) == 0U) words[i >> 1U] = uint16_t(c) << 8;
+            else words[i >> 1U] |= uint16_t(c);
+          }
+          for (size_t i = 0; i < 8; i++) id(g_passcode_expected_words)[i] = words[i];
+
+          id(g_passcode_tx_pending) = true;
+          id(g_passcode_tx_id) += 1;
+          id(g_passcode_tx_started_ms) = millis();
+          id(g_passcode_write_acked) = false;
+          id(g_passcode_readback_started_ms) = 0;
+          id(g_passcode_readback_done) = false;
+          id(setup_passcode_tx_status_code)->publish_state(1.0f);  // sending
+
+          const uint32_t tx_id = id(g_passcode_tx_id);
+          auto *controller = id(bms0);
+          auto command = esphome::modbus_controller::ModbusCommandItem::create_write_multiple_command(
+              controller, 0x1470, words.size(), words);
+          command.on_data_func = [tx_id](esphome::modbus::EntityType, uint16_t,
+                                          std::span<const uint8_t>) {
+            if (id(g_passcode_tx_id) == tx_id) id(g_passcode_write_acked) = true;
+          };
+          controller->queue_command(std::move(command));
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      id: wifi_ip_address
+      name: "wifi ip address"
+
+  # V2 — BMS communication health: ESP32<->JK BMS (Modbus/RS485), NOT
+  # browser<->ESP32 (that's EventSource/SSE, tracked entirely client-side —
+  # RECONNECTING only ever describes that link, never this one). Four
+  # states driven by g_last_bms_response_ms (set only on a validly-decoded
+  # cell-poll response, above). The cell poll runs at 1s with a 15s
+  # stuck-request guard, so: LIVE tolerates normal 1s-cadence jitter,
+  # DELAYED is "missed a few consecutive poll cycles", STALE is "something
+  # is wrong but the ESP32 itself is still running and serving the last
+  # known values", OFFLINE is "no confirmed BMS response since boot, or
+  # none in the last 30s".
+  - platform: template
+    id: bms_health
+    name: "bms health"
+    update_interval: 2s
+    lambda: |-
+      if (id(g_last_bms_response_ms) == 0) return std::string("OFFLINE");
+      const uint32_t elapsed_ms = millis() - id(g_last_bms_response_ms);
+      if (elapsed_ms < 3000U) return std::string("LIVE");
+      if (elapsed_ms < 10000U) return std::string("DELAYED");
+      if (elapsed_ms < 30000U) return std::string("STALE");
+      return std::string("OFFLINE");
+
+  # Topology Resolver outputs — published by resolve_topology for
+  # LOADING/CONFIRMED/MISMATCH/INVALID/WRITE_UNCERTAIN/OFFLINE, and
+  # directly by set_cell_count's set_action for PENDING (the one state
+  # the resolver itself never emits — see that script's own comment) — a
+  # stable English state/reason code pair (jk_bms.js owns bilingual
+  # presentation of both, exactly like it already does for bms_health's
+  # LIVE/DELAYED/STALE/OFFLINE). Read resolve_topology's own comment for
+  # what each reason code means.
+  - platform: template
+    id: topology_state
+    name: "topology state"
+    update_interval: never
+
+  - platform: template
+    id: topology_reason
+    name: "topology reason"
+    update_interval: never
+
+  # Atomic snapshot of every currently-tracked generic write transaction
+  # (jk_write_tx_core.h) as a JSON array, e.g.:
+  #   [{"addr":4108,"tx_id":17,"status":4,"req":6000,"rb":6000},...]
+  # Republished as a whole (never a partial/incremental update) any time a
+  # slot changes state — one consistent read always reflects one
+  # consistent set of transactions, so the frontend never observes a
+  # torn mix of two different revisions. "req"/"rb" are omitted for a
+  # slot with suppress_value set (the setup passcode: ACK/readback are
+  # still tracked, the actual bytes are never published). Correlation
+  # against a specific browser-initiated write is by "addr" (the
+  # register's own Modbus address, which the frontend's register catalog
+  # already knows) plus "tx_id" being newer than a client-recorded
+  # baseline — the same synchronous-revision-check pattern jk_bms.js
+  # already uses for CellCount (see writeTransaction()'s RACE FIX comment).
+  - platform: template
+    id: write_tx_snapshot
+    name: "write transaction snapshot"
+    update_interval: never
+
+  # Stable UI title. Change only this substitution if the BMS is renamed in
+  # the JK mobile application; the editable BLE name is absent from Modbus.
+  - platform: template
+    id: bms_display_name
+    name: "bms display name"
+    update_interval: 60s
+    lambda: |-
+      return std::string("${bms_display_name}");
+
+  # JK-PB device information block: hardware model, not the editable name.
+  - platform: modbus_controller
+    id: manufacturer_device_id
+    name: "manufacturer device id"
+    modbus_controller_id: bms0
+    register_type: holding
+    address: 0x1400
+    register_count: 8
+    response_size: 16
+    raw_encode: ANSI
+
+  - platform: modbus_controller
+    id: setup_passcode_readback
+    internal: true
+    modbus_controller_id: bms0
+    register_type: holding
+    address: 0x1470  # 0x1400 base + 0x0070 offset
+    register_count: 8
+    response_size: 16
+    raw_encode: ANSI
+
+  - platform: template
+    name: "total runtime formatted"
+    update_interval: 60s
+    lambda: |-
+      std::string value = "Unknown";
+      if (id(total_runtime) && !isnan(id(total_runtime).state)) {
+        uint32_t seconds = (uint32_t) id(total_runtime).state;
+        uint32_t years = seconds / (24 * 3600 * 365);
+        seconds = seconds % (24 * 3600 * 365);
+        uint32_t days = seconds / (24 * 3600);
+        seconds = seconds % (24 * 3600);
+        uint32_t hours = seconds / 3600;
+        value = (years ? to_string(years) + "y " : "") + (days ? to_string(days) + "d " : "") +
+                (hours ? to_string(hours) + "h" : "");
+      }
+      return value;
+
+  - platform: template
+    id: alarms
+    name: "alarms"
+    update_interval: never
+    lambda: |-
+      static const uint8_t alarms_size = 22;
+      static const char *const alarms[alarms_size] = {
+        "Wire resistance",
+        "MOS OTP",
+        "Cell quantity",
+        "Current sensor error",
+        "Cell OVP",
+        "Battery OVP",
+        "Charge OCP",
+        "Charge SCP",
+        "Charge OTP",
+        "Charge UTP",
+        "CPU Aux comm error",
+        "Cell UVP",
+        "Batt UVP",
+        "Discharge OCP",
+        "Discharge SCP",
+        "Discharge OTP",
+        "Charge MOS",
+        "Discharge MOS",
+        "GPS Disconnected",
+        "Modify PWD. in time",
+        "Discharge On Failed",
+        "Battery Over Temp Alarm"
+      };
+      std::string values = "";
+      uint32_t mask = id(alarms_bitmask)->state;
+      if (mask) {
+        for (int i = 0; i < alarms_size; i++) {
+          if (mask & (1 << i)) {
+            values.append(alarms[i]);
+            values.append("; ");
+          }
+        }
+        if (!values.empty()) {
+          values.pop_back();
+        }
+      }
+      return values;
+
+  # ============================================================
+  # CANONICAL BATTERY STATE + CHARGE PHASE — one resolver computing TWO
+  # semantically distinct concepts, each with its own consumer:
+  #
+  #   battery_state — WHAT THE PACK IS DOING. Public, HA-facing, drives
+  #     Web UI main status + its own elapsed timer. Values: idle /
+  #     charging / discharging / absorption / float / offline / unknown.
+  #     "bulk" is NEVER a battery_state — plain constant-current charging
+  #     reports as "charging" here (see charge_phase for the bulk/
+  #     absorption/float distinction). This is this text_sensor's own
+  #     returned/exposed state (id/name unchanged from earlier — no HA
+  #     entity_id churn — only its vocabulary changed).
+  #
+  #   charge_phase — WHICH PART OF THE CHARGE CURVE, if any. Internal/
+  #     diagnostic, drives the Charge Cycle graph + its own elapsed timer.
+  #     Values: none / bulk / absorption / float. Computed here, stored in
+  #     g_charge_phase_code, read by the separate charge_phase
+  #     text_sensor below — ONE computation, two thin presentation
+  #     entities, never two independent classifiers.
+  #
+  # These coincide at every bulk<->absorption<->float transition (both
+  # change together) and diverge only once the pack leaves the charging
+  # path: charge_phase collapses to "none" for discharging/idle/offline,
+  # while battery_state keeps distinguishing those three.
+  #
+  # SOURCE AUDIT (esphome-jk-bms / this device's Modbus map, checked
+  # against the full register list in this file, not assumed):
+  #   - No native Bulk/Absorption/Idle/Discharging register exists.
+  #   - `charging_float_mode` (0x1114, bitmask 0x0200) IS a real protocol
+  #     bit (SOURCE: PROTOCOL) — the one authoritative raw signal here.
+  #   - `charging` / `discharging` (0x12C0, upper/lower byte) are Charge-
+  #     MOS-enabled / Discharge-MOS-enabled PERMISSION flags, not "current
+  #     is presently flowing that direction" — confirmed by this file's
+  #     own translated source comment ("Charge (1:open;0:closed) /
+  #     Discharge (1:open;0:closed)"). The pre-refactor version of this
+  #     lambda gated its entire classification on the charging-enabled
+  #     flag alone, which meant "Discharging" was never a reachable
+  #     output — actively delivering current to a load and genuinely
+  #     sitting idle were both reported identically. That is the bug the
+  #     first pass of this resolver fixed.
+  #   - `current` (0x1298, signed, verified sign convention: positive =
+  #     charging, negative = discharging — see electrical_metrics_scan's
+  #     own audit comment above) is the real signal for charge/discharge/
+  #     idle direction (SOURCE: DERIVED FROM CURRENT), not the enable
+  #     flags.
+  #   - Absorption (SOURCE: DERIVED HEURISTIC, NOT protocol-verified) is
+  #     classified from total_voltage's own rolling slope — no register
+  #     exists for it, and this device offers no way to confirm the JK
+  #     app's own internal absorption logic matches this heuristic.
+  #
+  # PRIORITY (highest first) — see §23/§24 of the directive that requested
+  # this: a real, hysteresis-CONFIRMED discharge current is trusted over
+  # the Float bit / Absorption heuristic, not the other way around. This
+  # is the DERIVED, documented safety choice (not independently verified
+  # against real JK firmware behavior under load — no hardware available
+  # to confirm how the float bit itself behaves once a load appears; if
+  # real-device testing later shows the float bit reliably clears the
+  # instant a load starts, this override becomes redundant but still
+  # harmless):
+  #   1. stale/offline communication -> "offline" (charge_phase "none")
+  #   2. hysteresis-CONFIRMED discharge direction -> "discharging"
+  #      (overrides Float/Absorption; charge_phase "none")
+  #   3. protocol Float bit (only reachable once #2 doesn't apply) ->
+  #      "float" (never demoted to idle by near-zero float current)
+  #   4. confirmed charge direction -> Bulk/Absorption voltage-slope
+  #      classifies charge_phase; battery_state = "charging" (bulk) or
+  #      "absorption"
+  #   5. confirmed neutral -> "idle"
+  #   6. (structurally unreachable given 1-5 are exhaustive, kept as a
+  #      defensive net) -> "unknown"
+  #
+  # DEADBAND / DWELL / FRESH-SAMPLE CONFIRMATION — chosen from this
+  # device's real cadence, not a guessed constant: `current` only
+  # receives a fresh sample roughly every modbus_controller_update_interval
+  # (15s, see the top of this file). A transition requires BOTH the wall-
+  # clock dwell to elapse AND at least one genuinely fresh sample to have
+  # landed in that window (g_last_current_sample_ms, stamped only inside
+  # electrical_metrics_scan's own decode) — wall-clock time elapsing alone,
+  # with no real new decode, never confirms a transition on its own.
+  #   CURRENT_ENTER_A = 0.5A, CURRENT_EXIT_A = 0.2A: CALIBRATION REQUIRED,
+  #     not independently verified against this sensor's real measured
+  #     zero-current noise floor (no live hardware access in this
+  #     environment to sample it). Chosen as an engineering default
+  #     comfortably above typical shunt/quantization noise for a pack in
+  #     this class (16S, tens-of-amps typical range) — revisit once real
+  #     idle-current noise data is available.
+  #   ACTIVE_CONFIRM_MS = 15000 (~1 real poll) / FRESH_SAMPLES_ENTER = 1:
+  #     confirms a fresh onset from Idle quickly.
+  #   NEUTRAL_DWELL_MS = 30000 (~2 real polls) / FRESH_SAMPLES_EXIT = 2:
+  #     Charging/Discharging -> Idle requires two fresh neutral samples,
+  #     so one transient near-zero reading never bounces the state.
+  #   A direction REVERSAL (charge <-> discharge, both already past ENTER)
+  #     still requires its own dwell + fresh-sample count, but with no
+  #     forced Idle stop in between — matches how a real load/charge-
+  #     source swap actually behaves (§22).
+  - platform: template
+    id: charge_status
+    name: "charge status"
+    update_interval: 5s
+    lambda: |-
+      // ============================================================
+      // CENTRALIZED RESOLVER CONSTANTS — the only place any of these are
+      // defined; nothing below duplicates a magic number.
+      // ============================================================
+      // COMM_STALE_MS: matches bms_health's own OFFLINE threshold —
+      // communication itself is considered lost past this age.
+      static const uint32_t COMM_STALE_MS = 30000;
+      // CURRENT_ENTER_A / CURRENT_EXIT_A: INITIAL ENGINEERING DEFAULTS.
+      // Tune using real zero-current noise from hardware — not
+      // independently verified against this sensor's actual measured
+      // noise floor (no live hardware access in this environment). See
+      // current_sample_age / the resolver diagnostics text_sensors below
+      // for the lightweight rolling observation this needs before
+      // recalibrating.
+      static const float CURRENT_ENTER_A = 0.5f;
+      static const float CURRENT_EXIT_A = 0.2f;
+      // STRONG_CURRENT_THRESHOLD_A: INITIAL ENGINEERING DEFAULT. Above
+      // this, a single fresh sample is unambiguous enough to confirm a
+      // transition immediately; between ENTER and this, noise near the
+      // threshold gets a second confirming sample before being trusted.
+      static const float STRONG_CURRENT_THRESHOLD_A = 2.5f;
+      static const uint32_t ACTIVE_CONFIRM_MS = 15000;   // Idle -> Charging/Discharging dwell
+      static const uint32_t NEUTRAL_DWELL_MS = 30000;    // Charging/Discharging -> Idle dwell
+      static const int FRESH_SAMPLES_STRONG = 1;         // |current| >= STRONG_CURRENT_THRESHOLD_A
+      static const int FRESH_SAMPLES_NEAR_THRESHOLD = 2; // ENTER <= |current| < STRONG_CURRENT_THRESHOLD_A
+      static const int FRESH_SAMPLES_EXIT = 2;           // exiting to neutral/Idle
+
+      static float last_voltage = NAN;
+      static uint32_t last_sample_ms = 0;
+      static uint32_t flat_since_ms = 0;
+
+      // "neutral" | "charge" | "discharge" — confirmed is what's actually
+      // used to derive battery_state; candidate is what recent sample(s)
+      // suggest, promoted to confirmed only once ITS OWN dwell AND fresh-
+      // sample count are both satisfied.
+      static std::string confirmed_dir = "neutral";
+      static std::string candidate_dir = "neutral";
+      static uint32_t candidate_since_ms = 0;
+      static int candidate_fresh_samples = 0;
+      static uint32_t last_seen_sample_ms = 0; // for detecting a genuinely new decode, not just a re-run of this 5s lambda
+
+      // §29 boot behavior: never report a live-looking Idle before this
+      // device has actually decoded at least one real current sample.
+      static bool has_valid_data = false;
+      // §11 offline-recovery: on reconnect, don't trust the very first
+      // (possibly still-stale) post-reconnect tick — require one
+      // genuinely fresh sample first, same discipline as a cold boot.
+      static bool was_offline = false;
+
+      static std::string last_battery_state = "";
+      static std::string last_phase = "";
+      std::string battery_state;
+      std::string phase; // "none" | "bulk" | "absorption" | "float"
+      uint8_t unknown_reason = 0;
+
+      const uint32_t now = millis();
+      const uint32_t age_ms = (id(g_last_bms_response_ms) == 0)
+          ? UINT32_MAX : (now - id(g_last_bms_response_ms));
+      const bool is_offline_now = (age_ms >= COMM_STALE_MS);
+
+      // A fresh current decode landed since we last checked?
+      const uint32_t sample_ms = id(g_last_current_sample_ms);
+      const bool fresh_sample_arrived = (sample_ms != 0) && (sample_ms != last_seen_sample_ms);
+      if (fresh_sample_arrived) {
+        last_seen_sample_ms = sample_ms;
+        has_valid_data = true;
+      }
+
+      if (is_offline_now) {
+        // Communication itself is stale/lost — never keep reporting a
+        // live-looking operating state over data that isn't live.
+        // §10: last known values are preserved in their OWN globals
+        // (below, only when we HAD a real state) — never re-published as
+        // the current state while offline.
+        battery_state = "offline";
+        phase = "none";
+        was_offline = true;
+      } else if (was_offline && !fresh_sample_arrived) {
+        // §11: just reconnected (comm age dropped back under threshold)
+        // but no genuinely fresh current sample has landed yet this
+        // reconnect — resolve as unknown rather than trusting whatever
+        // stale value happened to be sitting in `current` the instant
+        // communication was declared alive again.
+        battery_state = "unknown";
+        phase = "none";
+        unknown_reason = 2; // post-reconnect, awaiting fresh sample
+      } else if (!has_valid_data) {
+        // §29: cold boot, no valid current sample decoded yet — never
+        // default to Idle before real telemetry exists.
+        battery_state = "unknown";
+        phase = "none";
+        unknown_reason = 1; // no valid telemetry yet since boot
+      } else {
+        was_offline = false;
+        // Direction confirmation runs UNCONDITIONALLY every tick — even
+        // while Float/Absorption looks active — so a real load appearing
+        // is tracked continuously and can override them once confirmed
+        // (priority below), not just when this branch happens to run.
+        const float amps = id(current).state;
+        if (!isnan(amps)) {
+          std::string sample_dir;
+          if (amps > CURRENT_ENTER_A) sample_dir = "charge";
+          else if (amps < -CURRENT_ENTER_A) sample_dir = "discharge";
+          else if (fabsf(amps) < CURRENT_EXIT_A) sample_dir = "neutral";
+          else sample_dir = candidate_dir; // inside the hysteresis gap — keep leaning whichever way we already were
+
+          if (sample_dir != candidate_dir) {
+            candidate_dir = sample_dir;
+            candidate_since_ms = now;
+            candidate_fresh_samples = 0;
+          }
+          if (fresh_sample_arrived) candidate_fresh_samples += 1;
+
+          const uint32_t dwell_needed =
+              (confirmed_dir == "neutral") ? ACTIVE_CONFIRM_MS :
+              (candidate_dir == "neutral") ? NEUTRAL_DWELL_MS :
+              0; // charge<->discharge reversal — confirm without a forced Idle stop
+          // Adaptive fresh-sample requirement (§4): an obviously strong
+          // current confirms off a single fresh sample; anything closer
+          // to the raw ENTER threshold needs a second one, since that's
+          // exactly the zone real sensor noise could bounce through.
+          const int samples_needed =
+              (candidate_dir == "neutral") ? FRESH_SAMPLES_EXIT :
+              (fabsf(amps) >= STRONG_CURRENT_THRESHOLD_A) ? FRESH_SAMPLES_STRONG :
+              FRESH_SAMPLES_NEAR_THRESHOLD;
+          if (candidate_dir != confirmed_dir
+              && (now - candidate_since_ms) >= dwell_needed
+              && candidate_fresh_samples >= samples_needed) {
+            confirmed_dir = candidate_dir;
+          }
+        }
+        // isnan(amps): hold the last confirmed_dir rather than resetting —
+        // a single missed decode shouldn't bounce the state.
+
+        // PRECEDENCE (explicit, not an accident of branch order): a
+        // hysteresis-CONFIRMED real discharge current always overrides
+        // both the protocol Float bit and the derived Absorption
+        // heuristic for battery_state — "Protocol Float/Absorption
+        // indicate a charging-side mode, but confirmed real energy flow
+        // in the discharge direction takes precedence, because it is the
+        // more direct, harder-to-fake signal of the two." This is a
+        // DERIVED safety choice (§23 of the original directive), not
+        // independently verified against real JK firmware behavior under
+        // load — no hardware available to confirm how the float bit
+        // itself behaves once a load appears.
+        if (confirmed_dir == "discharge") {
+          last_voltage = NAN;
+          flat_since_ms = 0;
+          battery_state = "discharging";
+          phase = "none";
+        } else if (id(charging).state && id(charging_float_mode).state) {
+          // Float — real protocol bit, only reached once a confirmed
+          // discharge isn't already overriding it above. Authoritative
+          // regardless of momentary near-zero current. §9 Float recovery:
+          // this check runs on EVERY tick with no separate "returning
+          // from discharge" special-case needed — the instant confirmed_dir
+          // stops being "discharge" and this bit is still set, Float
+          // resolves again immediately, with no forced Idle in between.
+          battery_state = "float";
+          phase = "float";
+        } else if (confirmed_dir == "neutral") {
+          last_voltage = NAN;
+          flat_since_ms = 0;
+          battery_state = "idle";
+          phase = "none";
+        } else {
+          // confirmed_dir == "charge": Bulk vs. Absorption — unchanged
+          // voltage-slope heuristic (the only available signal; no
+          // native register exists). While still climbing meaningfully,
+          // that's Bulk; once the climb has flattened and *stays* flat
+          // for a sustained stretch, that's Absorption. The 2-minute
+          // flat-hold requirement keeps a momentary lull (a cloud over
+          // solar input, a brief load draw) from being misread as
+          // Absorption.
+          const float voltage = id(total_voltage).state;
+          std::string sub_phase;
+          if (isnan(voltage)) {
+            sub_phase = "bulk";
+          } else if (isnan(last_voltage)) {
+            last_voltage = voltage;
+            last_sample_ms = now;
+            flat_since_ms = 0;
+            sub_phase = "bulk";
+          } else {
+            const float elapsed_min = float(now - last_sample_ms) / 60000.0f;
+            if (elapsed_min >= 0.5f) {
+              const float slope_per_min = (voltage - last_voltage) / elapsed_min;
+              last_voltage = voltage;
+              last_sample_ms = now;
+              if (slope_per_min > 0.02f) {
+                flat_since_ms = 0;
+              } else if (flat_since_ms == 0) {
+                flat_since_ms = now;
+              }
+            }
+            sub_phase = (flat_since_ms != 0 && (now - flat_since_ms) >= 120000) ? "absorption" : "bulk";
+          }
+          phase = sub_phase;
+          // battery_state deliberately says "charging", not "bulk" —
+          // bulk/absorption is a charge_phase concept, not a public
+          // battery_state value.
+          battery_state = (sub_phase == "absorption") ? "absorption" : "charging";
+        }
+      }
+
+      if (battery_state != last_battery_state) {
+        last_battery_state = battery_state;
+        id(g_battery_state_started_ms) = now;
+      }
+      if (phase != last_phase) {
+        last_phase = phase;
+        id(g_charge_phase_started_ms) = now;
+      }
+      const uint8_t phase_code = (phase == "bulk") ? 1 : (phase == "absorption") ? 2 : (phase == "float") ? 3 : 0;
+      id(g_charge_phase_code) = phase_code;
+
+      // Diagnostics mirrors — written every tick, read-only from every
+      // other consumer (see §18/§19 diagnostic entities further down).
+      uint8_t bs_code = 0; // 0=unknown
+      if (battery_state == "idle") bs_code = 1;
+      else if (battery_state == "charging") bs_code = 2;
+      else if (battery_state == "discharging") bs_code = 3;
+      else if (battery_state == "absorption") bs_code = 4;
+      else if (battery_state == "float") bs_code = 5;
+      else if (battery_state == "offline") bs_code = 6;
+      id(g_battery_state_code) = bs_code;
+      // Last-known preservation (§10): only overwritten when we actually
+      // HAVE a real (non-offline, non-unknown) state — so it always
+      // reflects "what was it doing before it went dark/unresolvable",
+      // never overwritten BY offline/unknown themselves.
+      if (bs_code != 0 && bs_code != 6) {
+        id(g_last_known_battery_state_code) = bs_code;
+        id(g_last_known_charge_phase_code) = phase_code;
+      }
+      id(g_current_direction_code) = (confirmed_dir == "charge") ? 1 : (confirmed_dir == "discharge") ? 2 : 0;
+      id(g_candidate_direction_code) = (candidate_dir == "charge") ? 1 : (candidate_dir == "discharge") ? 2 : 0;
+      id(g_candidate_fresh_samples_g) = uint8_t(candidate_fresh_samples > 255 ? 255 : candidate_fresh_samples);
+      id(g_candidate_since_ms_g) = candidate_since_ms;
+      id(g_unknown_reason_code) = unknown_reason;
+
+      return battery_state;
+
+  # V2.2 — thin presentation entity for charge_phase (none/bulk/
+  # absorption/float): reads g_charge_phase_code, written once by
+  # charge_status's own resolver above. No independent classification
+  # logic lives here — this exists so Charge Cycle / diagnostics can
+  # reference charge_phase without re-deriving it or reading battery_state
+  # and trying to reverse-map "charging" back into "bulk".
+  - platform: template
+    id: charge_phase
+    name: "charge phase"
+    update_interval: 5s
+    lambda: |-
+      switch (id(g_charge_phase_code)) {
+        case 1: return std::string("bulk");
+        case 2: return std::string("absorption");
+        case 3: return std::string("float");
+        default: return std::string("none");
+      }
+
+  # ============================================================
+  # BATTERY STATE RESOLVER DIAGNOSTICS — V2.2 hardening pass. Technical/
+  # debug entities, not Overview content: every value here is a read-only
+  # mirror of something the charge_status resolver above already computed
+  # for itself; nothing here re-derives anything independently.
+  # ============================================================
+  - platform: template
+    id: battery_state_direction
+    name: "battery state current direction"
+    update_interval: 5s
+    lambda: |-
+      switch (id(g_current_direction_code)) {
+        case 1: return std::string("charge");
+        case 2: return std::string("discharge");
+        default: return std::string("neutral");
+      }
+
+  - platform: template
+    id: battery_state_candidate
+    name: "battery state candidate direction"
+    update_interval: 5s
+    lambda: |-
+      switch (id(g_candidate_direction_code)) {
+        case 1: return std::string("charge");
+        case 2: return std::string("discharge");
+        default: return std::string("neutral");
+      }
+
+  - platform: template
+    id: battery_state_unknown_reason
+    name: "battery state unknown reason"
+    update_interval: 5s
+    lambda: |-
+      switch (id(g_unknown_reason_code)) {
+        case 1: return std::string("no_telemetry_since_boot");
+        case 2: return std::string("post_reconnect_awaiting_sample");
+        default: return std::string("n/a");
+      }
+
+  # §10/§27 — Diagnostics-only "what was it doing before it went dark".
+  # Never mirrors the CURRENT live state (that stays offline/none while
+  # actually offline) — only updates when the resolver has a real,
+  # resolved (non-offline, non-unknown) state to report.
+  - platform: template
+    id: battery_state_last_known
+    name: "battery state last known"
+    update_interval: 5s
+    lambda: |-
+      switch (id(g_last_known_battery_state_code)) {
+        case 1: return std::string("idle");
+        case 2: return std::string("charging");
+        case 3: return std::string("discharging");
+        case 4: return std::string("absorption");
+        case 5: return std::string("float");
+        default: return std::string("unknown");
+      }
+
+  - platform: template
+    id: charge_phase_last_known
+    name: "charge phase last known"
+    update_interval: 5s
+    lambda: |-
+      switch (id(g_last_known_charge_phase_code)) {
+        case 1: return std::string("bulk");
+        case 2: return std::string("absorption");
+        case 3: return std::string("float");
+        default: return std::string("none");
+      }

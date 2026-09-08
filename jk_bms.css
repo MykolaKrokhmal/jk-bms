@@ -1,0 +1,1330 @@
+/* ============================================================
+   TOKENS — dark-first (the reference is a cockpit display).
+   Bare :root = dark. Light is the override, both via media
+   query (system) and [data-theme] (explicit toggle).
+   ============================================================
+   Colors researched, not guessed, from Tesla's published design tokens:
+   ink #171A20 / body #393C41 / muted #5C5E62 on a #FFFFFF canvas with an
+   #F4F4F4 soft surface, and a single accent, Electric Blue #3E6AE1 — used
+   for primary actions ONLY, never for text, headlines or data values.
+   Those are Tesla's light/marketing tokens; the in-car cockpit — this
+   UI's actual reference — is dark, so dark is the bare :root here and
+   light is the override. #171A20 becomes the dark PANEL itself (it was
+   already their darkest token), the ink/body/muted hierarchy inverts to
+   light-on-dark, and the accent keeps the same one job in both: a
+   control you can act on, never a color used to mean "important". */
+:root{
+  --void:#0a0b0e;         /* recedes behind the cluster */
+  --panel:#1e222c;        /* lifted well clear of --void — cards read as cards */
+  --panel-2:#262b37;      /* recessed well, e.g. inputs, one step lighter still */
+  --hair:rgba(255,255,255,.09);
+  --hair-strong:rgba(255,255,255,.2);
+  --ink:#f2f3f5;
+  --ink-dim:#9a9ea6;
+  --ink-faint:#6b6f77;
+  --accent:#5b8bf5;       /* Electric Blue, lifted for dark contrast */
+  --accent-dim:rgba(91,139,245,.16);
+  --danger:#ff453a;
+  --danger-dim:rgba(255,69,58,.14);
+  --warn:#e8a53d;         /* semantic warning — degraded/armed/mismatch, never used for the CTA */
+  --warn-dim:rgba(232,165,61,.14);
+  --high:#38bdf8;         /* distinct info blue — cell max only, not the CTA accent */
+  --high-dim:rgba(56,189,248,.14);
+  --good:#33d17a;
+  --soc-low:#c96a4f;    /* muted warm — restrained, not stoplight-red */
+  --soc-mid:#7c8a9e;    /* neutral/cool mid */
+  --soc-high:#4f9e78;   /* controlled positive — not saturated green */
+  /* SOC bar fill tiers (<25 / 25-50 / >50) — muted two-stop gradients,
+     calibrated per theme, never copy-pasted alpha between them. */
+  --soc-tier-low-a:#9c3f37; --soc-tier-low-b:#c9584a;
+  --soc-tier-mid-a:#8a6a2e; --soc-tier-mid-b:#c9973f;
+  --soc-tier-high-a:#2f6f8f; --soc-tier-high-b:#4fa7c9;
+  --gauge-track-bg:var(--panel-2);
+  --shadow: 0 1px 0 rgba(255,255,255,.04) inset;
+  /* MIN/MAX level-flow — its own tokens, decoupled from --danger/--high,
+     so light-theme calibration (below) never has to fight the semantic
+     danger/high hues. Dark values equal the pre-existing --danger/--high
+     dark hex exactly, so dark theme's rendered output is unchanged. */
+  --extreme-min-line:#ff453a; --extreme-max-line:#38bdf8;
+  --extreme-fill-opacity:.2;
+  --extreme-depth-opacity-near:.38; --extreme-depth-opacity-far:.12;
+  --extreme-particle-halo:6px 1px;
+  /* State-timeline depth overlay — its own tokens (not a reuse of
+     --extreme-depth-opacity-*, so the two components can be tuned
+     independently later), initially set to the exact same values as
+     MIN/MAX's own dark-theme depth wash (see audit note near
+     .cc-state-depth-path below). */
+  --state-depth-opacity-near:.38; --state-depth-opacity-far:.12;
+  /* Charge History state-timeline colors — restrained, dedicated tokens
+     (not --danger/--warn/--good, which carry alarm/mismatch/positive
+     meanings elsewhere; not --extreme-min/max-line, which mean cell MIN/
+     MAX specifically — reusing either would misapply that semantics to
+     an unrelated concept).
+     Each -surface token is the actual fill a segment renders (mixed in
+     OKLCH, not sRGB, toward --panel — not --panel-2 — specifically so
+     low-percentage mixes stay clean pastel instead of desaturating
+     toward the recessed surface's gray; OKLCH also keeps perceived
+     lightness/chroma even instead of the muddy midpoints sRGB mixing
+     produces). The bare --state-* hue is the saturated source color,
+     kept only so the -surface formula (and boundary-blend color-mix()
+     calls in ccSegBackground()) have something real to mix from. */
+  --state-charge:#38bdf8; --state-absorption:#8297d6; --state-float:#93a0b8; --state-discharge:#e88968;
+  --state-charge-surface:color-mix(in oklch, var(--state-charge) 20%, var(--panel));
+  --state-absorption-surface:color-mix(in oklch, var(--state-absorption) 20%, var(--panel));
+  --state-float-surface:color-mix(in oklch, var(--state-float) 20%, var(--panel));
+  /* Discharge specifically needs a higher mix% than the other three dark
+     states: a warm-hue tint at low lightness against a dark panel reads
+     as brown rather than orange (a real perceptual effect, not a math
+     error — verified via computed oklch lightness while tuning this),
+     where cool hues (blue/violet/teal) stay legible "clean" at the same
+     lightness. 32% keeps it recognizably warm-amber instead. */
+  --state-discharge-surface:color-mix(in oklch, var(--state-discharge) 24%, var(--panel));
+  --state-idle-surface:color-mix(in oklch, var(--ink-faint) 16%, var(--panel));
+  --cc-area-opacity:.12; /* voltage area-fill top-stop opacity — spec target 8-14% dark */
+  /* Shared status-lamp geometry — one physical light source used by
+     every lamp in the app (.power-item .state-dot, .soc-meta
+     .charge-stage i, .identity-sub .dot, .rail .rail-dot): same size,
+     same halo spread, same alpha curve. Only the hue (var(--good),
+     var(--danger), currentColor, ...) ever differs between them. Not
+     theme-conditional — identical in light and dark, so defined once
+     here rather than repeated in all four theme blocks. */
+  --lamp-size:7px;
+  --lamp-glow-spread:3px;
+  --lamp-glow-alpha:22%;
+  /* Nav icon box — identical across all rail buttons; the bell glyph
+     itself is optically shorter than its neighbors within that same
+     box (see .rail [data-panel="health"] svg), corrected separately. */
+  --nav-icon-size:16px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --void:#f4f4f4;
+    --panel:#ffffff;
+    --panel-2:#eeeeee;
+    --hair:rgba(23,26,32,.08);
+    --hair-strong:rgba(23,26,32,.16);
+    --ink:#171a20;
+    --ink-dim:#393c41;
+    --ink-faint:#5c5e62;
+    --accent:#3e6ae1;      /* Tesla's exact Electric Blue */
+    --accent-dim:rgba(62,106,225,.1);
+    --danger:#d3261c;
+    --danger-dim:rgba(211,38,28,.09);
+    --warn:#b3690a;
+    --warn-dim:rgba(179,105,10,.09);
+    --high:#0284c7;
+    --high-dim:rgba(2,132,199,.09);
+    --good:#15803d;
+    --soc-low:#b8593f;
+    --soc-mid:#6b7a8f;
+    --soc-high:#3f8f64;
+    --soc-tier-low-a:#a8493b; --soc-tier-low-b:#d97a63;
+    --soc-tier-mid-a:#a37a1f; --soc-tier-mid-b:#c9a052;
+    --soc-tier-high-a:#1f6f96; --soc-tier-high-b:#4695bd;
+    --gauge-track-bg:var(--panel-2);
+    --shadow: 0 1px 0 rgba(23,26,32,.02) inset;
+    /* Clean, calibrated for a white surface — NOT --danger/--high (those
+       read as alarm/info elsewhere), and NOT the dark tokens' hex reused
+       at a different opacity. The old shared black depth-overlay (see
+       .minmax-fill-depth) is what actually caused the "gray wash": its
+       stops had no stop-color of their own, defaulting to SVG's black,
+       so a 38%-opacity black wash sat on top of the already-light 20%-
+       opacity fill — disabling it here (0 opacity) removes that entirely
+       rather than trying to re-tint a black overlay into something
+       lighter. Fill kept low (15%) so the boundary line, not the fill,
+       carries the color intensity. */
+    --extreme-min-line:#d94a45; --extreme-max-line:#2b9fd3;
+    --extreme-fill-opacity:.15;
+    --extreme-depth-opacity-near:0; --extreme-depth-opacity-far:0;
+    --extreme-particle-halo:3px 0px;
+    /* MIN/MAX's own light-theme depth wash is disabled (0/0) — a black
+       overlay only ever darkens, so light theme starts from the same
+       "off" state here, never inheriting dark's opacity. */
+    --state-depth-opacity-near:0; --state-depth-opacity-far:0;
+    --state-charge:#2b9fd3; --state-absorption:#6579b8; --state-float:#8290a8; --state-discharge:#d97757;
+    --state-charge-surface:color-mix(in oklch, var(--state-charge) 15%, var(--panel));
+    --state-absorption-surface:color-mix(in oklch, var(--state-absorption) 14%, var(--panel));
+    --state-float-surface:color-mix(in oklch, var(--state-float) 14%, var(--panel));
+    --state-discharge-surface:color-mix(in oklch, var(--state-discharge) 15%, var(--panel));
+    --state-idle-surface:color-mix(in oklch, var(--ink-faint) 12%, var(--panel));
+    --cc-area-opacity:.08; /* spec target 6-10% light */
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"]{
+  --void:#f4f4f4; --panel:#ffffff; --panel-2:#eeeeee;
+  --hair:rgba(23,26,32,.08); --hair-strong:rgba(23,26,32,.16);
+  --ink:#171a20; --ink-dim:#393c41; --ink-faint:#5c5e62;
+  --accent:#3e6ae1; --accent-dim:rgba(62,106,225,.1);
+  --danger:#d3261c; --danger-dim:rgba(211,38,28,.09);
+  --warn:#b3690a; --warn-dim:rgba(179,105,10,.09);
+  --high:#0284c7; --high-dim:rgba(2,132,199,.09);
+  --good:#15803d;
+  --soc-low:#b8593f; --soc-mid:#6b7a8f; --soc-high:#3f8f64;
+  --soc-tier-low-a:#a8493b; --soc-tier-low-b:#d97a63;
+  --soc-tier-mid-a:#a37a1f; --soc-tier-mid-b:#c9a052;
+  --soc-tier-high-a:#1f6f96; --soc-tier-high-b:#4695bd;
+  --gauge-track-bg:var(--panel-2);
+  --shadow: 0 1px 0 rgba(23,26,32,.02) inset;
+  --extreme-min-line:#d94a45; --extreme-max-line:#2b9fd3;
+  --extreme-fill-opacity:.15;
+  --extreme-depth-opacity-near:0; --extreme-depth-opacity-far:0;
+  --extreme-particle-halo:3px 0px;
+  --state-depth-opacity-near:0; --state-depth-opacity-far:0;
+  --state-charge:#2b9fd3; --state-absorption:#6579b8; --state-float:#8290a8; --state-discharge:#d97757;
+  --state-charge-surface:color-mix(in oklch, var(--state-charge) 15%, var(--panel));
+  --state-absorption-surface:color-mix(in oklch, var(--state-absorption) 14%, var(--panel));
+  --state-float-surface:color-mix(in oklch, var(--state-float) 14%, var(--panel));
+  --state-discharge-surface:color-mix(in oklch, var(--state-discharge) 15%, var(--panel));
+  --state-idle-surface:color-mix(in oklch, var(--ink-faint) 12%, var(--panel));
+  --cc-area-opacity:.08;
+  color-scheme: light;
+}
+:root[data-theme="dark"]{
+  --void:#0a0b0e; --panel:#1e222c; --panel-2:#262b37;
+  --hair:rgba(255,255,255,.09); --hair-strong:rgba(255,255,255,.2);
+  --ink:#f2f3f5; --ink-dim:#9a9ea6; --ink-faint:#6b6f77;
+  --accent:#5b8bf5; --accent-dim:rgba(91,139,245,.16);
+  --danger:#ff453a; --danger-dim:rgba(255,69,58,.14);
+  --warn:#e8a53d; --warn-dim:rgba(232,165,61,.14);
+  --high:#38bdf8; --high-dim:rgba(56,189,248,.14);
+  --good:#33d17a;
+  --soc-low:#c96a4f; --soc-mid:#7c8a9e; --soc-high:#4f9e78;
+  --soc-tier-low-a:#9c3f37; --soc-tier-low-b:#c9584a;
+  --soc-tier-mid-a:#8a6a2e; --soc-tier-mid-b:#c9973f;
+  --soc-tier-high-a:#2f6f8f; --soc-tier-high-b:#4fa7c9;
+  --gauge-track-bg:var(--panel-2);
+  --shadow: 0 1px 0 rgba(255,255,255,.04) inset;
+  --extreme-min-line:#ff453a; --extreme-max-line:#38bdf8;
+  --extreme-fill-opacity:.2;
+  --extreme-depth-opacity-near:.38; --extreme-depth-opacity-far:.12;
+  --extreme-particle-halo:6px 1px;
+  --state-depth-opacity-near:.38; --state-depth-opacity-far:.12;
+  --state-charge:#38bdf8; --state-absorption:#8297d6; --state-float:#93a0b8; --state-discharge:#e88968;
+  --state-charge-surface:color-mix(in oklch, var(--state-charge) 20%, var(--panel));
+  --state-absorption-surface:color-mix(in oklch, var(--state-absorption) 20%, var(--panel));
+  --state-float-surface:color-mix(in oklch, var(--state-float) 20%, var(--panel));
+  /* Discharge specifically needs a higher mix% than the other three dark
+     states: a warm-hue tint at low lightness against a dark panel reads
+     as brown rather than orange (a real perceptual effect, not a math
+     error — verified via computed oklch lightness while tuning this),
+     where cool hues (blue/violet/teal) stay legible "clean" at the same
+     lightness. 32% keeps it recognizably warm-amber instead. */
+  --state-discharge-surface:color-mix(in oklch, var(--state-discharge) 24%, var(--panel));
+  --state-idle-surface:color-mix(in oklch, var(--ink-faint) 16%, var(--panel));
+  --cc-area-opacity:.12;
+  color-scheme: dark;
+}
+
+/* Type scale + spacing, named and theme-independent (identical in light
+   and dark — only color tokens above vary by theme). Not applied
+   retroactively across every pre-existing clamp() in this file — that
+   would be a much larger, separately-scoped rewrite — but every V2
+   component (synthesis tiles, status pills, the electrical trio,
+   diagnostics, controls) is built on these, so the newest and most
+   visible screens read as one deliberate scale rather than ad hoc sizing. */
+:root{
+  --fs-display:clamp(80px,15vw,120px);  /* the SOC hero number — one screen has exactly one of these */
+  --fs-headline:clamp(17px,4vw,22px);   /* synthesis-tile / status values, section-level numbers */
+  --fs-body:15px;                        /* control labels, field labels, running text */
+  --fs-label:11.5px;                     /* uppercase eyebrows/captions */
+  --fs-caption:12.5px;                   /* secondary/muted annotations */
+  --fs-metric:clamp(14px,3.2vw,17px);   /* dense tabular readouts (trace-stats, diagnostics) */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+  --sp-5:24px; --sp-6:32px; --sp-7:48px; --sp-8:64px;
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; min-height:100%; }
+body{
+  background:var(--void);
+  color:var(--ink);
+  /* No web font — a BMS is often installed off-grid with no internet, so
+     the UI can't depend on fetching one. System stack only. */
+  font-family:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  font-weight:400;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+.num{ font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
+button{ font:inherit; color:inherit; }
+button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:2px; }
+
+/* ============================================================
+   SHELL
+   ============================================================ */
+.stage{ display:flex; justify-content:center; padding:28px 16px 40px; }
+.cluster{
+  width:100%; max-width:1180px;
+  background:var(--panel);
+  border:1px solid var(--hair);
+  border-radius:18px;
+  box-shadow: var(--shadow), 0 40px 80px -32px rgba(0,0,0,.55);
+  overflow:hidden;
+  transition: background-color .25s ease, border-color .25s ease;
+}
+
+/* top bar — an identity plate, not a web-app toolbar: the device name
+   carries real typographic weight, its state line sits quietly beneath
+   as one piece of running text (a dot + two words), not a row of chips. */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:22px 24px 20px;
+}
+.identity{ min-width:0; }
+.identity h1{ margin:0; font-size:clamp(20px,3.4vw,25px); font-weight:600; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* Wraps instead of clipping — text-overflow:ellipsis doesn't apply per-
+   child on a flex container anyway (it would only ellipsize the
+   container's own text run), so the old nowrap+hidden combination just
+   silently cut the last span off with no "…" at all whenever the BMS
+   state + alarm reason together ran long. This is also the system-health
+   line — never the right place to hide a status. */
+.identity-sub{ display:flex; flex-wrap:wrap; align-items:center; row-gap:2px; column-gap:7px; margin-top:5px; color:var(--ink-faint); font-size:13.5px; font-weight:500; }
+.identity-sub span, .identity-sub .identity-sep{ min-width:0; overflow-wrap:anywhere; }
+/* Same lamp standard as .power-item .state-dot.on/.soc-meta .charge-stage
+   i — 7px, solid-ring halo, not a bare flat dot. */
+.identity-sub .dot{ width:var(--lamp-size); height:var(--lamp-size); border-radius:50%; background:var(--good); box-shadow:0 0 0 var(--lamp-glow-spread) color-mix(in srgb, var(--good) var(--lamp-glow-alpha), transparent); flex:none; }
+.identity-sub .dot.offline{ background:var(--danger); box-shadow:0 0 0 var(--lamp-glow-spread) color-mix(in srgb, var(--danger) var(--lamp-glow-alpha), transparent); }
+.identity-sub .identity-sep{ color:var(--hair-strong); }
+.identity-sub[data-tier="delayed"], .identity-sub[data-tier="stale"]{ color:var(--warn); }
+.identity-sub[data-tier="offline"], .identity-sub[data-tier="reconnecting"]{ color:var(--danger); }
+.identity-sub.alert{ color:var(--danger); }
+.icon-btn{
+  display:grid; place-items:center; width:38px; height:38px; border-radius:10px;
+  border:1px solid var(--hair); background:transparent; color:var(--ink-dim); cursor:pointer;
+  transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+}
+.icon-btn:hover{ color:var(--ink); border-color:var(--hair-strong); }
+.icon-btn svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.icon-btn i{ display:block; }
+
+/* settings / cell / metric modals share this shell */
+.modal-overlay{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(8,9,11,.5); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
+.modal-overlay[hidden]{ display:none; }
+.modal{ width:100%; max-width:340px; border-radius:16px; background:var(--panel); border:1px solid var(--hair); box-shadow:0 24px 64px rgba(0,0,0,.4); overflow:hidden; animation:modal-in .18s cubic-bezier(.16,.8,.24,1); }
+@keyframes modal-in{ from{ opacity:0; transform:translateY(10px) scale(.97); } to{ opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce){ .modal{ animation:none; } }
+.modal-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 10px 16px 20px; border-bottom:1px solid var(--hair); }
+.modal-head h2{ margin:0; font-size:17px; font-weight:500; color:var(--ink); }
+.modal-body{ padding:20px; }
+.setting-label{ display:block; margin-bottom:11px; font-size:13px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); }
+.theme-options{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.theme-opt{ display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 6px; border:1px solid var(--hair); border-radius:10px; background:var(--panel-2); color:var(--ink-dim); cursor:pointer; transition:border-color .15s ease, color .15s ease, background-color .15s ease; }
+.theme-opt svg{ width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.theme-opt span{ font-size:13px; font-weight:500; }
+.theme-opt.active{ border-color:color-mix(in srgb, var(--accent) 55%, var(--hair)); background:var(--accent-dim); color:var(--accent); }
+#languageOptions{ grid-template-columns:repeat(2,1fr); }
+.lang-code{ font-size:12px; font-weight:700; letter-spacing:.06em; }
+.password-form{ display:grid; gap:8px; margin-top:12px; }
+.password-form .field-input{ min-width:0; height:42px; }
+.password-form .field-input input{ font-size:15px; }
+.password-form .save-btn{ margin-top:4px; }
+.pw-message{ min-height:16px; margin:2px 2px 0; font-size:12.5px; color:var(--ink-faint); }
+.pw-message.error{ color:var(--danger); }
+.pw-message.success{ color:var(--good); }
+.pw-message.busy{ color:var(--ink-dim); }
+
+/* body grid: cockpit — hero left, systems right, on wide viewports.
+   Grid items default to min-width:auto, meaning their content refuses to
+   shrink below its own natural (unwrapped) width — with a 78px number
+   and other unbreakable pieces inside, that forced the whole card wider
+   than the viewport on any narrow screen. min-width:0 is the fix: it
+   lets the track actually shrink to the space it's given. */
+.deck{ display:grid; grid-template-columns:1fr; min-width:0; }
+.col-left, .col-right{ min-width:0; }
+@media (max-width:859px){ .col-left.mobile-hide{ display:none; } }
+@media (min-width:860px){
+  .deck{ grid-template-columns:minmax(300px,380px) 1fr; }
+  .deck > .col-left{ border-right:1px solid var(--hair); }
+}
+
+/* nav rail — expresses priority instead of eight equal tabs: Overview /
+   Cells / Electrical / Health are the primary, frequent destinations and
+   read larger/bolder; Control / Configuration / Diagnostics are system-
+   level, used far less often, and are visually quieter and set apart by
+   a hairline divider rather than competing for the same weight. */
+.rail{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  border-top:1px solid var(--hair); border-bottom:1px solid var(--hair);
+  padding:0 24px;
+}
+@media (min-width:860px){ .rail{ grid-column:1 / -1; } }
+.rail-group{ display:flex; }
+.rail-group-system{ padding-left:20px; border-left:1px solid var(--hair); }
+.rail button{
+  position:relative; display:flex; align-items:center; gap:7px;
+  padding:15px 0; margin-right:24px; border:0; background:none; cursor:pointer;
+  color:var(--ink-faint); font-size:15.5px; font-weight:500; letter-spacing:.005em;
+  transition:color .15s ease;
+}
+.rail-group-system button{ font-size:13px; color:var(--ink-faint); opacity:.78; }
+.rail-group-system button:last-child{ margin-right:0; }
+.rail-group:not(.rail-group-system) button:last-child{ margin-right:0; }
+.rail button svg{ flex:none; width:var(--nav-icon-size); height:var(--nav-icon-size); fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.rail-group-system button svg{ width:14px; height:14px; }
+/* The bell glyph's own path data is optically shorter than its
+   neighbors' within the identical --nav-icon-size box (measured via
+   getBBox(): ~14px tall vs the lightning-bolt icon's ~18px, both in the
+   same 24x24 viewBox) — a CSS transform scales it up around its own
+   center to match, since the viewBox/box-model dimensions are already
+   identical and the mismatch is purely in how much of the box each
+   glyph's path data actually fills. Layout box (and therefore the badge
+   anchor) is untouched — transform never affects layout. */
+.rail [data-panel="health"] svg{ transform:scale(1.28); transform-origin:50% 50%; }
+.rail button::after{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:transparent; border-radius:2px 2px 0 0; }
+.rail button.active{ color:var(--ink); opacity:1; }
+.rail button.active::after{ background:var(--accent); }
+.rail button:hover{ color:var(--ink-dim); opacity:1; }
+/* Three explicit tiers, not two — wide keeps generous spacing; medium
+   tightens gaps/padding/margins before anything gets hidden; narrow drops
+   to icon-only. Thresholds are verified against actual rail.scrollWidth
+   at representative widths (not guessed), specifically so 7 nav items
+   never overflow and force a horizontal scrollbar or push a button off
+   the edge — T11's core requirement. */
+@media (max-width:900px){
+  .rail button{ margin-right:16px; font-size:14.5px; }
+  .rail-group-system{ padding-left:14px; }
+  .rail-group-system button{ font-size:12.5px; }
+}
+@media (max-width:800px){
+  .rail{ padding:0 12px; gap:0; }
+  .rail button{ gap:4px; margin-right:7px; font-size:13px; }
+  .rail-group-system{ padding-left:8px; }
+  .rail-group-system button{ font-size:11px; }
+  .rail{ --nav-icon-size:14px; }
+  .rail-group-system button svg{ width:12px; height:12px; }
+}
+/* Below this, type has hit its readable floor — the label is fully
+   hidden (never clipped/ellipsized), icon only. flex:1 1 0 still divides
+   the available width evenly so nothing needs horizontal scroll. */
+@media (max-width:600px){
+  .rail{ padding:0 10px; }
+  .rail-group{ flex:1; }
+  .rail-group-system{ padding-left:8px; }
+  .rail button{ flex:1 1 0; min-width:0; margin-right:0 !important; padding:12px 2px; justify-content:center; }
+  .rail{ --nav-icon-size:18px; }
+  .rail-group-system button svg{ width:15px; height:15px; }
+  .rail button > span{ display:none; }
+}
+/* Badge anchors to the ICON's own small wrapper, not the button (which
+   also contains the label span) — .rail-dot used to sit at right:-7px
+   of the whole button, so with a label present ("Стан"/"Status") it
+   read as a separate indicator floating well past the icon rather than
+   a badge on the bell. Anchoring to nav-icon-wrap keeps the same
+   upper-right corner position regardless of label presence/width or
+   which responsive tier (labeled / icon-only) is active. */
+.rail .nav-icon-wrap{ position:relative; display:inline-flex; flex:none; }
+/* Same lamp tokens as the rest of the status-lamp family (--lamp-size,
+   same halo band WIDTH as every other lamp's 0-to-spread ring) — just
+   pushed outward by a separate panel-colored cutout ring first (still
+   needed so the badge stays legible sitting on top of the bell icon;
+   that ring isn't a semantic halo, just contrast, so the color band
+   starts at 2px instead of 0 but is still exactly --lamp-glow-spread
+   wide, same alpha — only the hue differs from every other lamp).
+   Offset nudged out 1px from the icon corner (was -2px/-2px) to keep a
+   small visible air gap now that the bell glyph itself reads bigger
+   (see the scale(1.28) optical correction on the svg above). */
+.rail .rail-dot{
+  position:absolute; top:-3px; right:-3px; width:var(--lamp-size); height:var(--lamp-size); border-radius:50%; background:var(--danger);
+  box-shadow:0 0 0 2px var(--panel), 0 0 0 calc(2px + var(--lamp-glow-spread)) color-mix(in srgb, var(--danger) var(--lamp-glow-alpha), transparent);
+  display:none;
+}
+.rail .rail-dot.show{ display:block; }
+
+/* ============================================================
+   FRESHNESS — browser<->ESP32 vs ESP32<->BMS, always kept visually
+   distinct from each other and from "just offline". Delayed is subtle
+   (chip only); Stale/Offline/Reconnecting get the persistent banner —
+   never silently presenting old numbers as current.
+   ============================================================ */
+.freshness-banner{ padding:10px 24px; font-size:13.5px; font-weight:500; text-align:center; border-bottom:1px solid var(--hair); }
+.freshness-banner[hidden]{ display:none; }
+.freshness-banner.tier-stale{ background:var(--warn-dim); color:var(--warn); }
+.freshness-banner.tier-offline{ background:var(--danger-dim); color:var(--danger); }
+.freshness-banner.tier-reconnecting{ background:var(--hair); color:var(--ink-dim); }
+
+/* Topology banner (Cells panel) — CellCount is BMS *configuration*, never
+   proof of the pack's physical topology, so this stays visible (never a
+   silent full-screen takeover) whenever the on-device Topology Resolver
+   hasn't reached CONFIRMED, with the real diagnostic numbers behind why —
+   see renderTopologyBanner()/topologyState() in jk_bms.js. Severity scales
+   with tier: loading is a quiet, neutral wait state; mismatch/invalid use
+   the same warn/danger language as the rest of the app. */
+.topology-banner{ margin-bottom:var(--sp-5); padding:12px 16px; border-radius:10px; border:1px solid var(--hair-strong); }
+.topology-banner[hidden]{ display:none; }
+.topology-banner.tier-loading{ background:var(--panel-2); border-color:var(--hair-strong); }
+.topology-banner.tier-pending{ background:var(--panel-2); border-color:color-mix(in srgb, var(--accent) 35%, transparent); }
+.topology-banner.tier-mismatch{ background:var(--warn-dim); border-color:color-mix(in srgb, var(--warn) 35%, transparent); }
+.topology-banner.tier-invalid{ background:var(--danger-dim); border-color:color-mix(in srgb, var(--danger) 35%, transparent); }
+.topology-banner.tier-offline{ background:var(--danger-dim); border-color:color-mix(in srgb, var(--danger) 35%, transparent); }
+.topology-banner.tier-write-uncertain{ background:var(--warn-dim); border-color:color-mix(in srgb, var(--warn) 35%, transparent); }
+.topology-banner-head{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; font-size:13.5px; }
+.topology-banner-head strong{ font-weight:600; }
+.topology-banner.tier-pending .topology-banner-head strong{ color:var(--accent); }
+.topology-banner.tier-mismatch .topology-banner-head strong{ color:var(--warn); }
+.topology-banner.tier-write-uncertain .topology-banner-head strong{ color:var(--warn); }
+.topology-banner.tier-invalid .topology-banner-head strong{ color:var(--danger); }
+.topology-banner.tier-offline .topology-banner-head strong{ color:var(--danger); }
+.topology-banner-head span{ color:var(--ink-dim); }
+.topology-banner-grid{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(108px,1fr)); gap:8px 16px; margin-top:8px;
+}
+.topology-banner-grid div{ display:flex; flex-direction:column; gap:1px; }
+.topology-banner-grid label{ color:var(--ink-faint); font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
+.topology-banner-grid b{ font-weight:600; font-variant-numeric:tabular-nums; }
+/* Section-level dim, not per-field timestamps everywhere — the banner
+   above already says how stale and since when. */
+.cluster[data-freshness="stale"] .num,
+.cluster[data-freshness="offline"] .num{ opacity:.5; }
+
+.panel{ display:none; }
+.panel.active{ display:block; animation:rise .32s cubic-bezier(.16,.8,.24,1); }
+@keyframes rise{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:none; } }
+
+/* ============================================================
+   HERO — state of charge. One anchor, not "a number in a card": the
+   percentage, its state, and the bar that supports it share a single
+   baseline-driven composition. System/BMS status lives in the header
+   identity line, not duplicated here as chips.
+   ============================================================ */
+/* Responsive breathing room below the rail — scales with viewport instead
+   of a fixed px so SOC never reads as pinned to the nav on any size. */
+.hero{ padding:clamp(22px,5vw,34px) 24px 26px; }
+.soc-block{ display:flex; align-items:baseline; gap:20px; flex-wrap:wrap; }
+.soc-num{ font-size:var(--fs-display); font-weight:600; line-height:.86; letter-spacing:-.04em; color:var(--ink); transition:color .3s ease; }
+.soc-num.critical{ color:var(--danger); }
+.soc-num sup{ font-size:.3em; font-weight:500; margin-left:1px; color:var(--ink-dim); top:-.5em; }
+.soc-meta{ display:flex; flex-direction:column; align-items:flex-start; gap:5px; min-width:0; padding-bottom:.22em; }
+.soc-meta .charge-stage{ display:flex; align-items:center; gap:7px; font-size:19px; font-weight:600; white-space:nowrap; }
+/* Unified status-lamp language (design-system pass): same 7px diameter
+   and the same solid-ring halo technique as .power-item .state-dot.on
+   (the Charge/Discharge/Balancing indicators, treated as the reference
+   size/style) — not the blurred `0 0 8px currentColor` glow this used
+   to have, which read as a uniquely oversized "Blocked" lamp whenever
+   [data-stage="lockout"] made it red. currentColor already carries the
+   right semantic hue per [data-stage] below, so this one rule covers
+   every stage color automatically, lockout included. */
+.soc-meta .charge-stage i{ width:var(--lamp-size); height:var(--lamp-size); border-radius:50%; background:currentColor; box-shadow:0 0 0 var(--lamp-glow-spread) color-mix(in srgb, currentColor var(--lamp-glow-alpha), transparent); }
+.soc-meta small{ display:block; overflow:hidden; max-width:100%; min-width:0; color:var(--ink-faint); font-size:14px; white-space:nowrap; text-overflow:ellipsis; }
+[data-stage="bulk"]{ color:#d0a336; }
+[data-stage="charging"]{ color:#d0a336; } /* battery_state's public equivalent of the bulk charge_phase — same hue */
+[data-stage="absorption"]{ color:#a97bf0; }
+[data-stage="float"]{ color:#3fb5a3; }
+[data-stage="eoc"]{ color:var(--good); }
+[data-stage="discharging"]{ color:#4a90e2; }
+[data-stage="idle"]{ color:var(--ink-dim); }
+[data-stage="disabled"]{ color:var(--ink-faint); }
+[data-stage="offline"]{ color:var(--ink-faint); }
+[data-stage="unknown"]{ color:var(--warn); }
+[data-stage="lockout"]{ color:var(--danger); }
+
+/* Tier-based SOC bar: the EMPTY track is a flat recessed neutral (no
+   gradient, always clearly distinct from the fill regardless of theme);
+   the FILLED section alone carries a muted two-stop gradient whose colors
+   depend on which tier the current value sits in (<25 red-family, 25-50
+   amber-family, >50 blue/cyan-family) — set via [data-tier] on the fill
+   element itself so pure CSS handles the color swap, no per-frame JS
+   style writes beyond width%. A thin marker tracks the exact value, and
+   ticks below give real reference points now that this is a coded
+   (not just numeric) scale. */
+.gauge{ margin-top:18px; }
+.gauge-track{
+  position:relative; height:clamp(4px,1.1vw,6px); min-height:4px; border-radius:999px; overflow:visible;
+  background:var(--gauge-track-bg);
+}
+.gauge-fill{
+  position:absolute; top:0; left:0; bottom:0; width:0%; border-radius:999px;
+  background:linear-gradient(90deg, var(--tier-a), var(--tier-b));
+  transition:width 1s cubic-bezier(.16,.8,.24,1);
+}
+.gauge-fill[data-tier="low"]{ --tier-a:var(--soc-tier-low-a); --tier-b:var(--soc-tier-low-b); }
+.gauge-fill[data-tier="mid"]{ --tier-a:var(--soc-tier-mid-a); --tier-b:var(--soc-tier-mid-b); }
+.gauge-fill[data-tier="high"]{ --tier-a:var(--soc-tier-high-a); --tier-b:var(--soc-tier-high-b); }
+@media (prefers-reduced-motion:reduce){ .gauge-fill{ transition:none; } }
+.gauge-marker{
+  position:absolute; top:-3px; bottom:-3px; width:2px; margin-left:-1px;
+  background:var(--ink); border-radius:1px; opacity:.85;
+  transition:left 1s cubic-bezier(.16,.8,.24,1); pointer-events:none;
+}
+@media (prefers-reduced-motion:reduce){ .gauge-marker{ transition:none; } }
+.gauge-ticks{
+  display:flex; justify-content:space-between; margin-top:6px;
+  font-size:10px; font-weight:500; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums; letter-spacing:.02em;
+}
+.gauge-ticks span:first-child{ text-align:left; }
+.gauge-ticks span:last-child{ text-align:right; }
+.gauge-ticks .tick-mid{ display:inline-block; }
+@media (max-width:520px){ .gauge-ticks .tick-mid[data-quarter]{ display:none; } }
+
+/* Remaining / Lifetime — strictly symmetric typography (T1): no per-block
+   font-size override. Remaining now carries TWO value+unit pairs
+   ("232.8 Ah / 12.22 kWh") against Lifetime's one ("231.6 Ah"), so it
+   gets the wider share of the row — a real dedicated 1px separator
+   column (not an absolutely-positioned pseudo-element floating over
+   content, which is what clipped/collided with the divider before) sits
+   in its own grid track, sized by the row's own content height via
+   align-self:stretch, so it can never overlap either block's text. */
+/* Always a vertical stack — Remaining above a horizontal divider, Lifetime
+   below it — never the old side-by-side two-column layout, at any width
+   (this is a deliberate structural choice, not a narrow-viewport fallback). */
+.hero-figures{
+  display:flex; flex-direction:column; row-gap:var(--sp-5);
+  margin-top:24px; padding-top:20px; border-top:1px solid var(--hair);
+}
+.fig{ position:relative; min-width:0; }
+.hero-figures-sep{ display:none; }
+.fig-wide{ padding-top:var(--sp-5); border-top:1px solid var(--hair); }
+.fig label{ display:block; overflow:hidden; color:var(--ink-faint); font-size:var(--fs-label); font-weight:500; letter-spacing:.05em; text-transform:uppercase; white-space:nowrap; text-overflow:ellipsis; margin-bottom:7px; }
+.fig strong{ display:block; overflow:hidden; max-width:100%; font-size:clamp(19px,5vw,26px); font-weight:600; letter-spacing:-.01em; white-space:nowrap; text-overflow:ellipsis; }
+.fig strong small{ margin-left:3px; font-size:14px; font-weight:500; color:var(--ink-dim); }
+/* Ah and kWh must read as equally-weighted primary figures, not one
+   demoted into the caption — same element, same font/weight/color for
+   both value+unit pairs, joined by a quiet "/" separator. Specificity
+   note: `.fig .fig-primary-row` (0,2,0) intentionally outranks the plain
+   `.fig strong` rule above (0,1,1) so display:flex actually applies. */
+.fig .fig-primary-row{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:6px; row-gap:2px; }
+.fig-sep{ margin:0 2px; color:var(--ink-faint); font-weight:400; }
+/* Wraps rather than clips — Remaining's caption grew a second clause
+   (the computed kWh figure) that can outrun a narrow column's width;
+   Lifetime's short "142 cycles" never wraps in practice either way. */
+.fig em{ display:block; font-style:normal; margin-top:5px; color:var(--ink-faint); font-size:var(--fs-caption); opacity:.92; line-height:1.35; }
+
+/* ============================================================
+   RIGHT COLUMN
+   ============================================================ */
+.col-right{ padding:24px; container-type:inline-size; container-name:readout; }
+.section-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:15px; }
+.section-head h2{ margin:0; overflow:hidden; flex:none; font-size:clamp(11px,3vw,15px); font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); white-space:nowrap; text-overflow:ellipsis; }
+/* Wraps rather than clips — a translated caption ("Напруга батареї ·
+   історія за 60 год") can outrun a single line at a mid-width viewport
+   even where its English original always fit. */
+.section-head .value{ min-width:0; overflow-wrap:break-word; font-size:clamp(12px,3vw,16px); color:var(--ink-dim); line-height:1.3; text-align:right; }
+@media (max-width:480px){
+  .section-head{ flex-direction:column; align-items:flex-start; gap:3px; }
+  .section-head .value{ text-align:left; }
+}
+
+/* Precision instrumentation, not a table of equal cells: a shared
+   baseline and a hairline rule beneath the whole row (not a box around
+   every reading). Voltage/Current/Power/Balance all share identical
+   value typography — Power being computed (V x A) rather than
+   independently measured is a Diagnostics-level fact (also carried as a
+   title="" tooltip on the tile), not something the primary readout is
+   visually demoted for. Still a real button (tap opens the trend) — the
+   affordance is a quiet hover on the number, not a container. */
+.telemetry-row{
+  display:grid; grid-template-columns:repeat(3,1fr); align-items:end;
+  padding-bottom:var(--sp-3); border-bottom:1px solid var(--hair);
+}
+.telemetry-row-4{ grid-template-columns:repeat(4,1fr); }
+.telemetry-row-5{ grid-template-columns:repeat(5,1fr); }
+@media (max-width:480px){
+  .telemetry-row-4, .telemetry-row-5{ grid-template-columns:repeat(2,1fr); row-gap:var(--sp-4); }
+  .telemetry-row-4 .telemetry-item:nth-child(n+3), .telemetry-row-5 .telemetry-item:nth-child(n+3){ padding-top:var(--sp-2); }
+}
+.telemetry-item{
+  min-width:0; padding:0; border:0; background:none; color:inherit; font:inherit;
+  text-align:left; cursor:pointer;
+}
+.telemetry-item label{
+  display:block; overflow:hidden; margin-bottom:6px; color:var(--ink-faint);
+  font-size:var(--fs-label); font-weight:500; letter-spacing:.05em; text-transform:uppercase;
+  white-space:nowrap; text-overflow:ellipsis;
+}
+/* A longer translated label ("ПОТУЖНІСТЬ" vs "Power") can outrun a 1/3-
+   width column on a narrow phone even though English never did — wrap to
+   a second line rather than silently ellipsis-clipping mid-word. Scoped
+   to the base 3-col row (Overview's Voltage/Current/Power); the 4/5-col
+   rows already reflow to 2 columns at this width instead. */
+@media (max-width:360px){
+  .telemetry-row:not(.telemetry-row-4):not(.telemetry-row-5) .telemetry-item label{
+    white-space:normal; overflow:visible; text-overflow:clip; line-height:1.25;
+  }
+}
+.telemetry-value{
+  display:block; overflow:hidden; max-width:100%; font-size:clamp(19px,4.8vw,32px);
+  font-weight:600; letter-spacing:-.015em; white-space:nowrap; text-overflow:ellipsis;
+  transition:color .15s ease;
+}
+.telemetry-item:hover .telemetry-value{ color:var(--accent); }
+.telemetry-value small{ margin-left:2px; font-size:.42em; font-weight:500; color:var(--ink-dim); }
+@container readout (max-width:520px){
+  .telemetry-value{ font-size:clamp(16px,4.4vw,26px); }
+}
+
+/* Power path (Charge / Discharge / Balance) — one designed group, ALWAYS
+   three fixed columns, never flex-wrap. Type shrinks before the group
+   would ever break into an extra line. A quiet state dot, not a pill. */
+.power-path{ display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp-4); margin-bottom:var(--sp-5); }
+.power-item{
+  display:flex; align-items:baseline; gap:8px; min-width:0; padding:0; border:0;
+  background:none; color:var(--ink-faint); font:inherit; text-align:left; cursor:pointer;
+}
+.power-item:hover{ color:var(--ink-dim); }
+/* Status dot system — OFF / ON / PENDING / UNKNOWN, each visually
+   distinct on its own (color is never the only cue: the state word next
+   to it is always present too). ON gets a small functional halo, not a
+   neon glow — it's there to make "this output is live" register at a
+   glance, sized to stay quiet. */
+.power-item .state-dot{
+  position:relative; flex:none; width:var(--lamp-size); height:var(--lamp-size); margin-bottom:2px;
+  border-radius:50%; background:var(--ink-faint); transition:background-color .15s ease;
+}
+.power-item .state-dot.on{ background:var(--good); box-shadow:0 0 0 var(--lamp-glow-spread) color-mix(in srgb, var(--good) var(--lamp-glow-alpha), transparent); }
+.power-item .state-dot.pending{ background:var(--ink-faint); animation:dot-pulse 1.1s ease-in-out infinite; }
+.power-item .state-dot.unknown{ background:transparent; box-shadow:inset 0 0 0 1.4px var(--ink-faint); }
+@keyframes dot-pulse{ 0%,100%{ opacity:.4; transform:scale(.85); } 50%{ opacity:1; transform:scale(1.15); } }
+@media (prefers-reduced-motion:reduce){ .power-item .state-dot.pending{ animation:none; opacity:.75; } }
+/* Font shrinks first (clamp), but a long translated label ("Балансування"
+   at a mid-width viewport, where the nav rail is still full-text and
+   leaves the content column tighter than either a wide or a narrow-
+   stacked layout) can still outrun even the clamp's floor — wrap rather
+   than ellipsis-clip as the final fallback; the 3-column grid itself
+   still never wraps, only the label text within its own column can. */
+.power-label{ overflow-wrap:break-word; font-size:clamp(11px,2.6vw,13.5px); font-weight:500; letter-spacing:.02em; line-height:1.2; }
+.power-item b{ flex:none; margin-left:2px; font-size:clamp(12px,2.6vw,14px); font-weight:600; color:var(--ink); }
+/* Below this width the row genuinely doesn't have room for label + value
+   side by side at a legible size — stack the state value under the dot
+   + label instead of letting either get ellipsized. Placed after the
+   base rules above so it actually wins the cascade (equal specificity,
+   later wins) — an earlier version of this override sat before them and
+   silently never applied. */
+@media (max-width:430px){
+  .power-item{ flex-wrap:wrap; row-gap:1px; gap:5px; }
+  .power-label{ font-size:10.5px; overflow:visible; white-space:normal; }
+  .power-item b{ flex:0 0 100%; margin-left:15px; font-size:11px; color:var(--ink-dim); }
+}
+
+/* System health — one inline subsystem summary, not three cards. Each
+   segment deep-links to its full tab. Real aggregates only (spread in mV,
+   hottest probe, alarm count) — never a fabricated risk score. */
+.health-line{ display:grid; grid-template-columns:repeat(3,1fr); margin-top:var(--sp-6); }
+.health-item{
+  min-width:0; padding:var(--sp-3) 0 0; border:0; border-top:1px solid var(--hair);
+  background:none; color:inherit; font:inherit; text-align:left; cursor:pointer;
+}
+.health-item + .health-item{ margin-left:var(--sp-4); }
+.health-item label{ display:block; overflow:hidden; margin-bottom:5px; color:var(--ink-faint); font-size:var(--fs-label); font-weight:500; letter-spacing:.05em; text-transform:uppercase; white-space:nowrap; text-overflow:ellipsis; }
+.health-item b{ display:block; overflow:hidden; font-size:var(--fs-headline); font-weight:600; white-space:nowrap; text-overflow:ellipsis; transition:color .15s ease; }
+.health-item:hover b{ color:var(--accent); }
+.health-item em{ display:block; overflow-wrap:break-word; margin-top:2px; font-style:normal; font-size:var(--fs-caption); color:var(--ink-faint); line-height:1.3; }
+@media (max-width:420px){
+  .health-line{ grid-template-columns:1fr; row-gap:var(--sp-3); }
+  .health-item + .health-item{ margin-left:0; }
+}
+
+/* Shared binary-register toggle used by Configuration. */
+.switch{ position:relative; flex:none; width:38px; height:22px; border-radius:12px; border:1px solid var(--hair-strong); background:transparent; cursor:pointer; transition:background-color .2s ease, border-color .2s ease; }
+.switch i{ position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--ink-faint); transition:transform .2s cubic-bezier(.16,.8,.24,1), background-color .2s ease; }
+.switch.is-on{ background:var(--accent-dim); border-color:color-mix(in srgb, var(--accent) 55%, var(--hair-strong)); }
+.switch.is-on i{ transform:translateX(16px); background:var(--accent); }
+.ctrl-msg{ min-height:16px; margin:0 2px; font-size:var(--fs-caption); color:var(--ink-faint); }
+.ctrl-msg[data-kind="error"]{ color:var(--danger); }
+.ctrl-msg[data-kind="success"]{ color:var(--good); }
+.ctrl-msg[data-kind="busy"]{ color:var(--ink-dim); }
+.ctrl-msg[data-kind="unverified"]{ color:var(--warn); }
+
+/* cell bar chart */
+.trace-wrap{ margin-top:20px; }
+.segment{ display:inline-flex; padding:3px; border-radius:9px; background:var(--hair); }
+.segment[hidden]{ display:none; }
+.segment button{ border:0; background:none; padding:8px 15px; border-radius:6px; font-size:16px; font-weight:500; color:var(--ink-faint); cursor:pointer; transition:color .15s ease, background-color .15s ease; }
+.segment button.active{ background:var(--panel); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.2); }
+.trace-box{ margin-top:14px; border:1px solid var(--hair); border-radius:12px; padding:18px 18px 6px; }
+
+/* Explicit axis domain computed in JS: Voltage uses exactly
+   [minimum cell − 0.003 V, maximum cell + 0.003 V]; Wire R retains
+   relative padding appropriate to its separate unit and numeric range. */
+.bar-chart{ display:grid; grid-template-columns:auto 1fr; gap:clamp(6px,2vw,12px); min-width:0; }
+.bar-axis{ position:relative; display:flex; flex-direction:column; justify-content:space-between; height:100px; color:var(--ink-faint); font-size:clamp(11px,3vw,15px); text-align:right; }
+.bar-axis span:nth-child(2){ position:absolute; left:0; right:0; transform:translateY(-50%); }
+.bar-field{ position:relative; min-width:0; height:100px; }
+.bar-avgline{ position:absolute; left:0; right:0; border-top:1px dashed var(--hair-strong); }
+.bar-cols{ position:relative; display:grid; grid-template-columns:repeat(16,1fr); align-items:end; gap:clamp(1.5px,1vw,5px); height:100px; border-bottom:1px solid var(--hair-strong); }
+.bar-col{ height:100%; min-width:0; display:flex; align-items:flex-end; }
+.bar-col .bar{ width:100%; min-height:5px; border-radius:2px 2px 1px 1px; background:var(--ink-faint); opacity:.45; transition:height .5s cubic-bezier(.16,.8,.24,1), background-color .2s ease, opacity .2s ease; }
+.bar-col.min .bar{ background:var(--danger); opacity:1; }
+.bar-col.max .bar{ background:var(--high); opacity:1; }
+.bar-labels{ display:grid; grid-column:2; grid-template-columns:repeat(16,1fr); gap:clamp(1.5px,1vw,5px); margin-top:8px; }
+/* Cells panel only: renderCells() sets --cell-count to the effective series
+   count (topology-resolved, or 16 while unconfirmed) on both hosts, so a
+   confirmed 8S pack renders 8 full-width bars instead of 8 narrow ones
+   inside a grid still reserving 16 tracks. Scoped by id (not on the shared
+   .bar-cols/.bar-labels classes) since barChart() is a generic template. */
+#barColsCells, #barLabelsCells{ grid-template-columns:repeat(var(--cell-count,16),1fr); }
+.bar-labels span{ display:block; overflow:hidden; text-align:center; font-size:clamp(9px,2.4vw,12.5px); color:var(--ink-faint); }
+.bar-labels span.min{ color:var(--danger); font-weight:500; }
+.bar-labels span.max{ color:var(--high); font-weight:500; }
+.trace-stats{ position:relative; display:grid; grid-template-columns:repeat(3,1fr); margin-top:16px; border-top:1px solid var(--hair); }
+.trace-stats > *{ min-width:0; padding:14px 4px 15px; text-align:center; }
+/* Structural: a border-left on every non-first child naturally puts one
+   divider before column 2 and another before column 3 — no per-column
+   targeting needed. */
+.trace-stats > * + *{ border-left:1px solid var(--hair); }
+/* The first Average cell is a <button>. Reset only its browser-default
+   left border; later button cells keep the intentional column divider. */
+.trace-stats > button:first-child{ border-left:0; }
+/* Longhand, NOT the `border:0` shorthand — that would reset border-left
+   too and silently win over the sibling rule above on specificity
+   (.trace-stats button is (0,1,1) vs (0,1,0) for the sibling selector),
+   which is exactly how the Balancing|Delta divider went missing: Delta
+   is a <button> (for its tap-to-trend action), Balancing is a plain
+   <div>, so only the button lost its border. */
+.trace-stats button{ border-top:0; border-right:0; border-bottom:0; background:none; color:inherit; font:inherit; cursor:pointer; transition:background-color .15s ease; }
+.trace-stats button:hover{ background:var(--hair); }
+/* overflow-wrap:break-word so a long single-word Ukrainian label
+   ("БАЛАНСУВАННЯ" — no space to wrap at, unlike English "Balancing")
+   breaks onto a second line inside its own column instead of overflowing
+   sideways into the neighboring stat at narrow widths. */
+.trace-stats label{ display:block; overflow-wrap:break-word; font-size:clamp(10.5px,2.6vw,14px); font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px; line-height:1.2; }
+/* Wraps rather than clips — the Timer stat's human-readable duration
+   ("4 г 59 хв 57 с") is longer than any of this row's other values and
+   can outrun a narrow 4-column stat cell that a bare number never did. */
+.trace-stats b{ display:block; overflow-wrap:break-word; font-size:clamp(14px,3.2vw,17px); font-weight:500; line-height:1.2; }
+.trace-stats b.min{ color:var(--danger); }
+.trace-stats b.max{ color:var(--high); }
+/* Both #cellsTraceStats (Average/Balancing/Delta) and the modal's
+   Min/Avg/Max are 3-item rows now — stay 3-across at every width (§13:
+   keep all 3 visible, never drop to a 2+1 wrap) and just tighten padding;
+   the label rule above already wraps a long translated label ("БАЛАНСУВАННЯ")
+   to a second line instead of clipping it. */
+@media (max-width:420px){
+  .trace-stats > *{ padding:12px 4px 13px; }
+  .cell-modal .trace-stats > *{ padding:14px 4px 15px; }
+}
+/* Current State (Stage/Now/Target/Timer) — a real 4-column row, not the
+   shared 3-column default (that mismatch is what pushed Timer onto its
+   own second row, with the leftover top-border reading as a stray
+   ghost divider under an otherwise-empty area). One row at every
+   width: values never wrap ("48 хв 54 с" as one line, not two), so
+   labels get slightly tighter tracking/size at narrow widths instead —
+   font-size floors (10.5px label / 14px value, from the shared rule
+   above) are already inside the readable minimums this needs. */
+#timelineStats{ grid-template-columns:repeat(4, minmax(0,1fr)); }
+#timelineStats label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#timelineStats b{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+@media (max-width:480px){
+  #timelineStats{ margin-top:12px; }
+  /* Weighted, not equal, columns — only needed once space is actually
+     tight: Target always renders "—" (no per-stage target voltage exists
+     on this BMS — see drawTimeline()), so giving it the same width as
+     Stage/Timer wastes the room those two need for their longest real
+     strings ("Заблоковано", "Немає зв'язку", "48 хв 54 с") — verified
+     against canvas-measured text at 320-390px. Equal columns above are
+     left alone at wider widths, where every language's strings already
+     fit with room to spare (confirmed for English "Target"/"Locked
+     out"). */
+  #timelineStats{ grid-template-columns:1.4fr 0.9fr 0.55fr 1.15fr; }
+  #timelineStats > *{ padding:10px 1px 11px; }
+  #timelineStats label{ font-size:clamp(10px,2.3vw,11px); letter-spacing:.02em; }
+  /* Floor lowered from 13px: at ~390-320px the longest real stage/timer
+     strings ("Заблоковано", "48 хв 54 с") measure wider than a 67px equal
+     column affords at 13px — verified via canvas measureText against the
+     live font stack. Column weights above are also unequal (not
+     repeat(4,1fr)): Target always renders "—" (no per-stage target
+     voltage exists on this BMS, see drawTimeline()), so it needs far
+     less room than Stage/Timer's longest real strings. */
+  #timelineStats b{ font-size:clamp(9.5px,2.6vw,15px); letter-spacing:-.01em; }
+}
+@media (max-width:360px){
+  #timelineStats > *{ padding:9px 0px 10px; }
+}
+/* ============================================================
+   MIN/MAX LEVEL-FLOW — a dedicated component, not the 16-cell bar chart.
+   Two equal adjacent halves (MIN left / MAX right) over one shared SVG:
+   a smooth boundary curve (drawn in JS from the two real levelPercents,
+   see minmaxBoundaryD/updateMinMaxFlow) replaces two independent flat
+   rectangles, and a particle travels along that exact curve. The divider
+   renders above the fill (own stacking layer) so it stays visible
+   through any color underneath it.
+   ============================================================ */
+.minmax-flow{
+  position:relative; display:grid; grid-template-columns:1fr 1fr;
+  min-height:84px; border-top:1px solid var(--hair); overflow:hidden;
+}
+.minmax-flow-svg{ position:absolute; inset:0; width:100%; height:100%; z-index:0; }
+/* Gradient stop colors + fill/depth opacity all read from the dedicated
+   --extreme-* tokens (theme block, top of file) instead of --danger/
+   --high directly — decoupled from the alarm/info semantic colors on
+   purpose, so light-theme calibration here never has to fight or
+   compromise those. */
+.minmax-stop-min{ stop-color:var(--extreme-min-line); }
+.minmax-stop-max{ stop-color:var(--extreme-max-line); }
+.minmax-fill-path{ fill-opacity:var(--extreme-fill-opacity); }
+.minmax-boundary-path{ stroke-opacity:.85; }
+/* The "tonal depth" overlay — dark theme keeps its original black-wash
+   (near/far opacity .38/.12, unchanged). In light theme both are 0: a
+   black overlay with no stop-color of its own defaults to SVG black,
+   which is exactly what desaturated the fill into a gray wash on a
+   light surface — disabled there rather than re-tinted, since a flat,
+   clean fill already reads as premium without it. */
+.minmax-depth-stop-near{ stop-color:#000; stop-opacity:var(--extreme-depth-opacity-near); }
+.minmax-depth-stop-far{ stop-color:#000; stop-opacity:var(--extreme-depth-opacity-far); }
+/* Resistance mode: a real mode switch, not the flow hidden behind
+   opacity — the SVG layer is actually removed from paint (its own path
+   `d` attributes are also cleared in JS, so nothing exists to paint even
+   if this rule were bypassed). What's left is exactly the plain
+   two-column MIN/MAX: the .minmax-half labels/values and the existing
+   .minmax-divider, already 50/50 with one center divider. */
+.minmax-flow[data-flow-mode="plain"] .minmax-flow-svg{ display:none; }
+.minmax-half{
+  position:relative; z-index:1; display:flex; flex-direction:column; justify-content:center; align-items:center;
+  gap:6px; padding:16px 8px; text-align:center;
+}
+.minmax-half label{ font-size:clamp(10.5px,2.6vw,14px); font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-faint); }
+.minmax-half b{ font-size:clamp(15px,3.4vw,18px); font-weight:600; font-variant-numeric:tabular-nums; }
+.minmax-min b{ color:var(--extreme-min-line); }
+.minmax-max b{ color:var(--extreme-max-line); }
+.minmax-divider{ position:absolute; z-index:2; top:0; bottom:0; left:50%; width:1px; margin-left:-.5px; background:var(--hair-strong); }
+.minmax-particle{
+  position:absolute; z-index:3; width:6px; height:6px; margin:-3px 0 0 -3px;
+  border-radius:50%; pointer-events:none;
+  /* Halo size is theme-aware (--extreme-particle-halo, set per theme
+     block) — the same 6px/1px glow that reads as a soft accent on a
+     dark panel turns into a gray cloud on white, so light theme uses a
+     smaller, tighter halo instead of reusing the dark value. */
+  box-shadow:0 0 var(--extreme-particle-halo, 6px 1px) currentColor;
+}
+.minmax-particle[hidden]{ display:none; }
+@media (max-width:360px){ .minmax-half{ padding:14px 4px; } }
+
+.cell-link{ display:flex; align-items:center; justify-content:center; gap:7px; width:100%; margin-top:2px; padding:15px; border:0; background:none; color:var(--ink-faint); font-size:16px; font-weight:500; cursor:pointer; border-top:1px solid var(--hair); }
+.cell-link:hover{ color:var(--ink); }
+.cell-link svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.7; }
+
+/* history detail modal (tap a cell/metric/temperature) — same axis/domain
+   construction as the main bar chart, a continuous line instead of 16
+   discrete bars because this is one series over time. */
+.cell-modal-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:18px; }
+.cell-modal-value{ display:flex; align-items:baseline; gap:3px; }
+.cell-modal-value strong{ font-size:clamp(28px,7vw,36px); font-weight:500; letter-spacing:-.01em; }
+.cell-modal-value small{ font-size:15px; color:var(--ink-dim); }
+.cell-hist-chart{ margin-top:2px; }
+.cell-hist-svg{ display:block; width:100%; height:100px; overflow:visible; }
+/* vector-effect keeps the stroke a true, isotropic 2px on screen — the
+   viewBox is 600x100 (preserveAspectRatio="none") so X and Y scale
+   factors differ from the actual rendered box and diverge further as
+   the chart widens; without this the line thickness would stretch
+   unevenly instead of staying crisp. */
+.cell-hist-line{ fill:none; stroke:var(--accent); stroke-width:2; stroke-linejoin:round; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+/* Area fill — a real, separate class. It used to share .cell-hist-line
+   with the line path itself, whose fill:none/stroke:accent rules
+   silently beat the area's own inline fill="url(#...)" attribute in the
+   cascade (a CSS property always outranks a presentation attribute), so
+   the gradient never actually painted and the area additionally picked
+   up an unwanted 2px outline traced around its whole baseline-closing
+   shape. */
+.cell-hist-area{ stroke:none; }
+.cell-hist-end{ position:absolute; top:0; right:0; width:9px; height:9px; margin:-4.5px -4.5px 0 0; border-radius:50%; background:var(--panel); border:2px solid var(--accent); pointer-events:none; }
+.cell-hist-time{ display:flex; justify-content:space-between; margin-top:8px; color:var(--ink-faint); font-size:12px; }
+.cell-modal .trace-stats{ grid-template-columns:repeat(3,1fr); }
+.cell-modal-empty{ padding:24px 0; text-align:center; color:var(--ink-faint); font-size:15px; }
+
+/* charge-cycle — real 60-hour logged history, continuously pannable, 6h
+   visible at a time. No Prev/Next buttons: navigation is drag/swipe
+   (desktop mouse, touch), Left/Right arrow keys or trackpad horizontal
+   scroll when the chart is focused, wired in installChargeCycleTimeline().
+   Uses the full content-column width like the Cells trend chart
+   (.trace-wrap) — .cluster's own 1180px cap is already the product-wide
+   ceiling. */
+.cc-meta-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.cc-period{ overflow:hidden; min-width:0; font-size:13px; color:var(--ink-faint); white-space:nowrap; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+.cc-toolbar{ display:flex; align-items:center; gap:8px; flex:none; }
+/* Same rounded-rect language as .segment (the Voltage/Wire R toggle in
+   Cells) instead of a full pill — border-radius:9px/background:var(--hair)
+   is that component's own convention, reused here rather than invented. */
+.cc-now-btn{
+  flex:none; padding:4px 10px; border:1px solid var(--hair); border-radius:9px; background:var(--hair);
+  color:var(--accent); font-size:12px; font-weight:600; letter-spacing:.02em; cursor:pointer;
+  transition:background-color .15s ease, border-color .15s ease;
+}
+.cc-now-btn:hover{ background:color-mix(in srgb, var(--accent) 10%, var(--hair)); }
+
+/* Time-scale zoom (+/-) — same .segment-family construction (padding:2px
+   shell in var(--hair), 6px inner radius) as the rest of the app's
+   toggle controls, just sized down and lower-profile per spec §12/§24. */
+.cc-zoom-group{ display:flex; align-items:center; gap:1px; padding:2px; border-radius:9px; background:var(--hair); }
+.cc-zoom-btn{
+  display:flex; align-items:center; justify-content:center; width:24px; height:24px; border:0; border-radius:6px;
+  background:none; color:var(--ink); font-size:14px; line-height:1; cursor:pointer;
+  transition:background-color .15s ease, color .15s ease;
+}
+.cc-zoom-btn:hover:not(:disabled){ background:var(--panel); }
+.cc-zoom-btn:disabled{ color:var(--ink-faint); opacity:.4; cursor:default; }
+.cc-zoom-label{ min-width:24px; padding:0 2px; color:var(--ink-faint); font-size:11.5px; font-variant-numeric:tabular-nums; text-align:center; }
+
+.cc-timeline{ display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto 1fr auto; column-gap:clamp(6px,2vw,12px);
+  grid-template-areas:". strip" "yaxis plot" ". xaxis"; }
+.cc-y-axis{
+  grid-area:yaxis; position:relative; display:flex; flex-direction:column; justify-content:space-between;
+  height:clamp(180px,26vw,260px); color:var(--ink-faint); font-size:clamp(11px,3vw,15px); text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.cc-y-axis span:nth-child(2){ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); }
+.cc-drag-area{ grid-column:2; grid-row:1 / span 3; display:grid; grid-template-areas:"strip" "plot" "xaxis"; grid-template-rows:auto 1fr auto; min-width:0;
+  cursor:grab; touch-action:pan-y; user-select:none; -webkit-user-select:none; }
+.cc-drag-area.dragging{ cursor:grabbing; }
+.cc-drag-area:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; border-radius:4px; }
+
+/* State timeline uses the same visual physics as Cells MIN/MAX: one
+   shared SVG field, one viewport-wide gradient and one flowing contour.
+   Duration-proportional .cc-seg elements sit above it only as labels and
+   hit targets. JS rebuilds all coordinates from the current xScale on
+   every zoom/pan/render; Offline remains a hard, hatched break. */
+.cc-state-strip{ grid-area:strip; position:relative; height:clamp(26px,4.2vw,34px); margin-bottom:8px; border-radius:0; overflow:hidden; background:var(--panel-2); }
+.cc-state-field{ position:absolute; inset:0; z-index:0; width:100%; height:100%; pointer-events:none; }
+.cc-state-fill-path{ fill:url(#ccStateFillGradient); }
+/* Vertical tonal depth — audited from Cells MIN/MAX (updateMinMaxFlow /
+   #minmaxFillDepth): a second path sharing the FILL path's exact `d`
+   (set in ccDraw, never its own geometry), painted with a pure-black
+   vertical gradient (#ccStateDepthGradient, x1/y1=0,0 x2/y2=0,1 — top to
+   bottom, objectBoundingBox default). MIN/MAX's stops (--extreme-depth-
+   opacity-near/-far) are darker at the top (near, .38 dark / 0 light)
+   and lighter at the bottom (far, .12 dark / 0 light); --state-depth-
+   opacity-* here starts at those exact values (see :root, spec §5).
+   Stacking is fill -> depth -> contour, same DOM order as MIN/MAX's
+   fillPath -> fillDepth -> boundaryPath, so the contour stays crisp on
+   top of the wash instead of being dulled by it. */
+.cc-state-depth-path{ fill:url(#ccStateDepthGradient); pointer-events:none; }
+.cc-state-depth-stop-near{ stop-color:#000; stop-opacity:var(--state-depth-opacity-near); }
+.cc-state-depth-stop-far{ stop-color:#000; stop-opacity:var(--state-depth-opacity-far); }
+.cc-state-contour-path{ fill:none; stroke:url(#ccStateContourGradient); stroke-width:1.5; stroke-opacity:.76; vector-effect:non-scaling-stroke; }
+#ccSegHost{ position:absolute; inset:0; z-index:1; }
+.cc-seg{ position:absolute; top:0; bottom:0; display:flex; align-items:center; justify-content:center; overflow:hidden; background:transparent; }
+/* Labels stay neutral so repeated short states do not become a row of
+   colored badges. The field and contour already carry the semantics. */
+.cc-seg[data-stage="0"], .cc-seg[data-stage="1"], .cc-seg[data-stage="2"], .cc-seg[data-stage="3"], .cc-seg[data-stage="4"]{ color:var(--ink-dim); }
+.cc-seg[data-stage="5"]{
+  /* background:none first so the shorthand JS sets (a linear-gradient,
+     since it's just this segment's own hard/no-op edges — harmless but
+     must not visually stack under the hatch) is fully reset before the
+     hatch's own background-image applies after it. */
+  background:none !important;
+  background-image:repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 6px) !important;
+  background-color:transparent !important; color:var(--ink-faint);
+}
+/* Hover emphasis (spec §8) — a small luminance lift, not a recolor;
+   ties a hovered timestamp back to its state without shouting. */
+.cc-seg.hover{ background:color-mix(in oklch, currentColor 8%, transparent); }
+:root[data-theme="light"] .cc-seg.hover, :root:not([data-theme="dark"]) .cc-seg.hover{ background:color-mix(in oklch, currentColor 6%, transparent); }
+/* "Current" (live-following) segment emphasis — a saturation/brightness
+   lift over whatever gradient is already there, not a separate color
+   token, so it stacks cleanly with .hover too. */
+.cc-seg.current{ background:color-mix(in oklch, currentColor 5%, transparent); }
+.cc-seg.current.hover{ background:color-mix(in oklch, currentColor 11%, transparent); }
+.cc-seg-label{ position:relative; overflow:hidden; padding:0 5px; color:inherit; font-size:10.5px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; white-space:nowrap; text-overflow:ellipsis; }
+/* Neutral timestamp guides: state is already encoded by the shared color
+   field, so colored dividers would make it look segmented again. */
+.cc-strip-transitions{ position:absolute; inset:0; z-index:2; pointer-events:none; }
+.cc-strip-transition-line{ position:absolute; top:0; bottom:0; width:0; border-left:1px solid var(--hair-strong); opacity:1; }
+
+.cc-plot{ grid-area:plot; position:relative; min-width:0; height:clamp(180px,26vw,260px); }
+.cc-plot-svg{ display:block; width:100%; height:100%; overflow:visible; }
+.cc-gap-rect{ fill:var(--ink-faint); opacity:.06; }
+/* Dedicated classes (color-system alignment pass) — deliberately NOT
+   .cell-hist-line/.cell-hist-area, which are shared with the per-metric
+   trend modal used elsewhere (Cells cell taps, Overview tiles, etc.);
+   reusing those here would have silently restyled that modal too. Same
+   geometry (2px, non-scaling-stroke) as that shared class, but the
+   color itself now tracks --high (Cells' own MAX/cool-blue accent
+   family) instead of --accent, per the alignment spec. */
+.cc-voltage-line{ fill:none; stroke:var(--high); stroke-width:2; stroke-linejoin:round; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+.cc-voltage-area{ stroke:none; }
+/* Stage-transition dividers — a plain HTML overlay (not SVG) so a 1px
+   line never suffers the viewBox's non-uniform X/Y scaling; permanent
+   historical structure, dashed and quiet — reduced further this pass
+   (spec §40) so the temporary interactive crosshair below reads as
+   clearly stronger (spec §7/§41: trace > crosshair > transition > grid). */
+.cc-transitions{ position:absolute; inset:0; pointer-events:none; }
+/* Same neutral timestamp color as the strip divider, only quieter and
+   dashed so the crosshair remains visually dominant. */
+.cc-transition-line{ position:absolute; top:0; bottom:0; width:0; border-left:1px dashed var(--hair-strong); opacity:.3; }
+
+/* Hover crosshair (spec §3-8) — solid, stronger than the dashed
+   transition lines, weaker than the voltage trace itself. Position is
+   set in JS (left:%) snapped to the nearest raw sample, never raw
+   pointer X. */
+.cc-crosshair{ position:absolute; top:0; bottom:0; width:0; border-left:1px solid var(--ink-faint); opacity:.5; pointer-events:none; }
+:root[data-theme="light"] .cc-crosshair, :root:not([data-theme="dark"]) .cc-crosshair{ opacity:.35; }
+/* Marker follows the voltage trace's own accent (--high), not the
+   generic --accent (spec §9: "the point marker... may use the main
+   voltage accent") — same color as .cc-voltage-line above. */
+.cc-crosshair-dot{
+  position:absolute; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:var(--high);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--high) 22%, transparent); pointer-events:none;
+}
+/* Border/radius/surface language matched to Cells' own cards (.cell,
+   .trace-box use var(--hair) + panel, no heavy shadow) rather than a
+   consumer floating-popover — a quiet precision readout, not a tooltip
+   bubble (spec §11). */
+.cc-tooltip{
+  position:absolute; z-index:2; display:flex; flex-direction:column; gap:1px; padding:4px 7px;
+  border:1px solid var(--hair); border-radius:8px; background:var(--panel); box-shadow:0 2px 8px rgba(0,0,0,.14);
+  font-size:11.5px; line-height:1.3; white-space:nowrap; pointer-events:none;
+}
+.cc-tooltip.pos-top{ top:6px; }
+.cc-tooltip.pos-bottom{ bottom:6px; }
+.cc-tooltip b{ font-variant-numeric:tabular-nums; font-weight:600; }
+.cc-tooltip span{ color:var(--ink-faint); }
+.cc-tooltip .cc-tooltip-state{ font-size:10.5px; }
+
+.cc-x-axis{ grid-area:xaxis; position:relative; height:28px; margin-top:6px; color:var(--ink-faint); font-size:11px; font-variant-numeric:tabular-nums; }
+.cc-x-tick{ position:absolute; top:0; transform:translateX(-50%); white-space:nowrap; text-align:center; }
+.cc-x-tick[data-align="left"]{ transform:translateX(0); text-align:left; }
+.cc-x-tick[data-align="right"]{ transform:translateX(-100%); text-align:right; }
+.cc-x-tick small{ display:block; margin-top:1px; opacity:.75; font-size:10px; }
+
+/* Overview rail — restrained global context, not a second chart (spec
+   §19/§20/§42): the whole retained history as one thin bar flanked by
+   honest endpoint labels ("18h ago" only claims what's really stored),
+   with the current viewport as a highlighted window sized to
+   visibleDuration/availableDuration (spec §43) — shrinks/grows live as
+   +/- is used. Click-to-jump only (dragging the window itself is
+   optional per spec and skipped to keep this cheap); the main chart
+   drag above is the primary interaction. */
+.cc-overview{ display:flex; align-items:center; gap:8px; margin-top:12px; }
+.cc-overview-endpoint{ flex:none; color:var(--ink-faint); font-size:10.5px; font-variant-numeric:tabular-nums; }
+.cc-overview-rail{ position:relative; flex:1; min-width:0; height:6px; border-radius:999px; background:var(--panel-2); cursor:pointer; }
+.cc-overview-window{ position:absolute; top:-2px; bottom:-2px; min-width:6px; border-radius:999px; background:var(--accent); opacity:.55; }
+
+.cc-live-caption{ margin-top:16px; color:var(--ink-faint); font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
+.cc-empty{ margin:16px 2px; text-align:center; color:var(--ink-faint); font-size:14px; }
+.cc-meta{ margin:10px 2px 0; color:var(--ink-faint); font-size:11.5px; letter-spacing:.02em; }
+
+@media (max-width:480px){
+  .cc-y-axis, .cc-plot{ height:clamp(160px,42vw,220px); }
+  .cc-seg-label{ font-size:9.5px; }
+  .cc-overview-endpoint{ font-size:9.5px; }
+}
+
+/* system readout line — always immediately follows a .telemetry-row, whose
+   own border-bottom is already the section's structural divider here, so
+   this rule supplies spacing only and must never draw a second hairline. */
+.sysline{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px 24px; padding-top:20px; }
+.sysline div{ min-width:0; }
+.sysline label{ display:block; font-size:14px; font-weight:500; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px; }
+.sysline b{ font-size:clamp(15px,3.2vw,17px); font-weight:500; }
+
+/* ============================================================
+   CELLS PANEL — a precision measurement matrix, not 16 mini cards.
+   The border lives on the grid itself (hairline row/column rules from
+   the 1px gap showing through), not around each individual cell — the
+   same "chrome supports hierarchy, doesn't create it" rule as everywhere
+   else. Numbers stay left-aligned and tabular so a column of 16 reads
+   as calibrated instrumentation.
+   ============================================================ */
+.cell-grid{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+  margin-top:var(--sp-5); border-top:1px solid var(--hair); border-left:1px solid var(--hair);
+  background:var(--hair);
+}
+.cell{
+  position:relative; display:flex; flex-direction:column; justify-content:center;
+  gap:3px; width:100%; min-width:0; min-height:76px; padding:12px 14px; border:0;
+  border-right:1px solid var(--hair); border-bottom:1px solid var(--hair);
+  background:var(--panel); color:inherit; font:inherit; text-align:left; overflow:hidden; cursor:pointer;
+  transition:background-color .15s ease, box-shadow .15s ease;
+}
+/* .cell{display:flex} above and [hidden] both carry (0,1,0) specificity, so
+   without this the class always wins and renderCells()'s button.hidden=true
+   (topology-inactive cells) never actually hid the card. */
+.cell[hidden]{ display:none; }
+.cell:hover{ background:var(--panel-2); }
+.cell-num{ position:absolute; top:10px; right:12px; color:var(--ink-faint); font-size:11px; font-variant-numeric:tabular-nums; }
+.cell strong{ display:block; overflow:hidden; max-width:100%; font-size:17px; font-weight:600; letter-spacing:-.01em; white-space:nowrap; text-overflow:ellipsis; }
+.cell strong i, .cell small i{ margin-left:2px; color:var(--ink-dim); font-size:.65em; font-style:normal; font-weight:500; }
+.cell small{ display:block; overflow:hidden; max-width:100%; color:var(--ink-faint); font-size:12.5px; white-space:nowrap; text-overflow:ellipsis; }
+.cell-dev{ display:block; overflow:hidden; max-width:100%; color:var(--ink-faint); font-size:12px; white-space:nowrap; text-overflow:ellipsis; }
+/* Static identification only — no level/height/fill inside the matrix
+   (that visualization lives solely in the dedicated Voltage MIN/MAX flow
+   component). A restrained background wash marks which cell is the
+   extreme, in whichever mode (Voltage/Wire R) is currently selected —
+   see matrixMinIs/matrixMaxIs in renderCells(). Deliberately background-
+   only, not also a box-shadow edge: .cell.dev-warn already uses an inset
+   box-shadow for its own (independent) signal, and an extreme cell is
+   often also the most-deviated one — two competing box-shadows on the
+   same element would silently let one win instead of showing both. */
+.cell.min{ background:color-mix(in srgb, var(--danger) 11%, var(--panel)); }
+.cell.min:hover{ background:color-mix(in srgb, var(--danger) 17%, var(--panel-2)); }
+.cell.min .cell-dev{ color:color-mix(in srgb, var(--warn) 85%, var(--ink-faint)); }
+.cell.max{ background:color-mix(in srgb, var(--high) 11%, var(--panel)); }
+.cell.max:hover{ background:color-mix(in srgb, var(--high) 17%, var(--panel-2)); }
+.cell.max .cell-dev{ color:var(--ink-dim); }
+/* Deviation from the pack average is a separate signal (a left rule, not
+   a fill) — a balance/data-quality warning independent of whether this
+   cell also happens to be the extreme; a cell can carry both at once. */
+.cell.dev-warn{ box-shadow:inset 2px 0 0 var(--warn); }
+.cell.dev-warn .cell-dev{ color:var(--warn); font-weight:500; }
+
+/* Mobile: 2 columns, not a squeezed 4 — voltage stays primary, deviation
+   secondary, cell number a small tertiary label, resistance drops to its
+   own smaller row rather than disappearing. */
+@media (max-width:480px){
+  .cell-grid{ grid-template-columns:repeat(2,1fr); }
+  .cell{
+    flex-direction:row; flex-wrap:wrap; align-items:baseline; justify-content:flex-start;
+    gap:2px 8px; padding:12px 30px 12px 14px; min-height:auto; text-align:left;
+  }
+  .cell-num{ top:12px; right:10px; }
+  .cell strong{ order:1; flex:1 1 auto; text-align:left; font-size:17px; }
+  .cell-dev{ order:2; flex:none; font-size:12px; }
+  .cell small{ order:3; flex:0 0 100%; font-size:12px; opacity:.85; }
+}
+
+/* ============================================================
+   ALARMS PANEL
+   ============================================================ */
+.alarm-empty{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:56px 20px; border:1px solid var(--hair); border-radius:12px; }
+.alarm-empty .ring{ display:grid; place-items:center; width:48px; height:48px; margin-bottom:15px; border-radius:50%; border:1px solid var(--good); color:var(--good); }
+.alarm-empty .ring svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.alarm-empty strong{ font-size:19px; font-weight:500; }
+.alarm-empty small{ margin-top:6px; color:var(--ink-faint); font-size:16px; }
+.alarm-item{ display:flex; gap:14px; padding:16px 18px; border:1px solid color-mix(in srgb, var(--danger) 35%, var(--hair)); background:var(--danger-dim); border-radius:12px; }
+.alarm-item + .alarm-item{ margin-top:9px; }
+.alarm-item svg{ width:19px; height:19px; flex:none; margin-top:1px; fill:none; stroke:var(--danger); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.alarm-item strong{ display:block; color:var(--danger); font-size:18px; font-weight:500; }
+.alarm-item small{ display:block; margin-top:4px; color:var(--ink-dim); font-size:16px; }
+
+/* ============================================================
+   CONFIGURATION
+   ============================================================ */
+/* Configuration — each field is its own card with an adjacent message, not
+   rows sharing one distant status line (see P0.4: message must land next
+   to the control that caused it). */
+.field-list{ display:flex; flex-direction:column; gap:var(--sp-2); }
+.field-block{ border:1px solid var(--hair); border-radius:12px; padding:14px 18px; background:var(--panel); }
+.field{ display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.field span{ font-size:16px; font-weight:500; }
+.field-input{ display:flex; align-items:center; gap:6px; padding:0 14px; height:42px; min-width:108px; border:1px solid var(--hair); border-radius:8px; background:var(--panel-2); }
+.field-input input{ width:100%; border:0; background:none; color:var(--ink); font:inherit; font-variant-numeric:tabular-nums; font-size:17px; }
+.field-input input:focus{ outline:0; }
+.field-input input.invalid{ color:var(--danger); }
+.field-input small{ color:var(--ink-faint); font-size:14.5px; }
+.save-btn{ display:block; width:100%; margin-top:16px; padding:16px; border:1px solid color-mix(in srgb, var(--accent) 55%, var(--hair)); border-radius:10px; background:var(--accent-dim); color:var(--accent); font-size:17px; font-weight:500; cursor:pointer; transition:background-color .15s ease; }
+.save-btn:hover{ background:color-mix(in srgb, var(--accent) 22%, transparent); }
+.save-btn:disabled{ opacity:.6; cursor:default; }
+.request-message{ min-height:18px; margin:10px 2px 0; font-size:13.5px; color:var(--ink-faint); }
+.request-message[data-kind="error"]{ color:var(--danger); }
+.request-message[data-kind="success"]{ color:var(--good); }
+.request-message[data-kind="busy"]{ color:var(--ink-dim); }
+.request-message[data-kind="unverified"]{ color:var(--warn); }
+.blocked-note{ margin:14px 2px 0; font-size:12.5px; color:var(--ink-faint); }
+
+/* Real vs. illustrative — the single most important label in this file
+   (see the V2 directive's "NO FAKE TELEMETRY" rule). Anything synthetic
+   gets this tag; real measured data never does. */
+.illustrative-tag{
+  display:inline-block; padding:3px 8px; border-radius:5px; background:var(--hair);
+  color:var(--ink-faint); font-size:11px; font-weight:500; letter-spacing:.04em; text-transform:uppercase;
+}
+/* [hidden]'s default display:none comes from the UA stylesheet — once an
+   author rule sets display on the same element at equal specificity,
+   author origin wins the tie and [hidden] silently stops hiding it. Real
+   bug this caused: the modal kept showing "Illustrative" over genuinely
+   real /history.json data because this exact conflict. */
+.illustrative-tag[hidden]{ display:none; }
+.section-head .value.illustrative-tag{ font-size:11px; }
+.chart-footnote{ margin:12px 2px 4px; font-size:12.5px; color:var(--ink-faint); }
+
+/* ============================================================
+   DIAGNOSTICS
+   ============================================================ */
+.diag-list{ border:1px solid var(--hair); border-radius:12px; overflow:hidden; }
+.diag-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 18px; }
+.diag-row + .diag-row{ border-top:1px solid var(--hair); }
+.diag-row span{ color:var(--ink-faint); font-size:var(--fs-body); }
+.diag-row b{ font-size:var(--fs-body); font-weight:500; text-align:right; }
+.diag-row b[data-kind="confirmed"]{ color:var(--good); }
+.diag-row b[data-kind="mismatch"], .diag-row b[data-kind="timeout"], .diag-row b[data-kind="error"]{ color:var(--danger); }
+.diag-row b[data-kind="sent_unverified"]{ color:var(--warn); }
+.diag-counters{ margin-top:2px; }
+.diag-entity-list{ margin-top:22px; }
+.diag-entity-row span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.diag-entity-row .diag-entity-value{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* Register catalogue lives in Configuration. R values remain plain
+   readouts; RW values use one compact editor and one adjacent OK action. */
+.register-list{ margin-top:4px; }
+.register-list .diag-row{ min-height:58px; }
+/* Value column widened 15% (94px -> 108px) across every breakpoint below. */
+.register-editor{ display:grid; grid-template-columns:108px 54px; align-items:center; gap:8px; flex:none; }
+.register-editor.has-unit{ grid-template-columns:108px 54px; }
+.register-editor.toggle-editor{ grid-template-columns:38px; width:38px; }
+/* Was position:relative + a block-level input with the unit absolutely
+   pinned to the far right edge (right:9px) — for a short value ("240",
+   "3.65") that left a wide gap of empty field between the digits and
+   the unit, reading as a separate label rather than part of the same
+   value. The wrap is now the visible bordered box (flex, centered) and
+   the input inside it is borderless/sized-to-content, so the unit sits
+   immediately after the typed value as a normal flex sibling — the
+   pair is centered as one group within the field, per spec. */
+.register-input-wrap{
+  position:relative; display:flex; align-items:center; justify-content:center; gap:4px;
+  min-width:0; height:38px; padding:0 8px; border:1px solid var(--hair-strong);
+  border-radius:8px; background:var(--panel-2);
+}
+.register-editor input,.register-editor select{
+  width:100%; min-width:0; height:38px; padding:0 10px; border:1px solid var(--hair-strong);
+  border-radius:8px; background:var(--panel-2); color:var(--ink); font:inherit;
+  font-size:var(--fs-body); font-variant-numeric:tabular-nums;
+}
+/* The has-unit input overrides the shared rule above: no border/background
+   of its own (the wrap supplies the box), sized to its content instead of
+   filling the wrap, so justify-content:center on the wrap centers the
+   value+unit pair as a whole. min-width keeps it comfortably editable
+   even for a short/empty value. */
+.register-input-wrap input{
+  width:auto; min-width:42px; flex:0 1 auto; height:auto; padding:0; border:0;
+  background:transparent; text-align:right;
+}
+/* Removes the native up/down spinner buttons. Verified live that
+   leaving them in silently clipped digits: a shrink-to-fit width:auto
+   number input still reserves the browser's own spinner-arrow width
+   inside its content box (Chrome), so "240" measured scrollWidth 43px
+   against a clientWidth of only 34px and rendered as "24" with the
+   trailing digit cut off. Their built-in step/arrow interaction isn't
+   otherwise used here (values are typed, then confirmed with the
+   adjacent OK button), so removing them is a plain, safe fix, not a
+   feature/behavior change. */
+.register-input-wrap input::-webkit-outer-spin-button,
+.register-input-wrap input::-webkit-inner-spin-button{ -webkit-appearance:none; appearance:none; margin:0; }
+.register-input-wrap input{ -moz-appearance:textfield; appearance:textfield; }
+.register-editor input:focus,.register-editor select:focus{ outline:2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset:1px; }
+/* The wrapped input is borderless (the wrap is the visible box now), so
+   its own focus outline would float disconnected from that box —
+   suppress it and outline the wrap instead. */
+.register-input-wrap input:focus{ outline:none; }
+.register-input-wrap:has(input:focus){ outline:2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset:1px; }
+.register-editor input.invalid{ border-color:var(--danger); color:var(--danger); }
+.register-input-wrap:has(input.invalid){ border-color:var(--danger); }
+.register-unit{ position:static; flex:none; color:var(--muted); font-size:11px; line-height:1; white-space:nowrap; pointer-events:none; }
+/* On/off registers use a compact toggle centered in the value column. */
+.register-editor .register-toggle{ justify-self:center; }
+.register-editor .register-toggle.invalid{ box-shadow:0 0 0 2px color-mix(in srgb, var(--danger) 45%, transparent); border-color:var(--danger); }
+.register-editor .register-toggle.is-armed{ background:color-mix(in srgb, var(--warn) 22%, transparent); border-color:color-mix(in srgb, var(--warn) 72%, var(--hair-strong)); }
+.register-editor .register-toggle.is-armed i{ background:var(--warn); }
+.register-confirm-label{ color:var(--warn); }
+.register-ok{
+  height:38px; padding:0 10px; border:1px solid color-mix(in srgb, var(--accent) 55%, var(--hair));
+  border-radius:8px; background:var(--accent-dim); color:var(--accent); font:inherit; font-weight:600; cursor:pointer;
+  transition:background-color .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+.register-ok:disabled{ cursor:default; }
+.register-ok.is-sending{ background:color-mix(in srgb, var(--warn) 18%, var(--panel-2)); border-color:color-mix(in srgb, var(--warn) 65%, var(--hair)); color:color-mix(in srgb, var(--warn) 80%, var(--ink)); }
+.register-ok.is-success{ background:color-mix(in srgb, var(--good) 15%, var(--panel-2)); border-color:color-mix(in srgb, var(--good) 60%, var(--hair)); color:color-mix(in srgb, var(--good) 82%, var(--ink)); }
+.register-ok.is-error{ background:color-mix(in srgb, var(--danger) 14%, var(--panel-2)); border-color:color-mix(in srgb, var(--danger) 65%, var(--hair)); color:color-mix(in srgb, var(--danger) 85%, var(--ink)); }
+.register-passcode-row{ margin-top:10px; border:1px solid var(--hair); border-radius:12px; }
+/* Passcode field widened 15% too (187px -> 215px box, 125px -> 144px
+   input column) for the same "input fields" request. */
+.register-passcode-row .register-editor{ width:215px; grid-template-columns:144px 54px; }
+@media (max-width:560px){
+  .register-list .diag-row, .register-passcode-row{ align-items:flex-start; flex-direction:column; gap:8px; }
+  .register-editor{ width:179px; grid-template-columns:108px 54px; }
+  .register-editor.has-unit{ width:179px; grid-template-columns:108px 54px; }
+  .register-editor.toggle-editor{ width:38px; grid-template-columns:38px; }
+  .register-passcode-row .register-editor{ width:215px; grid-template-columns:144px 54px; }
+}
+
+.fatal-error{ margin:24px; padding:20px; border:1px solid var(--danger); border-radius:12px; background:var(--danger-dim); color:var(--danger); white-space:pre-wrap; font-family:ui-monospace, monospace; font-size:13px; }

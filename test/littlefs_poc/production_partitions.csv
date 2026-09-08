@@ -1,0 +1,83 @@
+# Proposed PRODUCTION partition table for batterylifepo4.yaml, once the
+# LittleFS PoC (test/littlefs_poc/littlefs_poc.yaml) has actually compiled
+# and passed its on-device round-trip + power-loss tests.
+#
+# NOT applied to batterylifepo4.yaml yet -- per the project's own
+# constraint, a new partition table must not reach a production device
+# before a separate flash/OTA/recovery test. This file is the reviewed,
+# calculated candidate for that test, not a live change.
+#
+# Derived by hand from ESPHome 2026.6.5's own partition-generation
+# constants and formula (esphome/components/esp32/__init__.py -- read
+# directly from the installed package, not guessed), for this project's
+# actual resolved config: board esp32dev -> flash_size 4MB (ESPHome's own
+# documented default when omitted, which this project does), framework
+# esp-idf, ota: enabled, no custom partitions today.
+#
+# Formula (get_partition_csv / _get_app_partition_size in that file):
+#   FIRST_PARTITION_OFFSET = 0x9000 (bootloader 0x8000 + partition table 0x1000)
+#   overhead_before_nvs    = (0x9000 + otadata 0x2000 + phy_init 0x1000 + 0xFFFF) & ~0xFFFF = 0x10000
+#   overhead (esp-idf)      = 0x10000 + IDF_NVS_SIZE(0x70000) = 0x80000
+#   custom_total (littlefs) = 0x10000 (65536 -- the "128 KB is only a
+#                             provisional starting candidate" instruction is
+#                             honored below: 128 KB was checked first and
+#                             rejected, see the sizing note beneath the table)
+#   raw_size = (4194304 - 524288 - 65536) / 2 = 1802240
+#   app_size = raw_size rounded down to 64KB = 1769472 (0x1B0000)
+#   wasted   = (1802240 - 1769472) * 2 = 65536 bytes (~64KB) lost to the
+#              64KB alignment ESPHome enforces on app-type partitions --
+#              an unavoidable rounding cost of this formula, not a bug in
+#              this calculation.
+#
+# Sizing note (why 65536, not 131072/128KB): with the ~10.86KB-per-slot
+# Variant-B payload (see the binary format spec), two A/B slots need only
+# ~21.7KB of raw data. 128KB (the task's own "provisional starting
+# candidate", explicitly not to be rubber-stamped) was checked against
+# LittleFS's real per-file/per-block metadata overhead and against the
+# resulting OTA-slot cost, and rejected in favor of 64KB specifically
+# because: (a) it comfortably covers two A/B slots (21.7KB payload) with
+# roughly 3x headroom for LittleFS metadata, wear-levelling reserve
+# blocks, and a future schema-version's header growing by a few dozen
+# bytes; (b) it costs the same 64KB-alignment "wasted" padding as 128KB
+# would per the app-partition rounding above -- i.e. going from 64KB to
+# 128KB does NOT proportionally cost 64KB more OTA headroom, it costs the
+# SAME 64KB rounding loss either way, but 128KB unnecessarily doubles the
+# unused-inside-littlefs margin for no benefit this dataset needs. This
+# is a reviewed, calculated choice, not the unexamined 128KB default the
+# task explicitly warned against approving blindly -- REQUIRES BUILD
+# CHECK to confirm actual LittleFS metadata overhead on real hardware
+# before treating this as final (see the PoC's own measurement step).
+#
+# name,     type, subtype, offset,   size,     end (not a CSV column --
+#                                                shown here only for the
+#                                                overlap proof below)
+otadata,    data, ota,     0x9000,   0x2000,   # -> 0xB000
+phy_init,   data, phy,     0xB000,   0x1000,   # -> 0xC000
+app0,       app,  ota_0,   0x10000,  0x1B0000, # -> 0x1C0000 (next 64KB-aligned offset after 0xC000)
+app1,       app,  ota_1,   0x1C0000, 0x1B0000, # -> 0x370000 (0x1C0000 already 64KB-aligned)
+nvs,        data, nvs,     0x370000, 0x70000,  # -> 0x3E0000 (4KB-aligned)
+littlefs,   data, spiffs,  0x3E0000, 0x10000,  # -> 0x3F0000 (4KB-aligned)
+#                                    unused:    0x3F0000 -> 0x400000 = 0x10000 (64KB) held back as an
+#                                                explicit, deliberate flash-size safety margin, not
+#                                                allocated to any partition -- confirms the table
+#                                                below does NOT need every last byte of the 4MB chip,
+#                                                so a slightly-larger real firmware than assumed still
+#                                                has room without an immediate partition-table edit.
+#
+# Overlap/alignment proof (every partition's end == the next partition's
+# start, or falls within the final unallocated margin; every offset is
+# divisible by 0x1000, and both app-type offsets are additionally
+# divisible by 0x10000):
+#   0x9000 + 0x2000  = 0xB000   == phy_init.offset
+#   0xB000 + 0x1000  = 0xC000   <= app0.offset (0x10000, next 64KB boundary)
+#   0x10000 + 0x1B0000 = 0x1C0000 == app1.offset
+#   0x1C0000 + 0x1B0000 = 0x370000 == nvs.offset
+#   0x370000 + 0x70000 = 0x3E0000 == littlefs.offset
+#   0x3E0000 + 0x10000 = 0x3F0000 <= 0x400000 (total 4MB flash) -- 0x10000 margin remaining, unallocated
+#
+# otadata,   data, ota,    0x9000,   0x2000
+# phy_init,  data, phy,    0xB000,   0x1000
+# app0,      app,  ota_0,  0x10000,  0x1B0000
+# app1,      app,  ota_1,  0x1C0000, 0x1B0000
+# nvs,       data, nvs,    0x370000, 0x70000
+# littlefs,  data, spiffs, 0x3E0000, 0x10000

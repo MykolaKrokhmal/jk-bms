@@ -1,0 +1,114 @@
+# Isolated LittleFS proof-of-concept -- NOT the production config, per the
+# task's explicit requirement to prove this dependency compiles before it
+# touches batterylifepo4.yaml. Mounts a small test LittleFS partition,
+# writes a known byte pattern, fsyncs/closes, reboots, re-reads, and
+# verifies a CRC32 over the read-back content. Also exercises the real
+# jk_history component's restore()/checkpoint() against a tiny 8-record
+# ring so the whole path (not just raw LittleFS mount/write/read) is
+# exercised in one PoC.
+#
+# Build with:
+#   esphome compile test/littlefs_poc/littlefs_poc.yaml
+# (needs its own secrets.yaml alongside it, or copy the project's
+# secrets.yaml.example and fill in placeholder values -- this PoC never
+# joins real Wi-Fi/BMS hardware, the values just need to parse.)
+
+esphome:
+  name: jk-bms-littlefs-poc
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          // Raw LittleFS round-trip: independent of jk_history, proves
+          // esp_vfs_littlefs_register()/fopen/fwrite/fsync/fread work at
+          // all against the partition declared below, before trusting
+          // anything built on top of it.
+          FILE *f = fopen("/littlefs/poc_test.bin", "wb");
+          if (f == nullptr) {
+            ESP_LOGE("littlefs_poc", "mount/open-for-write failed");
+          } else {
+            uint8_t pattern[64];
+            for (int i = 0; i < 64; i++) pattern[i] = uint8_t(i * 7 + 3);
+            size_t written = fwrite(pattern, 1, sizeof(pattern), f);
+            fflush(f);
+            fsync(fileno(f));
+            fclose(f);
+            ESP_LOGI("littlefs_poc", "wrote %u/%u bytes", (unsigned) written, (unsigned) sizeof(pattern));
+
+            FILE *rf = fopen("/littlefs/poc_test.bin", "rb");
+            uint8_t readback[64] = {0};
+            size_t got = rf ? fread(readback, 1, sizeof(readback), rf) : 0;
+            if (rf) fclose(rf);
+            bool match = (got == sizeof(pattern));
+            for (int i = 0; match && i < 64; i++) match = (readback[i] == pattern[i]);
+            ESP_LOGI("littlefs_poc", "read-back %u bytes, content match: %s",
+                     (unsigned) got, match ? "YES" : "NO");
+          }
+
+          // jk_history round-trip against a tiny 8-record ring.
+          int16_t test_voltage[8] = {5300, 5301, 5302, 5303, 5304, 5305, 5306, 5307};
+          uint8_t test_stage[8] = {1, 1, 2, 2, 3, 4, 4, 5};
+          bool checkpoint_ok = id(jk_hist_poc).checkpoint(
+              8, 0, 1700000000ULL,
+              [&](uint32_t i, int16_t &v, uint8_t &s) { v = test_voltage[i]; s = test_stage[i]; });
+          ESP_LOGI("littlefs_poc", "jk_history checkpoint: %s (%s)",
+                   checkpoint_ok ? "OK" : "FAILED", id(jk_hist_poc).last_error());
+
+          uint32_t restored_count = 0, restored_write_index = 0;
+          uint64_t restored_ts = 0;
+          bool any_mismatch = false;
+          bool restore_ok = id(jk_hist_poc).restore(
+              restored_count, restored_write_index, restored_ts,
+              [&](uint32_t i, int16_t v, uint8_t s) {
+                if (i < 8 && (v != test_voltage[i] || s != test_stage[i])) any_mismatch = true;
+              });
+          ESP_LOGI("littlefs_poc", "jk_history restore: %s, count=%u, mismatch=%s (%s)",
+                   restore_ok ? "OK" : "FAILED", (unsigned) restored_count,
+                   any_mismatch ? "YES" : "NO", id(jk_hist_poc).last_error());
+
+external_components:
+  - source: ../../components
+
+jk_history:
+  id: jk_hist_poc
+  partition: littlefs_poc
+  mount_point: /littlefs
+  capacity: 8
+  sample_interval: 60s
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    # Exact shorthand syntax confirmed from the installed ESPHome's own
+    # esp32/__init__.py (_parse_idf_component / FRAMEWORK_SCHEMA[CONF_COMPONENTS]):
+    # "owner/component<op>version". This is the actual thing under test --
+    # this PoC's entire purpose is proving this line resolves and builds.
+    components:
+      - "joltwallet/littlefs^1.21.1"
+  # Small dedicated test partition -- see the project's partition-size
+  # calculation for why the PRODUCTION partition is sized differently;
+  # this PoC only needs to prove the mechanism, not host real data.
+  partitions:
+    - name: littlefs_poc
+      type: data
+      subtype: spiffs
+      # size: is validated as cv.int_range(min=0x1000) -- a plain integer
+      # of bytes, NOT a "64KB"-style string (confirmed live: esphome
+      # config rejected "64KB" with "Expected integer, but cannot parse
+      # 64kb as an integer").
+      size: 65536
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "LittleFS PoC Fallback"
+    password: !secret jk_bms_ap_password
+
+logger:
+  level: DEBUG
+
+api:
+  encryption:
+    key: !secret jk_bms_api_key

@@ -1,0 +1,1481 @@
+#!/usr/bin/env node
+/*
+ * JK BMS V2 — demo server.
+ *
+ * Serves the REAL production jk_bms.js / jk_bms.css (read from the parent
+ * directory, byte-for-byte, never copied/modified) behind a fake but
+ * protocol-faithful ESPHome backend:
+ *   - GET  /events        real text/event-stream SSE, same event-type/JSON
+ *                          shape as ESPHome's web_server component
+ *   - POST /select/:id/set, /number/:id/set, /text/:id/set
+ *                          accepted immediately (HTTP 200), with the actual
+ *                          "BMS confirmation" arriving later as a delayed,
+ *                          separate SSE push — so the production Write
+ *                          Transaction Manager is exercised for real, not
+ *                          faked from the frontend.
+ *   - GET  /history.json  same shape as the on-device ring buffer
+ *   - /demo/*             dev-only scenario control — NOT part of the
+ *                          production wire protocol, used only by the
+ *                          demo page's own dev panel.
+ *
+ * No dependencies beyond Node's standard library.
+ */
+"use strict";
+
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const { URL } = require("url");
+
+const ROOT = path.join(__dirname, "..");
+// Single source of truth (spec section 6) for which register lives at
+// which address, shared with jk_bms.js's GENERIC_TX_ADDRESS and with
+// batterylifepo4.yaml's own set_action addresses. Only "generic"-managed
+// entries participate in the generic write-tx simulation below;
+// cell_count and setup_passcode keep their own bespoke handling exactly
+// like the real firmware.
+const REGISTER_CATALOG = require(path.join(ROOT, "register_catalog.json"));
+const REGISTER_BY_KEY = Object.create(null);
+for (const reg of REGISTER_CATALOG.registers) {
+  if (reg.manager === "generic") REGISTER_BY_KEY[reg.key] = { ...reg, addr: parseInt(reg.address, 16) };
+}
+const PORT = Number(process.env.PORT) || 8321;
+// Bind explicitly to IPv4 so a phone on the local Wi-Fi can open the demo
+// using the Mac's LAN address. Some macOS setups expose an IPv6-only
+// wildcard for listen(port), which makes localhost work but rejects IPv4.
+const HOST = process.env.HOST || "0.0.0.0";
+
+/* ============================================================
+   ENTITY STATE — one flat map, wire id -> {state, value}, mirroring
+   exactly what jk_bms.js's registerEntity() expects on the wire
+   ("<domain>-<object_id>", e.g. "sensor-total_voltage").
+   ============================================================ */
+const entities = Object.create(null);
+function setEntity(id, state, value) {
+  entities[id] = { id, state: String(state), value: value === undefined ? state : value };
+}
+
+const CELL_COUNT = 16; // protocol/transport maximum -- never changes, mirrors MAX_CELL_COUNT in jk_bms.js
+const BASE_CELL_V = 3.28;
+// A realistic, mostly-quiet resting spread — cell_imbalance scenario grows
+// this over time instead of starting from a suspiciously perfect pack.
+let cellOffsetsMv = [4, -6, 2, 9, -2, 1, -11, 3, 6, -4, 2, -1, 14, -3, 0, -18];
+let cellResistances = [1.28, 1.36, 1.44, 1.52, 1.20, 1.28, 1.36, 1.44, 1.52, 1.20, 1.28, 1.36, 1.44, 1.52, 1.20, 1.28];
+
+/* ============================================================
+   INDEPENDENT PHYSICAL/REGISTER STATE — deliberately three separate
+   variables, exactly per spec §10 ("Запис configuredCellCount не повинен
+   автоматично змінювати physicalTopologyCount"):
+     registerCellCount     — what sensor-cell_count (the CellCount
+                              register) currently reads. A write updates
+                              THIS, and only this, directly.
+     physicalTopologyCount — how many channels tick() actually treats as
+                              wired/alive (real jittered voltage). Only a
+                              scenario that represents "the BMS genuinely
+                              re-detected the new topology" moves this.
+     physicalMask          — the raw connected-mask bits. Normally the
+                              contiguous "first physicalTopologyCount bits"
+                              pattern, but deliberately settable to a
+                              non-contiguous or extra-high-bit pattern for
+                              the negative topology tests (mask_scenario).
+   resolveTopologyMock() (below) is a faithful port of
+   batterylifepo4.yaml's resolve_topology — it DERIVES topology_state from
+   these three (+ cellVoltages + packVoltage + comms freshness), the same
+   way the real firmware does, so no scenario can shortcut straight to a
+   guaranteed "success" outcome — the outcome always falls out of the
+   simulated physical facts, exactly like the device.
+   ============================================================ */
+let registerCellCount = CELL_COUNT;
+let physicalTopologyCount = CELL_COUNT;
+let physicalMask = (2 ** CELL_COUNT) - 1;
+// Per-channel override: null = "derive from physicalTopologyCount /
+// cellOffsetsMv as usual"; a number = a fixed voltage (including NaN) that
+// tick() will keep publishing verbatim for that channel, for the
+// missing_cell_voltage / nan_cell_voltage scenarios.
+let cellVoltageOverride = new Array(CELL_COUNT).fill(null);
+// null = "derive pack voltage as the natural sum of active channels";
+// a number = a fixed override, for the VOLTAGE_SUM_DIFFERS scenario.
+let packVoltageOverride = null;
+let topologyRevision = 0;
+let lastConfirmedCellCount = CELL_COUNT;
+let topologyUncertain = false;
+let cellCountTxId = 0;
+let cellCountTxInFlight = false;
+
+/* ============================================================
+   PERSISTED CONTROL-REGISTER STATE — charging/discharging/balancing are
+   two SEPARATE things on the real device (spec §4.3's disclosed defect
+   was this mock conflating them): select-charging/select-discharging/
+   select-balancing mirror the RW *control register* (0x1070/0x1074/
+   0x1078) a user explicitly writes and which only a CONFIRMED write
+   transaction (or a /demo override, see applyControlOverride below) may
+   change — tick() must NEVER overwrite them on its own, the exact bug
+   that was previously reported ("normal" scenario forced Charge/
+   Discharge back to On every second even after a user turned it Off).
+   binary_sensor-charging/binary_sensor-discharging (fed by the separate
+   chargingOn/dischargingOn locals computed inside tick(), further down)
+   mirror a DIFFERENT, genuinely continuously-live status register
+   (the real device's charging_raw/discharging_raw) reflecting whether
+   the BMS is actually passing current right now — legitimately scenario-
+   driven (e.g. active_alarm correctly shows live current stopping due to
+   a protection trip), independent of what the control register says.
+   ============================================================ */
+let controlChargingOn = true;
+let controlDischargingOn = true;
+let controlBalancingOn = true;
+// Set by a scenario that deliberately, visibly overrides the control
+// register's own confirmed value for demonstration purposes (matching
+// spec §4.3's "for scenarios that intentionally overwrite outputs, the
+// UI/test must receive an explicit reason, not a silent success") --
+// null when no override is in effect.
+let controlOverrideReason = null;
+
+/* ============================================================
+   GENERIC WRITE TRANSACTION MANAGER (mock) — mirrors
+   batterylifepo4.yaml's jk_write_tx_core.h + the generic 250ms servicer:
+   every RW select/number write EXCEPT cell_count (which keeps its own,
+   separately-verified runCellCountTransaction below) goes through this,
+   producing the SAME write_tx_snapshot JSON shape
+   ([{"addr","tx_id","status","req","rb"}]) the real firmware publishes,
+   so jk_bms.js's generic write path can be exercised against the demo
+   exactly as it will run against real hardware.
+   ============================================================ */
+const WTX_SLOT_COUNT = 6;
+let wtxSlots = []; // {inUse, txId, addr, wordCount, req, rb, status, startedMs}
+let wtxNextId = 0;
+const GENERIC_WRITE_SCENARIOS = [
+  "confirm", "mismatch", "ack_timeout", "readback_timeout", "reject_busy",
+];
+let genericWriteScenario = "confirm";
+
+const WTX_PENDING_STATUS = new Set([1, 2, 3]); // sending, ack_wait, readback_wait
+
+// Single-flight guards a PENDING transaction, not a terminal one that
+// merely hasn't been freed yet (see runGenericWriteTx's 3s grace
+// period below) -- matches jk_write_tx_core.h's begin(), fixed after the
+// automated suite caught two back-to-back writes to the same register
+// being wrongly rejected as "still busy" moments after the first had
+// already reached CONFIRMED.
+function findPendingGenericSlot(addr) {
+  return wtxSlots.find((s) => s.inUse && s.addr === addr && WTX_PENDING_STATUS.has(s.status)) || null;
+}
+
+function publishWriteTxSnapshot() {
+  const arr = wtxSlots.filter((s) => s.inUse).map((s) => {
+    const entry = { addr: s.addr, tx_id: s.txId, status: s.status };
+    if (!s.suppress) { entry.req = s.req; entry.rb = s.rb; }
+    return entry;
+  });
+  setEntity("text_sensor-write_tx_snapshot", JSON.stringify(arr));
+  broadcastEntity("text_sensor-write_tx_snapshot");
+}
+
+// Mirrors jk_write_tx_core.h's state machine (sending -> ack_wait ->
+// readback_wait -> confirmed/mismatch/ack_timeout/readback_timeout),
+// honoring genericWriteScenario -- unlike batterylifepo4.yaml's raw
+// register words, the mock stores/compares the SAME already-scaled
+// display value the entity itself uses (e.g. "3.650" for cell_ovp), so
+// no register-level unscaling is needed here; this is purely a
+// simulation aid and does not change what the frontend observes on the
+// wire (a JSON snapshot keyed by address, exactly like the real device).
+function runGenericWriteTx(addr, wireId, requestedValue, suppress, onTerminal) {
+  if (findPendingGenericSlot(addr)) {
+    if (onTerminal) onTerminal(9, requestedValue); // REJECTED — a transaction for this address is still pending
+    return;
+  }
+  // A lingering TERMINAL slot for this same address (still `inUse` only
+  // for the snapshot's own grace period, below) is superseded immediately
+  // rather than counted against capacity or left duplicated.
+  const staleIdx = wtxSlots.findIndex((s) => s.inUse && s.addr === addr);
+  if (staleIdx !== -1) wtxSlots.splice(staleIdx, 1);
+  if (wtxSlots.filter((s) => s.inUse).length >= WTX_SLOT_COUNT) {
+    if (onTerminal) onTerminal(9, requestedValue); // REJECTED — every slot busy
+    return;
+  }
+  const scenario = genericWriteScenario;
+  const txId = ++wtxNextId;
+  const slot = { inUse: true, addr, txId, status: 1, req: requestedValue, rb: null, suppress };
+  wtxSlots.push(slot);
+  publishWriteTxSnapshot();
+
+  const finishTerminal = (statusCode, applyValue) => {
+    slot.status = statusCode;
+    if (applyValue !== undefined && entities[wireId]) {
+      setEntity(wireId, String(applyValue));
+      broadcastEntity(wireId);
+    }
+    publishWriteTxSnapshot();
+    setTimeout(() => {
+      slot.inUse = false;
+      const idx = wtxSlots.indexOf(slot);
+      if (idx !== -1) wtxSlots.splice(idx, 1); // bound the array's long-term size, not just its "active" view
+      publishWriteTxSnapshot();
+    }, 3000);
+    if (onTerminal) onTerminal(statusCode, applyValue);
+  };
+
+  setTimeout(() => {
+    if (scenario === "ack_timeout") { finishTerminal(7); return; }
+    slot.status = 2; // ack_wait -> acked immediately after
+    publishWriteTxSnapshot();
+    setTimeout(() => {
+      slot.status = 3; // readback_wait
+      publishWriteTxSnapshot();
+      if (scenario === "readback_timeout") { setTimeout(() => finishTerminal(8), 1200); return; }
+      setTimeout(() => {
+        if (scenario === "mismatch") {
+          slot.rb = suppress ? undefined : "(mismatch)";
+          finishTerminal(5);
+        } else {
+          slot.rb = suppress ? undefined : requestedValue;
+          finishTerminal(4, requestedValue);
+        }
+      }, 300);
+    }, 300);
+  }, 200);
+}
+
+/* ============================================================
+   TOPOLOGY RESOLVER — a faithful JS port of resolve_topology in
+   batterylifepo4.yaml (same priority order, same exact-mask check, same
+   OFFLINE/WRITE_UNCERTAIN precedence, same voltage-sum tolerance). Reads
+   ONLY the current entity/physical state and derives topology_state from
+   it — no scenario handler ever sets topology_state directly, so a
+   scenario cannot shortcut to a guaranteed outcome; the outcome always
+   falls out of whatever physical facts that scenario set up, exactly
+   like the real firmware.
+   ============================================================ */
+const TOPOLOGY_REASONS = [
+  "OK", "AWAITING_SNAPSHOT", "COUNT_OUT_OF_RANGE", "NO_CONNECTED_CELLS",
+  "NO_VALID_VOLTAGE", "MASK_COUNT_DIFFERS", "VOLTAGE_COUNT_DIFFERS",
+  "ACTIVE_RANGE_GAP", "VOLTAGE_SUM_DIFFERS", "MASK_NOT_CONTIGUOUS",
+  "BMS_OFFLINE", "WRITE_UNCERTAIN"
+];
+const TOPOLOGY_STATE_NAMES = ["LOADING", "CONFIRMED", "MISMATCH", "INVALID", "WRITE_UNCERTAIN", "OFFLINE", "PENDING"];
+
+function resolveTopologyMock() {
+  const changed = new Set();
+  const setc = (id, state, value) => { setEntity(id, state, value); changed.add(id); };
+
+  function publish(stateCode, reason, effective, connectedCount, measuredCount, activeSum) {
+    topologyRevision += 1;
+    setc("sensor-topology_revision", String(topologyRevision));
+    setc("sensor-topology_data_freshness", "0.0");
+    setc("sensor-effective_cell_count", String(effective));
+    setc("sensor-last_confirmed_cell_count", String(lastConfirmedCellCount));
+    setc("text_sensor-topology_state", TOPOLOGY_STATE_NAMES[stateCode]);
+    setc("text_sensor-topology_reason", TOPOLOGY_REASONS[reason]);
+    if (connectedCount !== null) setc("sensor-connected_cell_count", String(connectedCount));
+    if (measuredCount !== null) setc("sensor-measured_cell_count", String(measuredCount));
+    if (activeSum !== null) setc("sensor-active_cells_voltage_sum", activeSum.toFixed(3));
+    for (const id of changed) broadcastEntity(id);
+  }
+
+  // ---- WRITE_UNCERTAIN overrides everything else. ----
+  if (topologyUncertain) { publish(4, 11, CELL_COUNT, null, null, null); return; }
+
+  // ---- OFFLINE: mirrors bms_health's own 30s threshold. ----
+  if (bmsResponseAgeS > 30) { publish(5, 10, CELL_COUNT, null, null, null); return; }
+
+  const configured = registerCellCount;
+  const countInRange = Number.isFinite(configured) && configured >= 1 && configured <= CELL_COUNT;
+  if (!countInRange) { publish(3, 2, CELL_COUNT, null, null, null); return; }
+
+  const mask = physicalMask & 0xFFFF;
+  const expectedMask = (2 ** configured) - 1;
+  const maskExact = mask === expectedMask;
+
+  let connectedCount = 0;
+  for (let i = 0; i < CELL_COUNT; i += 1) if (mask & (1 << i)) connectedCount += 1;
+  if (connectedCount === 0) { publish(3, 3, CELL_COUNT, 0, null, null); return; }
+
+  // measuredCount (all 16 channels) is a pure DIAGNOSTIC, never a
+  // CONFIRMED gate — see resolve_topology's own comment in
+  // batterylifepo4.yaml for why gating on it deadlocks: the only place a
+  // channel beyond `configured` gets blanked to NaN is the CONFIRMED
+  // branch below, so requiring it to already look implausible before
+  // CONFIRMED can be reached is circular. Only activeMeasuredCount
+  // (WITHIN the configured range) matters for the determination.
+  let measuredCount = 0;
+  let activeMeasuredCount = 0;
+  let activeRangeGap = false;
+  let activeSum = 0;
+  for (let i = 0; i < CELL_COUNT; i += 1) {
+    const raw = entities[`sensor-cell_voltage_${i + 1}`];
+    const v = raw ? Number(raw.value) : NaN;
+    const plausible = Number.isFinite(v) && v > 0.5 && v < 10.0;
+    if (plausible) measuredCount += 1;
+    if (i < configured) {
+      if (plausible) { activeSum += v; activeMeasuredCount += 1; } else activeRangeGap = true;
+    }
+  }
+  if (activeMeasuredCount === 0) { publish(3, 4, CELL_COUNT, connectedCount, measuredCount, null); return; }
+
+  let stateCode = 1; // CONFIRMED, optimistically
+  let reason = 0; // OK
+  if (!maskExact) { stateCode = 2; reason = connectedCount !== configured ? 5 : 9; }
+  else if (activeRangeGap) { stateCode = 2; reason = 7; }
+  else {
+    const rawPackV = Number(entities["sensor-total_voltage"] ? entities["sensor-total_voltage"].value : NaN);
+    const tolerance = Math.max(0.5, Math.abs(rawPackV) * 0.015);
+    if (!Number.isFinite(rawPackV) || Math.abs(rawPackV - activeSum) > tolerance) { stateCode = 2; reason = 8; }
+  }
+
+  const effective = stateCode === 1 ? configured : CELL_COUNT;
+  if (stateCode === 1) lastConfirmedCellCount = configured;
+  publish(stateCode, reason, effective, connectedCount, measuredCount, activeSum);
+
+  if (stateCode === 1) {
+    // Blank inactive channels, exactly like the real firmware.
+    for (let i = configured; i < CELL_COUNT; i += 1) {
+      setEntity(`sensor-cell_voltage_${i + 1}`, "nan");
+      setEntity(`sensor-cell_${i + 1}_wire_resistance`, "nan");
+      broadcastEntity(`sensor-cell_voltage_${i + 1}`);
+      broadcastEntity(`sensor-cell_${i + 1}_wire_resistance`);
+    }
+  }
+}
+
+function seedEntities() {
+  setEntity("text_sensor-bms_display_name", "LiFePO4-1S16P-00");
+  setEntity("text-device_name_override", "");
+  setEntity("text_sensor-manufacturer_device_id", "JK-PB2A16S15P");
+  setEntity("text_sensor-total_runtime_formatted", "4d 6h 12m");
+  setEntity("sensor-wifi_signal", "-58");
+  setEntity("text_sensor-wifi_ip_address", "192.168.1.84");
+  setEntity("sensor-system_uptime", "367920");
+  // Read-only mirrors of the JK settings register block, in the same
+  // logical sequence as the mobile application reference screens.
+  setEntity("sensor-cell_count", "16");
+  setEntity("sensor-start_balance_trigger", "0.010");
+  setEntity("sensor-start_balance", "3.300");
+  setEntity("sensor-max_balance_current", "1.0");
+  setEntity("sensor-cell_ovp", "3.650");
+  setEntity("sensor-soc_100", "3.450");
+  setEntity("sensor-cell_ovpr", "3.440");
+  setEntity("sensor-cell_uvpr", "2.800");
+  setEntity("sensor-soc_0", "2.790");
+  setEntity("sensor-cell_uvp", "2.580");
+  setEntity("sensor-system_power_off", "2.500");
+  setEntity("sensor-smart_sleep", "3.500");
+  setEntity("sensor-continued_charge_current", "140.0");
+  setEntity("sensor-charge_ocp_delay", "3");
+  setEntity("sensor-charge_ocpr_time", "60");
+  setEntity("sensor-continued_discharge_current", "150.0");
+  setEntity("sensor-discharge_ocp_delay", "300");
+  setEntity("sensor-discharge_ocpr_time", "60");
+  setEntity("sensor-discharge_otp", "52.0");
+  setEntity("sensor-discharge_otpr", "50.0");
+  setEntity("sensor-charge_otp", "52.0");
+  setEntity("sensor-charge_otpr", "50.0");
+  setEntity("sensor-charge_utpr", "3.0");
+  setEntity("sensor-charge_utp", "1.0");
+  setEntity("sensor-mos_otp", "100.0");
+  setEntity("sensor-mos_otpr", "80.0");
+  setEntity("sensor-scp_delay", "1500");
+  setEntity("sensor-scpr_time", "5");
+  setEntity("sensor-total_voltage", "52.34");
+  setEntity("sensor-current", "0.05");
+  setEntity("sensor-power", "3");
+  setEntity("sensor-battery_capacity", "240");
+  setEntity("sensor-full_charge_capacity", "238.4");
+  setEntity("sensor-capacity_remaining", "187.2");
+  setEntity("sensor-state_of_charge", "78");
+  setEntity("sensor-charging_cycles", "142");
+  setEntity("sensor-total_charging_cycle_capacity", "231.6");
+  setEntity("sensor-temperature_sensor_1", "28.5");
+  setEntity("sensor-temperature_sensor_2", "27.9");
+  setEntity("sensor-temperature_sensor_4", "28.1");
+  setEntity("sensor-temperature_sensor_5", "27.6");
+  setEntity("sensor-mosfet_temperature", "31.4");
+  setEntity("sensor-average_cell_voltage", "3.280");
+  setEntity("sensor-delta_cell_voltage", "0.032");
+  setEntity("sensor-balance_current", "0.42");
+  setEntity("sensor-cell_rcv", "3.450");
+  setEntity("sensor-cell_rfv", "3.400");
+  // register 0x12B8 is a single UINT8 (0-100) on real hardware — no
+  // fractional resolution, so the mock must not seed a decimal value.
+  setEntity("sensor-state_of_health", "97");
+  setEntity("text_sensor-alarms", "");
+  setEntity("sensor-alarms_bitmask", "0");
+  setEntity("text_sensor-charge_status", "float");
+  setEntity("text_sensor-charge_phase", "float");
+  setEntity("sensor-charge_status_time_elapsed", "5423");
+  setEntity("sensor-charge_phase_elapsed", "0");
+  setEntity("sensor-battery_state_elapsed", "0");
+  setEntity("binary_sensor-charging_float_mode", "On");
+  setEntity("text_sensor-battery_state_direction", "neutral");
+  setEntity("text_sensor-battery_state_candidate", "neutral");
+  setEntity("sensor-battery_state_candidate_samples", "0");
+  setEntity("sensor-current_sample_age", "0.5");
+  setEntity("text_sensor-battery_state_unknown_reason", "n/a");
+  setEntity("text_sensor-battery_state_last_known", "float");
+  setEntity("text_sensor-charge_phase_last_known", "float");
+  setEntity("sensor-idle_current_noise_min", "NaN");
+  setEntity("sensor-idle_current_noise_max", "NaN");
+  setEntity("text_sensor-bms_health", "LIVE");
+  setEntity("sensor-bms_last_update_age", "0.4");
+  setEntity("select-charging", "On");
+  setEntity("binary_sensor-charging", "On");
+  setEntity("select-discharging", "On");
+  setEntity("binary_sensor-discharging", "On");
+  setEntity("select-balancing", "On");
+  setEntity("binary_sensor-balancing", "On");
+  setEntity("text_sensor-control_override_reason", "");
+  setEntity("text_sensor-write_tx_snapshot", "[]");
+  setEntity("sensor-setup_passcode_tx_status_code", "0");
+  setEntity("number-heating_activation_temperature", "5");
+  setEntity("number-heating_deactivation_temperature", "15");
+  setEntity("number-dry_contact_1_trigger_source", "0");
+  setEntity("number-dry_contact_2_trigger_source", "0");
+  setEntity("number-dry_contact_1_trigger_value", "0");
+  setEntity("number-dry_contact_1_recovery_value", "0");
+  setEntity("number-dry_contact_2_trigger_value", "0");
+  setEntity("number-dry_contact_2_recovery_value", "0");
+  setEntity("sensor-rcv_time", "5.0");
+  setEntity("sensor-rfv_time", "5.0");
+  setEntity("number-lcd_buzzer_trigger", "9");
+  setEntity("text-setup_passcode", "****************");
+  for (let i = 0; i < CELL_COUNT; i += 1) {
+    setEntity(`sensor-cell_voltage_${i + 1}`, (BASE_CELL_V + cellOffsetsMv[i] / 1000).toFixed(3));
+    setEntity(`sensor-cell_${i + 1}_wire_resistance`, cellResistances[i].toFixed(3));
+  }
+
+  setEntity("sensor-cell_connected_mask", String(physicalMask));
+  setEntity("sensor-last_confirmed_cell_count", String(lastConfirmedCellCount));
+  setEntity("sensor-topology_revision", String(topologyRevision));
+  setEntity("sensor-topology_data_freshness", "0.0");
+  setEntity("sensor-cellcount_tx_id", String(cellCountTxId));
+  setEntity("sensor-cellcount_tx_status_code", "0");
+  // Topology Resolver outputs — boots CONFIRMED at the full 16S seed
+  // above, exactly like a real BMS that has always reported a physically-
+  // consistent snapshot. Every field here is re-derived by
+  // resolveTopologyMock() (below), a faithful JS port of
+  // batterylifepo4.yaml's resolve_topology; tick() never sets these
+  // directly, and neither does any scenario handler — they only ever
+  // mutate the underlying physical/register facts and then call the
+  // resolver, exactly mirroring the real firmware.
+  resolveTopologyMock();
+}
+// Called further below, after `clients` and `bmsResponseAgeS` are
+// declared — resolveTopologyMock() (called from seedEntities()) reads
+// both, and `let` bindings are in their temporal dead zone until the
+// declaration itself has executed.
+
+/* ============================================================
+   SCENARIOS — dev-only, mutually exclusive telemetry situations plus an
+   independent write-outcome dial. See demo/panel.js for the switcher UI.
+   ============================================================ */
+const SCENARIOS = [
+  "normal", "charging", "discharging", "near_full", "low_soc",
+  "cell_imbalance", "high_temp", "active_alarm",
+  "bms_delayed", "bms_stale", "bms_offline", "browser_disconnected",
+  // V2.2 hardening pass — timing-sensitive resolver test scenarios. These
+  // run through resolverSim() below (an accelerated-timing equivalent of
+  // batterylifepo4.yaml's charge_status state machine — same deadband/
+  // hysteresis/adaptive-sample-count/reversal logic, dwell times scaled
+  // down so multi-sample confirmation is observable in an interactive
+  // session instead of requiring literal 15-30s real-world waits), not
+  // the direct-value-setting path the scenarios above use.
+  "idle", "unknown", "charging_near_threshold", "discharging_near_threshold",
+  "zero_noise", "direction_reversal", "float_with_discharge", "reconnect_after_offline"
+];
+const WRITE_MODES = ["confirm", "mismatch", "timeout", "http_error"];
+// Independent of SCENARIOS — deterministic 60h/6h *history* test fixtures
+// for the Charge Cycle timeline rework (see chargeHistoryPayload() below).
+const CC_HISTORY_MODES = ["normal", "idle_float", "complex", "short_transitions", "offline_gap", "partial"];
+let ccHistoryMode = "normal";
+
+let scenario = "normal";
+let scenarioEnteredAt = Date.now();
+let writeMode = "confirm";
+let bmsResponseAgeS = 0.4; // drives bms_last_update_age / bms_health directly
+let imbalanceGrowth = 0; // cell_imbalance ramps this each tick
+let lastChargeStatus = "float";
+let lastChargePhase = "float";
+let chargePhaseS = 0;
+let batteryStateS = 0;
+
+/* ============================================================
+   RESOLVER SIMULATION — accelerated-timing equivalent of the real
+   charge_status resolver (batterylifepo4.yaml), used only by the
+   timing-sensitive test scenarios listed above. Logic mirrors the real
+   lambda exactly (deadband/hysteresis/adaptive fresh-sample count/
+   direction reversal/Float-vs-discharge precedence/boot-unknown/
+   reconnect-unknown) — only ACTIVE_CONFIRM_MS/NEUTRAL_DWELL_MS are
+   compressed so a demo session can actually observe multi-sample
+   confirmation without a literal 15-30s wait. One simulated tick here =
+   one fresh sample, same as the real device's own per-poll cadence.
+   ============================================================ */
+const SIM = {
+  CURRENT_ENTER_A: 0.5, CURRENT_EXIT_A: 0.2, STRONG_CURRENT_THRESHOLD_A: 2.5,
+  ACTIVE_CONFIRM_MS: 3000, NEUTRAL_DWELL_MS: 6000, // accelerated from 15000/30000
+  FRESH_SAMPLES_STRONG: 1, FRESH_SAMPLES_NEAR: 2, FRESH_SAMPLES_EXIT: 2
+};
+let simConfirmedDir = "neutral";
+let simCandidateDir = "neutral";
+let simCandidateSinceMs = Date.now();
+let simCandidateFreshSamples = 0;
+let simWasOffline = false;
+let simHasValidData = false;
+
+// current: the simulated signed pack current for this tick (already
+// applies the scenario's own ramp — see the scenario branch below).
+// floatBit/isOffline: the other two raw inputs the real resolver reads.
+// Returns { batteryState, chargePhase } — same vocabulary as the real
+// device's charge_status/charge_phase entities.
+function resolverSim(current, floatBit, isOffline) {
+  const now = Date.now();
+  if (isOffline) {
+    simWasOffline = true;
+    return { batteryState: "offline", chargePhase: "none" };
+  }
+  if (simWasOffline) {
+    // §11: reconnect requires one fresh sample before trusting anything
+    // other than "unknown" — every simulated tick IS a fresh sample, so
+    // this resolves on the very next tick after isOffline clears.
+    simWasOffline = false;
+    simHasValidData = true;
+    return { batteryState: "unknown", chargePhase: "none" };
+  }
+  if (!simHasValidData) {
+    simHasValidData = true; // this tick supplies the first sample
+    return { batteryState: "unknown", chargePhase: "none" };
+  }
+
+  let sampleDir = simCandidateDir;
+  if (current > SIM.CURRENT_ENTER_A) sampleDir = "charge";
+  else if (current < -SIM.CURRENT_ENTER_A) sampleDir = "discharge";
+  else if (Math.abs(current) < SIM.CURRENT_EXIT_A) sampleDir = "neutral";
+
+  if (sampleDir !== simCandidateDir) {
+    simCandidateDir = sampleDir;
+    simCandidateSinceMs = now;
+    simCandidateFreshSamples = 0;
+  }
+  simCandidateFreshSamples += 1; // this tick IS a fresh sample by construction
+
+  const dwellNeeded = simConfirmedDir === "neutral" ? SIM.ACTIVE_CONFIRM_MS
+    : simCandidateDir === "neutral" ? SIM.NEUTRAL_DWELL_MS
+    : 0; // charge<->discharge reversal — no forced Idle stop
+  const samplesNeeded = simCandidateDir === "neutral" ? SIM.FRESH_SAMPLES_EXIT
+    : Math.abs(current) >= SIM.STRONG_CURRENT_THRESHOLD_A ? SIM.FRESH_SAMPLES_STRONG
+    : SIM.FRESH_SAMPLES_NEAR;
+  if (simCandidateDir !== simConfirmedDir
+      && (now - simCandidateSinceMs) >= dwellNeeded
+      && simCandidateFreshSamples >= samplesNeeded) {
+    simConfirmedDir = simCandidateDir;
+  }
+
+  // Precedence: confirmed discharge > protocol Float > neutral/Idle >
+  // charging (exactly the real resolver's order).
+  if (simConfirmedDir === "discharge") return { batteryState: "discharging", chargePhase: "none" };
+  if (floatBit) return { batteryState: "float", chargePhase: "float" };
+  if (simConfirmedDir === "neutral") return { batteryState: "idle", chargePhase: "none" };
+  return { batteryState: "charging", chargePhase: "bulk" }; // absorption sub-classification isn't simulated here — bulk is sufficient to exercise the direction/dwell machinery under test
+}
+
+/* ============================================================
+   SSE — one entry per connected client; broadcast() writes to all of them.
+   Matches ESPHome's actual wire shape: a named event per domain, JSON body
+   {"id": "...", "state": "...", "value": ...}.
+   ============================================================ */
+const clients = new Set();
+
+// Now that `clients` and `bmsResponseAgeS` both exist, it's safe to seed
+// (seedEntities() calls resolveTopologyMock(), which reads both via
+// broadcastEntity()/the OFFLINE check — broadcasting to zero clients here
+// is a harmless no-op, exactly like ESPHome publishing before any client
+// has connected).
+seedEntities();
+
+function sseFormat(domain, payload) {
+  return `event: ${domain}\ndata: ${JSON.stringify(payload)}\n\n`;
+}
+
+function domainOf(wireId) {
+  const idx = wireId.indexOf("-");
+  return idx === -1 ? "state" : wireId.slice(0, idx);
+}
+
+function broadcastEntity(wireId) {
+  const entry = entities[wireId];
+  if (!entry) return;
+  const chunk = sseFormat(domainOf(wireId), entry);
+  for (const res of clients) {
+    try { res.write(chunk); } catch (_) { /* client gone; cleaned up on 'close' */ }
+  }
+}
+
+function broadcastAll() {
+  for (const wireId of Object.keys(entities)) broadcastEntity(wireId);
+}
+
+/* ============================================================
+   TICK — every second, nudge values a small, physically plausible amount
+   based on the active scenario. This is the same discipline the real
+   device has: no delta filtering (every sensor republishes every poll),
+   small steps, no chaotic random jumps.
+   ============================================================ */
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function jitter(spread) { return (Math.random() - 0.5) * 2 * spread; }
+function num(id) { return Number(entities[id] ? entities[id].value : 0); }
+
+function tick() {
+  const dirty = new Set();
+  const set = (id, state, value) => {
+    const next = String(state);
+    if (entities[id] && entities[id].state === next) return;
+    setEntity(id, state, value);
+    dirty.add(id);
+  };
+
+  // ---- BMS communication freshness ----
+  // browser_disconnected doesn't touch bms_health at all — that scenario is
+  // about the SSE transport itself (see the /events handler), not the BMS link.
+  if (scenario === "bms_delayed") bmsResponseAgeS = clamp(bmsResponseAgeS + jitter(0.6) + 0.3, 3.2, 9.5);
+  else if (scenario === "bms_stale") bmsResponseAgeS = clamp(bmsResponseAgeS + jitter(0.8) + 0.6, 11, 28);
+  else if (scenario === "bms_offline") bmsResponseAgeS += 1;
+  else bmsResponseAgeS = clamp(0.2 + jitter(0.3), 0.1, 1.4);
+  const health = bmsResponseAgeS < 3 ? "LIVE" : bmsResponseAgeS < 10 ? "DELAYED" : bmsResponseAgeS < 30 ? "STALE" : "OFFLINE";
+  set("text_sensor-bms_health", health);
+  set("sensor-bms_last_update_age", bmsResponseAgeS.toFixed(1));
+
+  // Cleared every tick; only the active_alarm branch below re-asserts it,
+  // so a scenario switch away from active_alarm can't leave a stale
+  // override reason behind.
+  controlOverrideReason = null;
+
+  // ---- pack electrical + SOC drift ----
+  let soc = num("sensor-state_of_charge");
+  let current = num("sensor-current");
+  let chargeStatus = entities["text_sensor-charge_status"].state; // battery_state: idle/charging/discharging/absorption/float/offline
+  let chargePhase = entities["text_sensor-charge_phase"] ? entities["text_sensor-charge_phase"].state : "none"; // none/bulk/absorption/float
+  // Live current-flow status (binary_sensor-charging/discharging) starts
+  // from the persisted CONTROL register, but scenario branches below are
+  // free to override it (a real BMS can legitimately stop passing
+  // current while the control register stays enabled -- e.g. a
+  // protection trip) -- that override only ever affects this LOCAL
+  // variable, never controlChargingOn/controlDischargingOn themselves.
+  let chargingOn = controlChargingOn;
+  let dischargingOn = controlDischargingOn;
+  let alarmText = "";
+
+  // battery_state/charge_phase split, matching the real device's
+  // charge_status resolver (batterylifepo4.yaml) exactly: "bulk" is
+  // NEVER battery_state — plain charging reports battery_state=
+  // "charging" with charge_phase="bulk". This mock previously reported
+  // "Disabled" for the discharging/low_soc scenarios despite genuinely
+  // negative (discharge-direction) current, faithfully reproducing the
+  // real firmware bug that resolver fixes.
+  if (scenario === "charging") {
+    current = clamp(current + jitter(0.3) + (current < 12.4 ? 0.4 : 0), 0, 13.5);
+    soc = clamp(soc + 0.02, 0, 100);
+    const absorbing = soc > 96;
+    chargeStatus = absorbing ? "absorption" : "charging";
+    chargePhase = absorbing ? "absorption" : "bulk";
+    chargingOn = true; dischargingOn = true;
+  } else if (scenario === "discharging") {
+    current = clamp(current - jitter(0.3) - (current > -8.5 ? 0.4 : 0), -9.5, 0);
+    soc = clamp(soc - 0.015, 0, 100);
+    chargeStatus = "discharging";
+    chargePhase = "none";
+    chargingOn = true; dischargingOn = true;
+  } else if (scenario === "near_full") {
+    soc = clamp(96 + jitter(1.5), 95, 100);
+    current = clamp(current * 0.9 + jitter(0.15), 0, 2.5);
+    chargeStatus = "float";
+    chargePhase = "float";
+    chargingOn = true; dischargingOn = true;
+  } else if (scenario === "low_soc") {
+    soc = clamp(7 + jitter(1.2), 3, 12);
+    current = clamp(-3.5 + jitter(0.4), -5, -1);
+    chargeStatus = "discharging";
+    chargePhase = "none";
+    chargingOn = true; dischargingOn = true;
+  } else if (scenario === "active_alarm") {
+    current = clamp(current * 0.8, -1, 1);
+    chargeStatus = "idle";
+    chargePhase = "none";
+    // A genuine protection trip stops current flow WITHOUT touching the
+    // control register the user configured -- controlOverrideReason
+    // makes that divergence explicit (spec §4.3) rather than a silent
+    // difference between the control select and the live status.
+    chargingOn = false; dischargingOn = false;
+    controlOverrideReason = "active_alarm_protection_trip";
+    alarmText = "Cell overvoltage protection";
+  } else if (scenario === "unknown") {
+    // Not run through resolverSim on purpose — this demonstrates the
+    // VISUAL result of an unresolved condition (§12/§26), held for as
+    // long as the scenario stays selected, rather than the one-tick
+    // "just booted" blip resolverSim's own boot path would otherwise
+    // resolve out of on the very next sample.
+    current = clamp(current + jitter(0.05), -0.2, 0.2);
+    chargeStatus = "unknown";
+    chargePhase = "none";
+    chargingOn = true; dischargingOn = true;
+    set("text_sensor-battery_state_unknown_reason", "no_telemetry_since_boot");
+  } else if (scenario === "idle" || scenario === "zero_noise") {
+    // zero_noise uses a tighter deadband-only oscillation to specifically
+    // demonstrate NO flicker (§ test C/D); idle just settles there via
+    // the same resolverSim dwell/confirmation path as any other scenario.
+    const spread = scenario === "zero_noise" ? 0.05 : 0.15;
+    current = clamp(jitter(spread), -0.5, 0.5);
+    const r = resolverSim(current, false, false);
+    chargeStatus = r.batteryState; chargePhase = r.chargePhase;
+    chargingOn = true; dischargingOn = true;
+  } else if (scenario === "charging_near_threshold" || scenario === "discharging_near_threshold") {
+    // Oscillates just above ENTER (0.5A) but well below STRONG (2.5A) —
+    // exercises the adaptive 2-fresh-sample confirmation path (§4/test A/B).
+    const sign = scenario === "charging_near_threshold" ? 1 : -1;
+    current = sign * clamp(0.6 + jitter(0.15), 0.5, 0.9);
+    const r = resolverSim(current, false, false);
+    chargeStatus = r.batteryState; chargePhase = r.chargePhase;
+    chargingOn = true; dischargingOn = true;
+  } else if (scenario === "direction_reversal") {
+    // Flips sign every ~10s, well past STRONG_CURRENT_THRESHOLD_A each
+    // way — exercises direct charge<->discharge reversal with no forced
+    // Idle stop in between (§6/test E).
+    const elapsedS = (Date.now() - scenarioEnteredAt) / 1000;
+    const half = Math.floor(elapsedS / 10) % 2;
+    current = (half === 0 ? 1 : -1) * clamp(6 + jitter(0.5), 5, 7);
+    const r = resolverSim(current, false, false);
+    chargeStatus = r.batteryState; chargePhase = r.chargePhase;
+    chargingOn = true; dischargingOn = true;
+  } else if (scenario === "float_with_discharge") {
+    // Float protocol bit stays set WHILE a strong, confirmed discharge
+    // current is present — exercises the explicit confirmed-discharge-
+    // overrides-Float precedence (§7/§23/test F).
+    current = clamp(-6 + jitter(0.4), -7, -5);
+    const r = resolverSim(current, true, false);
+    chargeStatus = r.batteryState; chargePhase = r.chargePhase;
+    chargingOn = true; dischargingOn = true;
+  } else if (scenario === "reconnect_after_offline") {
+    // Offline for the first 5s after selecting this scenario, then
+    // recovers — exercises §11/§22: reconnect must resolve "unknown" for
+    // (at least) one tick before trusting real telemetry again, never a
+    // stale pre-outage value flashed back on reconnect (test G).
+    const elapsedS = (Date.now() - scenarioEnteredAt) / 1000;
+    const isOfflineNow = elapsedS < 5;
+    current = clamp(3 + jitter(0.3), 2, 4);
+    const r = resolverSim(current, false, isOfflineNow);
+    chargeStatus = r.batteryState; chargePhase = r.chargePhase;
+    chargingOn = true; dischargingOn = true;
+    if (isOfflineNow) bmsResponseAgeS = clamp(bmsResponseAgeS + 1, 0, 40);
+    else bmsResponseAgeS = clamp(0.2 + jitter(0.3), 0.1, 1.4);
+  } else {
+    // normal / cell_imbalance / high_temp / bms_* / browser_disconnected —
+    // idle-ish pack, not the point of those scenarios.
+    current = clamp(current + jitter(0.05), -0.2, 0.2);
+    soc = clamp(soc + jitter(0.02), 0, 100);
+    chargeStatus = "float";
+    chargePhase = "float";
+    chargingOn = true; dischargingOn = true;
+  }
+  // select-charging/select-discharging (the CONTROL register) are NEVER
+  // written here -- only a confirmed write transaction or a /demo
+  // override changes them (see controlChargingOn's comment above; this
+  // is the fix for the previously-reported bug where the "normal"
+  // scenario forced Charge/Discharge back to On every tick even after a
+  // user explicitly turned it Off).
+  set("select-charging", controlChargingOn ? "On" : "Off");
+  set("binary_sensor-charging", chargingOn ? "On" : "Off");
+  set("select-discharging", controlDischargingOn ? "On" : "Off");
+  set("binary_sensor-discharging", dischargingOn ? "On" : "Off");
+  set("text_sensor-control_override_reason", controlOverrideReason || "");
+  // select-balancing (the enable switch) vs binary_sensor-balancing (the
+  // LIVE balancing_active signal, set further down from balanceActive)
+  // are the same enabled-vs-active distinction as charging/discharging
+  // above -- select-balancing is control-register state, only a write
+  // transaction or /demo override changes it.
+  set("select-balancing", controlBalancingOn ? "On" : "Off");
+  set("text_sensor-charge_status", chargeStatus);
+  set("text_sensor-charge_phase", chargePhase);
+  // Resolver diagnostics mirrors — reflect resolverSim()'s own internal
+  // state for the scenarios that use it; harmless/static for the simpler
+  // direct-value scenarios (no independent classification happens here).
+  set("text_sensor-battery_state_direction", simConfirmedDir);
+  set("text_sensor-battery_state_candidate", simCandidateDir);
+  set("sensor-battery_state_candidate_samples", String(simCandidateFreshSamples));
+  set("sensor-current_sample_age", "0.5"); // one simulated tick = one fresh sample, always recent
+  if (chargeStatus !== "unknown") set("text_sensor-battery_state_unknown_reason", "n/a");
+  if (chargeStatus !== "offline" && chargeStatus !== "unknown") {
+    set("text_sensor-battery_state_last_known", chargeStatus);
+    set("text_sensor-charge_phase_last_known", chargePhase);
+  }
+  if (Math.abs(current) < SIM.CURRENT_ENTER_A) {
+    const prevMin = Number(entities["sensor-idle_current_noise_min"].value);
+    const prevMax = Number(entities["sensor-idle_current_noise_max"].value);
+    set("sensor-idle_current_noise_min", String(Number.isFinite(prevMin) ? Math.min(prevMin, current) : current));
+    set("sensor-idle_current_noise_max", String(Number.isFinite(prevMax) ? Math.max(prevMax, current) : current));
+  }
+  set("text_sensor-alarms", alarmText);
+  set("sensor-alarms_bitmask", alarmText ? "1" : "0");
+  set("sensor-current", current.toFixed(2));
+  set("sensor-state_of_charge", Math.round(soc));
+  set("sensor-power", Math.round(current * num("sensor-total_voltage")));
+  set("sensor-capacity_remaining", (num("sensor-battery_capacity") * soc / 100).toFixed(1));
+  set("sensor-charge_status_time_elapsed", String(Number(entities["sensor-charge_status_time_elapsed"].value) + 1));
+  // Two SEPARATE clocks, matching the real device's battery_state/
+  // charge_phase split: charge_phase_elapsed resets on bulk<->
+  // absorption<->float transitions (charge_phase itself changing);
+  // battery_state_elapsed resets whenever the main status changes
+  // (chargeStatus itself changing) — they move together while actively
+  // charging and diverge once the pack leaves the charging path.
+  if (chargePhase !== lastChargePhase) { lastChargePhase = chargePhase; chargePhaseS = 0; } else { chargePhaseS += 1; }
+  if (chargeStatus !== lastChargeStatus) { lastChargeStatus = chargeStatus; batteryStateS = 0; } else { batteryStateS += 1; }
+  set("sensor-charge_phase_elapsed", String(chargePhaseS));
+  set("sensor-battery_state_elapsed", String(batteryStateS));
+
+  // ---- temperatures ----
+  const tBase = scenario === "high_temp" ? 54 : 28;
+  const tSpread = scenario === "high_temp" ? 4 : 1.5;
+  set("sensor-mosfet_temperature", clamp(tBase + 3 + jitter(tSpread), -20, 90).toFixed(1));
+  set("sensor-temperature_sensor_1", clamp(tBase + jitter(tSpread), -20, 90).toFixed(1));
+  set("sensor-temperature_sensor_2", clamp(tBase - 0.6 + jitter(tSpread), -20, 90).toFixed(1));
+  set("sensor-temperature_sensor_4", clamp(tBase + 0.3 + jitter(tSpread), -20, 90).toFixed(1));
+  set("sensor-temperature_sensor_5", clamp(tBase - 0.9 + jitter(tSpread), -20, 90).toFixed(1));
+
+  // ---- cells ----
+  // Physical, not configured: only channels 0..physicalTopologyCount-1 are
+  // the simulated pack's real, wired cells and get jittered every tick;
+  // channels beyond that stay exactly as the last topology change left
+  // them (an inactive "nan"), independent of whatever registerCellCount
+  // (the CellCount register a write might have changed) currently claims
+  // — that independence is the whole point (spec §10).
+  if (scenario === "cell_imbalance") imbalanceGrowth = clamp(imbalanceGrowth + 0.4, 0, 40);
+  else imbalanceGrowth = clamp(imbalanceGrowth - 0.6, 0, 40);
+  const liveOffsets = cellOffsetsMv.map((base, i) => {
+    // Cells 7 and 16 (already the widest spread in the seed data) drift
+    // further apart under cell_imbalance — a growing, not chaotic, spread.
+    const growth = (i === 6 || i === 15) ? -imbalanceGrowth : (i === 3 || i === 12) ? imbalanceGrowth * 0.5 : 0;
+    return base + growth + jitter(0.6);
+  });
+  let physicalActiveSum = 0;
+  const activeVoltagesForStats = [];
+  for (let i = 0; i < physicalTopologyCount; i += 1) {
+    const override = cellVoltageOverride[i];
+    const v = override !== null ? override : BASE_CELL_V + liveOffsets[i] / 1000;
+    set(`sensor-cell_voltage_${i + 1}`, Number.isFinite(v) ? v.toFixed(3) : "nan");
+    if (Number.isFinite(v)) { physicalActiveSum += v; activeVoltagesForStats.push(v); }
+    const r = clamp(cellResistances[i] + jitter(0.01), 0.5, 3);
+    set(`sensor-cell_${i + 1}_wire_resistance`, r.toFixed(3));
+  }
+  // total_voltage/average/delta are the BMS's own DIRECT measurements —
+  // they track the PHYSICAL pack, never the (possibly out of sync)
+  // CellCount register, and packVoltageOverride can decouple total_voltage
+  // from the cell sum entirely for the VOLTAGE_SUM_DIFFERS scenario.
+  if (activeVoltagesForStats.length) {
+    set("sensor-average_cell_voltage", (physicalActiveSum / activeVoltagesForStats.length).toFixed(3));
+    set("sensor-delta_cell_voltage", (Math.max(...activeVoltagesForStats) - Math.min(...activeVoltagesForStats)).toFixed(3));
+  }
+  const packV = packVoltageOverride !== null ? packVoltageOverride : physicalActiveSum;
+  set("sensor-total_voltage", packV.toFixed(2));
+  const balanceActive = scenario === "charging" || scenario === "near_full" || scenario === "cell_imbalance";
+  const mockBalanceCurrent = balanceActive ? clamp(0.3 + jitter(0.2), 0.05, 1.2) : 0;
+  set("sensor-balance_current", mockBalanceCurrent.toFixed(2));
+  set("binary_sensor-balancing", balanceActive ? "On" : "Off");
+
+  for (const id of dirty) broadcastEntity(id);
+
+  // Re-derive topology every tick, exactly like the real firmware's 1Hz
+  // cell-poll -> resolve_topology call — this is what lets a MISMATCH/
+  // INVALID/OFFLINE self-heal the instant the underlying physical facts
+  // become consistent again, with no scenario-specific "re-confirm" logic
+  // needed. Skipped only while a CellCount transaction is actively
+  // choreographing topology_state itself (PENDING and the ack/readback
+  // phases) — see runCellCountTransaction() — so tick()'s own unconditional
+  // re-resolve can't race ahead of that transaction's own timeline.
+  if (!cellCountTxInFlight) resolveTopologyMock();
+}
+setInterval(tick, 1000);
+
+/* ============================================================
+   HISTORY — same shape as the real /history.json ring buffer.
+   ============================================================ */
+function walk(end, n, stepPct) {
+  const pts = new Array(n);
+  pts[n - 1] = end;
+  let v = end;
+  for (let i = n - 2; i >= 0; i -= 1) { v += jitter(end * stepPct); pts[i] = v; }
+  return pts;
+}
+function historyPayload() {
+  const v = num("sensor-total_voltage"), c = num("sensor-current"), p = num("sensor-power"), b = num("sensor-balance_current");
+  return JSON.stringify({
+    interval_s: 30,
+    voltage: walk(v || 52.3, 60, 0.0025),
+    current: walk(c || 0.1, 60, 0.15),
+    power: walk(p || 5, 60, 0.15),
+    balance: walk(b || 0.3, 60, 0.2),
+    mosfet_temp: walk(num("sensor-mosfet_temperature") || 30, 60, 0.05),
+    temp1: walk(num("sensor-temperature_sensor_1") || 28, 60, 0.04),
+    temp2: walk(num("sensor-temperature_sensor_2") || 28, 60, 0.04),
+    temp4: walk(num("sensor-temperature_sensor_4") || 28, 60, 0.04),
+    temp5: walk(num("sensor-temperature_sensor_5") || 28, 60, 0.04)
+  });
+}
+
+/* ============================================================
+   CHARGE HISTORY — simulates the real 60-hour / 6-hour-window buffer
+   (/charge_history.json/<offset>), replicating the ESP32 handler's own
+   window_start_p/window_end_p/"any" clamping logic exactly (see
+   ChargeHistoryHandler in batterylifepo4.yaml) — including the partial-
+   buffer case, where a request for an offset beyond what's actually
+   stored yet must come back genuinely empty, not zero-padded. Each
+   sample is deterministic per CHRONOLOGICAL POSITION (seeded off the
+   position itself, not the offset) so the same physical minute always
+   reads the same regardless of which offset block happens to fetch it —
+   required for the frontend's continuous client-side stitching to be
+   testable at all. Six selectable fixtures (CC_HISTORY_MODES) cover the
+   spec's required test matrix (§50): normal/idle_float/complex/
+   short_transitions/offline_gap/partial.
+   ============================================================ */
+const CC_WINDOW = 360;   // samples per 6h window (60s each)
+const CC_CAPACITY = 3600; // 60h total
+const CC_MODE_TOTAL = { normal: CC_CAPACITY, idle_float: CC_CAPACITY, complex: CC_CAPACITY, short_transitions: CC_CAPACITY, offline_gap: CC_CAPACITY, partial: 120 };
+function seededRand(seed) {
+  let s = seed % 2147483647; if (s <= 0) s += 2147483646;
+  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+}
+// minute = chronological position (0 = oldest ever stored, count-1 = newest).
+function ccSampleAt(mode, minute) {
+  const rand = seededRand(7919 * (minute + 1) + 13);
+  let v, a, s, st;
+  if (mode === "idle_float") { // spec §50 A: simple Idle -> Charging -> Float, repeating every 3h so it's visible anywhere in the buffer
+    const cyclePos = (minute % 180) / 180;
+    if (cyclePos < 0.4) { v = 51.2 + (rand() - 0.5) * 0.06; a = (rand() - 0.5) * 0.15; s = 55; st = 0; }
+    else if (cyclePos < 0.55) { const t = (cyclePos - 0.4) / 0.15; v = 51.2 + t * 5.2; a = 6 + (rand() - 0.5) * 0.3; s = 55 + t * 20; st = 1; }
+    else { v = 56.4 + (rand() - 0.5) * 0.05; a = 0.3 + (rand() - 0.5) * 0.1; s = 96; st = 3; }
+  } else if (mode === "complex") { // spec §50 B: Discharge -> Charge -> Absorption -> Float -> Discharge, uneven durations, repeating every 6h
+    const cyclePos = (minute % 360) / 360;
+    if (cyclePos < 0.28) { const t = cyclePos / 0.28; v = 55.5 - t * 4.5 + (rand() - 0.5) * 0.1; a = -5 * (0.4 + t * 0.6); s = 80 - t * 35; st = 4; }
+    else if (cyclePos < 0.50) { const t = (cyclePos - 0.28) / 0.22; v = 51.0 + t * 4.8 + (rand() - 0.5) * 0.1; a = 7 * (1 - t * 0.3); s = 45 + t * 30; st = 1; }
+    else if (cyclePos < 0.60) { const t = (cyclePos - 0.50) / 0.10; v = 55.8 + t * 0.6 + (rand() - 0.5) * 0.05; a = 3 * (1 - t * 0.7); s = 75 + t * 10; st = 2; }
+    else if (cyclePos < 0.75) { v = 56.4 + (rand() - 0.5) * 0.05; a = 0.3; s = 90; st = 3; }
+    else { const t = (cyclePos - 0.75) / 0.25; v = 56.4 - t * 8.0 + (rand() - 0.5) * 0.1; a = -6 * (0.3 + t * 0.7); s = 90 - t * 55; st = 4; }
+  } else if (mode === "short_transitions") { // spec §50 C: many short segments (5min each) cycling through every stage
+    const stages = [1, 2, 3, 4, 0];
+    const blockIdx = Math.floor(minute / 5);
+    st = stages[blockIdx % stages.length];
+    const posInBlock = (minute % 5) / 5;
+    const targets = { 1: [50.0, 3.0, 6], 2: [53.0, 1.0, 2], 3: [54.0, 0, 0.3], 4: [54.0, -3.0, -5], 0: [51.2, 0, 0.05] };
+    const [base, slope, cur] = targets[st];
+    v = base + posInBlock * slope + (rand() - 0.5) * 0.05; a = cur; s = 50;
+  } else if (mode === "offline_gap") { // spec §50 D: a real ~90min communication outage inside an otherwise normal cycle
+    if (minute >= 3000 && minute < 3090) return { v: null, a: null, s: null, st: 5 };
+    return ccSampleAt("normal", minute);
+  } else if (mode === "partial") { // spec §50 E: only 2h genuinely exists — a single gentle charging ramp, nothing fabricated beyond it
+    const t = minute / (CC_MODE_TOTAL.partial - 1);
+    v = 49.0 + t * 6.0 + (rand() - 0.5) * 0.1; a = 6 * (1 - t * 0.5); s = 30 + t * 50; st = 1;
+  } else { // "normal" (also spec §50 F: full 60h) — the original ~8h charge/discharge cycle, unchanged
+    const cyclePos = (minute % 480) / 480;
+    if (cyclePos < 0.55) {
+      const t = cyclePos / 0.55;
+      v = 48.5 + t * 6.5 + (rand() - 0.5) * 0.15; a = 8 * (1 - t * 0.7) + (rand() - 0.5) * 0.4; s = 20 + t * 75;
+      st = t < 0.75 ? 1 : 2;
+    } else {
+      const t = (cyclePos - 0.55) / 0.45;
+      v = 55.0 - t * 6.5 + (rand() - 0.5) * 0.15; a = -6 * (0.3 + t * 0.7) + (rand() - 0.5) * 0.4; s = 95 - t * 70;
+      st = 4;
+    }
+  }
+  return { v, a, s, st };
+}
+function chargeHistoryPayload(offset) {
+  const clampedOffset = Math.max(0, Math.min(9, offset | 0));
+  const count = CC_MODE_TOTAL[ccHistoryMode] || CC_CAPACITY;
+  const windowsAvailable = count > 0 ? Math.ceil(count / CC_WINDOW) : 0;
+  const windowEndP = count - 1 - clampedOffset * CC_WINDOW;
+  const windowStartP = Math.max(0, windowEndP - (CC_WINDOW - 1));
+  const any = count > 0 && windowEndP >= 0;
+  const voltage = [], current = [], soc = [], stage = [];
+  if (any) {
+    for (let p = windowStartP; p <= windowEndP; p += 1) {
+      const sample = ccSampleAt(ccHistoryMode, p);
+      voltage.push(sample.v === null ? null : Math.round(sample.v * 100) / 100);
+      current.push(sample.a === null ? null : Math.round(sample.a * 100) / 100);
+      soc.push(sample.s === null ? null : Math.max(0, Math.min(100, Math.round(sample.s))));
+      stage.push(sample.st);
+    }
+  }
+  return JSON.stringify({
+    interval_s: 60, window_samples: CC_WINDOW, total_samples: count,
+    windows_available: windowsAvailable, offset: clampedOffset,
+    voltage, current, soc, stage
+  });
+}
+
+/* ============================================================
+   WRITE ENDPOINTS — /select/:id/set, /number/:id/set, /text/:id/set.
+   HTTP 200 is accepted immediately; the actual "BMS confirmed this" signal
+   is a separate, delayed SSE push, honoring the current writeMode dial —
+   exactly the gap the production Write Transaction Manager exists to close.
+   ============================================================ */
+function handleWrite(domain, objectId, query, res) {
+  if (writeMode === "http_error") { res.writeHead(500); res.end("simulated failure"); return; }
+
+  const targetObjectId = domain === "number" && objectId.startsWith("set_") ? objectId.slice(4) : objectId;
+  const wireId = entities[`${domain}-${objectId}`] ? `${domain}-${objectId}` : `sensor-${targetObjectId}`;
+  const requested = query.has("option") ? query.get("option") : query.get("value");
+  const respondOk = () => { res.writeHead(200, { "Content-Type": "text/plain" }); res.end("OK"); };
+
+  // CellCount doesn't just echo one field back — a real write changes
+  // which channels the whole app trusts, so it runs its own staged
+  // transaction timeline (runCellCountTransaction, below) instead of the
+  // generic single-entity echo below. http_error is already handled
+  // above (shared with every other register); every other CellCount-
+  // specific scenario is chosen independently via cellCountScenario (see
+  // /demo/cellcount-scenario), NOT the generic writeMode dial — a real
+  // CellCount write and, say, a Balance Trigger write can fail for
+  // completely different reasons at the same time.
+  if (targetObjectId === "cell_count") {
+    if (cellCountScenario === "sse_before_http") {
+      // Deliberately hold the HTTP response until the transaction has
+      // fully resolved and broadcast its terminal SSE event — the exact
+      // race spec §5 requires the frontend to survive (a confirmation
+      // arriving over SSE before the POST's own fetch() promise settles).
+      runCellCountTransaction(Number(requested), respondOk);
+      return;
+    }
+    respondOk();
+    if (!entities[wireId]) return;
+    runCellCountTransaction(Number(requested));
+    return;
+  }
+
+  // Generic Write Transaction Manager (spec §4.1) — every catalog-listed
+  // "generic" register (the ~35 number/select RW registers, everything
+  // except cell_count and setup_passcode) routes through the SAME
+  // write -> ack_wait -> readback_wait -> confirmed/mismatch/timeout
+  // staged timeline as CellCount, honoring genericWriteScenario (see
+  // /demo/generic-write-scenario) rather than the old writeMode dial's
+  // blunt timeout/mismatch (writeMode still governs http_error above and
+  // still applies to anything NOT in the catalog, e.g. device_name_override).
+  const catalogEntry = (domain === "number" || domain === "select") ? REGISTER_BY_KEY[targetObjectId] : null;
+  if (catalogEntry) {
+    respondOk();
+    // charging/discharging/balancing are CONTROL registers (spec §4.3):
+    // only a CONFIRMED write transaction may change controlChargingOn/
+    // controlDischargingOn/controlBalancingOn (tick() publishes select-*
+    // from these every cycle and never writes them itself, above) --
+    // applying the persisted var straight from runGenericWriteTx's own
+    // terminal callback, not by polling, avoids ever guessing at timing.
+    runGenericWriteTx(catalogEntry.addr, wireId, requested, false, (statusCode) => {
+      if (statusCode !== 4) return; // only a real CONFIRMED changes control state
+      if (targetObjectId === "charging") controlChargingOn = requested === "On";
+      else if (targetObjectId === "discharging") controlDischargingOn = requested === "On";
+      else if (targetObjectId === "balancing") controlBalancingOn = requested === "On";
+    });
+    return;
+  }
+
+  respondOk();
+  if (!entities[wireId]) return; // unknown entity — accepted, never confirmed (matches a real 404-ish no-op)
+
+  window_setTimeout(() => {
+    if (writeMode === "timeout") return; // never echo back
+    let echoed = requested;
+    if (writeMode === "mismatch") {
+      echoed = domain === "select" ? (requested === "On" ? "Off" : "On") : String(Number(requested) + 99);
+    }
+    setEntity(wireId, echoed);
+    broadcastEntity(wireId);
+    if (domain === "select") {
+      const activeId = `binary_sensor-${objectId}`;
+      if (entities[activeId]) { setEntity(activeId, echoed); broadcastEntity(activeId); }
+    }
+  }, 450 + Math.random() * 250);
+}
+function window_setTimeout(fn, ms) { setTimeout(fn, ms); } // named for readability at the call site above
+
+/* ============================================================
+   CELLCOUNT TRANSACTION — a staged timeline (sending -> ack_wait ->
+   readback_wait -> terminal) that mirrors the REAL ESP32 firmware's own
+   250ms transaction interval and timeouts (3s ACK, 4s readback), so the
+   demo exercises the frontend's actual timing budget, not an
+   instantaneous stand-in. Every scenario only ever mutates the
+   underlying PHYSICAL facts (registerCellCount / physicalTopologyCount /
+   physicalMask / per-cell voltage / pack voltage) and then calls
+   resolveTopologyMock() — never topology_state directly — so no scenario
+   can manufacture a guaranteed outcome; CONFIRMED only ever happens if
+   the physical facts a scenario set up actually satisfy every one of the
+   resolver's checks, exactly like real hardware. See CELLCOUNT_SCENARIOS
+   just below for what each one simulates.
+   ============================================================ */
+const CELLCOUNT_SCENARIOS = [
+  "confirm", "mismatch_config_only", "mismatch_non_contiguous", "mismatch_extra_bit",
+  "timeout_no_apply", "applied_ack_lost", "ack_ok_readback_stale", "readback_timeout", "delayed_readback",
+  "sse_before_http", "duplicate_terminal_sse", "out_of_order_sse"
+];
+let cellCountScenario = "confirm";
+
+function setCellCountTxStatus(code) {
+  setEntity("sensor-cellcount_tx_status_code", String(code));
+  broadcastEntity("sensor-cellcount_tx_status_code");
+}
+
+// registerCellCount (the JS variable) and the sensor-cell_count entity
+// are deliberately kept separate: a scenario may change the variable
+// (the BMS's internal state) well before anything re-reads and publishes
+// it — exactly the applied_ack_lost case, where the write silently took
+// effect but nothing confirms it until the recovery probe's own forced
+// read lands, seconds later.
+function publishRegisterCellCount() {
+  setEntity("sensor-cell_count", String(registerCellCount));
+  broadcastEntity("sensor-cell_count");
+}
+
+function applyContiguousTopologyChange(requested) {
+  registerCellCount = requested;
+  physicalTopologyCount = requested;
+  physicalMask = (2 ** requested) - 1;
+  cellVoltageOverride = new Array(CELL_COUNT).fill(null);
+  packVoltageOverride = null;
+  // Channels 0..requested-1 need a REAL (non-NaN) voltage available
+  // immediately, not just "whatever tick() last left there" — a channel
+  // moving from inactive to active (e.g. 4S -> 8S) is currently NaN
+  // (blanked by the previous CONFIRMED resolution), and total_voltage
+  // needs to be resolveTopologyMock()-consistent right away, since
+  // finishTerminal() calls the resolver SYNCHRONOUSLY, not on the next
+  // tick(). Real hardware doesn't have this timing gap — its pack-voltage
+  // register is an independent, continuously fresh direct measurement,
+  // not derived from a per-tick cache — this is purely restoring mock
+  // fidelity to that, not a resolver behavior change.
+  let sum = 0;
+  for (let i = 0; i < requested; i += 1) {
+    const raw = entities[`sensor-cell_voltage_${i + 1}`];
+    const existing = raw ? Number(raw.value) : NaN;
+    const v = Number.isFinite(existing) ? existing : BASE_CELL_V + cellOffsetsMv[i] / 1000;
+    setEntity(`sensor-cell_voltage_${i + 1}`, v.toFixed(3));
+    setEntity(`sensor-cell_${i + 1}_wire_resistance`, cellResistances[i].toFixed(3));
+    broadcastEntity(`sensor-cell_voltage_${i + 1}`);
+    broadcastEntity(`sensor-cell_${i + 1}_wire_resistance`);
+    sum += v;
+  }
+  setEntity("sensor-total_voltage", sum.toFixed(2));
+  broadcastEntity("sensor-total_voltage");
+}
+
+function runCellCountTransaction(requested, onTerminal) {
+  if (!Number.isFinite(requested) || requested < 1 || requested > 16) { if (onTerminal) onTerminal(); return; }
+  // Mirrors the real firmware's own single-flight guard (set_cell_count's
+  // set_action: "if (id(g_cellcount_tx_pending)) { ...ignoring; return; }")
+  // — a second CellCount write arriving while one is already in flight is
+  // silently ignored, never allowed to interleave with or override it.
+  if (cellCountTxInFlight) { if (onTerminal) onTerminal(); return; }
+  const scenario = cellCountScenario;
+  const txId = ++cellCountTxId;
+  cellCountTxInFlight = true;
+
+  setEntity("sensor-cellcount_tx_id", String(txId));
+  broadcastEntity("sensor-cellcount_tx_id");
+  setCellCountTxStatus(1); // sending
+
+  const finishUncertain = (statusCode) => {
+    topologyUncertain = true;
+    setCellCountTxStatus(statusCode); // 7=ack_timeout, 8=readback_timeout
+    resolveTopologyMock(); // publishes WRITE_UNCERTAIN
+    cellCountTxInFlight = false;
+    if (onTerminal) onTerminal();
+    // Recovery probe equivalent: after a delay (mirrors the real
+    // firmware's periodic re-check), get a genuinely fresh read and
+    // re-resolve — this is what lets applied_ack_lost eventually reveal
+    // the true new topology, and timeout_no_apply correctly re-confirm
+    // the unchanged old one.
+    setTimeout(() => {
+      if (cellCountTxId !== txId) return; // a newer transaction has since started; let it own resolution
+      publishRegisterCellCount(); // the recovery probe's own forced re-read landing
+      topologyUncertain = false;
+      resolveTopologyMock();
+    }, 5000);
+  };
+
+  const finishTerminal = () => {
+    cellCountTxInFlight = false;
+    publishRegisterCellCount();
+    resolveTopologyMock();
+    // tx_status is derived from the SAME resolver output the frontend
+    // itself will see — never independently declared "confirmed".
+    setEntity("sensor-cellcount_tx_status_code", entities["sensor-cell_count"].value === String(requested)
+      && entities["text_sensor-topology_state"].state === "CONFIRMED"
+      && entities["sensor-effective_cell_count"].value === String(requested) ? "4" : "5");
+    broadcastEntity("sensor-cellcount_tx_status_code");
+    if (onTerminal) onTerminal();
+    if (scenario === "duplicate_terminal_sse") {
+      // Re-broadcast the exact same terminal status a moment later —
+      // finish() on the client is settled-guarded, so this must be a no-op.
+      setTimeout(() => broadcastEntity("sensor-cellcount_tx_status_code"), 300);
+    }
+  };
+
+  setTimeout(() => {
+    if (scenario === "timeout_no_apply") {
+      // No ACK, ever, for this transaction -- nothing physical changes.
+      setCellCountTxStatus(2);
+      setTimeout(() => { if (cellCountTxId === txId) finishUncertain(7); }, 3200);
+      return;
+    }
+    if (scenario === "applied_ack_lost") {
+      // The BMS DID receive and apply the write -- but we simulate its
+      // ACK response getting lost, so the client sees exactly the same
+      // ack_wait -> timeout sequence as timeout_no_apply, EXCEPT the
+      // physical state has already, silently, genuinely changed.
+      applyContiguousTopologyChange(requested);
+      setCellCountTxStatus(2);
+      setTimeout(() => { if (cellCountTxId === txId) finishUncertain(7); }, 3200);
+      return;
+    }
+
+    // Every remaining scenario ACKs normally.
+    setCellCountTxStatus(2); // ack_wait
+    setTimeout(() => {
+      setCellCountTxStatus(3); // readback_wait
+      if (scenario === "readback_timeout") {
+        // ACK landed fine; the forced readback commands simply never
+        // complete (the response never arrives) -- ESPHome's own 4s
+        // readback timeout is what would eventually fire on real
+        // hardware here, not the 3s ACK timeout the other WRITE_UNCERTAIN
+        // scenarios above hit.
+        setTimeout(() => { if (cellCountTxId === txId) finishUncertain(8); }, 4200);
+        return;
+      }
+      const readbackDelay = scenario === "delayed_readback" ? 3500 : 400 + Math.random() * 300;
+      setTimeout(() => {
+        if (scenario === "sse_before_http") {
+          // Nothing special left to do here (the immediate pre-response
+          // broadcast already happened in handleWrite's caller context —
+          // see the sse_before_http branch below); fall through to a
+          // normal confirm so the scenario still reaches a real terminal
+          // state through the normal path.
+          applyContiguousTopologyChange(requested);
+        } else if (scenario === "mismatch_config_only" || scenario === "ack_ok_readback_stale") {
+          // The register accepts the new value; the physical pack does
+          // not change at all -- the classic "stale/rejected write" case.
+          registerCellCount = requested;
+        } else if (scenario === "mismatch_non_contiguous") {
+          registerCellCount = requested;
+          physicalTopologyCount = requested;
+          // Right POPCOUNT, wrong POSITIONS: drop the lowest bit, add one
+          // bit above the configured range instead.
+          let mask = ((2 ** requested) - 1) & ~1;
+          if (requested < CELL_COUNT) mask |= (1 << requested);
+          physicalMask = mask;
+          cellVoltageOverride = new Array(CELL_COUNT).fill(null);
+          packVoltageOverride = null;
+        } else if (scenario === "mismatch_extra_bit") {
+          registerCellCount = requested;
+          physicalTopologyCount = requested;
+          let mask = (2 ** requested) - 1;
+          if (requested < CELL_COUNT) mask |= (1 << requested); // one extra bit above the configured range
+          physicalMask = mask;
+          cellVoltageOverride = new Array(CELL_COUNT).fill(null);
+          packVoltageOverride = null;
+        } else {
+          // confirm, delayed_readback, duplicate_terminal_sse,
+          // out_of_order_sse — all a genuine, physically-consistent change.
+          applyContiguousTopologyChange(requested);
+        }
+
+        if (scenario === "out_of_order_sse") {
+          // Publish the terminal outcome first, then replay an EARLIER
+          // stage's status code a moment later — proves a stale/reordered
+          // event can never reopen an already-settled transaction.
+          finishTerminal();
+          setTimeout(() => setCellCountTxStatus(3), 250);
+          return;
+        }
+        finishTerminal();
+      }, readbackDelay);
+    }, 500 + Math.random() * 200);
+  }, 300 + Math.random() * 200);
+}
+
+/* ============================================================
+   HTTP SERVER
+   ============================================================ */
+const MIME = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json" };
+
+function serveFile(res, absPath) {
+  fs.readFile(absPath, (err, data) => {
+    if (err) { res.writeHead(404); res.end("not found"); return; }
+    res.writeHead(200, { "Content-Type": MIME[path.extname(absPath)] || "application/octet-stream", "Cache-Control": "no-store" });
+    res.end(data);
+  });
+}
+
+const server = http.createServer((req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const p = url.pathname;
+
+  if (p === "/" || p === "/index.html") return serveFile(res, path.join(__dirname, "index.html"));
+  if (p === "/jk_bms.js") return serveFile(res, path.join(ROOT, "jk_bms.js")); // real production file, unmodified
+  if (p === "/jk_bms.css") return serveFile(res, path.join(ROOT, "jk_bms.css")); // real production file, unmodified
+  if (p === "/demo/panel.js") return serveFile(res, path.join(__dirname, "panel.js")); // dev-only, never loaded in production
+
+  if (p === "/history.json") {
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    res.end(historyPayload());
+    return;
+  }
+  const ccMatch = p.match(/^\/charge_history\.json(?:\/(\d+))?$/);
+  if (ccMatch) {
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    res.end(chargeHistoryPayload(ccMatch[1] ? Number(ccMatch[1]) : 0));
+    return;
+  }
+
+  if (p === "/events") {
+    if (scenario === "browser_disconnected") {
+      // A refused connection, not a hung one: destroying the socket fails
+      // the request immediately, so EventSource's own retry timer keeps
+      // firing every ~3s on its normal cadence. A request left pending
+      // forever would instead swallow that retry attempt with no response
+      // ever coming back — the scenario could never heal even after
+      // switching back to "normal", since nothing would prompt a new try.
+      req.socket.destroy();
+      return;
+    }
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream", "Cache-Control": "no-cache",
+      Connection: "keep-alive", "Access-Control-Allow-Origin": "*"
+    });
+    res.write(": connected\n\n");
+    for (const wireId of Object.keys(entities)) res.write(sseFormat(domainOf(wireId), entities[wireId]));
+    clients.add(res);
+    req.on("close", () => clients.delete(res));
+    return;
+  }
+
+  const writeMatch = p.match(/^\/(select|number|text)\/([a-z0-9_]+)\/set$/);
+  if (writeMatch && req.method === "POST") return handleWrite(writeMatch[1], writeMatch[2], url.searchParams, res);
+
+  // ---- dev-only scenario control (never called by production jk_bms.js) ----
+  if (p === "/demo/state" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      scenario, writeMode, scenarios: SCENARIOS, writeModes: WRITE_MODES, ccHistoryMode, ccHistoryModes: CC_HISTORY_MODES,
+      cellCountScenario, cellCountScenarios: CELLCOUNT_SCENARIOS,
+      genericWriteScenario, genericWriteScenarios: GENERIC_WRITE_SCENARIOS,
+      registerCellCount, physicalTopologyCount, physicalMask, topologyUncertain,
+      controlChargingOn, controlDischargingOn, controlBalancingOn, controlOverrideReason
+    }));
+    return;
+  }
+  // Independently move the register value and/or the physical topology —
+  // spec §10: "Демо-панель має дозволяти окремо змінювати фізичну
+  // топологію та налаштований Cell Count." Bypasses the write-transaction
+  // machinery entirely (this is a raw simulator control, not a simulated
+  // Modbus write) and always re-derives topology_state via
+  // resolveTopologyMock() afterward, never sets it directly.
+  if (p === "/demo/physical-topology" && req.method === "POST") {
+    const count = Number(url.searchParams.get("count"));
+    const maskParam = url.searchParams.get("mask");
+    if (Number.isFinite(count) && count >= 0 && count <= CELL_COUNT) {
+      physicalTopologyCount = count;
+      physicalMask = maskParam !== null && Number.isFinite(Number(maskParam)) ? (Number(maskParam) & 0xFFFF) : ((2 ** count) - 1);
+      cellVoltageOverride = new Array(CELL_COUNT).fill(null);
+    }
+    if (!cellCountTxInFlight) resolveTopologyMock();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ physicalTopologyCount, physicalMask }));
+    return;
+  }
+  if (p === "/demo/register-cell-count" && req.method === "POST") {
+    const count = Number(url.searchParams.get("count"));
+    if (Number.isFinite(count) && count >= 0 && count <= CELL_COUNT) {
+      registerCellCount = count;
+      publishRegisterCellCount();
+    }
+    if (!cellCountTxInFlight) resolveTopologyMock();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ registerCellCount }));
+    return;
+  }
+  // Per-channel voltage override, for the missing/NaN cell voltage tests.
+  // channel is 1-based; value "nan"/"missing" clears to a real NaN; "auto"
+  // clears the override back to the normal simulated jitter.
+  if (p === "/demo/cell-voltage" && req.method === "POST") {
+    const channel = Number(url.searchParams.get("channel"));
+    const raw = url.searchParams.get("value");
+    if (Number.isInteger(channel) && channel >= 1 && channel <= CELL_COUNT) {
+      const idx = channel - 1;
+      if (raw === "auto") cellVoltageOverride[idx] = null;
+      else if (raw === "nan" || raw === "missing") cellVoltageOverride[idx] = NaN;
+      else { const v = Number(raw); if (Number.isFinite(v)) cellVoltageOverride[idx] = v; }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ cellVoltageOverride }));
+    return;
+  }
+  if (p === "/demo/pack-voltage" && req.method === "POST") {
+    const raw = url.searchParams.get("value");
+    packVoltageOverride = raw === "auto" ? null : (Number.isFinite(Number(raw)) ? Number(raw) : packVoltageOverride);
+    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ packVoltageOverride }));
+    return;
+  }
+  if (p === "/demo/cellcount-scenario" && req.method === "POST") {
+    const next = url.searchParams.get("name");
+    if (CELLCOUNT_SCENARIOS.includes(next)) cellCountScenario = next;
+    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ cellCountScenario }));
+    return;
+  }
+  if (p === "/demo/generic-write-scenario" && req.method === "POST") {
+    const next = url.searchParams.get("name");
+    if (GENERIC_WRITE_SCENARIOS.includes(next)) genericWriteScenario = next;
+    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ genericWriteScenario }));
+    return;
+  }
+  // Simulates a BMS communication interruption (comms freshness pushed
+  // straight to "stale" -- resolveTopologyMock() reports OFFLINE) that
+  // self-heals within a couple of ticks, exactly like a real reboot mid-
+  // session (real hardware's true LOADING state, "never received a
+  // response since boot", isn't independently reproducible here without
+  // restarting this whole in-memory process — see the final report for
+  // why an actual ESP32 power-cycle test needs real hardware). Confirms
+  // spec §11/§16's "resolver відновлює коректний confirmed/mismatch
+  // state" for the comms-loss case this simulator CAN model faithfully.
+  if (p === "/demo/bms-restart" && req.method === "POST") {
+    bmsResponseAgeS = 999;
+    topologyUncertain = false;
+    cellCountTxInFlight = false;
+    resolveTopologyMock(); // immediately observable as OFFLINE/LOADING; tick() re-resolves CONFIRMED within 1s once bmsResponseAgeS decays back down
+    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ restarted: true }));
+    return;
+  }
+  if (p === "/demo/cc-history" && req.method === "POST") {
+    const next = url.searchParams.get("name");
+    if (CC_HISTORY_MODES.includes(next)) ccHistoryMode = next;
+    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ccHistoryMode }));
+    return;
+  }
+  if (p === "/demo/scenario" && req.method === "POST") {
+    const next = url.searchParams.get("name");
+    if (SCENARIOS.includes(next)) {
+      scenario = next;
+      scenarioEnteredAt = Date.now();
+      if (next !== "bms_offline") bmsResponseAgeS = Math.min(bmsResponseAgeS, 1);
+      if (next === "browser_disconnected") {
+        // Drop every currently-open SSE connection too, not just refuse new
+        // ones — otherwise a client that connected before the switch would
+        // keep receiving updates and never see a disconnect at all.
+        for (const client of clients) { try { client.end(); } catch (_) {} }
+        clients.clear();
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ scenario }));
+    return;
+  }
+  if (p === "/demo/write-mode" && req.method === "POST") {
+    const next = url.searchParams.get("name");
+    if (WRITE_MODES.includes(next)) writeMode = next;
+    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ writeMode }));
+    return;
+  }
+
+  res.writeHead(404); res.end("not found");
+});
+
+server.listen(PORT, HOST, () => {
+  console.log(`JK BMS V2 demo server running at http://${HOST}:${PORT}`);
+  console.log(`Serving production jk_bms.js / jk_bms.css from ${ROOT}`);
+});
