@@ -1,0 +1,19 @@
+{
+  "pipeline_version": 1,
+  "node_version": "v24.2.0",
+  "python_version": "3.9.6",
+  "file_hashes": {
+    "protocol/evidence/sources.json": "ae5bf478915e0f640facf08d90d080073b21bae5e33a4e5c98db9cfbbed8a44e",
+    "protocol/evidence/workbook_index.json": "2b8090d987c485033380d08a3853cca2940617a49c3a09ff3d0052c81d802f76",
+    "protocol/evidence/upstream_index.json": "8900f51b36798122585a5f5898cd0ba9e4d4c12e2575aa4703577848abcc9b8e",
+    "protocol/evidence/implementation_index.json": "71f430a8eeecb5355ecfc7106683a6613cbf883dde643a7ecccac51febf60c28",
+    "protocol/registers.canonical.json": "95d0b005e299a86229a56bf4752b0e73ec2edc381bc193d94859ea234557ab5a",
+    "protocol/non_register_entities.canonical.json": "6edb28b7e07bc5340adb62531cdab7ad115f58b95e2dc75934e7cc8a5db596d0",
+    "protocol/generated/claim_matrix.json": "d6008a5ce6cd6de9766bee18936ff36c99f1c32a202aa0f2a038954013b0ba59",
+    "register_catalog.json": "ea7f055cc7bb94f0c4f93605bb3e5841aa9627923c5985e5f96ca84739877eef",
+    "protocol/generated/coverage_report.md": "929197dac228faf2a42f8975f43b37068b0f6f2dd1dc087c86f90e91ffcbfb53",
+    "protocol/generated/.generation-manifest.json": "07029fc339039a662181c392785baba7edf232f1f2e47806ab64a4dd55414363",
+    "jk_bms.js": "c9473a3605f6f8b91db5d6c3eb8570b73bd6efad96b4db130fade3d68fc859c4"
+  },
+  "generation_id": "b7df76d88c9bffe7"
+}

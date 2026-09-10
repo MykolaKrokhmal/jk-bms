@@ -1,0 +1,6 @@
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+api:
+  encryption:
+    key: !secret jk_bms_api_key

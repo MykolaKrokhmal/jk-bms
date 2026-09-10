@@ -1,0 +1,10 @@
+{
+  "generation_id": "c9d45b7baca74b1d",
+  "catalog_version": "1.1.0",
+  "source_hash": "b0fbcd3a7a50ffa4",
+  "file_hashes": {
+    "register_catalog.json": "dc41aab0805deb1400e6d1b245c7945fe1370ac9218a2595a2bb6514d342c44f",
+    "protocol/generated/coverage_report.md": "20c5c7e082185eb4f66e8980aad174e7fd5f9e4ab8c7e08cf18bd0898066e0fe",
+    "jk_bms.js#generated_protocol_catalog_block": "fe54dd032d19e0f660e191138983e948cf0c3d560b912bc943108ac7ddc3c692"
+  }
+}
