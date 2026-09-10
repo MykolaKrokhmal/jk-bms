@@ -162,9 +162,13 @@
       tx: {
         confirmed: "Confirmed", notConfirmed: "Requested {value} — {detail}. Not confirmed.",
         noConfirmation: "No confirmation from BMS", requestFailed: "Request failed", requestTimedOut: "Request timed out",
+        rejectedBusy: "Rejected — another write to this register is already in progress",
         enabling: "Enabling {label}…", disabling: "Disabling {label}…", saving: "Saving…", saved: "Saved",
         anotherInProgress: "Another write is already in progress for this field", sending: "Sending…",
-        describeReports: "BMS reports {value}", describeNoValue: "no value reported"
+        describeReports: "BMS reports {value}", describeNoValue: "no value reported",
+        uncertainRecovering: "No ACK/readback yet — verifying the actual value…",
+        recoveredAfterUncertainty: "(confirmed after a recovery check)",
+        recoveredMismatchAfterUncertainty: "The write did not take effect (confirmed by a recovery check)."
       },
       deviceName: {
         tooLong: "Keep it under 32 characters.", saved: "Name saved.", reverted: "Reverted to the default name.",
@@ -318,9 +322,13 @@
       tx: {
         confirmed: "Підтверджено", notConfirmed: "Запит {value} — {detail}. Не підтверджено.",
         noConfirmation: "Немає підтвердження від BMS", requestFailed: "Запит не виконано", requestTimedOut: "Тайм-аут запиту",
+        rejectedBusy: "Відхилено — інший запис до цього регістра вже виконується",
         enabling: "Увімкнення: {label}…", disabling: "Вимкнення: {label}…", saving: "Збереження…", saved: "Збережено",
         anotherInProgress: "Для цього поля вже виконується інший запис", sending: "Надсилання…",
-        describeReports: "BMS повідомляє {value}", describeNoValue: "значення не надійшло"
+        describeReports: "BMS повідомляє {value}", describeNoValue: "значення не надійшло",
+        uncertainRecovering: "Немає ACK/зчитування — перевіряємо фактичне значення…",
+        recoveredAfterUncertainty: "(підтверджено після перевірки відновлення)",
+        recoveredMismatchAfterUncertainty: "Запис не застосувався (підтверджено перевіркою відновлення)."
       },
       deviceName: {
         tooLong: "Не більше 32 символів.", saved: "Назву збережено.", reverted: "Повернуто типову назву.",
@@ -472,64 +480,65 @@
 
   // Output permissions live in Configuration with the rest of the BMS
   // registers. Overview is a read-only status surface that links there.
-  const CONTROL_DEFS = Object.freeze({
-    charging: Object.freeze({ endpoint: "/select/charging/set", labelKey: "power.charge" }),
-    discharging: Object.freeze({ endpoint: "/select/discharging/set", labelKey: "power.discharge" }),
-    balancing: Object.freeze({ endpoint: "/select/balancing/set", labelKey: "power.balance" })
-  });
+  //
+  // Owner-authorized write re-enablement (2026-09-10): populated with the
+  // fields whose owner_write_override is set in registers.canonical.json
+  // (repo owner's explicit risk acceptance on their own hardware — see
+  // docs/adr/0001-protocol-catalog.md's addendum). Every field NOT listed
+  // here stays exactly as fail-closed as before — this is an allowlist,
+  // not a default, and the corresponding validator/tests assert it stays
+  // in sync with the canonical source's owner_write_override set.
+  // Reverted to fail-closed for "charging"/"discharging" (2026-09-10,
+  // second critical audit — both write_safety_class "disruptive",
+  // pending independent write-contract verification). "balancing" is
+  // write_safety_class "normal" and stays unlocked.
+  // Third critical audit (2026-09-10): "balancing" reverted to fail-closed
+  // too — registers.canonical.json had wrongly classified it "normal"
+  // when batterylifepo4.yaml's own comment always declared
+  // charging/discharging/balancing all "disruptive" together. CONTROL_DEFS
+  // is now empty; kept as a real (not dead) allowlist for whichever
+  // control register is independently verified first.
+  const CONTROL_DEFS = Object.freeze({});
 
+  // Readback comparator: an integer-stepped register (delays in s/µs,
+  // cell_count) can only ever echo a whole number back, so "integer"
+  // (±0.5 tolerance) is correct there; every fractional-stepped register
+  // (voltage/current/temperature, all step 0.001 or 0.1) uses "decimal"
+  // (±0.0005) so a real BMS re-quantizing to its own LSB still confirms,
+  // without the ±0.5 slop being wide enough to hide an actually-wrong value.
+  function settingDef(key, endpoint, { min = -Infinity, max = Infinity, step = NaN } = {}) {
+    const comparator = Number.isInteger(step) ? "integer" : "decimal";
+    return { key, endpoint, comparator, min, max, step, inputId: `reg_${key}`, messageId: "settingsMessage" };
+  }
+  // Reverted to fail-closed (2026-09-10, second critical audit) for every
+  // disruptive/topology/credential/unresolved-dynamic/packed field: an
+  // explicit owner_write_override is risk acceptance, not protocol
+  // verification, and several of those fields also share a real
+  // Modbus register with another field (packed siblings) — a hazard the
+  // generic Write Transaction Manager's per-ADDRESS correlation cannot
+  // yet disambiguate (see docs/adr/0001-protocol-catalog.md's sixth-pass
+  // addendum). Only "normal" write_safety_class, non-packed, fully
+  // dependency-resolved fields remain here.
   const SETTING_DEFS = Object.freeze([
-    ...[
-      ["cell_count", "Кількість комірок", 1, 16, 1],
-      ["battery_capacity", "Номінальна ємність", 1, 2000, 0.001],
-      ["start_balance_trigger", "Дельта запуску балансування", 0, 1, 0.001],
-      ["start_balance", "Напруга запуску балансування", 0, 6, 0.001],
-      ["max_balance_current", "Максимальний струм балансування", 0, 20, 0.001],
-      ["cell_ovp", "Захист комірки від перенапруги", 0, 6, 0.001],
-      ["cell_rcv", "Цільова напруга заряду", 0, 6, 0.001],
-      ["soc_100", "Напруга 100% заряду", 0, 6, 0.001],
-      ["cell_ovpr", "Відновлення після перенапруги", 0, 6, 0.001],
-      ["cell_uvpr", "Відновлення після низької напруги", 0, 6, 0.001],
-      ["soc_0", "Напруга 0% заряду", 0, 6, 0.001],
-      ["cell_uvp", "Захист комірки від низької напруги", 0, 6, 0.001],
-      ["system_power_off", "Напруга вимкнення", 0, 6, 0.001],
-      ["cell_rfv", "Цільова напруга підтримки", 0, 6, 0.001],
-      ["smart_sleep", "Напруга розумного сну", 0, 6, 0.001],
-      ["continued_charge_current", "Тривалий струм заряду", 0, 2000, 0.001],
-      ["charge_ocp_delay", "Затримка захисту струму заряду", 0, 2147483647, 1],
-      ["charge_ocpr_time", "Відновлення захисту струму заряду", 0, 2147483647, 1],
-      ["continued_discharge_current", "Тривалий струм розряду", 0, 2000, 0.001],
-      ["discharge_ocp_delay", "Затримка захисту струму розряду", 0, 2147483647, 1],
-      ["discharge_ocpr_time", "Відновлення захисту струму розряду", 0, 2147483647, 1],
-      ["discharge_otp", "Перегрів під час розряду", -100, 200, 0.1],
-      ["discharge_otpr", "Відновлення температури розряду", -100, 200, 0.1],
-      ["charge_otp", "Перегрів під час заряду", -100, 200, 0.1],
-      ["charge_otpr", "Відновлення температури заряду", -100, 200, 0.1],
-      ["charge_utpr", "Відновлення низької температури заряду", -100, 200, 0.1],
-      ["charge_utp", "Низька температура заряду", -100, 200, 0.1],
-      ["mos_otp", "Перегрів MOSFET", -100, 200, 0.1],
-      ["mos_otpr", "Відновлення температури MOSFET", -100, 200, 0.1],
-      ["scp_delay", "Затримка короткого замикання", 0, 2147483647, 1],
-      ["scpr_time", "Відновлення після короткого замикання", 0, 2147483647, 1],
-      ["rcv_time", "Час RCV", 0, 25.5, 0.1],
-      ["rfv_time", "Час RFV", 0, 25.5, 0.1]
-    ].map(([key, label, min, max, step]) => Object.freeze({ key, inputId: `reg_${key}`, endpoint: `/number/set_${key}/set`, messageId: "settingsMessage", labelKey: label, rawLabel: true, comparator: step < 1 ? "decimal" : "integer", min, max, step, unit: "" })),
-    Object.freeze({ key: "lcd_buzzer_trigger", inputId: "reg_lcd_buzzer_trigger", endpoint: "/number/lcd_buzzer_trigger/set", messageId: "settingsMessage", labelKey: "Умова зумера LCD", rawLabel: true, comparator: "integer", min: 0, max: 255, step: 1, unit: "" }),
-    Object.freeze({ key: "heating_activation_temperature", inputId: "fHeatOn", endpoint: "/number/heating_activation_temperature/set", messageId: "msg-heat-on", labelKey: "configuration.fields.heatingActivation", comparator: "integer", unit: "&deg;C" }),
-    Object.freeze({ key: "heating_deactivation_temperature", inputId: "fHeatOff", endpoint: "/number/heating_deactivation_temperature/set", messageId: "msg-heat-off", labelKey: "configuration.fields.heatingDeactivation", comparator: "integer", unit: "&deg;C" }),
-    Object.freeze({ key: "dry_contact_1_trigger_source", inputId: "fDry1", endpoint: "/number/dry_contact_1_trigger_source/set", messageId: "msg-dry1", labelKey: "configuration.fields.dryContact1Source", comparator: "integer", unit: "" }),
-    Object.freeze({ key: "dry_contact_2_trigger_source", inputId: "fDry2", endpoint: "/number/dry_contact_2_trigger_source/set", messageId: "msg-dry2", labelKey: "configuration.fields.dryContact2Source", comparator: "integer", unit: "" }),
-    // Found in source during the V2.1 Configuration re-audit — real,
-    // verified-writable numbers (batterylifepo4.yaml `number:` block) that
-    // simply weren't exposed in the UI yet. Their unit genuinely depends
-    // on which trigger source is selected above (the YAML's own comment
-    // says so), so no unit is claimed here rather than guessing one.
-    Object.freeze({ key: "dry_contact_1_trigger_value", inputId: "fDry1Trig", endpoint: "/number/dry_contact_1_trigger_value/set", messageId: "msg-dry1-trig", labelKey: "configuration.fields.dryContact1Trigger", comparator: "integer", unit: "" }),
-    Object.freeze({ key: "dry_contact_1_recovery_value", inputId: "fDry1Rec", endpoint: "/number/dry_contact_1_recovery_value/set", messageId: "msg-dry1-rec", labelKey: "configuration.fields.dryContact1Recovery", comparator: "integer", unit: "" }),
-    Object.freeze({ key: "dry_contact_2_trigger_value", inputId: "fDry2Trig", endpoint: "/number/dry_contact_2_trigger_value/set", messageId: "msg-dry2-trig", labelKey: "configuration.fields.dryContact2Trigger", comparator: "integer", unit: "" }),
-    Object.freeze({ key: "dry_contact_2_recovery_value", inputId: "fDry2Rec", endpoint: "/number/dry_contact_2_recovery_value/set", messageId: "msg-dry2-rec", labelKey: "configuration.fields.dryContact2Recovery", comparator: "integer", unit: "" })
+    settingDef("smart_sleep", "/number/set_smart_sleep/set", { min: 0, max: 6, step: 0.001 }),
+    settingDef("cell_uvpr", "/number/set_cell_uvpr/set", { min: 0, max: 6, step: 0.001 }),
+    settingDef("cell_ovpr", "/number/set_cell_ovpr/set", { min: 0, max: 6, step: 0.001 }),
+    settingDef("start_balance_trigger", "/number/set_start_balance_trigger/set", { min: 0, max: 1, step: 0.001 }),
+    settingDef("soc_100", "/number/set_soc_100/set", { min: 0, max: 6, step: 0.001 }),
+    settingDef("soc_0", "/number/set_soc_0/set", { min: 0, max: 6, step: 0.001 }),
+    settingDef("cell_rcv", "/number/set_cell_rcv/set", { min: 0, max: 6, step: 0.001 }),
+    settingDef("cell_rfv", "/number/set_cell_rfv/set", { min: 0, max: 6, step: 0.001 }),
+    settingDef("charge_ocpr_time", "/number/set_charge_ocpr_time/set", { min: 0, max: 2147483647, step: 1 }),
+    settingDef("discharge_ocpr_time", "/number/set_discharge_ocpr_time/set", { min: 0, max: 2147483647, step: 1 }),
+    settingDef("scpr_time", "/number/set_scpr_time/set", { min: 0, max: 2147483647, step: 1 }),
+    settingDef("max_balance_current", "/number/set_max_balance_current/set", { min: 0, max: 20, step: 0.001 }),
+    settingDef("charge_otpr", "/number/set_charge_otpr/set", { min: -100, max: 200, step: 0.1 }),
+    settingDef("discharge_otpr", "/number/set_discharge_otpr/set", { min: -100, max: 200, step: 0.1 }),
+    settingDef("charge_utpr", "/number/set_charge_utpr/set", { min: -100, max: 200, step: 0.1 }),
+    settingDef("mos_otpr", "/number/set_mos_otpr/set", { min: -100, max: 200, step: 0.1 }),
+    settingDef("battery_capacity", "/number/set_battery_capacity/set", { min: 1, max: 2000, step: 0.001 }),
+    settingDef("start_balance", "/number/set_start_balance/set", { min: 0, max: 6, step: 0.001 }),
   ]);
-  const PASSCODE_DEF = Object.freeze({ inputId: "fPass", endpoint: "/text/setup_passcode/set", messageId: "msg-passcode" });
   const DEVICE_NAME_ENDPOINT = "/text/device_name_override/set";
 
   // Modbus register address for every RW register the generic Write
@@ -543,23 +552,85 @@
   // already (sendCellCountWrite / the unverifiable passcode flow) and
   // isn't tracked by the generic snapshot. Keep in sync with
   // register_catalog.json — test/register_catalog/validate.js checks it.
-  const GENERIC_TX_ADDRESS = Object.freeze({
-    battery_capacity: 0x107C, start_balance_trigger: 0x1014, start_balance: 0x1084,
-    max_balance_current: 0x1048, cell_ovp: 0x100C, cell_rcv: 0x1020, soc_100: 0x1018,
-    cell_ovpr: 0x1010, cell_uvpr: 0x1008, soc_0: 0x101C, cell_uvp: 0x1004,
-    system_power_off: 0x1028, cell_rfv: 0x1024, smart_sleep: 0x1000,
-    continued_charge_current: 0x102C, charge_ocp_delay: 0x1030, charge_ocpr_time: 0x1034,
-    continued_discharge_current: 0x1038, discharge_ocp_delay: 0x103C, discharge_ocpr_time: 0x1040,
-    scpr_time: 0x1044, scp_delay: 0x1080, discharge_otp: 0x1054, discharge_otpr: 0x1058,
-    charge_otp: 0x104C, charge_otpr: 0x1050, charge_utpr: 0x1060, charge_utp: 0x105C,
-    mos_otp: 0x1064, mos_otpr: 0x1068, rcv_time: 0x1504, rfv_time: 0x1504,
-    lcd_buzzer_trigger: 0x14E4, heating_activation_temperature: 0x111C,
-    heating_deactivation_temperature: 0x111C, dry_contact_1_trigger_source: 0x14E4,
-    dry_contact_2_trigger_source: 0x14E6, dry_contact_1_trigger_value: 0x14F0,
-    dry_contact_1_recovery_value: 0x14F4, dry_contact_2_trigger_value: 0x14F8,
-    dry_contact_2_recovery_value: 0x14FC,
-    charging: 0x1070, discharging: 0x1074, balancing: 0x1078,
+  // >>> BEGIN GENERATED PROTOCOL CATALOG (Stage 1, IMPLEMENTATION_ROADMAP.md) — DO NOT EDIT BY HAND.
+  // Regenerate with: node tools/protocol/generate.js
+  // Source of truth: protocol/registers.canonical.json + protocol/non_register_entities.canonical.json
+  // `node tools/protocol/generate.js --check` fails if this block drifts from that source.
+  // Generated by tools/protocol/generate.js from protocol/registers.canonical.json + protocol/non_register_entities.canonical.json. DO NOT EDIT BY HAND. catalog_version=1.1.0 source_hash=b0fbcd3a7a50ffa4
+  const PROTOCOL_CATALOG = Object.freeze({
+    genericTxAddress: Object.freeze({
+      smart_sleep: 0x1000,
+      cell_uvpr: 0x1008,
+      cell_ovpr: 0x1010,
+      start_balance_trigger: 0x1014,
+      soc_100: 0x1018,
+      soc_0: 0x101C,
+      cell_rcv: 0x1020,
+      cell_rfv: 0x1024,
+      charge_ocpr_time: 0x1034,
+      discharge_ocpr_time: 0x1040,
+      scpr_time: 0x1044,
+      max_balance_current: 0x1048,
+      charge_otpr: 0x1050,
+      discharge_otpr: 0x1058,
+      charge_utpr: 0x1060,
+      mos_otpr: 0x1068,
+      battery_capacity: 0x107C,
+      start_balance: 0x1084,
+    }),
+    nonRegisterKeys: Object.freeze([
+      "total_voltage", "current", "power", "charging_power",
+      "discharging_power", "charging_current", "discharging_current", "connected_cell_count",
+      "measured_cell_count", "active_cells_voltage_sum", "effective_cell_count", "last_confirmed_cell_count",
+      "topology_revision", "topology_data_freshness", "topology_state", "topology_reason",
+      "cellcount_tx_id", "cellcount_tx_status_code", "setup_passcode_tx_status_code", "write_tx_snapshot",
+      "battery_state", "charge_phase", "charge_status", "battery_state_candidate",
+      "battery_state_candidate_age", "battery_state_direction", "battery_state_candidate_samples", "battery_state_unknown_reason",
+      "battery_state_last_known", "charge_phase_last_known", "current_sample_age", "idle_current_noise_min",
+      "idle_current_noise_max", "battery_state_time", "charge_phase_time", "charge_status_time",
+      "min_cell_voltage", "max_cell_voltage", "min_voltage_cell", "max_voltage_cell",
+      "bms_last_update_age", "bms_health", "runtime", "alarms",
+      "wifi_signal", "system_uptime", "wifi_ip_address", "firmware_version",
+      "ui_version", "browser_connection", "write_result_counters", "device_name_override",
+      "device_name",
+    ]),
+    // Declared rw in the ESPHome entity, but effective_access is "r": the write path was REMOVED from
+    // batterylifepo4.yaml (Stage 1 Remediation, Крок G). The Settings UI renders these read-only with
+    // this reason instead of an editable input.
+    blockedWriteKeys: Object.freeze({
+      cell_uvp: "verification_status implementation_only_unverified",
+      cell_ovp: "verification_status implementation_only_unverified",
+      system_power_off: "verification_status implementation_only_unverified",
+      continued_charge_current: "verification_status implementation_only_unverified",
+      charge_ocp_delay: "verification_status implementation_only_unverified",
+      continued_discharge_current: "verification_status implementation_only_unverified",
+      discharge_ocp_delay: "verification_status implementation_only_unverified",
+      charge_otp: "verification_status implementation_only_unverified",
+      discharge_otp: "verification_status implementation_only_unverified",
+      charge_utp: "verification_status implementation_only_unverified",
+      mos_otp: "verification_status implementation_only_unverified",
+      cell_count: "verification_status corroborated_with_limitations",
+      charging: "verification_status implementation_only_unverified",
+      discharging: "verification_status implementation_only_unverified",
+      balancing: "verification_status implementation_only_unverified",
+      scp_delay: "verification_status implementation_only_unverified",
+      heating_activation_temperature: "verification_status implementation_only_unverified",
+      heating_deactivation_temperature: "verification_status implementation_only_unverified",
+      setup_passcode: "verification_status implementation_only_unverified",
+      lcd_buzzer_trigger: "this field's OWN enum semantics (which physical trigger condition each 0-255 code selects) are not confirmed by any evidence source available this session",
+      dry_contact_1_trigger_source: "this field's OWN enum semantics (0-12) are not confirmed by any evidence source available this session",
+      dry_contact_2_trigger_source: "this field's OWN enum semantics (0-12) are not confirmed by any evidence source available this session",
+      dry_contact_1_trigger_value: "physical unit/scale is determined by the selected trigger source enum value; NO source value has a confirmed unit/scale mapping in any evidence available this session",
+      dry_contact_1_recovery_value: "physical unit/scale is determined by the selected trigger source enum value; NO source value has a confirmed unit/scale mapping in any evidence available this session",
+      dry_contact_2_trigger_value: "physical unit/scale is determined by the selected trigger source enum value; NO source value has a confirmed unit/scale mapping in any evidence available this session",
+      dry_contact_2_recovery_value: "physical unit/scale is determined by the selected trigger source enum value; NO source value has a confirmed unit/scale mapping in any evidence available this session",
+      rcv_time: "verification_status implementation_only_unverified",
+      rfv_time: "verification_status implementation_only_unverified",
+    }),
   });
+  // <<< END GENERATED PROTOCOL CATALOG
+
+  const GENERIC_TX_ADDRESS = PROTOCOL_CATALOG.genericTxAddress;
 
   for (let i = 0; i < MAX_CELL_COUNT; i += 1) {
     const index = i + 1;
@@ -582,13 +653,13 @@
   }
 
   registerEntity("charging_active", "binary_sensor", "charging", "charging");
-  registerEntity("charging", "select", "charging", "charging");
+  registerEntity("charging", "binary_sensor", "charging allowed", "charging_allowed");
   registerEntity("discharging_active", "binary_sensor", "discharging", "discharging");
-  registerEntity("discharging", "select", "discharging", "discharging");
+  registerEntity("discharging", "binary_sensor", "discharging allowed", "discharging_allowed");
   // Actual balancer activity from JK register 0x12A6 (BalanStatus), not
   // the separate writable "balancing" enable/disable setting at 0x1078.
   registerEntity("balancing_active", "binary_sensor", "balancing", "balancing");
-  registerEntity("balancing", "select", "balancing", "balancing");
+  registerEntity("balancing", "binary_sensor", "balancing allowed", "balancing_allowed");
   registerEntity("runtime", "text_sensor", "total runtime formatted", "total_runtime_formatted");
   registerEntity("device_name", "text_sensor", "bms display name", "bms_display_name");
   registerEntity("device_name_override", "text", "device name override", "device_name_override");
@@ -615,10 +686,9 @@
   registerEntity("average_cell_voltage", "sensor", "average cell voltage", "average_cell_voltage");
   registerEntity("delta_cell_voltage", "sensor", "delta cell voltage", "delta_cell_voltage");
   registerEntity("balance_current", "sensor", "balance current", "balance_current");
-  // JK protocol charge-voltage recommendations, expressed per cell.
-  // The live Current State target converts these to the configured 16S pack.
-  registerEntity("cell_request_charge_voltage", "sensor", "cell RCV", "cell_rcv");
-  registerEntity("cell_request_float_voltage", "sensor", "cell RFV", "cell_rfv");
+  // JK protocol charge-voltage recommendations, expressed per cell. The
+  // canonical frontend keys are cell_rcv/cell_rfv; each wire ID has exactly
+  // one owner, so live updates cannot be lost through last-registration-wins.
   registerEntity("mosfet_temperature", "sensor", "mosfet temperature", "mosfet_temperature");
   registerEntity("state_of_health", "sensor", "state of health", "state_of_health");
   registerEntity("alarms", "text_sensor", "alarms", "alarms");
@@ -662,7 +732,7 @@
   registerEntity("system_uptime", "sensor", "system uptime", "system_uptime");
   registerEntity("heating_activation_temperature", "number", "heating activation temperature", "heating_activation_temperature");
   registerEntity("heating_deactivation_temperature", "number", "heating deactivation temperature", "heating_deactivation_temperature");
-  registerEntity("lcd_buzzer_trigger", "number", "lcd buzzer trigger", "lcd_buzzer_trigger");
+  registerEntity("lcd_buzzer_trigger", "sensor", "lcd buzzer trigger", "lcd_buzzer_trigger");
   for (const name of [
     "smart_sleep", "cell_uvp", "cell_uvpr", "cell_ovp", "cell_ovpr", "start_balance_trigger", "soc_100", "soc_0",
     "cell_rcv", "cell_rfv", "system_power_off", "continued_charge_current", "charge_ocp_delay", "charge_ocpr_time",
@@ -690,12 +760,12 @@
   registerEntity("topology_reason", "text_sensor", "topology reason", "topology_reason");
   registerEntity("write_tx_snapshot", "text_sensor", "write transaction snapshot", "write_tx_snapshot");
   registerEntity("setup_passcode_tx_status_code", "sensor", "setup passcode transaction status code", "setup_passcode_tx_status_code");
-  registerEntity("dry_contact_1_trigger_source", "number", "dry contact 1 trigger source", "dry_contact_1_trigger_source");
-  registerEntity("dry_contact_2_trigger_source", "number", "dry contact 2 trigger source", "dry_contact_2_trigger_source");
-  registerEntity("dry_contact_1_trigger_value", "number", "dry contact 1 trigger value", "dry_contact_1_trigger_value");
-  registerEntity("dry_contact_1_recovery_value", "number", "dry contact 1 recovery value", "dry_contact_1_recovery_value");
-  registerEntity("dry_contact_2_trigger_value", "number", "dry contact 2 trigger value", "dry_contact_2_trigger_value");
-  registerEntity("dry_contact_2_recovery_value", "number", "dry contact 2 recovery value", "dry_contact_2_recovery_value");
+  registerEntity("dry_contact_1_trigger_source", "sensor", "dry contact 1 trigger source", "dry_contact_1_trigger_source");
+  registerEntity("dry_contact_2_trigger_source", "sensor", "dry contact 2 trigger source", "dry_contact_2_trigger_source");
+  registerEntity("dry_contact_1_trigger_value", "sensor", "dry contact 1 trigger value", "dry_contact_1_trigger_value");
+  registerEntity("dry_contact_1_recovery_value", "sensor", "dry contact 1 recovery value", "dry_contact_1_recovery_value");
+  registerEntity("dry_contact_2_trigger_value", "sensor", "dry contact 2 trigger value", "dry_contact_2_trigger_value");
+  registerEntity("dry_contact_2_recovery_value", "sensor", "dry contact 2 recovery value", "dry_contact_2_recovery_value");
 
   for (let i = 0; i < MAX_CELL_COUNT; i += 1) {
     const index = i + 1;
@@ -934,6 +1004,26 @@
     }
   };
 
+  // The three output-permission controls display under a distinct label
+  // from their own DIAGNOSTIC_ENTITY_LABELS entry (which describes the
+  // live MOS-active status, a different register) — see
+  // diagnosticEntityLabel()'s own domain==="select" special case, which
+  // this map backs too so the tx-log message (settingFieldLabel(), below)
+  // says the same thing as the row itself.
+  const PERMISSION_CONTROL_LABELS = {
+    uk: { charging: "Заряд дозволено", discharging: "Розряд дозволено", balancing: "Балансування дозволено" },
+    en: { charging: "Charge enabled", discharging: "Discharge enabled", balancing: "Balancing enabled" },
+  };
+
+  // Label for a SETTING_DEFS/CONTROL_DEFS key, used in write-transaction
+  // log/status messages ("cell OVP → 3.65"). Falls back to the bare key if
+  // somehow neither map has it, rather than showing "undefined".
+  function settingFieldLabel(key) {
+    return PERMISSION_CONTROL_LABELS[currentLang]?.[key]
+      || DIAGNOSTIC_ENTITY_LABELS[currentLang]?.[key]
+      || key;
+  }
+
   // Mirrors the sequence used by the JK mobile application's settings
   // screens. Each row is one logical parameter and may contain alternate
   // ESPHome object IDs used by different firmware/config generations.
@@ -1027,10 +1117,7 @@
   function diagnosticEntityLabel(entry) {
     const objectId = diagnosticObjectId(entry);
     if (entry.domain === "select" && ["charging", "discharging", "balancing"].includes(objectId)) {
-      const labels = currentLang === "uk"
-        ? { charging: "Заряд дозволено", discharging: "Розряд дозволено", balancing: "Балансування дозволено" }
-        : { charging: "Charge enabled", discharging: "Discharge enabled", balancing: "Balancing enabled" };
-      return labels[objectId];
+      return PERMISSION_CONTROL_LABELS[currentLang][objectId];
     }
     if (entry.domain === "binary_sensor" && ["charging", "discharging"].includes(objectId)) {
       const labels = currentLang === "uk" ? { charging: "Заряд активний", discharging: "Розряд активний" } : { charging: "Charge active", discharging: "Discharge active" };
@@ -1088,11 +1175,31 @@
 
   function writableDefinitionForEntry(entry) {
     const objectId = diagnosticObjectId(entry);
-    for (const def of SETTING_DEFS) if (def.key === objectId) return def;
-    if (entry.domain === "select" && CONTROL_DEFS[objectId]) {
-      return Object.freeze({ key: objectId, inputId: `reg_${objectId}`, kind: "select", ...CONTROL_DEFS[objectId] });
+    // Owner-authorized write re-enablement (2026-09-10): a field is only
+    // ever editable here if it appears in SETTING_DEFS/CONTROL_DEFS —
+    // both hand-maintained allowlists that must stay in sync with
+    // registers.canonical.json's owner_write_override set (asserted by
+    // test/protocol_catalog/test_blocked_write_surface.js). Any field NOT
+    // in either table still falls through to blockedWriteReason()'s
+    // read-only badge, exactly as every field did before this pass.
+    //
+    // Defense in depth (second critical audit, 2026-09-10): blockedWriteKeys
+    // is GENERATED straight from registers.canonical.json's effective_access
+    // — the single source of truth. It wins over SETTING_DEFS/CONTROL_DEFS
+    // unconditionally, so a hand-maintained table left stale after a field
+    // is reverted to fail-closed (or never updated in the first place)
+    // can never expose a live editor for it. This check must stay FIRST.
+    if (blockedWriteReason(entry)) return null;
+    if (CONTROL_DEFS[objectId]) {
+      return { key: objectId, kind: "select", inputId: `reg_${objectId}`, ...CONTROL_DEFS[objectId] };
     }
+    const setting = SETTING_DEFS.find((item) => item.key === objectId);
+    if (setting) return { ...setting, kind: "number" };
     return null;
+  }
+
+  function blockedWriteReason(entry) {
+    return PROTOCOL_CATALOG.blockedWriteKeys[diagnosticObjectId(entry)] || null;
   }
 
   // Registers present in the verified workbook but not published as public
@@ -1290,7 +1397,18 @@
         }
         row.append(id, editor);
       } else {
-        row.append(id, value);
+        const blockedReason = blockedWriteReason(entry);
+        if (blockedReason) {
+          row.classList.add("register-write-blocked");
+          value.title = (currentLang === "uk" ? "Запис заблоковано: " : "Write blocked: ") + blockedReason;
+          const badge = document.createElement("i");
+          badge.className = "register-blocked-badge";
+          badge.textContent = currentLang === "uk" ? "лише читання" : "read-only";
+          badge.title = value.title;
+          row.append(id, value, badge);
+        } else {
+          row.append(id, value);
+        }
       }
       fragment.appendChild(row);
       diagnosticReadoutRows.set(entry.id, writable ? row.querySelector("input, .register-toggle") : value);
@@ -1558,8 +1676,8 @@
      that decision is made, so no component hardcodes a translated unit
      string itself. */
   const UNIT_DISPLAY = {
-    en: { V: "V", A: "A", W: "W", kW: "kW", kWh: "kWh", Ah: "Ah", mV: "mV", "°C": "°C", "Ω": "Ω", "%": "%" },
-    uk: { V: "В", A: "А", W: "Вт", kW: "кВт", kWh: "кВт·год", Ah: "А·год", mV: "мВ", "°C": "°C", "Ω": "Ω", "%": "%" }
+    en: { V: "V", A: "A", W: "W", kW: "kW", kWh: "kWh", Ah: "Ah", mV: "mV", "°C": "°C", "Ω": "Ω", "mΩ": "mΩ", "%": "%" },
+    uk: { V: "В", A: "А", W: "Вт", kW: "кВт", kWh: "кВт·год", Ah: "А·год", mV: "мВ", "°C": "°C", "Ω": "Ω", "mΩ": "мОм", "%": "%" }
   };
   function unitLabel(canonicalUnit) {
     const table = UNIT_DISPLAY[currentLang] || UNIT_DISPLAY.en;
@@ -2340,7 +2458,14 @@
       const voltageText = Number.isNaN(voltage) ? "--" : voltage.toFixed(3);
       const resistanceText = Number.isNaN(resistance) ? "--" : resistance.toFixed(3);
       const voltageHtml = `${voltageText}<i>${unitLabel("V")}</i>`;
-      const resistanceHtml = `${resistanceText}<i>${unitLabel("Ω")}</i>`;
+      // UNIT FIX (Stage 1, protocol/registers.canonical.json): the raw
+      // cell_resistance_N sensor value is milliohms, not ohms — the
+      // Settings/Diagnostics register list already labeled it "mΩ"
+      // (see diagnosticUnit()'s /^cell_\d+_wire_resistance$/ branch above);
+      // this Cells-tab card previously showed the SAME number as "Ω",
+      // which read as ~1000x too large a resistance. See
+      // STAGE_1_IMPLEMENTATION_AUDIT.md for the evidence.
+      const resistanceHtml = `${resistanceText}<i>${unitLabel("mΩ")}</i>`;
       // ROW 1 (.cell-primary, the <strong>) and ROW 3 (.cell-tertiary, the
       // <small>) are VISUAL ROW roles, styled purely by their position —
       // WHICH metric's value+unit lands in which row is the only thing
@@ -2471,8 +2596,8 @@
     bind("balancing_active", () => { renderControl("balancing"); renderCells(); });
     bind("charge_status", () => { renderChargeAndAlarms(); drawTimeline(); });
     bind("charge_phase", () => { renderChargeAndAlarms(); drawTimeline(); });
-    bind("cell_request_charge_voltage", drawTimeline);
-    bind("cell_request_float_voltage", drawTimeline);
+    bind("cell_rcv", drawTimeline);
+    bind("cell_rfv", drawTimeline);
     // CellCount changes the visible pack topology and every per-cell
     // aggregate, plus the pack-level charge target (per-cell target × N).
     // Every topology-resolver output re-runs the same pair: the banner
@@ -2966,10 +3091,6 @@
               <div class="panel" id="panel-configuration">
                 <div class="section-head"><h2 data-i18n="configuration.title">${t("configuration.title")}</h2><span class="value" data-i18n="configuration.caption">${t("configuration.caption")}</span></div>
                 <div class="diag-list register-list" id="configRegisterList" role="table" aria-label="${t("configuration.registers")}"></div>
-                <div class="diag-row register-passcode-row">
-                  <span data-i18n="configuration.setupPasscode">${t("configuration.setupPasscode")}</span>
-                  <span class="register-editor"><input id="fPass" type="password" minlength="1" maxlength="16" autocomplete="new-password" placeholder="1–16 ASCII"><button class="register-ok" id="passcodeOk" type="button" data-i18n="configuration.save">${t("configuration.save")}</button></span>
-                </div>
                 <p class="request-message" id="settingsMessage" role="status" aria-live="polite"></p>
               </div>
 
@@ -3024,6 +3145,14 @@
                 <button class="save-btn" id="deviceNameSaveBtn" type="button" data-i18n="settings.saveName">${t("settings.saveName")}</button>
                 <p class="pw-message" id="deviceNameMessage" role="status"></p>
               </div>
+
+              <!-- setup_passcode editor deliberately removed (third critical
+                   audit, 2026-09-10): while this credential-class write
+                   stays fail-closed, no input/endpoint for it may exist in
+                   the UI at all — not even a disabled one. Re-add only
+                   alongside a real, reviewed body-based write endpoint
+                   with CSRF/rate-limit/exact-tx_id semantics (see
+                   OPEN_ISSUES.md P0-06 and the ADR's audit addenda). -->
 
               <label class="setting-label" style="margin-top:20px" data-i18n="settings.appearance">${t("settings.appearance")}</label>
               <div class="theme-options" id="themeOptions">
@@ -3192,7 +3321,24 @@
     // The field has no possible readback (setup_passcode always reports a
     // masked placeholder) — HTTP 200 is all that can ever be known. Kept
     // visually and semantically distinct from CONFIRMED everywhere it's used.
-    SENT_UNVERIFIED: "sent_unverified"
+    SENT_UNVERIFIED: "sent_unverified",
+    // Second critical audit (2026-09-10): the backend explicitly refused to
+    // even QUEUE a Modbus command (single-flight collision — a transaction
+    // for this same address was already in flight — or every transaction
+    // slot busy), surfaced as write_tx_snapshot status 9. This is NOT a
+    // TIMEOUT: nothing was ever attempted, the backend knows that
+    // immediately, and the frontend now learns it immediately too instead
+    // of waiting out its own client-side timeout for a write that never
+    // started.
+    REJECTED: "rejected",
+    // Third critical audit (2026-09-10, item 7): the backend reclassified
+    // an ACK/readback timeout into WRITE_UNCERTAIN and is running an
+    // independent recovery probe (re-reading the register) — this is
+    // NOT yet a terminal outcome. Treated the same as PENDING_READBACK by
+    // every onState() handler (control stays disabled, no green/red
+    // shown) so there is never a premature success OR failure indication
+    // while the real answer is still being determined.
+    UNCERTAIN: "uncertain",
   });
 
   // Reusable per-field comparators — one generic epsilon across every
@@ -3221,7 +3367,7 @@
   // independent of which control/setting caused it, so Diagnostics can show
   // one real "what happened last" line plus outcome counters without each
   // caller having to report in separately.
-  const txCounters = { confirmed: 0, mismatch: 0, timeout: 0, error: 0, sent_unverified: 0 };
+  const txCounters = { confirmed: 0, mismatch: 0, timeout: 0, error: 0, sent_unverified: 0, rejected: 0 };
   let lastCommandLabel = "—";
   let lastCommandOutcome = "—";
   let lastCommandAt = 0;
@@ -3229,11 +3375,21 @@
   // write_tx_snapshot (registered above) carries the firmware's/mock's
   // generic Write Transaction Manager state as a JSON array of
   // {addr, tx_id, status, req, rb} — status 4=CONFIRMED, 5=MISMATCH,
-  // 7=ACK_TIMEOUT, 8=READBACK_TIMEOUT (see jk_write_tx_core.h). Parsed
-  // fresh on every read rather than cached: it changes only when the
-  // backend actually pushes a new SSE update for this key, at which
-  // point `state.write_tx_snapshot` itself has already been replaced.
-  const WTX_TERMINAL_STATUS = new Set([4, 5, 7, 8]);
+  // 6=WRITE_UNCERTAIN, 9=REJECTED, 10=RECOVERED_CONFIRMED,
+  // 11=RECOVERED_MISMATCH (see jk_write_tx_core.h). Parsed fresh on every
+  // read rather than cached: it changes only when the backend actually
+  // pushes a new SSE update for this key, at which point
+  // `state.write_tx_snapshot` itself has already been replaced.
+  //
+  // Third critical audit (2026-09-10, item 7): 7 (ACK_TIMEOUT) and 8
+  // (READBACK_TIMEOUT) are deliberately NOT terminal here any more — the
+  // backend itself immediately reclassifies a slot that just hit either
+  // one into WRITE_UNCERTAIN(6) and launches a recovery probe (see
+  // batterylifepo4.yaml's 250ms servicer / demo/mock-server.js's
+  // finishUncertain); the frontend must wait for that probe's own real
+  // terminal verdict (10/11) rather than declaring TIMEOUT on what is
+  // now only ever a momentary, superseded intermediate status.
+  const WTX_TERMINAL_STATUS = new Set([4, 5, 9, 10, 11]);
   function parseWriteTxSnapshot() {
     const raw = state.write_tx_snapshot;
     if (!raw || typeof raw.state !== "string") return [];
@@ -3296,12 +3452,30 @@
         // processed before this line never can, however it got here.
         const startRevision = stateRevision[cfg.key] || 0;
         const startTxId = cfg.address != null ? ((findWriteTxEntry(cfg.address) || {}).tx_id || 0) : null;
+        function armTimer(ms) {
+          if (timer) window.clearTimeout(timer);
+          timer = window.setTimeout(() => finish(TX_STATE.TIMEOUT, t("tx.noConfirmation")), ms);
+        }
         function checkSnapshotTerminal() {
           if (cfg.address == null) return false;
           const entry = findWriteTxEntry(cfg.address);
-          if (!entry || !(entry.tx_id > startTxId) || !WTX_TERMINAL_STATUS.has(entry.status)) return false;
+          if (!entry || !(entry.tx_id > startTxId)) return false;
+          if (entry.status === 6) {
+            // Third critical audit (2026-09-10, item 7): WRITE_UNCERTAIN —
+            // the backend's own recovery probe is running. Not terminal:
+            // show the honest "still verifying" state and give the probe
+            // real time to finish instead of racing it with the ordinary
+            // (much shorter) client-side write timeout.
+            set(TX_STATE.UNCERTAIN, t("tx.uncertainRecovering"));
+            armTimer(cfg.uncertainRecoveryTimeoutMs || 10000);
+            return false;
+          }
+          if (!WTX_TERMINAL_STATUS.has(entry.status)) return false;
           if (entry.status === 4) finish(TX_STATE.CONFIRMED, cfg.describe ? cfg.describe(state[cfg.key]) : "");
           else if (entry.status === 5) finish(TX_STATE.MISMATCH, cfg.describe ? cfg.describe(state[cfg.key]) : "BMS reports a different state");
+          else if (entry.status === 9) finish(TX_STATE.REJECTED, t("tx.rejectedBusy"));
+          else if (entry.status === 10) finish(TX_STATE.CONFIRMED, `${cfg.describe ? cfg.describe(state[cfg.key]) : ""} ${t("tx.recoveredAfterUncertainty")}`.trim());
+          else if (entry.status === 11) finish(TX_STATE.MISMATCH, t("tx.recoveredMismatchAfterUncertainty"));
           else finish(TX_STATE.TIMEOUT, t("tx.noConfirmation"));
           return true;
         }
@@ -3320,39 +3494,56 @@
           return;
         }
         set(TX_STATE.PENDING_READBACK);
-        // RACE FIX: the SSE confirmation can legitimately arrive and be
-        // processed by ingestPayload() WHILE the POST's own fetch() is
-        // still awaiting its HTTP response (a real, observed race — the
-        // backend's write+ACK+readback can complete faster than the
-        // request's own round trip, especially over a lossy Wi-Fi link).
-        // stateRevision[key] already bumped in that case, but watchKey()
-        // below only reacts to a FUTURE ingestPayload call — attaching a
-        // watcher after the fact would silently wait forever for an event
-        // that already happened, and eventually report a false TIMEOUT
-        // for a write that actually succeeded. So: check for a revision
-        // newer than startRevision immediately, synchronously, before
-        // ever arming the watcher for a future one.
-        if ((stateRevision[cfg.key] || 0) > startRevision) {
-          const already = state[cfg.key];
-          if (cfg.matches(already)) { finish(TX_STATE.CONFIRMED, cfg.describe ? cfg.describe(already) : ""); return; }
-          finish(TX_STATE.MISMATCH, cfg.describe ? cfg.describe(already) : "BMS reports a different state");
-          return;
+        // Third critical audit (2026-09-10, item 5): a plain entity SSE
+        // update is NEVER allowed to resolve CONFIRMED/MISMATCH on its own
+        // when an authoritative backend transaction (write_tx_snapshot,
+        // keyed by exact tx_id/address) is available — the entity can
+        // legitimately re-publish from its own unrelated poll cycle at any
+        // time, including one that happens to already equal the requested
+        // value while the real write's ACK was silently lost (the exact
+        // false-green scenario test_write_transaction_entity_sse_cannot_
+        // confirm_without_ack in test/topology/run.js now proves). The
+        // renderer pipeline (scheduleRender via the state Proxy,
+        // independent of this transaction) already keeps the DISPLAYED
+        // value current regardless; this watcher used to ALSO treat that
+        // same update as authoritative, which is exactly what item 5
+        // forbids. checkSnapshotTerminal() (the write_tx_snapshot path)
+        // is now the ONLY way this transaction can reach a terminal
+        // verdict whenever cfg.address is known — which is every current
+        // caller (SETTING_DEFS/CONTROL_DEFS only ever populate defs whose
+        // key has a GENERIC_TX_ADDRESS entry).
+        const hasAuthoritativeAddress = cfg.address != null;
+        if (hasAuthoritativeAddress) {
+          // The snapshot event can legitimately arrive while this POST's
+          // own fetch() was still in flight — check synchronously once,
+          // immediately, before ever arming a watcher for a future event.
+          if (checkSnapshotTerminal()) return;
+        } else {
+          // No known address for this key — cannot correlate against
+          // write_tx_snapshot at all. Falls back to the entity-state
+          // comparison as the only available signal (no current caller
+          // hits this path; kept for defensive correctness only).
+          if ((stateRevision[cfg.key] || 0) > startRevision) {
+            const already = state[cfg.key];
+            if (cfg.matches(already)) { finish(TX_STATE.CONFIRMED, cfg.describe ? cfg.describe(already) : ""); return; }
+            finish(TX_STATE.MISMATCH, cfg.describe ? cfg.describe(already) : "BMS reports a different state");
+            return;
+          }
         }
-        // Same synchronous race check as above, for the faster
-        // write_tx_snapshot signal (a forced-readback confirmation can
-        // just as easily land while this POST's own fetch() was still in
-        // flight).
-        if (checkSnapshotTerminal()) return;
-        timer = window.setTimeout(() => {
-          finish(TX_STATE.TIMEOUT, t("tx.noConfirmation"));
-        }, timeoutMs);
-        unwatch = watchKey(cfg.key, () => {
-          if ((stateRevision[cfg.key] || 0) <= startRevision) return; // stale — keep listening for a newer one
-          const entry = state[cfg.key];
-          if (cfg.matches(entry)) finish(TX_STATE.CONFIRMED, cfg.describe ? cfg.describe(entry) : "");
-          else finish(TX_STATE.MISMATCH, cfg.describe ? cfg.describe(entry) : "BMS reports a different state");
-        });
-        if (cfg.address != null) unwatchSnapshot = watchKey("write_tx_snapshot", checkSnapshotTerminal);
+        // checkSnapshotTerminal() may already have armed an extended
+        // recovery-probe timer (WRITE_UNCERTAIN, above) — only fall back
+        // to the normal write-timeout budget if it didn't.
+        if (!timer) armTimer(timeoutMs);
+        if (hasAuthoritativeAddress) {
+          unwatchSnapshot = watchKey("write_tx_snapshot", checkSnapshotTerminal);
+        } else {
+          unwatch = watchKey(cfg.key, () => {
+            if ((stateRevision[cfg.key] || 0) <= startRevision) return; // stale — keep listening for a newer one
+            const entry = state[cfg.key];
+            if (cfg.matches(entry)) finish(TX_STATE.CONFIRMED, cfg.describe ? cfg.describe(entry) : "");
+            else finish(TX_STATE.MISMATCH, cfg.describe ? cfg.describe(entry) : "BMS reports a different state");
+          });
+        }
       }
     };
   }
@@ -3466,12 +3657,12 @@
     const tx = writeTransaction({
       key,
       address: GENERIC_TX_ADDRESS[key],
-      label: `${t(definition.labelKey)} → ${next ? t("common.on") : t("common.off")}`,
+      label: `${settingFieldLabel(key)} → ${next ? t("common.on") : t("common.off")}`,
       endpoint: `${definition.endpoint}?option=${next ? "On" : "Off"}`,
       matches: () => COMPARATORS.exact(next, booleanValue(key)),
       describe: () => t("tx.describeReports", { value: booleanValue(key) === true ? t("common.on") : booleanValue(key) === false ? t("common.off") : t("common.unknown") }),
       onState(txState, detail) {
-        if (txState === TX_STATE.SENDING || txState === TX_STATE.PENDING_READBACK) return;
+        if (txState === TX_STATE.SENDING || txState === TX_STATE.PENDING_READBACK || txState === TX_STATE.UNCERTAIN) return;
         const actual = booleanValue(key);
         input.disabled = false;
         input.value = actual === true ? "On" : "Off";
@@ -3533,7 +3724,7 @@
       if (submit) submit.disabled = true;
       setRequestMessage(definition.messageId, t("tx.saving"), "busy");
       const compare = COMPARATORS[definition.comparator] || COMPARATORS.integer;
-      const fieldLabel = t(definition.labelKey);
+      const fieldLabel = settingFieldLabel(definition.key);
       const tx = writeTransaction({
         key: definition.key,
         address: GENERIC_TX_ADDRESS[definition.key],
@@ -3558,33 +3749,7 @@
       });
       tx.send();
     }
-    const passcode = getDom(PASSCODE_DEF.inputId);
-    const passcodeDirty = Boolean(passcode && passcode.dataset.dirty === "true" && passcode.value !== "");
-    if (passcodeDirty) {
-      const value = passcode.value;
-      setRequestMessage(PASSCODE_DEF.messageId, t("tx.sending"), "busy");
-      // Routed through the same writeTransaction as every other write, with
-      // unverifiable:true — the BMS never echoes the real passcode (the
-      // entity always reports a masked placeholder, per the YAML's own
-      // comment), so this settles as SENT_UNVERIFIED, never CONFIRMED.
-      const tx = writeTransaction({
-        key: "__passcode_unverifiable__", // not a real state key — never confirmed by SSE, so no readback wait is ever attempted
-        label: `${t("configuration.setupPasscode")} → (sent)`,
-        endpoint: `${PASSCODE_DEF.endpoint}?value=${encodeURIComponent(value)}`,
-        unverifiable: true,
-        onState: (txState, detail) => {
-          if (txState === TX_STATE.SENT_UNVERIFIED) {
-            passcode.value = ""; passcode.dataset.dirty = "false"; passcode.classList.remove("invalid");
-            setRequestMessage(PASSCODE_DEF.messageId, detail, "unverified");
-          } else {
-            passcode.classList.add("invalid");
-            setRequestMessage(PASSCODE_DEF.messageId, detail, "error");
-          }
-        }
-      });
-      tx.send();
-    }
-    if (pendingCount === 0 && !passcodeDirty) {
+    if (pendingCount === 0) {
       setRequestMessage("settingsMessage", t("common.noChangedValues"), "");
     }
   }
@@ -3632,9 +3797,7 @@
       activeTransactionKeys.delete("cell_count");
       const outcome = success ? "confirmed" : "mismatch";
       if (Object.prototype.hasOwnProperty.call(txCounters, outcome)) txCounters[outcome] += 1;
-      const cellCountDef = SETTING_DEFS.find((item) => item.key === "cell_count");
-      const cellCountLabel = cellCountDef ? (cellCountDef.rawLabel ? cellCountDef.labelKey : t(cellCountDef.labelKey)) : "cell_count";
-      lastCommandLabel = `${cellCountLabel} → ${value}`;
+      lastCommandLabel = `${settingFieldLabel("cell_count")} → ${value}`;
       lastCommandOutcome = outcome;
       lastCommandAt = Date.now();
       renderDiagnosticsLog();
@@ -3734,7 +3897,7 @@
       return;
     }
     const compare = COMPARATORS[definition.comparator] || COMPARATORS.integer;
-    const fieldLabel = definition.rawLabel ? definition.labelKey : t(definition.labelKey);
+    const fieldLabel = settingFieldLabel(definition.key);
     const tx = writeTransaction({
       key: definition.key,
       address: GENERIC_TX_ADDRESS[definition.key],
@@ -3743,7 +3906,7 @@
       matches: () => compare(value, numeric(definition.key)),
       describe: () => { const n = numeric(definition.key); return n === null ? t("tx.describeNoValue") : t("tx.describeReports", { value: n }); },
       onState: (txState, detail) => {
-        if (txState === TX_STATE.SENDING || txState === TX_STATE.PENDING_READBACK) return;
+        if (txState === TX_STATE.SENDING || txState === TX_STATE.PENDING_READBACK || txState === TX_STATE.UNCERTAIN) return;
         // Use the live field, not the DOM node captured when the button was
         // clicked: telemetry may have recreated the row in the meantime.
         const currentInput = document.getElementById(definition.inputId);
@@ -4170,9 +4333,9 @@
       ? String(phaseEntity.state !== undefined ? phaseEntity.state : phaseEntity.value || "").trim().toLowerCase()
       : "";
     const targetPerCell = phase === "float"
-      ? numeric("cell_request_float_voltage")
+      ? numeric("cell_rfv")
       : (phase === "bulk" || phase === "absorption")
-        ? numeric("cell_request_charge_voltage")
+        ? numeric("cell_rcv")
         : null;
     const targetPackVoltage = targetPerCell !== null && targetPerCell > 0 && topologyState() === "CONFIRMED"
       ? targetPerCell * activeCellCount()
@@ -5274,7 +5437,6 @@
         if (!diagnosticReadoutRebuild) diagnosticReadoutRebuild = window.requestAnimationFrame(renderDiagnosticPanels);
       }, 0);
     });
-    document.getElementById("passcodeOk").addEventListener("click", submitSettings);
 
     document.getElementById("settingsBtn").addEventListener("click", openSettings);
     document.getElementById("settingsClose").addEventListener("click", closeSettings);

@@ -136,7 +136,16 @@ async function resetTopology(sse, count) {
 }
 
 async function writeCellCount(value) {
-  return post(`/number/set_cell_count/set?value=${value}`);
+  // The real public endpoint (/number/set_cell_count/set) is reverted to
+  // fail-closed again (second critical audit, 2026-09-10 — see
+  // testCellCountWritePublicEndpointBlocked below for the direct proof).
+  // Every test in this file that calls writeCellCount() uses the
+  // debug-only trigger instead — it is testing the topology RESOLVER's
+  // reaction to a transaction's ack/readback/timeout/SSE-ordering
+  // outcomes, not the write endpoint's own policy, and the debug
+  // trigger's extra sse_before_http race-ordering hook (see that
+  // endpoint's own comment) has no public-endpoint equivalent.
+  return post(`/demo/debug-trigger-cellcount-write?value=${value}`);
 }
 
 /* ============================================================
@@ -371,7 +380,7 @@ async function testWriteSseBeforeHttp(sse) {
   await resetTopology(sse, 16);
   await post("/demo/cellcount-scenario?name=sse_before_http");
   const rev = sse.revisionOf("sensor-cellcount_tx_status_code");
-  const res = await post("/number/set_cell_count/set?value=4");
+  const res = await writeCellCount(4);
   // The mock's server-side CODE ORDER is broadcast-then-respond (verified
   // by reading runCellCountTransaction's finishTerminal(): it calls
   // broadcastEntity() before onTerminal()/respondOk()) -- but the SSE
@@ -450,114 +459,218 @@ async function testConcurrentSameRegisterRejected(sse) {
   await post("/demo/cellcount-scenario?name=confirm");
 }
 
+// Owner-authorized write re-enablement (2026-09-10): cell_count's
+// owner_write_override makes the PUBLIC endpoint reach the exact same
+// runCellCountTransaction() the debug trigger above already exercises.
+// Second critical audit (2026-09-10): CellCount ("topology" write_safety_
+// class, the single highest-consequence write in this catalog) was
+// reverted to fail-closed — an owner_write_override is risk acceptance,
+// not protocol verification. The public endpoint must be proven blocked
+// again, same as every other reverted field.
+async function testCellCountWritePublicEndpointBlocked(sse) {
+  await resetTopology(sse, 16);
+  const before = sse.get("sensor-cell_count");
+  const res = await post("/number/set_cell_count/set?value=8");
+  assert("cell_count: direct POST to the public endpoint is rejected (409), not 200", res.status === 409, `status=${res.status}`);
+  await sleep(300);
+  assert("cell_count: unchanged after the rejected public write", sse.get("sensor-cell_count") === before,
+    `before=${before} after=${sse.get("sensor-cell_count")}`);
+}
+
 /* ============================================================
-   GENERIC WRITE TRANSACTION MATRIX — every RW register except
-   cell_count/setup_passcode (register_catalog.json "manager":"generic")
-   now routes through runGenericWriteTx() in the mock, mirroring
-   batterylifepo4.yaml's jk_write_tx_core.h. addr 4100 = 0x1004 (cell_uvp).
+   GENERIC WRITE TRANSACTION MATRIX. Second critical audit (2026-09-10):
+   cell_uvp/cell_ovp (write_safety_class "disruptive") were reverted to
+   fail-closed, so these tests now exercise cell_uvpr/cell_ovpr instead —
+   write_safety_class "normal", still owner-authorized — the same generic
+   write -> ack_wait -> readback_wait -> confirmed/mismatch/timeout
+   timeline, on registers that remain genuinely unlocked.
+   addr 0x1008 = cell_uvpr, 0x1010 = cell_ovpr.
    ============================================================ */
-async function resetGenericWrite() {
+// Third critical audit (2026-09-10, item 7): the uncertainty-recovery
+// probe (WRITE_UNCERTAIN(6) -> RECOVERED_CONFIRMED(10)/
+// RECOVERED_MISMATCH(11), see testGenericWriteUncertaintyRecovery below)
+// can leave a slot genuinely in flight for several seconds after an
+// ack_timeout/readback_timeout scenario -- a fixed short sleep here would
+// let the NEXT test's write to the SAME address (0x1008/cell_uvpr) land
+// while that slot is still WRITE_UNCERTAIN, i.e. still "pending" per
+// jk_write_tx_core.h's own is_pending(), and get silently REJECTED
+// instead of actually running. Poll the real snapshot state instead of
+// guessing a delay.
+async function resetGenericWrite(sse) {
   await post("/demo/generic-write-scenario?name=confirm");
-  await sleep(200);
-}
-
-async function testGenericWriteConfirm(sse) {
-  await resetGenericWrite();
-  const rev = sse.revisionOf("text_sensor-write_tx_snapshot");
-  await post("/number/set_cell_uvp/set?value=2.90");
-  const ok = await sse.waitForNext("text_sensor-write_tx_snapshot", rev, (v) => {
-    if (!v) return false;
-    try { const arr = JSON.parse(v); return arr.some((e) => e.addr === 0x1004 && e.status === 4 && e.rb === "2.90"); }
-    catch { return false; }
-  }, 3000);
-  assert("generic write: confirm scenario reaches a CONFIRMED(4) snapshot entry with matching readback", ok,
-    `snapshot=${sse.get("text_sensor-write_tx_snapshot")}`);
-  assert("generic write: confirm scenario updates the underlying sensor entity", sse.get("sensor-cell_uvp") === "2.90",
-    `cell_uvp=${sse.get("sensor-cell_uvp")}`);
-}
-
-async function testGenericWriteMismatch(sse) {
-  await post("/demo/generic-write-scenario?name=mismatch");
-  const rev = sse.revisionOf("text_sensor-write_tx_snapshot");
-  await post("/number/set_cell_uvp/set?value=2.80");
-  const ok = await sse.waitForNext("text_sensor-write_tx_snapshot", rev, (v) => {
-    if (!v) return false;
-    try { const arr = JSON.parse(v); return arr.some((e) => e.addr === 0x1004 && e.status === 5); }
-    catch { return false; }
-  }, 3000);
-  assert("generic write: mismatch scenario reaches MISMATCH(5), never CONFIRMED(4)", ok, `snapshot=${sse.get("text_sensor-write_tx_snapshot")}`);
-  await resetGenericWrite();
-}
-
-async function testGenericWriteAckTimeout(sse) {
-  await post("/demo/generic-write-scenario?name=ack_timeout");
-  const rev = sse.revisionOf("text_sensor-write_tx_snapshot");
-  await post("/number/set_cell_uvp/set?value=2.85");
-  const ok = await sse.waitForNext("text_sensor-write_tx_snapshot", rev, (v) => {
-    if (!v) return false;
-    try { const arr = JSON.parse(v); return arr.some((e) => e.addr === 0x1004 && e.status === 7); }
-    catch { return false; }
-  }, 3000);
-  assert("generic write: ack_timeout scenario reaches ACK_TIMEOUT(7), not a silent success", ok, `snapshot=${sse.get("text_sensor-write_tx_snapshot")}`);
-  await resetGenericWrite();
-}
-
-async function testGenericWriteReadbackTimeout(sse) {
-  await post("/demo/generic-write-scenario?name=readback_timeout");
-  const rev = sse.revisionOf("text_sensor-write_tx_snapshot");
-  await post("/number/set_cell_uvp/set?value=2.75");
-  const ok = await sse.waitForNext("text_sensor-write_tx_snapshot", rev, (v) => {
-    if (!v) return false;
-    try { const arr = JSON.parse(v); return arr.some((e) => e.addr === 0x1004 && e.status === 8); }
-    catch { return false; }
-  }, 3000);
-  assert("generic write: readback_timeout scenario reaches READBACK_TIMEOUT(8), not a silent success", ok, `snapshot=${sse.get("text_sensor-write_tx_snapshot")}`);
-  await resetGenericWrite();
-}
-
-async function testGenericWriteConcurrentDifferentRegisters(sse) {
-  await resetGenericWrite();
-  await post("/demo/generic-write-scenario?name=readback_timeout"); // slow enough to overlap deliberately
-  const rev = sse.revisionOf("text_sensor-write_tx_snapshot");
-  await post("/number/set_cell_uvp/set?value=2.60"); // 0x1004
-  await post("/number/set_cell_ovp/set?value=3.80"); // 0x100C — a DIFFERENT register, must proceed independently
-  const ok = await sse.waitForNext("text_sensor-write_tx_snapshot", rev, (v) => {
-    if (!v) return false;
+  const PENDING_STATUS = new Set([1, 2, 3, 6]);
+  function anyPending() {
     try {
-      const arr = JSON.parse(v);
-      return arr.some((e) => e.addr === 0x1004) && arr.some((e) => e.addr === 0x100C);
+      const arr = JSON.parse(sse.get("text_sensor-write_tx_snapshot") || "[]");
+      return arr.some((e) => PENDING_STATUS.has(e.status));
     } catch { return false; }
-  }, 1500);
-  assert("generic write: two DIFFERENT registers get independent, concurrently-tracked transactions",
-    ok, `snapshot=${sse.get("text_sensor-write_tx_snapshot")}`);
-  await resetGenericWrite();
-  await sleep(4500); // let both slots time out and free before the next test
+  }
+  await sse.waitFor("text_sensor-write_tx_snapshot", () => !anyPending(), 6000);
+  await sleep(200); // settle margin for the SSE broadcast of the final state to actually land
+}
+
+async function testGenericWriteConfirmScenario(sse) {
+  await resetGenericWrite(sse);
+  const res = await post("/number/set_cell_uvpr/set?value=2.90");
+  assert("generic write: direct POST to set_cell_uvpr is accepted (200), not 409", res.status === 200, `status=${res.status}`);
+  const confirmed = await sse.waitFor("sensor-cell_uvpr", (v) => Number(v) === 2.9, 2000);
+  assert("generic write: cell_uvpr reaches the requested value via the real transaction machinery", confirmed,
+    `cell_uvpr=${sse.get("sensor-cell_uvpr")}`);
+  const snapshot = sse.get("text_sensor-write_tx_snapshot");
+  let entry = null;
+  try { entry = JSON.parse(snapshot || "[]").find((e) => e.addr === 0x1008); } catch { /* not yet published */ }
+  assert("generic write: write_tx_snapshot carries a CONFIRMED (status 4) entry for 0x1008",
+    Boolean(entry) && entry.status === 4, `snapshot=${snapshot}`);
+}
+
+async function testGenericWriteMismatchAndTimeoutScenarios(sse) {
+  // Every non-"confirm" scenario must leave the underlying entity
+  // unchanged — a mismatch/timeout is a real BMS disagreement or lost
+  // round-trip, never silently applied.
+  for (const name of ["mismatch", "ack_timeout", "readback_timeout"]) {
+    await post(`/demo/generic-write-scenario?name=${name}`);
+    const before = sse.get("sensor-cell_uvpr");
+    const res = await post("/number/set_cell_uvpr/set?value=2.80");
+    assert(`generic write: set_cell_uvpr is accepted (200) under generic-write-scenario=${name}`, res.status === 200, `status=${res.status}`);
+    await sleep(2000); // long enough for the staged ack/readback timeline (worst case: readback_timeout's own 1200ms wait, entered ~500ms in) to reach a genuine terminal state before this same address is reused
+    assert(`generic write: cell_uvpr is unchanged under generic-write-scenario=${name} (no false success)`,
+      sse.get("sensor-cell_uvpr") === before, `before=${before} after=${sse.get("sensor-cell_uvpr")}`);
+  }
+  await resetGenericWrite(sse);
+}
+
+async function testGenericWriteAcrossDifferentRegisters(sse) {
+  await resetGenericWrite(sse);
+  const revA = sse.revisionOf("sensor-cell_uvpr");
+  const revB = sse.revisionOf("sensor-cell_ovpr");
+  const resA = await post("/number/set_cell_uvpr/set?value=2.60"); // 0x1008
+  const resB = await post("/number/set_cell_ovpr/set?value=3.80"); // 0x1010 — a DIFFERENT register, concurrently
+  assert("generic write: two different registers are both accepted (200) concurrently",
+    resA.status === 200 && resB.status === 200, `cell_uvpr=${resA.status} cell_ovpr=${resB.status}`);
+  const uvprDone = await sse.waitForNext("sensor-cell_uvpr", revA, (v) => Number(v) === 2.6, 2000);
+  const ovprDone = await sse.waitForNext("sensor-cell_ovpr", revB, (v) => Number(v) === 3.8, 2000);
+  assert("generic write: both independent transactions reach their own requested value",
+    uvprDone && ovprDone, `cell_uvpr=${sse.get("sensor-cell_uvpr")} cell_ovpr=${sse.get("sensor-cell_ovpr")}`);
+}
+
+// Second critical audit (2026-09-10): begin_write_tx's busy-rejection
+// previously never surfaced ANYTHING to a real HTTP client -- the ESPHome
+// action still returned 200, and the only way to learn the write never
+// started was the frontend's own client-side timeout. Proves the fix:
+// two overlapping writes to the SAME address now leave a real REJECTED(9)
+// snapshot entry the second caller can observe immediately.
+async function testGenericWriteRejectedOnCollision(sse) {
+  await resetGenericWrite(sse);
+  await post("/demo/generic-write-scenario?name=ack_timeout"); // keep the first transaction PENDING long enough to collide
+  // Fired via Promise.all (not sequential awaits) so both requests are
+  // in flight together, deterministically inside the pending window,
+  // regardless of system load or accumulated state from earlier tests —
+  // a sequential await-then-await gave the mock's own 200ms internal
+  // SENDING->ACK_WAIT timer just enough room to be timing-sensitive.
+  const [resFirst, resSecond] = await Promise.all([
+    post("/number/set_cell_uvpr/set?value=2.70"),
+    post("/number/set_cell_uvpr/set?value=2.75"),
+  ]);
+  assert("generic write collision: first write to set_cell_uvpr is accepted (200)", resFirst.status === 200, `status=${resFirst.status}`);
+  assert("generic write collision: second write to the SAME address while the first is pending is still HTTP 200 (ESPHome always accepts the action)",
+    resSecond.status === 200, `status=${resSecond.status}`);
+  // The HTTP response and the SSE broadcast for the snapshot update are two
+  // separate channels (same race the "sse_before_http" CellCount tests
+  // above exist to cover) -- the POST promises resolving is no guarantee
+  // the SSE client has parsed the corresponding event yet, so poll rather
+  // than read the snapshot synchronously.
+  function hasRejectedEntry() {
+    try { return JSON.parse(sse.get("text_sensor-write_tx_snapshot") || "[]").some((e) => e.addr === 0x1008 && e.status === 9); }
+    catch { return false; }
+  }
+  const sawRejected = hasRejectedEntry() || await sse.waitFor("text_sensor-write_tx_snapshot", () => hasRejectedEntry(), 2000);
+  assert("generic write collision: a real REJECTED(9) snapshot entry is published for the second write (not silently dropped)",
+    sawRejected, `snapshot=${sse.get("text_sensor-write_tx_snapshot")}`);
+  await sleep(4000); // let the first (ack_timeout) transaction reach its own terminal state
+  await resetGenericWrite(sse);
+}
+
+// Third critical audit (2026-09-10, item 7): an ACK/readback timeout must
+// never surface to a client as a plain completed error -- the write may
+// have silently taken effect. Proves the generic manager's own recovery-
+// probe path end to end (WRITE_UNCERTAIN(6) -> RECOVERED_CONFIRMED(10) /
+// RECOVERED_MISMATCH(11)) on cell_uvpr -- a register OTHER than CellCount,
+// which already has its own, separately-tested bespoke recovery driver
+// (see the "CellCount write-transaction matrix" suite above).
+async function testGenericWriteUncertaintyRecovery(sse) {
+  function findEntry(addr) {
+    try { return JSON.parse(sse.get("text_sensor-write_tx_snapshot") || "[]").find((e) => e.addr === addr) || null; }
+    catch { return null; }
+  }
+
+  // --- Case 1: the write DID silently take effect; only its ACK was
+  // lost. Recovery must reach RECOVERED_CONFIRMED(10) -- never leave the
+  // client stuck on a plain ACK_TIMEOUT/TIMEOUT that looks like a
+  // completed failure when the BMS actually applied the value.
+  await resetGenericWrite(sse);
+  await post("/demo/generic-write-scenario?name=applied_ack_lost");
+  const resConfirm = await post("/number/set_cell_uvpr/set?value=2.65");
+  assert("uncertainty recovery: applied_ack_lost write is accepted (200)", resConfirm.status === 200, `status=${resConfirm.status}`);
+  const sawUncertain1 = await sse.waitFor("text_sensor-write_tx_snapshot",
+    () => { const e = findEntry(0x1008); return Boolean(e && e.status === 6); }, 1000);
+  assert("uncertainty recovery: an ACK timeout is surfaced as WRITE_UNCERTAIN(6), not an immediate completed error",
+    sawUncertain1, `entry=${JSON.stringify(findEntry(0x1008))}`);
+  const recoveredConfirmed = await sse.waitFor("text_sensor-write_tx_snapshot",
+    () => { const e = findEntry(0x1008); return Boolean(e && e.status === 10); }, 3000);
+  assert("uncertainty recovery: applied_ack_lost eventually resolves to RECOVERED_CONFIRMED(10)",
+    recoveredConfirmed, `entry=${JSON.stringify(findEntry(0x1008))}`);
+  assert("uncertainty recovery: cell_uvpr genuinely reflects the silently-applied new value once recovered",
+    Number(sse.get("sensor-cell_uvpr")) === 2.65, `cell_uvpr=${sse.get("sensor-cell_uvpr")}`);
+  await sleep(3500); // let the slot clear its own grace period before the next case reuses this address
+  await resetGenericWrite(sse);
+
+  // --- Case 2: nothing was ever applied. Recovery must reach
+  // RECOVERED_MISMATCH(11) -- the old value confirmed unchanged -- never
+  // a false RECOVERED_CONFIRMED for a write that genuinely never landed.
+  await post("/demo/generic-write-scenario?name=ack_timeout");
+  const beforeMismatch = sse.get("sensor-cell_uvpr");
+  const resMismatch = await post("/number/set_cell_uvpr/set?value=2.99");
+  assert("uncertainty recovery: plain ack_timeout write is accepted (200)", resMismatch.status === 200, `status=${resMismatch.status}`);
+  const recoveredMismatch = await sse.waitFor("text_sensor-write_tx_snapshot",
+    () => { const e = findEntry(0x1008); return Boolean(e && e.status === 11); }, 3000);
+  assert("uncertainty recovery: a genuinely lost write resolves to RECOVERED_MISMATCH(11), never a false RECOVERED_CONFIRMED",
+    recoveredMismatch, `entry=${JSON.stringify(findEntry(0x1008))}`);
+  assert("uncertainty recovery: cell_uvpr is unchanged after a genuine RECOVERED_MISMATCH",
+    sse.get("sensor-cell_uvpr") === beforeMismatch, `before=${beforeMismatch} after=${sse.get("sensor-cell_uvpr")}`);
+  await sleep(3500);
+  await resetGenericWrite(sse);
 }
 
 /* ============================================================
-   CONTROL-REGISTER PERSISTENCE — regression test for the disclosed
-   defect (spec §4.3): the "normal" scenario's tick() used to force
-   Charge/Discharge back to On every second even after an explicit write
-   turned it Off, because select-charging/select-discharging and the
-   scenario's own live-status locals were the same conflated variable.
+   CONTROL-REGISTER WRITE. Third critical audit (2026-09-10): "balancing"
+   was reclassified write_safety_class "disruptive" (registers.canonical.json
+   had wrongly said "normal", contradicting batterylifepo4.yaml's own
+   long-standing comment that always grouped charging/discharging/balancing
+   together as disruptive) and its owner_write_override was removed. All
+   three control selects are now fail-closed, with no exception.
    ============================================================ */
-async function testControlRegisterSurvivesTicks(sse) {
+
+// Second/third critical audit (2026-09-10): charging/discharging/balancing
+// must all be genuinely blocked, same as every other reverted field — a
+// direct proof alongside test_blocked_write_surface.js's own exhaustive
+// matrix.
+async function testControlRegisterChargingDischargingBlocked(sse) {
   await post("/demo/scenario?name=normal");
-  await resetGenericWrite();
-  const rev = sse.revisionOf("select-charging");
-  await post("/select/charging/set?option=Off");
-  const confirmed = await sse.waitForNext("select-charging", rev, (v) => v === "Off", 3000);
-  assert("control register: charging write reaches Off", confirmed, `select-charging=${sse.get("select-charging")}`);
-  // The actual regression check: wait through several 1s tick() cycles
-  // (the "normal" scenario previously forced it back to On every one of
-  // these) and confirm it is STILL Off, not silently reverted.
-  await sleep(3500);
-  assert("control register: charging stays Off across multiple tick() cycles (regression: previously forced back On every second)",
-    sse.get("select-charging") === "Off", `select-charging=${sse.get("select-charging")} after 3.5s of ticks`);
-  // Restore for subsequent tests.
-  const rev2 = sse.revisionOf("select-charging");
-  await post("/select/charging/set?option=On");
-  await sse.waitForNext("select-charging", rev2, (v) => v === "On", 3000);
+  const beforeCharging = sse.get("binary_sensor-charging_allowed");
+  const resCharging = await post("/select/charging/set?option=Off");
+  assert("control register: direct POST to charging is rejected (409), not 200", resCharging.status === 409, `status=${resCharging.status}`);
+  const beforeDischarging = sse.get("binary_sensor-discharging_allowed");
+  const resDischarging = await post("/select/discharging/set?option=Off");
+  assert("control register: direct POST to discharging is rejected (409), not 200", resDischarging.status === 409, `status=${resDischarging.status}`);
+  const beforeBalancing = sse.get("binary_sensor-balancing_allowed");
+  const resBalancing = await post("/select/balancing/set?option=Off");
+  assert("control register: direct POST to balancing is rejected (409), not 200", resBalancing.status === 409, `status=${resBalancing.status}`);
+  await sleep(300);
+  assert("control register: charging_allowed/discharging_allowed/balancing_allowed unchanged after the rejected writes",
+    sse.get("binary_sensor-charging_allowed") === beforeCharging &&
+    sse.get("binary_sensor-discharging_allowed") === beforeDischarging &&
+    sse.get("binary_sensor-balancing_allowed") === beforeBalancing,
+    `charging=${sse.get("binary_sensor-charging_allowed")} discharging=${sse.get("binary_sensor-discharging_allowed")} balancing=${sse.get("binary_sensor-balancing_allowed")}`);
 }
 
 async function testActiveAlarmOverrideReasonExplicit(sse) {
@@ -571,8 +684,8 @@ async function testActiveAlarmOverrideReasonExplicit(sse) {
     `reason=${sse.get("text_sensor-control_override_reason")}`);
   assert("control override: live charging status reflects the trip (binary_sensor Off)", sse.get("binary_sensor-charging") === "Off",
     `binary_sensor-charging=${sse.get("binary_sensor-charging")}`);
-  assert("control override: the CONTROL register itself is untouched by the trip (still On)", sse.get("select-charging") === "On",
-    `select-charging=${sse.get("select-charging")}`);
+  assert("control override: the CONTROL register itself is untouched by the trip (still On)", sse.get("binary_sensor-charging_allowed") === "On",
+    `binary_sensor-charging_allowed=${sse.get("binary_sensor-charging_allowed")}`);
   await post("/demo/scenario?name=normal");
   const cleared = await sse.waitFor("text_sensor-control_override_reason", (v) => v === "", 2500);
   assert("control override: reason clears once the scenario moves away from active_alarm", cleared,
@@ -610,7 +723,7 @@ async function main() {
     await testRoundTrip(sse);
     await testStaleOffline(sse); // slow (~40s) — run last among the topology tests
 
-    console.log("\n-- CellCount write-transaction matrix --");
+    console.log("\n-- CellCount write-transaction matrix (resolver-side, via debug trigger — public endpoint tested separately below) --");
     await testWriteConfirm(sse);
     await testWriteMismatch(sse);
     await testWriteTimeout(sse);
@@ -622,16 +735,17 @@ async function main() {
     await testWriteDuplicateSse(sse);
     await testWriteOutOfOrderSse(sse);
     await testConcurrentSameRegisterRejected(sse);
+    await testCellCountWritePublicEndpointBlocked(sse);
 
-    console.log("\n-- Generic write-transaction matrix (non-CellCount RW registers) --");
-    await testGenericWriteConfirm(sse);
-    await testGenericWriteMismatch(sse);
-    await testGenericWriteAckTimeout(sse);
-    await testGenericWriteReadbackTimeout(sse);
-    await testGenericWriteConcurrentDifferentRegisters(sse);
+    console.log("\n-- Generic write transaction matrix (owner-authorized RW registers) --");
+    await testGenericWriteConfirmScenario(sse);
+    await testGenericWriteMismatchAndTimeoutScenarios(sse);
+    await testGenericWriteAcrossDifferentRegisters(sse);
+    await testGenericWriteRejectedOnCollision(sse);
+    await testGenericWriteUncertaintyRecovery(sse);
 
-    console.log("\n-- Control-register persistence (regression: scenario tick() forcing outputs) --");
-    await testControlRegisterSurvivesTicks(sse);
+    console.log("\n-- Control-register write (charging/discharging/balancing all blocked) --");
+    await testControlRegisterChargingDischargingBlocked(sse);
     await testActiveAlarmOverrideReasonExplicit(sse);
   } finally {
     sse.close();

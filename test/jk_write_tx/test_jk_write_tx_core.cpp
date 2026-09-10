@@ -232,6 +232,107 @@ static void test_begin_immediately_reuses_own_terminal_slot_same_address() {
   check_eq<uint8_t>(slots[idx2].status, SENDING, "the reused slot starts a genuinely fresh transaction (SENDING), not a leftover CONFIRMED");
 }
 
+// ---------------------------------------------------------------------
+// generation -- third critical audit (2026-09-10, item 6): a late ACK or
+// readback callback for a transaction a slot has since moved past must
+// never mutate the NEW transaction's state. The caller (batterylifepo4.
+// yaml) achieves this by capturing {idx, tx_id, address, generation} at
+// command-issue time and verifying all four before writing anything back
+// — these tests guard the one invariant that safety net depends on:
+// begin() must bump generation EVERY time a slot index is reused, and
+// never reset it back to 0.
+// ---------------------------------------------------------------------
+static void test_begin_bumps_generation_on_first_use() {
+  std::array<Slot, 4> slots{};
+  uint32_t next_id = 0;
+  int idx = begin(slots, next_id, 0x100C, 2, 1, 0xFFFFFFFFu, 0);
+  check_eq<uint32_t>(slots[idx].generation, 1u, "a slot's very first use is generation 1, not 0 (0 is reserved as \"never used\")");
+}
+
+static void test_begin_bumps_generation_on_each_reuse() {
+  std::array<Slot, 1> slots{}; // force reuse of the SAME index every time
+  uint32_t next_id = 0;
+  int idx1 = begin(slots, next_id, 0x1000, 2, 1, 0xFFFFFFFFu, 0);
+  check_eq<uint32_t>(slots[idx1].generation, 1u, "first use: generation 1");
+  slots[idx1].in_use = false; // caller frees after consuming the terminal result
+  int idx2 = begin(slots, next_id, 0x1004, 2, 1, 0xFFFFFFFFu, 100);
+  check_eq(idx2, idx1, "only one slot exists -- must be reused");
+  check_eq<uint32_t>(slots[idx2].generation, 2u, "reuse bumps generation to 2, not reset to 0 or 1 again");
+  slots[idx2].in_use = false;
+  int idx3 = begin(slots, next_id, 0x1008, 2, 1, 0xFFFFFFFFu, 200);
+  check_eq<uint32_t>(slots[idx3].generation, 3u, "a THIRD use of the same index keeps incrementing (never wraps back)");
+}
+
+static void test_begin_bumps_generation_on_same_address_supersede() {
+  // The "immediately reuse own terminal slot, same address" path (see
+  // test_begin_immediately_reuses_own_terminal_slot_same_address above)
+  // goes through a DIFFERENT code path inside begin() (the first loop's
+  // own `slots[i].in_use = false` before falling through) -- must ALSO
+  // bump generation, or a late callback from the superseded transaction
+  // could still be mistaken for belonging to the new one.
+  std::array<Slot, 4> slots{};
+  uint32_t next_id = 0;
+  int idx1 = begin(slots, next_id, 0x1004, 2, 100, 0xFFFFFFFFu, 0);
+  const uint32_t gen1 = slots[idx1].generation;
+  Slot &s = slots[idx1];
+  tick(s, 0);
+  s.acked = true;
+  tick(s, 10);
+  s.readback_done = true;
+  s.readback_raw = 100;
+  tick(s, 20); // -> CONFIRMED, still in_use
+  int idx2 = begin(slots, next_id, 0x1004, 2, 200, 0xFFFFFFFFu, 30);
+  check_eq(idx2, idx1, "same-address supersede reuses the SAME slot index");
+  check(slots[idx2].generation != gen1, "supersede via the same-address fast path still bumps generation");
+  check_eq<uint32_t>(slots[idx2].generation, gen1 + 1, "generation increments by exactly 1 on supersede");
+}
+
+// ---------------------------------------------------------------------
+// WRITE_UNCERTAIN / recovery -- third critical audit (2026-09-10, item 7).
+// tick() itself never emits WRITE_UNCERTAIN/RECOVERED_CONFIRMED/
+// RECOVERED_MISMATCH (the caller, batterylifepo4.yaml, reclassifies a
+// slot into these after ACK_TIMEOUT/READBACK_TIMEOUT); these tests guard
+// the one invariant begin()'s single-flight guard depends on for that
+// scheme to actually block re-writes during recovery.
+// ---------------------------------------------------------------------
+static void test_is_pending_includes_write_uncertain() {
+  check(is_pending(WRITE_UNCERTAIN), "WRITE_UNCERTAIN is pending -- blocks a new write to the same address");
+  check(!is_pending(RECOVERED_CONFIRMED), "RECOVERED_CONFIRMED is terminal, not pending -- address is writable again");
+  check(!is_pending(RECOVERED_MISMATCH), "RECOVERED_MISMATCH is terminal, not pending -- address is writable again");
+  check(!is_pending(ACK_TIMEOUT), "plain ACK_TIMEOUT itself is not pending (the caller reclassifies it to WRITE_UNCERTAIN before begin() ever sees it again)");
+}
+
+static void test_begin_rejects_write_to_address_with_uncertain_status() {
+  std::array<Slot, 4> slots{};
+  uint32_t next_id = 0;
+  int idx1 = begin(slots, next_id, 0x1008, 2, 1, 0xFFFFFFFFu, 0);
+  check(idx1 >= 0, "first write to 0x1008 accepted");
+  // Simulate the caller reclassifying an ACK/readback timeout into
+  // WRITE_UNCERTAIN while a recovery probe is in flight.
+  slots[idx1].status = WRITE_UNCERTAIN;
+  int idx2 = begin(slots, next_id, 0x1008, 2, 2, 0xFFFFFFFFu, 5000);
+  check_eq(idx2, -1, "a new write to an address whose recovery is still pending (WRITE_UNCERTAIN) is rejected, not allowed to race the recovery probe");
+}
+
+static void test_begin_allows_write_to_address_after_recovered_confirmed() {
+  std::array<Slot, 4> slots{};
+  uint32_t next_id = 0;
+  int idx1 = begin(slots, next_id, 0x100C, 2, 1, 0xFFFFFFFFu, 0);
+  slots[idx1].status = RECOVERED_CONFIRMED;
+  int idx2 = begin(slots, next_id, 0x100C, 2, 2, 0xFFFFFFFFu, 5000);
+  check(idx2 >= 0, "once recovery resolves to RECOVERED_CONFIRMED, the address is writable again -- not stuck blocked forever");
+  check_eq<uint8_t>(slots[idx2].status, SENDING, "the reused slot starts a genuinely fresh transaction");
+}
+
+static void test_begin_allows_write_to_address_after_recovered_mismatch() {
+  std::array<Slot, 4> slots{};
+  uint32_t next_id = 0;
+  int idx1 = begin(slots, next_id, 0x1010, 2, 1, 0xFFFFFFFFu, 0);
+  slots[idx1].status = RECOVERED_MISMATCH;
+  int idx2 = begin(slots, next_id, 0x1010, 2, 2, 0xFFFFFFFFu, 5000);
+  check(idx2 >= 0, "once recovery resolves to RECOVERED_MISMATCH, the address is writable again");
+}
+
 int main() {
   test_compare_masked();
   test_begin_allocates_and_assigns_monotonic_ids();
@@ -245,6 +346,13 @@ int main() {
   test_suppress_value_flag_is_tracked_not_ignored();
   test_begin_reuses_a_freed_slot();
   test_begin_immediately_reuses_own_terminal_slot_same_address();
+  test_begin_bumps_generation_on_first_use();
+  test_begin_bumps_generation_on_each_reuse();
+  test_begin_bumps_generation_on_same_address_supersede();
+  test_is_pending_includes_write_uncertain();
+  test_begin_rejects_write_to_address_with_uncertain_status();
+  test_begin_allows_write_to_address_after_recovered_confirmed();
+  test_begin_allows_write_to_address_after_recovered_mismatch();
 
   std::printf("\n%d checks run, %d failed.\n", g_checks, g_failures);
   return g_failures == 0 ? 0 : 1;

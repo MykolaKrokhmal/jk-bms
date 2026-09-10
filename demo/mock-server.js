@@ -8,11 +8,9 @@
  *   - GET  /events        real text/event-stream SSE, same event-type/JSON
  *                          shape as ESPHome's web_server component
  *   - POST /select/:id/set, /number/:id/set, /text/:id/set
- *                          accepted immediately (HTTP 200), with the actual
- *                          "BMS confirmation" arriving later as a delayed,
- *                          separate SSE push — so the production Write
- *                          Transaction Manager is exercised for real, not
- *                          faked from the frontend.
+ *                          rejects catalog fields whose effective access is
+ *                          read-only (HTTP 409). Only explicitly enabled
+ *                          development endpoints exercise write simulation.
  *   - GET  /history.json  same shape as the on-device ring buffer
  *   - /demo/*             dev-only scenario control — NOT part of the
  *                          production wire protocol, used only by the
@@ -39,6 +37,21 @@ const REGISTER_BY_KEY = Object.create(null);
 for (const reg of REGISTER_CATALOG.registers) {
   if (reg.manager === "generic") REGISTER_BY_KEY[reg.key] = { ...reg, addr: parseInt(reg.address, 16) };
 }
+// Stage 1 Completion Pass (CODEX_STAGE_1_REMEDIATION_RESULT_REVIEW.md P0-4/
+// Phase 6.4 "mock rejection" test requirement): every field the real
+// firmware now refuses to write (declared access "rw" but effective_access
+// != "rw" — see batterylifepo4.yaml's own set_action comments for cell_uvp/
+// cell_count/setup_passcode/charging/etc.) must ALSO be rejected here, not
+// just excluded from REGISTER_BY_KEY's generic-simulation path — the mock
+// previously fell through to a generic "unknown entity, accepted but never
+// confirmed" echo-back handler for exactly these keys, which silently
+// applied the client's requested value after a short delay (a real,
+// observable false success in the mock, even though real hardware was
+// never touched). This set makes the mock's behavior match the firmware's:
+// an outright rejection, not an optimistic echo.
+const BLOCKED_REGISTER_KEYS = new Set(
+  REGISTER_CATALOG.registers.filter((r) => r.access === "rw" && r.effective_access !== "rw").map((r) => r.key)
+);
 const PORT = Number(process.env.PORT) || 8321;
 // Bind explicitly to IPv4 so a phone on the local Wi-Fi can open the demo
 // using the Mac's LAN address. Some macOS setups expose an IPv6-only
@@ -145,10 +158,20 @@ let wtxSlots = []; // {inUse, txId, addr, wordCount, req, rb, status, startedMs}
 let wtxNextId = 0;
 const GENERIC_WRITE_SCENARIOS = [
   "confirm", "mismatch", "ack_timeout", "readback_timeout", "reject_busy",
+  // Third critical audit (2026-09-10, item 7): the write DID silently
+  // take effect on the register, but its ACK never arrived — same shape
+  // as CellCount's own "applied_ack_lost" scenario, proving the recovery
+  // probe can reach RECOVERED_CONFIRMED, not just RECOVERED_MISMATCH.
+  "applied_ack_lost",
 ];
 let genericWriteScenario = "confirm";
 
-const WTX_PENDING_STATUS = new Set([1, 2, 3]); // sending, ack_wait, readback_wait
+// Third critical audit (2026-09-10, item 7): WRITE_UNCERTAIN(6) blocks a
+// new write to the same address, exactly like jk_write_tx_core.h's
+// is_pending() now does on the real firmware — the address stays
+// unwritable until the recovery probe resolves it to
+// RECOVERED_CONFIRMED(10)/RECOVERED_MISMATCH(11).
+const WTX_PENDING_STATUS = new Set([1, 2, 3, 6]); // sending, ack_wait, readback_wait, write_uncertain
 
 // Single-flight guards a PENDING transaction, not a terminal one that
 // merely hasn't been freed yet (see runGenericWriteTx's 3s grace
@@ -178,8 +201,31 @@ function publishWriteTxSnapshot() {
 // no register-level unscaling is needed here; this is purely a
 // simulation aid and does not change what the frontend observes on the
 // wire (a JSON snapshot keyed by address, exactly like the real device).
+// Second critical audit (2026-09-10): a busy-rejection previously only
+// ever invoked `onTerminal(9, ...)` as a plain in-process callback -- it
+// never touched write_tx_snapshot at all, so a real HTTP client (the
+// actual frontend, not this file's own callback) had NO way to observe
+// the rejection: findWriteTxEntry(addr) would keep returning either
+// nothing or the OTHER in-flight transaction's entry, and the caller
+// would silently time out waiting for a terminal status that was never
+// coming for ITS OWN transaction id. Publishing a short-lived REJECTED(9)
+// entry (same 3s grace period as a real terminal slot) closes that gap
+// and mirrors the equivalent fix in batterylifepo4.yaml's begin_write_tx.
+function publishRejected(addr) {
+  const txId = ++wtxNextId;
+  const slot = { inUse: true, addr, txId, status: 9, req: undefined, rb: undefined, suppress: true };
+  wtxSlots.push(slot);
+  publishWriteTxSnapshot();
+  setTimeout(() => {
+    const idx = wtxSlots.indexOf(slot);
+    if (idx !== -1) wtxSlots.splice(idx, 1);
+    publishWriteTxSnapshot();
+  }, 3000);
+}
+
 function runGenericWriteTx(addr, wireId, requestedValue, suppress, onTerminal) {
   if (findPendingGenericSlot(addr)) {
+    publishRejected(addr);
     if (onTerminal) onTerminal(9, requestedValue); // REJECTED — a transaction for this address is still pending
     return;
   }
@@ -189,6 +235,7 @@ function runGenericWriteTx(addr, wireId, requestedValue, suppress, onTerminal) {
   const staleIdx = wtxSlots.findIndex((s) => s.inUse && s.addr === addr);
   if (staleIdx !== -1) wtxSlots.splice(staleIdx, 1);
   if (wtxSlots.filter((s) => s.inUse).length >= WTX_SLOT_COUNT) {
+    publishRejected(addr);
     if (onTerminal) onTerminal(9, requestedValue); // REJECTED — every slot busy
     return;
   }
@@ -214,14 +261,58 @@ function runGenericWriteTx(addr, wireId, requestedValue, suppress, onTerminal) {
     if (onTerminal) onTerminal(statusCode, applyValue);
   };
 
+  // Third critical audit (2026-09-10, item 7): an ACK/readback timeout is
+  // never reported to the client as a plain completed error — mirrors
+  // CellCount's own bespoke uncertainty-recovery probe (finishUncertain in
+  // runCellCountTransaction, above). timeoutStatusCode (7 or 8) is
+  // published first so a client can see WHY, then the slot moves to
+  // WRITE_UNCERTAIN(6) (blocking a new write to this address — see
+  // WTX_PENDING_STATUS above) while an independent recovery probe does a
+  // genuinely fresh read of the entity and resolves to
+  // RECOVERED_CONFIRMED(10) (the write silently DID apply) or
+  // RECOVERED_MISMATCH(11) (it did not, or applied to something else).
+  const finishUncertain = (timeoutStatusCode) => {
+    slot.status = timeoutStatusCode;
+    publishWriteTxSnapshot();
+    setTimeout(() => {
+      if (!wtxSlots.includes(slot)) return; // superseded by a newer write to this address in the meantime
+      slot.status = 6; // WRITE_UNCERTAIN
+      publishWriteTxSnapshot();
+      setTimeout(() => {
+        if (!wtxSlots.includes(slot)) return;
+        const actual = entities[wireId] ? entities[wireId].value : undefined;
+        const recovered = !suppress && actual !== undefined && String(actual) === String(requestedValue);
+        slot.rb = suppress ? undefined : actual;
+        slot.status = recovered ? 10 : 11;
+        publishWriteTxSnapshot();
+        if (onTerminal) onTerminal(slot.status, recovered ? requestedValue : undefined);
+        setTimeout(() => {
+          slot.inUse = false;
+          const idx = wtxSlots.indexOf(slot);
+          if (idx !== -1) wtxSlots.splice(idx, 1);
+          publishWriteTxSnapshot();
+        }, 3000);
+      }, 1500);
+    }, 100);
+  };
+
   setTimeout(() => {
-    if (scenario === "ack_timeout") { finishTerminal(7); return; }
+    if (scenario === "ack_timeout") { finishUncertain(7); return; }
+    if (scenario === "applied_ack_lost") {
+      // The BMS DID receive and apply the write -- only its ACK response
+      // is what gets lost, so the client sees exactly the same
+      // ack_wait -> timeout sequence as plain ack_timeout, EXCEPT the
+      // entity has already, silently, genuinely changed underneath it.
+      if (entities[wireId]) { setEntity(wireId, String(requestedValue)); broadcastEntity(wireId); }
+      finishUncertain(7);
+      return;
+    }
     slot.status = 2; // ack_wait -> acked immediately after
     publishWriteTxSnapshot();
     setTimeout(() => {
       slot.status = 3; // readback_wait
       publishWriteTxSnapshot();
-      if (scenario === "readback_timeout") { setTimeout(() => finishTerminal(8), 1200); return; }
+      if (scenario === "readback_timeout") { setTimeout(() => finishUncertain(8), 1200); return; }
       setTimeout(() => {
         if (scenario === "mismatch") {
           slot.rb = suppress ? undefined : "(mismatch)";
@@ -415,27 +506,26 @@ function seedEntities() {
   setEntity("sensor-idle_current_noise_max", "NaN");
   setEntity("text_sensor-bms_health", "LIVE");
   setEntity("sensor-bms_last_update_age", "0.4");
-  setEntity("select-charging", "On");
+  setEntity("binary_sensor-charging_allowed", "On");
   setEntity("binary_sensor-charging", "On");
-  setEntity("select-discharging", "On");
+  setEntity("binary_sensor-discharging_allowed", "On");
   setEntity("binary_sensor-discharging", "On");
-  setEntity("select-balancing", "On");
+  setEntity("binary_sensor-balancing_allowed", "On");
   setEntity("binary_sensor-balancing", "On");
   setEntity("text_sensor-control_override_reason", "");
   setEntity("text_sensor-write_tx_snapshot", "[]");
   setEntity("sensor-setup_passcode_tx_status_code", "0");
   setEntity("number-heating_activation_temperature", "5");
   setEntity("number-heating_deactivation_temperature", "15");
-  setEntity("number-dry_contact_1_trigger_source", "0");
-  setEntity("number-dry_contact_2_trigger_source", "0");
-  setEntity("number-dry_contact_1_trigger_value", "0");
-  setEntity("number-dry_contact_1_recovery_value", "0");
-  setEntity("number-dry_contact_2_trigger_value", "0");
-  setEntity("number-dry_contact_2_recovery_value", "0");
+  setEntity("sensor-dry_contact_1_trigger_source", "0");
+  setEntity("sensor-dry_contact_2_trigger_source", "0");
+  setEntity("sensor-dry_contact_1_trigger_value", "0");
+  setEntity("sensor-dry_contact_1_recovery_value", "0");
+  setEntity("sensor-dry_contact_2_trigger_value", "0");
+  setEntity("sensor-dry_contact_2_recovery_value", "0");
   setEntity("sensor-rcv_time", "5.0");
   setEntity("sensor-rfv_time", "5.0");
-  setEntity("number-lcd_buzzer_trigger", "9");
-  setEntity("text-setup_passcode", "****************");
+  setEntity("sensor-lcd_buzzer_trigger", "9");
   for (let i = 0; i < CELL_COUNT; i += 1) {
     setEntity(`sensor-cell_voltage_${i + 1}`, (BASE_CELL_V + cellOffsetsMv[i] / 1000).toFixed(3));
     setEntity(`sensor-cell_${i + 1}_wire_resistance`, cellResistances[i].toFixed(3));
@@ -791,23 +881,23 @@ function tick() {
     chargePhase = "float";
     chargingOn = true; dischargingOn = true;
   }
-  // select-charging/select-discharging (the CONTROL register) are NEVER
+  // *_allowed binary sensors expose the CONTROL registers read-only.
   // written here -- only a confirmed write transaction or a /demo
   // override changes them (see controlChargingOn's comment above; this
   // is the fix for the previously-reported bug where the "normal"
   // scenario forced Charge/Discharge back to On every tick even after a
   // user explicitly turned it Off).
-  set("select-charging", controlChargingOn ? "On" : "Off");
+  set("binary_sensor-charging_allowed", controlChargingOn ? "On" : "Off");
   set("binary_sensor-charging", chargingOn ? "On" : "Off");
-  set("select-discharging", controlDischargingOn ? "On" : "Off");
+  set("binary_sensor-discharging_allowed", controlDischargingOn ? "On" : "Off");
   set("binary_sensor-discharging", dischargingOn ? "On" : "Off");
   set("text_sensor-control_override_reason", controlOverrideReason || "");
-  // select-balancing (the enable switch) vs binary_sensor-balancing (the
+  // balancing_allowed (the enable switch) vs binary_sensor-balancing (the
   // LIVE balancing_active signal, set further down from balanceActive)
   // are the same enabled-vs-active distinction as charging/discharging
-  // above -- select-balancing is control-register state, only a write
+  // above -- balancing_allowed is control-register state, only a write
   // transaction or /demo override changes it.
-  set("select-balancing", controlBalancingOn ? "On" : "Off");
+  set("binary_sensor-balancing_allowed", controlBalancingOn ? "On" : "Off");
   set("text_sensor-charge_status", chargeStatus);
   set("text_sensor-charge_phase", chargePhase);
   // Resolver diagnostics mirrors — reflect resolverSim()'s own internal
@@ -1035,6 +1125,13 @@ function handleWrite(domain, objectId, query, res) {
   if (writeMode === "http_error") { res.writeHead(500); res.end("simulated failure"); return; }
 
   const targetObjectId = domain === "number" && objectId.startsWith("set_") ? objectId.slice(4) : objectId;
+
+  if (BLOCKED_REGISTER_KEYS.has(targetObjectId)) {
+    res.writeHead(409, { "Content-Type": "text/plain" });
+    res.end(`write rejected: "${targetObjectId}" has no confirmed write path (see blockedWriteKeys)`);
+    return;
+  }
+
   const wireId = entities[`${domain}-${objectId}`] ? `${domain}-${objectId}` : `sensor-${targetObjectId}`;
   const requested = query.has("option") ? query.get("option") : query.get("value");
   const respondOk = () => { res.writeHead(200, { "Content-Type": "text/plain" }); res.end("OK"); };
@@ -1063,7 +1160,7 @@ function handleWrite(domain, objectId, query, res) {
     return;
   }
 
-  // Generic Write Transaction Manager (spec §4.1) — every catalog-listed
+  // Generic Write Transaction Manager (spec §4.1) — only a catalog-listed
   // "generic" register (the ~35 number/select RW registers, everything
   // except cell_count and setup_passcode) routes through the SAME
   // write -> ack_wait -> readback_wait -> confirmed/mismatch/timeout
@@ -1089,8 +1186,12 @@ function handleWrite(domain, objectId, query, res) {
     return;
   }
 
+  if (!entities[wireId]) {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("write endpoint not found");
+    return;
+  }
   respondOk();
-  if (!entities[wireId]) return; // unknown entity — accepted, never confirmed (matches a real 404-ish no-op)
 
   window_setTimeout(() => {
     if (writeMode === "timeout") return; // never echo back
@@ -1398,6 +1499,30 @@ const server = http.createServer((req, res) => {
     if (!cellCountTxInFlight) resolveTopologyMock();
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ physicalTopologyCount, physicalMask }));
+    return;
+  }
+  // Stage 1 Completion Pass: cell_count is now in BLOCKED_REGISTER_KEYS
+  // (see handleWrite above), so the PUBLIC /number/set_cell_count/set path
+  // it used to test with a real write no longer reaches
+  // runCellCountTransaction() at all — proven by the dedicated
+  // "blocked write" test in test/topology/run.js. That still leaves the
+  // topology RESOLVER's own handling of every ack/readback/timeout/SSE-
+  // ordering state the transaction machinery can produce (CONFIRMED,
+  // MISMATCH, ACK_TIMEOUT, READBACK_TIMEOUT, WRITE_UNCERTAIN, duplicate/
+  // out-of-order SSE terminal events, the single-flight guard) worth
+  // testing independently of whether the public endpoint exposes it. This
+  // debug-only endpoint (never called by jk_bms.js or any real client —
+  // dev-only, see this file's own top-of-file comment) drives the exact
+  // same runCellCountTransaction() the old public path used to, so that
+  // test coverage is not silently lost along with the write endpoint.
+  if (p === "/demo/debug-trigger-cellcount-write" && req.method === "POST") {
+    const value = Number(url.searchParams.get("value"));
+    if (cellCountScenario === "sse_before_http") {
+      runCellCountTransaction(value, () => { res.writeHead(200, { "Content-Type": "text/plain" }); res.end("OK"); });
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "text/plain" }); res.end("OK");
+    runCellCountTransaction(value);
     return;
   }
   if (p === "/demo/register-cell-count" && req.method === "POST") {
