@@ -1244,6 +1244,11 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 .diag-entity-row span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .diag-entity-row .diag-entity-value{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
+/* Stage 1 Remediation: a register whose write path was removed because its
+   enum/unit semantics are unresolved (Крок G.7) — shown read-only with an
+   explicit badge rather than a silently-missing editor. */
+.register-blocked-badge{ flex:none; font-style:normal; font-size:.72em; letter-spacing:.02em; opacity:.65; margin-left:6px; padding:1px 6px; border:1px solid currentColor; border-radius:999px; white-space:nowrap; }
+
 /* Register catalogue lives in Configuration. R values remain plain
    readouts; RW values use one compact editor and one adjacent OK action. */
 .register-list{ margin-top:4px; }

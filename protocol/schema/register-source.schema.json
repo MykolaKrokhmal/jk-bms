@@ -1,0 +1,208 @@
+{
+  "$id": "register-source.schema.json",
+  "$comment": "Schema for protocol/registers.canonical.json (Stage 1, spec section 9). Validated by tools/protocol/lib/mini-schema.js, a dependency-free JSON-Schema-subset engine — see that file for exactly which keywords are supported.",
+  "type": "object",
+  "required": ["catalog_version", "protocol_family", "version_context", "ui_order_gap_policy", "registers"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "catalog_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "protocol_family": { "type": "string", "minLength": 1 },
+    "version_context": {
+      "type": "object",
+      "required": [
+        "esphome_project_version", "web_ui_version", "esphome_framework_version_used_for_verification",
+        "external_component_pin", "bms_model_identity", "bms_protocol_variant", "bms_firmware_version",
+        "catalog_evidence_set_version"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "esphome_project_version": { "type": "string" },
+        "web_ui_version": { "type": "string" },
+        "esphome_framework_version_used_for_verification": { "type": "string" },
+        "external_component_pin": { "type": "string" },
+        "bms_model_identity": { "type": "string" },
+        "bms_protocol_variant": { "type": "string" },
+        "bms_firmware_version": { "type": "string" },
+        "catalog_evidence_set_version": { "type": "string" }
+      }
+    },
+    "generated_note": { "type": "string" },
+    "ui_order_gap_policy": { "type": "string", "enum": ["sparse_allowed_stable_manual_slots"] },
+    "registers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "register_id", "protocol_family", "model_scope", "address", "address_space",
+          "register_width_bits", "word_count", "payload_bytes", "byte_order", "word_order", "read_function", "write_function",
+          "declared_access", "poll_group", "freshness_budget_s", "atomicity_group", "fields", "evidence",
+          "verification_status", "safety_notes"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "register_id": { "type": "string", "pattern": "^reg_0x[0-9A-F]{4}_[a-z0-9_]+$" },
+          "protocol_family": { "type": "string" },
+          "model_scope": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "address": { "type": "string", "pattern": "^0x[0-9A-F]{4}$" },
+          "address_space": { "type": "string", "enum": ["holding_register"] },
+          "register_width_bits": { "type": "integer", "enum": [16, 32, 128] },
+          "word_count": { "type": "integer", "minimum": 1, "maximum": 8 },
+          "payload_bytes": { "type": "integer", "minimum": 2, "maximum": 16 },
+          "byte_order": { "type": "string", "enum": ["big_endian"] },
+          "word_order": { "type": "string", "enum": ["single_word", "high_word_first", "sequential_bytes"] },
+          "read_function": { "type": ["string", "null"], "enum": ["read_holding_registers_fc03", null] },
+          "write_function": { "type": ["string", "null"], "enum": ["write_multiple_registers_fc16", null] },
+          "declared_access": { "type": "string", "enum": ["r", "rw"] },
+          "poll_group": {
+            "type": "string",
+            "enum": ["cell_block_1s", "config_slow_300s", "telemetry_15s", "on_demand_passcode", "on_demand_topology"]
+          },
+          "freshness_budget_s": { "type": "number", "minimum": 0 },
+          "atomicity_group": { "type": "string" },
+          "fields": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "key", "parent_register_id", "field_width_bits", "byte_offset", "mask", "shift", "signedness",
+                "wire_type", "scale", "offset", "canonical_unit", "uk_display_unit", "en_display_unit",
+                "decimal_precision", "minimum", "maximum", "step", "reserved_values", "nullable",
+                "packed_siblings", "overlap_rule", "access", "effective_access", "write_safety_class",
+                "esphome_domain", "esphome_read_entity_id", "esphome_write_entity_id", "backend_key",
+                "frontend_label_uk", "frontend_label_en", "ui_section", "ui_order", "editor_kind",
+                "dynamic_dependency", "enum_map", "unknown_code_policy", "evidence", "verification_status", "exclusion_reason",
+                "implementation_status"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+                "parent_register_id": { "type": "string" },
+                "field_width_bits": { "type": "integer", "enum": [1, 8, 16, 32, 128] },
+                "byte_offset": { "type": ["integer", "null"], "minimum": 0, "maximum": 15 },
+                "mask": { "type": ["string", "null"], "pattern": "^0x[0-9A-F]+$" },
+                "shift": { "type": ["integer", "null"], "minimum": 0, "maximum": 31 },
+                "signedness": { "type": "string", "enum": ["signed", "unsigned"] },
+                "wire_type": { "type": "string", "enum": ["U8", "S8", "U16", "S16", "U32", "S32", "F32", "ASCII", "BIT"] },
+                "scale": { "type": "number" },
+                "offset": { "type": "number" },
+                "canonical_unit": { "type": "string" },
+                "uk_display_unit": { "type": "string" },
+                "en_display_unit": { "type": "string" },
+                "decimal_precision": { "type": "integer", "minimum": 0, "maximum": 6 },
+                "minimum": { "type": ["number", "null"] },
+                "maximum": { "type": ["number", "null"] },
+                "step": { "type": ["number", "null"] },
+                "reserved_values": { "type": "array" },
+                "nullable": { "type": "boolean" },
+                "packed_siblings": { "type": "array", "items": { "type": "string" } },
+                "overlap_rule": { "type": ["string", "null"] },
+                "access": { "type": "string", "enum": ["r", "rw"] },
+                "effective_access": { "type": "string", "enum": ["r", "rw", "unsupported"] },
+                "write_safety_class": {
+                  "type": "string",
+                  "enum": ["normal", "disruptive", "topology", "credential", "unsupported", "n/a"]
+                },
+                "esphome_domain": {
+                  "type": ["string", "null"],
+                  "enum": ["sensor", "binary_sensor", "text_sensor", "number", "select", "text", null]
+                },
+                "esphome_read_entity_id": { "type": ["string", "null"] },
+                "esphome_write_entity_id": { "type": ["string", "null"] },
+                "backend_key": { "type": ["string", "null"] },
+                "frontend_label_uk": { "type": "string", "minLength": 1 },
+                "frontend_label_en": { "type": "string", "minLength": 1 },
+                "ui_section": {
+                  "type": "string",
+                  "enum": ["settings", "diagnostics", "cells", "overview", "electrical", "state", "none"]
+                },
+                "ui_order": { "type": "integer" },
+                "editor_kind": {
+                  "type": "string",
+                  "enum": ["readonly", "number", "toggle", "enum_select", "text", "password", "unsupported"]
+                },
+                "dynamic_dependency": {
+                  "type": ["object", "null"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "depends_on_field": { "type": ["string", "null"] },
+                    "rule": { "type": "string" },
+                    "resolved": { "type": "boolean" }
+                  }
+                },
+                "enum_map": { "type": ["object", "null"] },
+                "unknown_code_policy": { "type": ["string", "null"], "enum": ["preserve_raw_and_render_unknown", null] },
+                "evidence": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "required": ["source_id", "locator_id", "locator", "claim_types", "source_fingerprint", "confidence", "applicability", "derivation_group"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "source_id": { "type": "string", "minLength": 1 },
+                      "locator_id": { "type": "string", "minLength": 1 },
+                      "locator": { "type": "string", "minLength": 1 },
+                      "claim_types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+                      "source_fingerprint": { "type": ["string", "null"] },
+                      "confidence": { "type": "string", "enum": ["high", "medium", "low", "unrated"] },
+                      "applicability": { "type": "string", "minLength": 1 },
+                      "derivation_group": { "type": "string", "minLength": 1 }
+                    }
+                  }
+                },
+                "verification_status": {
+                  "type": "string",
+                  "enum": ["confirmed", "corroborated_with_limitations", "single_source", "implementation_only_unverified", "conflict", "unknown_variant"]
+                },
+                "exclusion_reason": { "type": ["string", "null"] },
+                "implementation_status": {
+                  "type": "string",
+                  "enum": ["implemented", "partially_implemented", "source_only_unimplemented",
+                           "implementation_only_unverified", "intentionally_not_exposed"]
+                },
+                "owner_write_override": {
+                  "type": ["object", "null"],
+                  "required": ["authorized", "authorized_by", "date", "rationale"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "authorized": { "type": "boolean", "enum": [true] },
+                    "authorized_by": { "type": "string", "minLength": 1 },
+                    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+                    "rationale": { "type": "string", "minLength": 1 }
+                  }
+                }
+              }
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["source_id", "locator_id", "locator", "claim_types", "source_fingerprint", "confidence", "applicability", "derivation_group"],
+              "additionalProperties": false,
+              "properties": {
+                "source_id": { "type": "string", "minLength": 1 },
+                "locator_id": { "type": "string", "minLength": 1 },
+                "locator": { "type": "string", "minLength": 1 },
+                "claim_types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+                "source_fingerprint": { "type": ["string", "null"] },
+                "confidence": { "type": "string", "enum": ["high", "medium", "low", "unrated"] },
+                "applicability": { "type": "string", "minLength": 1 },
+                "derivation_group": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
+          "verification_status": {
+            "type": "string",
+            "enum": ["confirmed", "corroborated_with_limitations", "single_source", "implementation_only_unverified", "conflict", "unknown_variant"]
+          },
+          "safety_notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

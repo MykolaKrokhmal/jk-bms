@@ -1,0 +1,2 @@
+# Protocol evidence builders use only the Python standard library.
+# Keep this file as the machine-readable declaration of an empty dependency set.

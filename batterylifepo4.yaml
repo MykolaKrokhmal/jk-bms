@@ -43,7 +43,8 @@ substitutions:
   # exposes the hardware model at 0x1400, but not the editable BLE name.
   bms_display_name: "LiFePO4-1S16P-00"
   device_description: "Monitor a JK-BMS (JK-PB series) via Modbus"
-  external_components_source: github://syssi/esphome-jk-bms@main
+  # Immutable revision used by the evidence snapshot and Stage 1 catalog.
+  external_components_source: github://syssi/esphome-jk-bms@08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1
   tx_pin: GPIO22
   rx_pin: GPIO21
   flow_control_pin: GPIO17
@@ -716,8 +717,61 @@ globals:
     type: uint32_t[6]
   - id: g_wtx_suppress_value  # 0/1
     type: uint8_t[6]
+  # Third critical audit (2026-09-10, item 6): bumped every time a slot
+  # index is reused for a new transaction (mirrors jk_write_tx::Slot's own
+  # generation field, marshalled the same parallel-array way as every
+  # other Slot member). The ACK and forced-readback command callbacks
+  # below capture {idx, tx_id, address, generation} at issue time and
+  # verify ALL FOUR still match before writing anything back, so a late
+  # callback belonging to a transaction this slot has since moved past
+  # can never corrupt the slot's now-current transaction.
+  - id: g_wtx_generation
+    type: uint32_t[6]
+  # Third critical audit (2026-09-10, item 7): a slot the servicer has
+  # reclassified into jk_write_tx::WRITE_UNCERTAIN (after ACK_TIMEOUT/
+  # READBACK_TIMEOUT) is NOT freed -- it stays in_use while an independent
+  # recovery readback runs, mirroring the pattern CellCount's own bespoke
+  # uncertainty-recovery probe already uses. g_wtx_recovery_pending marks
+  # a slot that still needs its recovery probe (re)issued;
+  # g_wtx_recovery_next_ms is the earliest millis() the servicer may issue
+  # (or re-issue, if a prior probe never got a response) that read.
+  - id: g_wtx_recovery_pending  # 0/1
+    type: uint8_t[6]
+  - id: g_wtx_recovery_next_ms
+    type: uint32_t[6]
   - id: g_write_tx_next_id
     type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # A write rejected by begin_write_tx (single-flight collision, or every
+  # slot busy) never gets a real Slot -- jk_write_tx::begin() returns -1
+  # before allocating one. Previously that meant NO terminal signal was
+  # ever published for it: the ESPHome set_action still returned HTTP 200
+  # (the action ran to completion; refusing to queue a command is not an
+  # error from ESPHome's own point of view), and the frontend's only way
+  # to learn the write never started was its own client-side timeout --
+  # exactly the "REJECTED is masked as a timeout" defect this addendum
+  # exists to close.
+  #
+  # Third critical audit (2026-09-10, item 4): a single set of "last
+  # rejected" scalars can only ever remember ONE rejection at a time -- a
+  # second, different-address rejection within the same publish window
+  # would silently overwrite the first's record before any client ever
+  # observed it. This is a real 4-slot ring buffer instead (independent of
+  # the 6-slot g_wtx_* pool, which only ever tracks ACCEPTED transactions)
+  # so up to 4 concurrent/near-simultaneous rejections each keep their own
+  # tx_id/address/timestamp. publish_write_tx_snapshot() (below) surfaces
+  # every entry still inside its own 3s grace period as a real, short-
+  # lived REJECTED(9) snapshot row, keyed by its own transaction id, using
+  # the SAME grace-period convention as a real terminal slot.
+  - id: g_wtx_rejected_addr
+    type: uint16_t[4]
+  - id: g_wtx_rejected_tx_id
+    type: uint32_t[4]
+  - id: g_wtx_rejected_ms
+    type: uint32_t[4]
+  - id: g_wtx_rejected_next_slot
+    type: uint8_t
     restore_value: false
     initial_value: "0"
 
@@ -1119,21 +1173,104 @@ interval:
             s.readback_started_ms = id(g_wtx_readback_started_ms)[i];
             s.readback_done = id(g_wtx_readback_done)[i] != 0;
             s.finished_ms = id(g_wtx_finished_ms)[i];
+            s.generation = id(g_wtx_generation)[i];
 
             const uint8_t prev_status = s.status;
             const auto result = jk_write_tx::tick(s, now);
+            bool terminal = result.terminal;
+
+            // Third critical audit (2026-09-10, item 7): an ACK/readback
+            // timeout is never reported as a plain completed error for
+            // the generic manager -- the write may have silently taken
+            // effect. Reclassify into jk_write_tx::WRITE_UNCERTAIN right
+            // here (NOT terminal yet), which also blocks a new write to
+            // this same address via jk_write_tx::is_pending(), and arm an
+            // immediate recovery-readback probe below -- mirroring the
+            // pattern CellCount's own bespoke uncertainty-recovery probe
+            // already uses (resolve_topology / g_topology_recovery_*).
+            if (terminal && (s.status == jk_write_tx::ACK_TIMEOUT || s.status == jk_write_tx::READBACK_TIMEOUT)) {
+              ESP_LOGW("jk_write_tx", "tx_id=%u addr=0x%04X ack/readback timeout (status=%u) -- entering WRITE_UNCERTAIN, launching recovery probe",
+                       unsigned(s.tx_id), unsigned(s.address), unsigned(s.status));
+              s.status = jk_write_tx::WRITE_UNCERTAIN;
+              id(g_wtx_recovery_pending)[i] = 1;
+              id(g_wtx_recovery_next_ms)[i] = now;
+              terminal = false;
+            }
 
             id(g_wtx_status)[i] = s.status;
             id(g_wtx_readback_started_ms)[i] = s.readback_started_ms;
             if (s.status != prev_status) changed = true;
 
+            // Uncertainty recovery probe -- only runs while WRITE_UNCERTAIN
+            // and no probe is already in flight for this slot; re-issued
+            // every 2s if a prior probe never got a response (mirrors the
+            // real ack/readback timeouts this same manager already uses).
+            // The callback captures the SAME immutable {idx, tx_id,
+            // address, generation} quadruple as the ACK/readback
+            // callbacks above and additionally re-checks the slot is
+            // still WRITE_UNCERTAIN -- a stale or superseded probe result
+            // must never mutate a transaction it no longer belongs to.
+            if (s.status == jk_write_tx::WRITE_UNCERTAIN && id(g_wtx_recovery_pending)[i] &&
+                now >= id(g_wtx_recovery_next_ms)[i]) {
+              id(g_wtx_recovery_next_ms)[i] = now + 2000U;
+              const uint16_t addr = s.address;
+              const uint16_t byte_count = uint16_t(s.word_count) * 2U;
+              const uint32_t recovery_tx_id = s.tx_id;
+              const uint16_t recovery_addr = s.address;
+              const uint32_t recovery_generation = s.generation;
+              auto recovery_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+                  id(bms0), esphome::modbus::EntityType::HOLDING, addr, byte_count,
+                  [i, recovery_tx_id, recovery_addr, recovery_generation](esphome::modbus::EntityType, uint16_t,
+                      std::span<const uint8_t> data) {
+                    if (id(g_wtx_generation)[i] != recovery_generation || id(g_wtx_tx_id)[i] != recovery_tx_id ||
+                        id(g_wtx_address)[i] != recovery_addr || id(g_wtx_status)[i] != jk_write_tx::WRITE_UNCERTAIN) {
+                      ESP_LOGW("jk_write_tx", "Stale recovery-probe response for tx_id=%u addr=0x%04X ignored (slot %d no longer WRITE_UNCERTAIN on this generation)",
+                               unsigned(recovery_tx_id), unsigned(recovery_addr), int(i));
+                      return;
+                    }
+                    const size_t need = size_t(id(g_wtx_word_count)[i]) * 2;
+                    if (data.size() < need) {
+                      ESP_LOGW("jk_write_tx", "Short recovery-probe readback for tx_id=%u addr=0x%04X (%u/%u bytes)",
+                               unsigned(recovery_tx_id), unsigned(recovery_addr), unsigned(data.size()), unsigned(need));
+                      return;
+                    }
+                    uint32_t v = 0;
+                    for (size_t b = 0; b < need; b++) v = (v << 8) | uint32_t(data[b]);
+                    id(g_wtx_readback_raw)[i] = v;
+                    const bool matches = jk_write_tx::compare_masked(id(g_wtx_requested_raw)[i], v, id(g_wtx_compare_mask)[i]);
+                    id(g_wtx_status)[i] = matches ? jk_write_tx::RECOVERED_CONFIRMED : jk_write_tx::RECOVERED_MISMATCH;
+                    id(g_wtx_recovery_pending)[i] = 0;
+                    id(g_wtx_finished_ms)[i] = millis();
+                    ESP_LOGI("jk_write_tx", "Recovery probe resolved tx_id=%u addr=0x%04X -> status=%u (requested=%u recovered=%u)",
+                             unsigned(recovery_tx_id), unsigned(recovery_addr), unsigned(id(g_wtx_status)[i]),
+                             unsigned(id(g_wtx_requested_raw)[i]), unsigned(v));
+                    id(publish_write_tx_snapshot)->execute();
+                  });
+              id(bms0)->queue_command(std::move(recovery_cmd));
+            }
+
             if (result.issue_readback) {
               const uint16_t addr = s.address;
               const uint16_t byte_count = uint16_t(s.word_count) * 2U;
+              // Third critical audit (2026-09-10, item 6): same immutable-
+              // quadruple capture-and-verify as the ACK callback above — a
+              // late readback response for a transaction this slot has
+              // since moved past must never write into the NEW
+              // transaction's readback_raw/readback_done, nor republish a
+              // stale value into the display entity below.
+              const uint32_t readback_tx_id = s.tx_id;
+              const uint16_t readback_addr = s.address;
+              const uint32_t readback_generation = s.generation;
               auto read_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
                   id(bms0), esphome::modbus::EntityType::HOLDING, addr, byte_count,
-                  [i](esphome::modbus::EntityType, uint16_t,
+                  [i, readback_tx_id, readback_addr, readback_generation](esphome::modbus::EntityType, uint16_t,
                       std::span<const uint8_t> data) {
+                    if (id(g_wtx_generation)[i] != readback_generation || id(g_wtx_tx_id)[i] != readback_tx_id ||
+                        id(g_wtx_address)[i] != readback_addr) {
+                      ESP_LOGW("jk_write_tx", "Stale readback for tx_id=%u addr=0x%04X ignored (slot %d now on a newer transaction)",
+                               unsigned(readback_tx_id), unsigned(readback_addr), int(i));
+                      return;
+                    }
                     const size_t need = size_t(id(g_wtx_word_count)[i]) * 2;
                     if (data.size() < need) {
                       ESP_LOGW("jk_write_tx", "Short readback for tx_id=%u addr=0x%04X (%u/%u bytes)",
@@ -1145,11 +1282,81 @@ interval:
                     for (size_t b = 0; b < need; b++) v = (v << 8) | uint32_t(data[b]);
                     id(g_wtx_readback_raw)[i] = v;
                     id(g_wtx_readback_done)[i] = 1;
+                    // BUG FIX: a CONFIRMED transaction only ever proved the
+                    // register itself changed -- it never told the entity
+                    // the REST of the UI actually displays that value from
+                    // (a separate sensor with its own slow, independent
+                    // poll cycle, e.g. cell_ovp or charging_control_raw).
+                    // That display entity kept its stale pre-write value
+                    // until its own next poll happened to land, and a
+                    // template select/number re-evaluates and republishes
+                    // on ITS OWN timer too -- so a confirmed write could
+                    // visibly "revert" seconds later when that timer fired
+                    // before the underlying sensor's own poll caught up
+                    // (reported live: turning Заряд дозволено off, seeing
+                    // it confirm, then watching it flip back on). Publish
+                    // the just-verified readback directly into the display
+                    // entity here, for every simple (non-packed) generic
+                    // register, so there is no window where the display can
+                    // show anything other than what was just confirmed.
+                    // Packed sub-field registers (rcv/rfv time, lcd buzzer
+                    // trigger + dry contact 1 source sharing 0x14E4, heating
+                    // activation/deactivation sharing 0x111C, dry contact 2
+                    // source at 0x14E6) are NOT covered here yet -- each
+                    // needs its own byte/shift extraction matching its own
+                    // display sensor's read lambda; left as a follow-up.
+                    const uint16_t a = id(g_wtx_address)[i];
+                    if (a == 0x1070) { id(charging_control_raw)->publish_state(float(v)); }
+                    else if (a == 0x1074) { id(discharging_control_raw)->publish_state(float(v)); }
+                    else if (a == 0x1078) { id(balancing_control_raw)->publish_state(float(v)); }
+                    else if (a == 0x107C) { id(battery_capacity)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1014) { id(start_balance_trigger)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1084) { id(start_balance)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1048) { id(max_balance_current)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x100C) { id(cell_ovp)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1020) { id(cell_request_charge_voltage)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1018) { id(soc_100)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1010) { id(cell_ovpr)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1008) { id(cell_uvpr)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x101C) { id(soc_0)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1004) { id(cell_uvp)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1028) { id(system_power_off)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1024) { id(cell_request_float_voltage)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1000) { id(smart_sleep)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x102C) { id(continued_charge_current)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x1030) { id(charge_ocp_delay)->publish_state(float(v)); }
+                    else if (a == 0x1034) { id(charge_ocpr_time)->publish_state(float(v)); }
+                    else if (a == 0x1038) { id(continued_discharge_current)->publish_state(float(v) / 1000.0f); }
+                    else if (a == 0x103C) { id(discharge_ocp_delay)->publish_state(float(v)); }
+                    else if (a == 0x1040) { id(discharge_ocpr_time)->publish_state(float(v)); }
+                    else if (a == 0x1044) { id(scpr_time)->publish_state(float(v)); }
+                    else if (a == 0x1080) { id(scp_delay)->publish_state(float(v)); }
+                    else if (a == 0x1054) { id(discharge_otp)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x1058) { id(discharge_otpr)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x104C) { id(charge_otp)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x1050) { id(charge_otpr)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x1060) { id(charge_utpr)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x105C) { id(charge_utp)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x1064) { id(mos_otp)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x1068) { id(mos_otpr)->publish_state(float(int32_t(v)) / 10.0f); }
+                    else if (a == 0x14F0) { id(dry_contact_1_trigger_value)->publish_state(float(int32_t(v))); }
+                    else if (a == 0x14F4) { id(dry_contact_1_recovery_value)->publish_state(float(int32_t(v))); }
+                    else if (a == 0x14F8) { id(dry_contact_2_trigger_value)->publish_state(float(int32_t(v))); }
+                    else if (a == 0x14FC) { id(dry_contact_2_recovery_value)->publish_state(float(int32_t(v))); }
+                    else if (a == 0x111C) {
+                      id(heating_activation_temperature)->publish_state(float(int8_t(uint8_t((v >> 8) & 0xFF))));
+                      id(heating_deactivation_temperature)->publish_state(float(int8_t(uint8_t(v & 0xFF))));
+                    }
+                    else if (a == 0x14E4) {
+                      id(lcd_buzzer_trigger_source)->publish_state(float((v >> 8) & 0xFF));
+                      id(dry_contact_1_trigger_source)->publish_state(float(v & 0xFF));
+                    }
+                    else if (a == 0x14E6) { id(dry_contact_2_trigger_source)->publish_state(float((v >> 8) & 0xFF)); }
                   });
               id(bms0)->queue_command(std::move(read_cmd));
             }
 
-            if (result.terminal) {
+            if (terminal) {
               id(g_wtx_finished_ms)[i] = now;
               ESP_LOGI("jk_write_tx", "Transaction tx_id=%u addr=0x%04X terminal status=%u (requested=%u readback=%u)",
                        unsigned(s.tx_id), unsigned(s.address), unsigned(s.status),
@@ -1302,6 +1509,29 @@ binary_sensor:
       // This is intentionally independent of the enable switch at 0x1078.
       if (isnan(id(balancing_raw).state)) return {};
       return id(balancing_raw).state > 0.0f;
+
+  # Read-only views of the three output-permission registers. The writer
+  # Select entities are internal safety stubs while write evidence is blocked.
+  - platform: template
+    id: charging_allowed
+    name: "charging allowed"
+    lambda: |-
+      if (isnan(id(charging_control_raw).state)) return {};
+      return uint32_t(id(charging_control_raw).state) != 0;
+
+  - platform: template
+    id: discharging_allowed
+    name: "discharging allowed"
+    lambda: |-
+      if (isnan(id(discharging_control_raw).state)) return {};
+      return uint32_t(id(discharging_control_raw).state) != 0;
+
+  - platform: template
+    id: balancing_allowed
+    name: "balancing allowed"
+    lambda: |-
+      if (isnan(id(balancing_control_raw).state)) return {};
+      return uint32_t(id(balancing_control_raw).state) != 0;
 
   - platform: modbus_controller
     modbus_controller_id: bms0
@@ -2291,7 +2521,7 @@ sensor:
     id: cell_resistance_1
     name: "cell 1 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2300,7 +2530,7 @@ sensor:
     id: cell_resistance_2
     name: "cell 2 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2309,7 +2539,7 @@ sensor:
     id: cell_resistance_3
     name: "cell 3 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2318,7 +2548,7 @@ sensor:
     id: cell_resistance_4
     name: "cell 4 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2327,7 +2557,7 @@ sensor:
     id: cell_resistance_5
     name: "cell 5 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2336,7 +2566,7 @@ sensor:
     id: cell_resistance_6
     name: "cell 6 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2345,7 +2575,7 @@ sensor:
     id: cell_resistance_7
     name: "cell 7 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2354,7 +2584,7 @@ sensor:
     id: cell_resistance_8
     name: "cell 8 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2363,7 +2593,7 @@ sensor:
     id: cell_resistance_9
     name: "cell 9 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2372,7 +2602,7 @@ sensor:
     id: cell_resistance_10
     name: "cell 10 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2381,7 +2611,7 @@ sensor:
     id: cell_resistance_11
     name: "cell 11 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2390,7 +2620,7 @@ sensor:
     id: cell_resistance_12
     name: "cell 12 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2399,7 +2629,7 @@ sensor:
     id: cell_resistance_13
     name: "cell 13 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2408,7 +2638,7 @@ sensor:
     id: cell_resistance_14
     name: "cell 14 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2417,7 +2647,7 @@ sensor:
     id: cell_resistance_15
     name: "cell 15 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -2426,7 +2656,7 @@ sensor:
     id: cell_resistance_16
     name: "cell 16 wire resistance"
     update_interval: never
-    unit_of_measurement: "Ω"
+    unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
 
@@ -3344,6 +3574,103 @@ sensor:
     value_type: U_DWORD
     skip_updates: 5
 
+  # Read-only decoded views for fields whose write semantics are not proven.
+  # These are sensors, not Number entities, so web/native API clients cannot
+  # obtain a writable endpoint or receive a false-success response.
+  #
+  # Stage 1 Completion Pass note: these 7 entities used to sit much further
+  # down in this file, directly after the `script:` block's last real item
+  # (resolve_topology) with no `sensor:` key of their own — meaning they
+  # were, until this fix, silently still LIST ITEMS of `script:`, which
+  # ESPHome's config validator rejects outright (their `platform`/`name`/
+  # `accuracy_decimals`/`update_interval` keys are not valid Script
+  # options). ESPHome does not allow a second top-level `sensor:` key
+  # (confirmed: "Duplicate key" is a hard config error, not merged), so
+  # they are relocated here, appended to this file's one real `sensor:`
+  # section, rather than given a header of their own. See
+  # STAGE_1_COMPLETION_AUDIT.md.
+  # 0x111C packed INT8/INT8 pair (see heating_thresholds_raw's own comment,
+  # above): high byte = activation threshold, low byte = deactivation
+  # threshold, both signed (-40..100 °C).
+  - platform: template
+    id: heating_activation_temperature
+    name: "heating activation temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 15s
+    lambda: |-
+      if (isnan(id(heating_thresholds_raw).state)) return NAN;
+      return float(int8_t(uint8_t(uint16_t(id(heating_thresholds_raw).state) >> 8)));
+
+  - platform: template
+    id: heating_deactivation_temperature
+    name: "heating deactivation temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 15s
+    lambda: |-
+      if (isnan(id(heating_thresholds_raw).state)) return NAN;
+      return float(int8_t(uint8_t(uint16_t(id(heating_thresholds_raw).state) & 0x00FF)));
+
+  - platform: template
+    id: lcd_buzzer_trigger_source
+    name: "lcd buzzer trigger"
+    accuracy_decimals: 0
+    update_interval: 15s
+    lambda: |-
+      if (isnan(id(lcd_dry1_sources_raw).state)) return NAN;
+      return float((uint16_t(id(lcd_dry1_sources_raw).state) >> 8) & 0xFF);
+
+  - platform: template
+    id: dry_contact_1_trigger_source
+    name: "dry contact 1 trigger source"
+    accuracy_decimals: 0
+    update_interval: 15s
+    lambda: |-
+      if (isnan(id(lcd_dry1_sources_raw).state)) return NAN;
+      return float(uint16_t(id(lcd_dry1_sources_raw).state) & 0x00FF);
+
+  - platform: template
+    id: dry_contact_2_trigger_source
+    name: "dry contact 2 trigger source"
+    accuracy_decimals: 0
+    update_interval: 15s
+    lambda: |-
+      if (isnan(id(dry2_protocol_raw).state)) return NAN;
+      return float((uint16_t(id(dry2_protocol_raw).state) >> 8) & 0x00FF);
+
+  - platform: template
+    id: dry_contact_1_trigger_value
+    name: "dry contact 1 trigger value"
+    accuracy_decimals: 0
+    update_interval: 15s
+    lambda: return id(dry_contact_1_trigger_value_raw).state;
+
+  - platform: template
+    id: dry_contact_1_recovery_value
+    name: "dry contact 1 recovery value"
+    accuracy_decimals: 0
+    update_interval: 15s
+    lambda: return id(dry_contact_1_recovery_value_raw).state;
+
+  - platform: template
+    id: dry_contact_2_trigger_value
+    name: "dry contact 2 trigger value"
+    accuracy_decimals: 0
+    update_interval: 15s
+    lambda: return id(dry_contact_2_trigger_value_raw).state;
+
+  - platform: template
+    id: dry_contact_2_recovery_value
+    name: "dry contact 2 recovery value"
+    accuracy_decimals: 0
+    update_interval: 15s
+    lambda: return id(dry_contact_2_recovery_value_raw).state;
+
 script:
   # Rebuilds and republishes the atomic JSON transaction snapshot
   # (write_tx_snapshot, text_sensor above) from the current slot array.
@@ -3368,6 +3695,23 @@ script:
                        unsigned(id(g_wtx_address)[i]), unsigned(id(g_wtx_tx_id)[i]), unsigned(id(g_wtx_status)[i]),
                        unsigned(id(g_wtx_requested_raw)[i]), unsigned(id(g_wtx_readback_raw)[i]));
             }
+            out += buf;
+          }
+          // A begin_write_tx() rejection (single-flight collision, or
+          // every slot busy) never allocates a real Slot -- surface EVERY
+          // rejection still inside its own 3s grace period (up to 4 can
+          // be tracked concurrently, see g_wtx_rejected_* above) as its
+          // own short-lived REJECTED(9) entry, so the frontend's tx-id-
+          // keyed watcher (findWriteTxEntry) sees a real terminal event
+          // instead of running out its own timeout -- and a second,
+          // different-address rejection can never silently overwrite an
+          // earlier one no client has observed yet.
+          for (size_t r = 0; r < 4; r++) {
+            if (id(g_wtx_rejected_tx_id)[r] == 0 || millis() - id(g_wtx_rejected_ms)[r] > 3000U) continue;
+            if (!first) out += ",";
+            first = false;
+            snprintf(buf, sizeof(buf), "{\"addr\":%u,\"tx_id\":%u,\"status\":9}",
+                     unsigned(id(g_wtx_rejected_addr)[r]), unsigned(id(g_wtx_rejected_tx_id)[r]));
             out += buf;
           }
           out += "]";
@@ -3404,6 +3748,7 @@ script:
           for (size_t i = 0; i < 6; i++) {
             local[i].in_use = id(g_wtx_in_use)[i] != 0;
             local[i].address = id(g_wtx_address)[i];
+            local[i].generation = id(g_wtx_generation)[i];
           }
           uint32_t next_id = id(g_write_tx_next_id);
           const uint16_t addr = uint16_t(address);
@@ -3413,6 +3758,13 @@ script:
           if (idx < 0) {
             ESP_LOGW("jk_write_tx", "Write to 0x%04X rejected -- a transaction for this register "
                      "is already in flight, or every transaction slot is busy", unsigned(addr));
+            const uint8_t rslot = id(g_wtx_rejected_next_slot);
+            id(g_wtx_rejected_addr)[rslot] = addr;
+            id(g_wtx_rejected_tx_id)[rslot] = ++next_id;
+            id(g_write_tx_next_id) = next_id;
+            id(g_wtx_rejected_ms)[rslot] = millis();
+            id(g_wtx_rejected_next_slot) = uint8_t((rslot + 1) % 4);
+            id(publish_write_tx_snapshot)->execute();
             return;
           }
           const auto &s = local[idx];
@@ -3430,14 +3782,34 @@ script:
           id(g_wtx_readback_done)[idx] = 0;
           id(g_wtx_finished_ms)[idx] = 0;
           id(g_wtx_suppress_value)[idx] = uint8_t(s.suppress_value ? 1 : 0);
+          id(g_wtx_generation)[idx] = s.generation;
+          // Third critical audit (2026-09-10, item 7): a fresh transaction
+          // must never inherit a stale recovery-probe flag left over from
+          // whatever OLD transaction last occupied this slot index.
+          id(g_wtx_recovery_pending)[idx] = 0;
 
           std::vector<uint16_t> words;
           if (word_count >= 2) words = {uint16_t(uint32_t(raw) >> 16), uint16_t(uint32_t(raw) & 0xFFFFU)};
           else words = {uint16_t(raw)};
           auto command = esphome::modbus_controller::ModbusCommandItem::create_write_multiple_command(
               id(bms0), addr, words.size(), words);
-          command.on_data_func = [idx](esphome::modbus::EntityType, uint16_t,
+          // Third critical audit (2026-09-10, item 6): capture the
+          // immutable {idx, tx_id, address, generation} quadruple this ACK
+          // belongs to, and verify ALL FOUR still match before mutating
+          // anything -- a late ACK for a transaction this slot has since
+          // moved past (reused by a newer write) is silently discarded
+          // instead of corrupting the new transaction's state.
+          const uint32_t ack_tx_id = s.tx_id;
+          const uint16_t ack_addr = s.address;
+          const uint32_t ack_generation = s.generation;
+          command.on_data_func = [idx, ack_tx_id, ack_addr, ack_generation](esphome::modbus::EntityType, uint16_t,
                                         std::span<const uint8_t>) {
+            if (id(g_wtx_generation)[idx] != ack_generation || id(g_wtx_tx_id)[idx] != ack_tx_id ||
+                id(g_wtx_address)[idx] != ack_addr) {
+              ESP_LOGW("jk_write_tx", "Stale ACK for tx_id=%u addr=0x%04X ignored (slot %d now on a newer transaction)",
+                       unsigned(ack_tx_id), unsigned(ack_addr), int(idx));
+              return;
+            }
             id(g_wtx_acked)[idx] = 1;
           };
           id(bms0)->queue_command(std::move(command));
@@ -3684,530 +4056,689 @@ script:
           }
 
 number:
-  # RW mirrors for the configuration registers above. These are separate
-  # Number entities so ESPHome web_server provides a safe /number/.../set
-  # endpoint; the original Sensor entity remains the authoritative readback.
-  - platform: template
-    id: set_rcv_time
-    name: "set rcv time"
-    min_value: 0
-    max_value: 25.5
-    step: 0.1
-    lambda: return id(rcv_time).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u16
-          address: 0x1504
-          raw: !lambda "return (int(lroundf(id(rfv_time).state * 10.0f)) << 8) | int(lroundf(x * 10.0f));"
-
-  - platform: template
-    id: set_rfv_time
-    name: "set rfv time"
-    min_value: 0
-    max_value: 25.5
-    step: 0.1
-    lambda: return id(rfv_time).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u16
-          address: 0x1504
-          raw: !lambda "return (int(lroundf(x * 10.0f)) << 8) | int(lroundf(id(rcv_time).state * 10.0f));"
-
-  - platform: template
-    id: lcd_buzzer_trigger_source
-    name: "lcd buzzer trigger"
-    min_value: 0
-    max_value: 255
-    step: 1
-    lambda: |-
-      if (isnan(id(lcd_dry1_sources_raw).state)) return NAN;
-      return float((uint16_t(id(lcd_dry1_sources_raw).state) >> 8) & 0xFF);
-    set_action:
-      - script.execute:
-          id: write_bms_u16
-          address: 0x14E4
-          raw: !lambda "return (int(x) << 8) | (int(id(lcd_dry1_sources_raw).state) & 0xFF);"
-
-  # CellCount is the one write in this file that changes which channels
-  # every other consumer trusts as real (see resolve_topology and
-  # jk_bms.js's activeCellCount()), so unlike every other RW register here
-  # it does NOT go through the shared write_bms_u32 script / a fixed delay
-  # / component.update (component.update on a modbus_controller sensor is a
-  # no-op — ModbusSensor never overrides Component::update() — so that
-  # never actually re-read anything; the register only refreshed on its
-  # normal ~5-minute control-params poll, skip_updates: 20 at 15s). This
-  # entity instead runs a real write -> ACK -> forced readback -> resolver
-  # transaction: set_action only fires the write and arms the state
-  # machine; the 250ms interval below (jk_topology tag) drives it to
-  # completion and is the only place that ever calls resolve_topology for
-  # a CellCount change. See that interval's own comment for the full
-  # sequence and every timeout.
   - platform: template
     id: set_cell_count
+    internal: true
     name: "set cell count"
     min_value: 1
     max_value: 16
     step: 1
     lambda: return id(cell_count).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification, and CellCount is the single
+    # highest-consequence write in this catalog (a wrong value can hide or
+    # miscount physically connected cells). The real write -> ACK -> forced
+    # dual-readback -> resolver-confirmation transaction machinery below is
+    # untouched and stays fully intact — only this trigger is stubbed, the
+    # exact same "leave the machinery dormant, refuse at the one real
+    # trigger point" pattern used throughout this project's fail-closed
+    # history. Re-enable by restoring the real trigger body (see git
+    # history / the fifth-pass ADR addendum for the exact code) once
+    # verified.
     set_action:
       - lambda: |-
-          if (id(g_cellcount_tx_pending)) {
-            ESP_LOGW("jk_topology", "CellCount write already in progress, ignoring new request");
-            return;
-          }
-          const int requested = int(lroundf(x));
-          if (requested < 1 || requested > 16) return;
-          id(g_cellcount_tx_pending) = true;
-          id(g_cellcount_tx_id) += 1;
-          id(g_cellcount_tx_target) = uint8_t(requested);
-          id(g_cellcount_tx_started_ms) = millis();
-          id(g_cellcount_write_acked) = false;
-          id(g_cellcount_readback_started_ms) = 0;
-          id(g_cellcount_readback_cellcount_done) = false;
-          id(g_cellcount_readback_mask_done) = false;
+          ESP_LOGE("jk_topology", "CellCount write rejected: reverted to "
+                   "fail-closed pending write-contract verification (topology, "
+                   "highest-consequence write in this catalog) — no Modbus "
+                   "command was queued.");
 
-          // Publish the transaction correlation id + PENDING topology
-          // state BEFORE the write goes out, so a client that starts
-          // watching right after its own POST resolves never has a
-          // window where topology_state still looks like the OLD
-          // terminal state (spec §5: the watcher must be armed before/at
-          // POST time, not racing a leftover previous determination).
-          id(cellcount_tx_id)->publish_state(float(id(g_cellcount_tx_id)));
-          id(cellcount_tx_status_code)->publish_state(1.0f);  // sending
-          id(g_topology_state_code) = 6;  // PENDING
-          id(g_topology_revision) += 1;
-          id(g_topology_last_publish_ms) = millis();
-          id(topology_state)->publish_state(std::string("PENDING"));
-          id(topology_reason)->publish_state(std::string("WRITE_IN_PROGRESS"));
-          id(topology_revision)->publish_state(float(id(g_topology_revision)));
-
-          const uint32_t value = uint32_t(requested);
-          std::vector<uint16_t> words{uint16_t(value >> 16), uint16_t(value & 0xFFFF)};
-          auto command = esphome::modbus_controller::ModbusCommandItem::create_write_multiple_command(
-              id(bms0), uint16_t(0x106C), words.size(), words);
-          // Overrides create_write_multiple_command's default handler (which
-          // just logs at VERBOSE via on_write_register_response) so the
-          // transaction can tell "acknowledged" from "still waiting" for
-          // real, instead of assuming success after a fixed delay.
-          command.on_data_func = [](esphome::modbus::EntityType, uint16_t,
-                                     std::span<const uint8_t>) {
-            id(g_cellcount_write_acked) = true;
-          };
-          id(bms0)->queue_command(std::move(command));
-
-  - platform: template
-    id: set_battery_capacity
-    name: "set battery capacity"
-    min_value: 1
-    max_value: 2000
-    step: 0.001
-    lambda: return id(battery_capacity).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x107C, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_start_balance_trigger
-    name: "set start balance trigger"
-    min_value: 0
-    max_value: 1
-    step: 0.001
-    lambda: return id(start_balance_trigger).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1014, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_start_balance
-    name: "set start balance"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(start_balance).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1084, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_max_balance_current
-    name: "set max balance current"
-    min_value: 0
-    max_value: 20
-    step: 0.001
-    lambda: return id(max_balance_current).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1048, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_cell_ovp
-    name: "set cell ovp"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(cell_ovp).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x100C, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_cell_rcv
-    name: "set cell rcv"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(cell_request_charge_voltage).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1020, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_soc_100
-    name: "set soc 100"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(soc_100).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1018, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_cell_ovpr
-    name: "set cell ovpr"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(cell_ovpr).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1010, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_cell_uvpr
-    name: "set cell uvpr"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(cell_uvpr).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1008, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_soc_0
-    name: "set soc 0"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(soc_0).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x101C, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_cell_uvp
-    name: "set cell uvp"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(cell_uvp).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1004, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_system_power_off
-    name: "set system power off"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(system_power_off).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1028, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
-  - platform: template
-    id: set_cell_rfv
-    name: "set cell rfv"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(cell_request_float_voltage).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1024, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
+  # Owner-authorized write re-enablement (2026-09-10) for the generic,
+  # non-packed numeric RW registers — see registers.canonical.json's
+  # owner_write_override on each of these keys and docs/adr/0001-protocol-
+  # catalog.md's addendum. Each writes through the already-existing,
+  # already-tested generic Write Transaction Manager (write_bms_u32/u16 ->
+  # begin_write_tx, above), so this pass only had to add the entity itself
+  # — the ACK/forced-readback/display-republish machinery already existed
+  # for every one of these addresses (see the 250ms write-tx servicer's
+  # readback switch, above). rcv_time/rfv_time share one packed 16-bit
+  # register (0x1504) and each re-reads its sibling's live value so the
+  # untouched byte is preserved on write (registers.canonical.json's own
+  # overlap_rule for this pair).
   - platform: template
     id: set_smart_sleep
+    internal: true
     name: "set smart sleep"
     min_value: 0
     max_value: 6
     step: 0.001
     lambda: return id(smart_sleep).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1000, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1000
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
 
   - platform: template
+    id: set_cell_uvp
+    internal: true
+    name: "set cell uvp"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_uvp).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_cell_uvp (0x1004) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
+  - platform: template
+    id: set_cell_uvpr
+    internal: true
+    name: "set cell uvpr"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_uvpr).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1008
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
+
+  - platform: template
+    id: set_cell_ovp
+    internal: true
+    name: "set cell ovp"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_ovp).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_cell_ovp (0x100C) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
+  - platform: template
+    id: set_cell_ovpr
+    internal: true
+    name: "set cell ovpr"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_ovpr).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1010
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
+
+  - platform: template
+    id: set_start_balance_trigger
+    internal: true
+    name: "set start balance trigger"
+    min_value: 0
+    max_value: 1
+    step: 0.001
+    lambda: return id(start_balance_trigger).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1014
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
+
+  - platform: template
+    id: set_soc_100
+    internal: true
+    name: "set soc 100"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(soc_100).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1018
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
+
+  - platform: template
+    id: set_soc_0
+    internal: true
+    name: "set soc 0"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(soc_0).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x101C
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
+
+  - platform: template
+    id: set_cell_rcv
+    internal: true
+    name: "set cell rcv"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_request_charge_voltage).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1020
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
+
+  - platform: template
+    id: set_cell_rfv
+    internal: true
+    name: "set cell rfv"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(cell_request_float_voltage).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1024
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
+
+  - platform: template
+    id: set_system_power_off
+    internal: true
+    name: "set system power off"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(system_power_off).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_system_power_off (0x1028) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
+  - platform: template
     id: set_continued_charge_current
+    internal: true
     name: "set continued charge current"
     min_value: 0
     max_value: 2000
     step: 0.001
     lambda: return id(continued_charge_current).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x102C, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_continued_charge_current (0x102C) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
   - platform: template
     id: set_charge_ocp_delay
+    internal: true
     name: "set charge ocp delay"
     min_value: 0
     max_value: 2147483647
     step: 1
     lambda: return id(charge_ocp_delay).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1030, raw: !lambda "return int(x);"}}]
-
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_charge_ocp_delay (0x1030) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
   - platform: template
     id: set_charge_ocpr_time
+    internal: true
     name: "set charge ocpr time"
     min_value: 0
     max_value: 2147483647
     step: 1
     lambda: return id(charge_ocpr_time).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1034, raw: !lambda "return int(x);"}}]
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1034
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1.0f)));'
 
   - platform: template
     id: set_continued_discharge_current
+    internal: true
     name: "set continued discharge current"
     min_value: 0
     max_value: 2000
     step: 0.001
     lambda: return id(continued_discharge_current).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1038, raw: !lambda "return int(lroundf(x * 1000.0f));"}}]
-
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_continued_discharge_current (0x1038) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
   - platform: template
     id: set_discharge_ocp_delay
+    internal: true
     name: "set discharge ocp delay"
     min_value: 0
     max_value: 2147483647
     step: 1
     lambda: return id(discharge_ocp_delay).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x103C, raw: !lambda "return int(x);"}}]
-
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_discharge_ocp_delay (0x103C) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
   - platform: template
     id: set_discharge_ocpr_time
+    internal: true
     name: "set discharge ocpr time"
     min_value: 0
     max_value: 2147483647
     step: 1
     lambda: return id(discharge_ocpr_time).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1040, raw: !lambda "return int(x);"}}]
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1040
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1.0f)));'
 
   - platform: template
     id: set_scpr_time
+    internal: true
     name: "set scpr time"
     min_value: 0
     max_value: 2147483647
     step: 1
     lambda: return id(scpr_time).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1044, raw: !lambda "return int(x);"}}]
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1044
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1.0f)));'
 
   - platform: template
-    id: set_scp_delay
-    name: "set scp delay"
+    id: set_max_balance_current
+    internal: true
+    name: "set max balance current"
     min_value: 0
-    max_value: 2147483647
-    step: 1
-    lambda: return id(scp_delay).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1080, raw: !lambda "return int(x);"}}]
-
-  # Signed temperature registers use the same two-word frame; casting the
-  # scaled signed value to uint32_t preserves its two's-complement payload.
-  - platform: template
-    id: set_discharge_otp
-    name: "set discharge otp"
-    min_value: -100
-    max_value: 200
-    step: 0.1
-    lambda: return id(discharge_otp).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1054, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
-
-  - platform: template
-    id: set_discharge_otpr
-    name: "set discharge otpr"
-    min_value: -100
-    max_value: 200
-    step: 0.1
-    lambda: return id(discharge_otpr).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1058, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+    max_value: 20
+    step: 0.001
+    lambda: return id(max_balance_current).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1048
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
 
   - platform: template
     id: set_charge_otp
+    internal: true
     name: "set charge otp"
     min_value: -100
     max_value: 200
     step: 0.1
     lambda: return id(charge_otp).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x104C, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
-
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_charge_otp (0x104C) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
   - platform: template
     id: set_charge_otpr
+    internal: true
     name: "set charge otpr"
     min_value: -100
     max_value: 200
     step: 0.1
     lambda: return id(charge_otpr).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1050, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1050
+          raw: !lambda 'return int(int32_t(lroundf(x * 10.0f)));'
 
   - platform: template
-    id: set_charge_utpr
-    name: "set charge utpr"
+    id: set_discharge_otp
+    internal: true
+    name: "set discharge otp"
     min_value: -100
     max_value: 200
     step: 0.1
-    lambda: return id(charge_utpr).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1060, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+    lambda: return id(discharge_otp).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_discharge_otp (0x1054) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
+  - platform: template
+    id: set_discharge_otpr
+    internal: true
+    name: "set discharge otpr"
+    min_value: -100
+    max_value: 200
+    step: 0.1
+    lambda: return id(discharge_otpr).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1058
+          raw: !lambda 'return int(int32_t(lroundf(x * 10.0f)));'
 
   - platform: template
     id: set_charge_utp
+    internal: true
     name: "set charge utp"
     min_value: -100
     max_value: 200
     step: 0.1
     lambda: return id(charge_utp).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x105C, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_charge_utp (0x105C) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
+  - platform: template
+    id: set_charge_utpr
+    internal: true
+    name: "set charge utpr"
+    min_value: -100
+    max_value: 200
+    step: 0.1
+    lambda: return id(charge_utpr).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1060
+          raw: !lambda 'return int(int32_t(lroundf(x * 10.0f)));'
 
   - platform: template
     id: set_mos_otp
+    internal: true
     name: "set mos otp"
     min_value: -100
     max_value: 200
     step: 0.1
     lambda: return id(mos_otp).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1064, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
-
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_mos_otp (0x1064) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
   - platform: template
     id: set_mos_otpr
+    internal: true
     name: "set mos otpr"
     min_value: -100
     max_value: 200
     step: 0.1
     lambda: return id(mos_otpr).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x1068, raw: !lambda "return int(lroundf(x * 10.0f));"}}]
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1068
+          raw: !lambda 'return int(int32_t(lroundf(x * 10.0f)));'
 
-  # Template numbers write explicit function-0x10 frames. This works on ESPHome
-  # releases whose modbus_controller Number schema lacks register_count.
   - platform: template
-    id: heating_activation_temperature
-    name: "heating activation temperature"
-    unit_of_measurement: "°C"
-    device_class: temperature
-    mode: box
+    id: set_battery_capacity
+    internal: true
+    name: "set battery capacity"
+    min_value: 1
+    max_value: 2000
+    step: 0.001
+    lambda: return id(battery_capacity).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x107C
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
+
+  - platform: template
+    id: set_scp_delay
+    internal: true
+    name: "set scp delay"
+    min_value: 0
+    max_value: 2147483647
+    step: 1
+    lambda: return id(scp_delay).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_scp_delay (0x1080) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
+  - platform: template
+    id: set_start_balance
+    internal: true
+    name: "set start balance"
+    min_value: 0
+    max_value: 6
+    step: 0.001
+    lambda: return id(start_balance).state;
+    set_action:
+      - script.execute:
+          id: write_bms_u32
+          address: 0x1084
+          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
+
+  - platform: template
+    id: set_rcv_time
+    internal: true
+    name: "set rcv time"
+    min_value: 0
+    max_value: 25.5
+    step: 0.1
+    lambda: return id(rcv_time).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_rcv_time (0x1504) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(packed/unresolved-dependency) -- no Modbus command was queued.");
+  - platform: template
+    id: set_rfv_time
+    internal: true
+    name: "set rfv time"
+    min_value: 0
+    max_value: 25.5
+    step: 0.1
+    lambda: return id(rfv_time).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_rfv_time (0x1504) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(packed/unresolved-dependency) -- no Modbus command was queued.");
+  - platform: template
+    id: set_heating_activation_temperature
+    internal: true
+    name: "set heating activation temperature"
     min_value: -40
     max_value: 100
     step: 1
-    update_interval: 15s
-    lambda: |-
-      if (isnan(id(heating_thresholds_raw).state)) return NAN;
-      const uint16_t raw = uint16_t(id(heating_thresholds_raw).state);
-      return float(int8_t((raw >> 8) & 0xFF));
-    # Packed register (0x111C): the high byte is this field, the low byte
-    # is heating_deactivation_temperature's, below. The old (untouched)
-    # byte is read fresh at write time and merged in, then the FULL
-    # resulting word is routed through write_bms_u32/u16's now-generic
-    # write -> ACK -> forced-readback transaction (spec §4.1) — a
-    # whole-word compare is correct here (not just the changed byte)
-    # because the write itself already encodes the byte we intend to
-    # PRESERVE, not just the one we intend to change.
+    lambda: return id(heating_activation_temperature).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
     set_action:
-      - script.execute:
-          id: write_bms_u16
-          address: 0x111C
-          raw: !lambda |-
-            const uint16_t old_raw = isnan(id(heating_thresholds_raw).state)
-                ? 0U : uint16_t(id(heating_thresholds_raw).state);
-            return int((uint16_t(uint8_t(int8_t(x))) << 8) | (old_raw & 0x00FF));
-
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_heating_activation_temperature (0x111C) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(packed/unresolved-dependency) -- no Modbus command was queued.");
   - platform: template
-    id: heating_deactivation_temperature
-    name: "heating deactivation temperature"
-    unit_of_measurement: "°C"
-    device_class: temperature
-    mode: box
+    id: set_heating_deactivation_temperature
+    internal: true
+    name: "set heating deactivation temperature"
     min_value: -40
     max_value: 100
     step: 1
-    update_interval: 15s
-    lambda: |-
-      if (isnan(id(heating_thresholds_raw).state)) return NAN;
-      const uint16_t raw = uint16_t(id(heating_thresholds_raw).state);
-      return float(int8_t(raw & 0xFF));
+    lambda: return id(heating_deactivation_temperature).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
     set_action:
-      - script.execute:
-          id: write_bms_u16
-          address: 0x111C
-          raw: !lambda |-
-            const uint16_t old_raw = isnan(id(heating_thresholds_raw).state)
-                ? 0U : uint16_t(id(heating_thresholds_raw).state);
-            return int((old_raw & 0xFF00) | uint16_t(uint8_t(int8_t(x))));
-
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_heating_deactivation_temperature (0x111C) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(packed/unresolved-dependency) -- no Modbus command was queued.");
   - platform: template
-    id: dry_contact_1_trigger_source
-    name: "dry contact 1 trigger source"
-    mode: box
+    id: set_lcd_buzzer_trigger
+    internal: true
+    name: "set lcd buzzer trigger"
+    min_value: 0
+    max_value: 255
+    step: 1
+    lambda: return id(lcd_buzzer_trigger_source).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_lcd_buzzer_trigger (0x14E4) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(packed/unresolved-dependency) -- no Modbus command was queued.");
+  - platform: template
+    id: set_dry_contact_1_trigger_source
+    internal: true
+    name: "set dry contact 1 trigger source"
     min_value: 0
     max_value: 12
     step: 1
-    update_interval: 15s
-    lambda: |-
-      if (isnan(id(lcd_dry1_sources_raw).state)) return NAN;
-      return float(uint16_t(id(lcd_dry1_sources_raw).state) & 0x00FF);
+    lambda: return id(dry_contact_1_trigger_source).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
     set_action:
-      - script.execute:
-          id: write_bms_u16
-          address: 0x14E4
-          raw: !lambda |-
-            const uint16_t old_raw = isnan(id(lcd_dry1_sources_raw).state)
-                ? 0U : uint16_t(id(lcd_dry1_sources_raw).state);
-            return int((old_raw & 0xFF00) | (uint16_t(x) & 0x00FF));
-
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_dry_contact_1_trigger_source (0x14E4) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(packed/unresolved-dependency) -- no Modbus command was queued.");
   - platform: template
-    id: dry_contact_2_trigger_source
-    name: "dry contact 2 trigger source"
-    mode: box
+    id: set_dry_contact_2_trigger_source
+    internal: true
+    name: "set dry contact 2 trigger source"
     min_value: 0
     max_value: 12
     step: 1
-    update_interval: 15s
-    lambda: |-
-      if (isnan(id(dry2_protocol_raw).state)) return NAN;
-      return float((uint16_t(id(dry2_protocol_raw).state) >> 8) & 0x00FF);
+    lambda: return id(dry_contact_2_trigger_source).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
     set_action:
-      - script.execute:
-          id: write_bms_u16
-          address: 0x14E6
-          raw: !lambda |-
-            const uint16_t old_raw = isnan(id(dry2_protocol_raw).state)
-                ? 0U : uint16_t(id(dry2_protocol_raw).state);
-            return int(((uint16_t(x) & 0x00FF) << 8) | (old_raw & 0x00FF));
-
-  # Signed trigger and recovery values. Units depend on the selected DRY source.
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_dry_contact_2_trigger_source (0x14E6) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(packed/unresolved-dependency) -- no Modbus command was queued.");
   - platform: template
-    id: dry_contact_1_trigger_value
-    name: "dry contact 1 trigger value"
+    id: set_dry_contact_1_trigger_value
+    internal: true
+    name: "set dry contact 1 trigger value"
     min_value: -16777215
     max_value: 16777215
     step: 1
-    mode: box
-    update_interval: 15s
-    lambda: return id(dry_contact_1_trigger_value_raw).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x14F0, raw: !lambda "return int(int32_t(x));"}}]
-
+    lambda: return id(dry_contact_1_trigger_value).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_dry_contact_1_trigger_value (0x14F0) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(unresolved-dynamic-dependency) -- no Modbus command was queued.");
   - platform: template
-    id: dry_contact_1_recovery_value
-    name: "dry contact 1 recovery value"
+    id: set_dry_contact_1_recovery_value
+    internal: true
+    name: "set dry contact 1 recovery value"
     min_value: -16777215
     max_value: 16777215
     step: 1
-    mode: box
-    update_interval: 15s
-    lambda: return id(dry_contact_1_recovery_value_raw).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x14F4, raw: !lambda "return int(int32_t(x));"}}]
-
+    lambda: return id(dry_contact_1_recovery_value).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_dry_contact_1_recovery_value (0x14F4) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(unresolved-dynamic-dependency) -- no Modbus command was queued.");
   - platform: template
-    id: dry_contact_2_trigger_value
-    name: "dry contact 2 trigger value"
+    id: set_dry_contact_2_trigger_value
+    internal: true
+    name: "set dry contact 2 trigger value"
     min_value: -16777215
     max_value: 16777215
     step: 1
-    mode: box
-    update_interval: 15s
-    lambda: return id(dry_contact_2_trigger_value_raw).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x14F8, raw: !lambda "return int(int32_t(x));"}}]
-
+    lambda: return id(dry_contact_2_trigger_value).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_dry_contact_2_trigger_value (0x14F8) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(unresolved-dynamic-dependency) -- no Modbus command was queued.");
   - platform: template
-    id: dry_contact_2_recovery_value
-    name: "dry contact 2 recovery value"
+    id: set_dry_contact_2_recovery_value
+    internal: true
+    name: "set dry contact 2 recovery value"
     min_value: -16777215
     max_value: 16777215
     step: 1
-    mode: box
-    update_interval: 15s
-    lambda: return id(dry_contact_2_recovery_value_raw).state;
-    set_action: [{script.execute: {id: write_bms_u32, address: 0x14FC, raw: !lambda "return int(int32_t(x));"}}]
-
+    lambda: return id(dry_contact_2_recovery_value).state;
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
+    set_action:
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to set_dry_contact_2_recovery_value (0x14FC) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(unresolved-dynamic-dependency) -- no Modbus command was queued.");
 select:
   # Converted from platform: modbus_controller to platform: template so
   # each gets a custom set_action routing through the generic Write
@@ -4220,8 +4751,31 @@ select:
   # family — charging_raw — NOT this control register at 0x1070). The
   # displayed option is the LAST CONFIRMED register value
   # (charging_control_raw, above), never an optimistic echo of the click.
+  #
+  # Stage 1 Completion Pass (CODEX_STAGE_1_REMEDIATION_RESULT_REVIEW.md
+  # P0-2/P0-4, user-confirmed 2026-09-09): charging/discharging/balancing
+  # (0x1070/0x1074/0x1078) have the same evidence gap as every other
+  # protection-threshold RW field (verification_status
+  # "implementation_only_unverified" — implementation and upstream share
+  # one derivation group; workbook provenance is unknown) and are declared
+  # write_safety_class "disruptive". All three set_action bodies below now
+  # refuse unconditionally instead of calling begin_write_tx — no Modbus
+  # write is ever queued for these addresses. The entity keeps its
+  # `select` domain and its lambda: read function (unchanged), so the
+  # dropdown continues to correctly display the real, live enabled/
+  # disabled state; picking an option in the UI now has no effect (the
+  # display reverts to the real state on the next poll) rather than
+  # silently reporting a fake success — kept as `select` rather than
+  # converted to a plain read-only sensor specifically so this file did
+  # not also have to change jk_bms.js's several "select" + charging/
+  # discharging/balancing frontend code paths (rendering, control pills,
+  # timeline) under the same time-boxed pass; STAGE_1_COMPLETION_AUDIT.md
+  # discloses this as a residual UX gap, not a write-safety one — the
+  # generic Write Transaction Manager's begin_write_tx is never invoked,
+  # which is the property that actually matters.
   - platform: template
     id: select_charging
+    internal: true
     name: "charging"
     icon: "mdi:battery-charging-100"
     options:
@@ -4230,11 +4784,18 @@ select:
     lambda: |-
       if (isnan(id(charging_control_raw).state)) return {};
       return uint32_t(id(charging_control_raw).state) != 0 ? std::string("On") : std::string("Off");
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
     set_action:
-      - script.execute: {id: begin_write_tx, address: 0x1070, word_count: 2, raw: !lambda "return x == \"On\" ? 1 : 0;", mask: -1, suppress: 0}
-
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to select_charging (0x1070) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
   - platform: template
     id: select_discharging
+    internal: true
     name: "discharging"
     icon: "mdi:power-plug-battery"
     options:
@@ -4243,11 +4804,18 @@ select:
     lambda: |-
       if (isnan(id(discharging_control_raw).state)) return {};
       return uint32_t(id(discharging_control_raw).state) != 0 ? std::string("On") : std::string("Off");
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): owner_write_override alone is risk
+    # acceptance, not protocol verification. No Modbus command is queued.
     set_action:
-      - script.execute: {id: begin_write_tx, address: 0x1074, word_count: 2, raw: !lambda "return x == \"On\" ? 1 : 0;", mask: -1, suppress: 0}
-
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to select_discharging (0x1074) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
   - platform: template
     id: select_balancing
+    internal: true
     name: "balancing"
     icon: mdi:scale-balance
     options:
@@ -4256,8 +4824,17 @@ select:
     lambda: |-
       if (isnan(id(balancing_control_raw).state)) return {};
       return uint32_t(id(balancing_control_raw).state) != 0 ? std::string("On") : std::string("Off");
+    # Reverted to fail-closed (2026-09-10, third critical audit):
+    # registers.canonical.json wrongly had write_safety_class "normal" for
+    # this field, contradicting this file's OWN comment two entities above
+    # (charging/discharging/balancing "are declared write_safety_class
+    # 'disruptive'", Stage 1 Completion Pass) — fixed to match, and
+    # reverted here for consistency with charging/discharging.
     set_action:
-      - script.execute: {id: begin_write_tx, address: 0x1078, word_count: 2, raw: !lambda "return x == \"On\" ? 1 : 0;", mask: -1, suppress: 0}
+      - lambda: |-
+          ESP_LOGE("jk_write_block", "Write to select_balancing (0x1078) rejected: "
+                   "reverted to fail-closed pending write-contract verification "
+                   "(disruptive/unverified) -- no Modbus command was queued.");
 
 text:
   # `bms_display_name` (text_sensor, elsewhere in this file) is a compile-
@@ -4278,6 +4855,7 @@ text:
 
   - platform: template
     id: setup_passcode
+    internal: true
     name: "setup passcode"
     icon: "mdi:form-textbox-password"
     mode: password
@@ -4286,47 +4864,18 @@ text:
     update_interval: 60s
     # Never publish the secret returned by 0x1470 to API/web clients.
     lambda: return std::string("****************");
+    # Reverted to fail-closed (2026-09-10, second critical audit) pending
+    # independent write-contract verification (see docs/adr/0001-protocol-
+    # catalog.md's sixth-pass addendum): credential-class write, and the
+    # prior pass's own encoding was never independently reviewed (URL-
+    # query transport, no strict-ASCII validation). The write -> ACK ->
+    # forced-readback-and-compare transaction machinery below is untouched
+    # and stays fully intact — only this trigger is stubbed.
     set_action:
       - lambda: |-
-          if (x.empty() || x.size() > 16) {
-            ESP_LOGE("jk_passcode", "Passcode must contain 1..16 ASCII characters");
-            return;
-          }
-          if (id(g_passcode_tx_pending)) {
-            ESP_LOGW("jk_passcode", "Passcode write already in progress, ignoring new request");
-            return;
-          }
-
-          // One bounded allocation for this rare control-path operation.
-          std::vector<uint16_t> words(8, 0);
-          for (size_t i = 0; i < x.size(); ++i) {
-            const uint8_t c = static_cast<uint8_t>(x[i]);
-            if (c < 0x20 || c > 0x7E) {
-              ESP_LOGE("jk_passcode", "Passcode contains non-printable ASCII");
-              return;
-            }
-            if ((i & 1U) == 0U) words[i >> 1U] = uint16_t(c) << 8;
-            else words[i >> 1U] |= uint16_t(c);
-          }
-          for (size_t i = 0; i < 8; i++) id(g_passcode_expected_words)[i] = words[i];
-
-          id(g_passcode_tx_pending) = true;
-          id(g_passcode_tx_id) += 1;
-          id(g_passcode_tx_started_ms) = millis();
-          id(g_passcode_write_acked) = false;
-          id(g_passcode_readback_started_ms) = 0;
-          id(g_passcode_readback_done) = false;
-          id(setup_passcode_tx_status_code)->publish_state(1.0f);  // sending
-
-          const uint32_t tx_id = id(g_passcode_tx_id);
-          auto *controller = id(bms0);
-          auto command = esphome::modbus_controller::ModbusCommandItem::create_write_multiple_command(
-              controller, 0x1470, words.size(), words);
-          command.on_data_func = [tx_id](esphome::modbus::EntityType, uint16_t,
-                                          std::span<const uint8_t>) {
-            if (id(g_passcode_tx_id) == tx_id) id(g_passcode_write_acked) = true;
-          };
-          controller->queue_command(std::move(command));
+          ESP_LOGE("jk_passcode", "Passcode write rejected: reverted to "
+                   "fail-closed pending write-contract verification "
+                   "(credential class) — no Modbus command was queued.");
 
 text_sensor:
   - platform: wifi_info

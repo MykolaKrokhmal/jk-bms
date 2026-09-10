@@ -44,6 +44,20 @@ enum Status : uint8_t {
   ACK_TIMEOUT = 7,
   READBACK_TIMEOUT = 8,
   REJECTED = 9,
+  // Third critical audit (2026-09-10, item 7): also not emitted by tick()
+  // itself. The generic write manager's caller (batterylifepo4.yaml's
+  // 250ms servicer) reclassifies a slot that just hit ACK_TIMEOUT/
+  // READBACK_TIMEOUT into WRITE_UNCERTAIN, then launches an independent
+  // recovery readback (mirroring CellCount's own bespoke uncertainty-
+  // recovery probe) instead of just reporting a plain completed error --
+  // the write may have silently taken effect even though its ACK or
+  // forced readback never arrived. These two codes are the ONLY way such
+  // a slot may leave WRITE_UNCERTAIN: RECOVERED_CONFIRMED means the
+  // recovery read matched what was requested (the write DID apply,
+  // just unconfirmed at the time); RECOVERED_MISMATCH means it read back
+  // something else (the write did not apply, or applied differently).
+  RECOVERED_CONFIRMED = 10,
+  RECOVERED_MISMATCH = 11,
 };
 
 constexpr uint32_t DEFAULT_ACK_TIMEOUT_MS = 3000;
@@ -83,6 +97,20 @@ struct Slot {
   // internally so a genuine failure is still reported, it just never
   // exposes requested_raw/readback_raw in the published JSON snapshot.
   bool suppress_value = false;
+  // Third critical audit (2026-09-10, item 6): bumped by begin() every
+  // time this slot index is (re)used for a NEW transaction. The Modbus
+  // ACK/readback callbacks the caller registers close over a slot INDEX,
+  // not a C++ reference (see jk_write_tx_core.h's own module comment —
+  // storage lives in parallel arrays, not a real Slot object) — a late
+  // callback belonging to an OLD transaction at that same index must
+  // never mutate a NEWER one that has since reused it. The caller
+  // captures {idx, tx_id, address, generation} at command-issue time and
+  // verifies ALL FOUR still match before writing anything back (tx_id and
+  // address are redundant with generation in the current caller, kept
+  // because the raw wire callback already has them cheaply available and
+  // an explicit belt-and-suspenders check is cheap insurance against a
+  // future refactor that loosens the generation check alone).
+  uint32_t generation = 0;
 };
 
 inline bool compare_masked(uint32_t requested, uint32_t readback, uint32_t mask) {
@@ -90,7 +118,15 @@ inline bool compare_masked(uint32_t requested, uint32_t readback, uint32_t mask)
 }
 
 inline bool is_pending(uint8_t status) {
-  return status == SENDING || status == ACK_WAIT || status == READBACK_WAIT;
+  // Third critical audit (2026-09-10, item 7): WRITE_UNCERTAIN counts as
+  // pending too -- a slot the caller has reclassified into recovery must
+  // keep blocking a new write to the SAME address (begin()'s single-
+  // flight guard, below) exactly like a genuinely in-flight transaction,
+  // until the recovery probe resolves it to RECOVERED_CONFIRMED/
+  // RECOVERED_MISMATCH (neither of which is "pending" -- the address
+  // becomes writable again the instant recovery finishes, same as any
+  // other terminal status).
+  return status == SENDING || status == ACK_WAIT || status == READBACK_WAIT || status == WRITE_UNCERTAIN;
 }
 
 // Starts a new transaction in a free slot. Enforces the single-flight-
@@ -126,6 +162,7 @@ int begin(std::array<Slot, N> &slots, uint32_t &next_tx_id, uint16_t address,
   }
   for (size_t i = 0; i < N; i++) {
     if (!slots[i].in_use) {
+      const uint32_t prior_generation = slots[i].generation; // preserved across reuse -- see Slot::generation's own comment
       Slot fresh;
       fresh.in_use = true;
       fresh.tx_id = ++next_tx_id;
@@ -136,6 +173,7 @@ int begin(std::array<Slot, N> &slots, uint32_t &next_tx_id, uint16_t address,
       fresh.status = SENDING;
       fresh.started_ms = now_ms;
       fresh.suppress_value = suppress_value;
+      fresh.generation = prior_generation + 1;
       slots[i] = fresh;
       return int(i);
     }

@@ -1,6 +1,6 @@
 # Hardware Validation Checklist — JK BMS
 
-**Status of every item below: NOT EXECUTED.** No physical ESP32 or JK BMS is available in this development environment. This is not a set of empty checkboxes waiting to be ticked casually — each row states exactly what to run, what a pass looks like, and what a failure would indicate, so a real hardware session can execute this checklist directly rather than re-deriving it. Do not mark anything "PASS" without actually performing it on real hardware.
+**Статус: ЧАСТКОВО ВИКОНАНО 2026-09-09 у режимі лише читання.** Реальний ESP32 + JK BMS був доступний, але жоден hardware write, reboot, disconnect, load/charge або fault-injection тест не виконувався. Детальний протокол: `HARDWARE_AUDIT_2026-09-09.md`; відкриті дефекти: `OPEN_ISSUES.md`. Не позначайте решту пунктів PASS за результатами mock/compile.
 
 Software-side equivalents (mock simulator + real ESPHome cross-compile) are already verified — see `FINAL_READINESS_REPORT.md`. Nothing here should be inferred as passed from that.
 
@@ -19,9 +19,9 @@ Software-side equivalents (mock simulator + real ESPHome cross-compile) are alre
 
 ## 2. Topology (read-only, at whatever cell count the test pack actually has)
 
-- [ ] `topology_state` reaches CONFIRMED at the pack's real cell count.
-- [ ] `effective_cell_count` matches the pack's real cell count.
-- [ ] Every UI consumer (cell cards, bar charts, min/max, target voltage) reflects only the real, wired channels — no phantom channels beyond the physical pack.
+- [x] PASS — 2026-09-09 read-only: `topology_state=CONFIRMED`, reason `OK`, configured/connected/measured/effective/last-confirmed all `16`.
+- [x] PASS — 2026-09-09 read-only: `effective_cell_count=16`, connected mask `0xFFFF`.
+- [x] PASS — 2026-09-09 for the current static 16S snapshot only: 16 cards/bars/labels, no phantom channels; min/max/delta and `53.60 V` float target are consistent. Dynamic transition remains untested.
 
 ## 3. Controlled CellCount change (lab-safe configuration only — do not attempt beyond what the physical pack safely supports)
 

@@ -1,0 +1,135 @@
+{
+  "catalog_version": "1.1.0",
+  "protocol_family": "JK_PB_MODBUS_RTU",
+  "version_context": {
+    "esphome_project_version": "3.0.0 (batterylifepo4.yaml esphome.project.version)",
+    "web_ui_version": "2026.09.08-v5 (jk_bms.js UI_VERSION)",
+    "esphome_framework_version_used_for_verification": "2026.8.2 (pinned in toolchain.lock.json; not re-executed in this environment until ESPHome is available)",
+    "external_component_pin": "github://syssi/esphome-jk-bms@08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1",
+    "bms_model_identity": "JK-PB2A16S15P (register 0x1400, manufacturer_device_id — confirmed by both HARDWARE_AUDIT_2026-09-09.md and the workbook)",
+    "bms_protocol_variant": "unknown (no register in the JK-PB Modbus map this project reads is documented as a protocol-family/variant identifier; 'JK-PB RS485/Modbus' is inferred from the device model string and this project's own external_components_source name, not independently confirmed by any source)",
+    "bms_firmware_version": "unknown (uart_protocol_library_version, field key of that name, register 0x14E6 low byte, IS a real, documented, currently-read protocol/library version field — but its live decoded value has not been captured by any evidence source available this session; no other field in this catalog is a documented BMS firmware-version field)",
+    "catalog_evidence_set_version": "1.1.0",
+    "note": "Test: no register or field in this catalog may set a version-applicability claim equal to web_ui_version or any other non-BMS version string — see the NO_UI_VERSION_AS_FIRMWARE_SCOPE semantic check."
+  },
+  "ui_order_gap_policy": "sparse_allowed_stable_manual_slots",
+  "registers": [
+    {
+      "register_id": "reg_0x1000_example",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "test"
+      ],
+      "address": "0x1000",
+      "address_space": "holding_register",
+      "register_width_bits": 32,
+      "word_count": 2,
+      "payload_bytes": 4,
+      "byte_order": "big_endian",
+      "word_order": "high_word_first",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": "write_multiple_registers_fc16",
+      "declared_access": "rw",
+      "poll_group": "config_slow_300s",
+      "freshness_budget_s": 320,
+      "atomicity_group": "reg_0x1000_example",
+      "fields": [
+        {
+          "key": "example_field",
+          "parent_register_id": "reg_0x1000_example",
+          "field_width_bits": 32,
+          "byte_offset": 0,
+          "mask": null,
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U32",
+          "scale": 0.001,
+          "offset": 0,
+          "canonical_unit": "V",
+          "uk_display_unit": "В",
+          "en_display_unit": "V",
+          "decimal_precision": 3,
+          "minimum": 0,
+          "maximum": 6,
+          "step": 0.001,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "rw",
+          "effective_access": "rw",
+          "write_safety_class": "normal",
+          "esphome_domain": "number",
+          "esphome_read_entity_id": "example_field",
+          "esphome_write_entity_id": null,
+          "backend_key": "example_field",
+          "frontend_label_uk": "Приклад",
+          "frontend_label_en": "Example",
+          "ui_section": "settings",
+          "ui_order": 10,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "unknown_code_policy": null,
+          "evidence": [
+            {
+              "source_id": "project_implementation",
+              "locator_id": "fixture:implementation",
+              "locator": "batterylifepo4.yaml (test fixture)",
+              "claim_types": [
+                "address"
+              ],
+              "source_fingerprint": "sha256:3c430ec076c20b17b3e0c706c90c86c68a5c6d0c99592c94c395bd1e357dda77",
+              "confidence": "medium",
+              "applicability": "synthetic test fixture",
+              "derivation_group": "syssi_implementation_family"
+            },
+            {
+              "source_id": "hardware_audit_2026_09_09",
+              "locator_id": "fixture:hardware",
+              "locator": "HARDWARE_AUDIT_2026-09-09.md (test fixture)",
+              "claim_types": [
+                "observed_decoded_value"
+              ],
+              "source_fingerprint": "sha256:3a5afd8f7ecbc9a0c5e6d672d7f39ca523d3986de178f76ac540925746f84958",
+              "confidence": "low",
+              "applicability": "synthetic test fixture",
+              "derivation_group": "deployed_project_decode_family"
+            }
+          ],
+          "verification_status": "implementation_only_unverified",
+          "exclusion_reason": "TEST_WRITE_BLOCKED",
+          "implementation_status": "implemented"
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "project_implementation",
+          "locator_id": "fixture:implementation",
+          "locator": "batterylifepo4.yaml (test fixture)",
+          "claim_types": [
+            "address"
+          ],
+          "source_fingerprint": "sha256:3c430ec076c20b17b3e0c706c90c86c68a5c6d0c99592c94c395bd1e357dda77",
+          "confidence": "medium",
+          "applicability": "synthetic test fixture",
+          "derivation_group": "syssi_implementation_family"
+        },
+        {
+          "source_id": "hardware_audit_2026_09_09",
+          "locator_id": "fixture:hardware",
+          "locator": "HARDWARE_AUDIT_2026-09-09.md (test fixture)",
+          "claim_types": [
+            "observed_decoded_value"
+          ],
+          "source_fingerprint": "sha256:3a5afd8f7ecbc9a0c5e6d672d7f39ca523d3986de178f76ac540925746f84958",
+          "confidence": "low",
+          "applicability": "synthetic test fixture",
+          "derivation_group": "deployed_project_decode_family"
+        }
+      ],
+      "verification_status": "corroborated_with_limitations",
+      "safety_notes": "test fixture"
+    }
+  ]
+}

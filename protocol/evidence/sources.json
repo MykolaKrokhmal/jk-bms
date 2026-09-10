@@ -1,0 +1,121 @@
+{
+  "$comment": "Evidence manifest (Stage 1 Remediation, spec Крок C). Every evidence citation in protocol/registers.canonical.json's 'evidence' arrays cites a source_id from this file. tools/protocol/lib/semantic-checks.js resolves each citation against this manifest AND the two normalized indices (workbook_index.json, upstream_index.json) — a non-empty locator string is not accepted as proof by itself; the address/claim must actually be present in the corresponding index.",
+  "sources": [
+    {
+      "source_id": "official_jk_documentation",
+      "type": "official_document",
+      "status": "unavailable",
+      "note": "No official JK manufacturer protocol document was available anywhere in this environment (no network path to one, none supplied by the user, none found in the repository). This source_id exists so its ABSENCE is a recorded, machine-checkable fact — 'confirmed_official' verification_status can never be assigned while this entry's status is 'unavailable'.",
+      "claims_supported": [],
+      "provenance_status": "unknown",
+      "derivation_group": "official",
+      "fingerprint": null
+    },
+    {
+      "source_id": "workbook_lifepo4_bms_parameters_registers",
+      "type": "workbook",
+      "status": "available",
+      "sheet": "BMS Parameters",
+      "file_sha256": "333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
+      "acquisition_date": "2026-09-09",
+      "provenance": "User-supplied local file. Exact capture methodology/session log (whether it was produced from a live device read, and by what tool) is NOT independently confirmed in this environment — graded as workbook evidence (not hardware-capture evidence) for that reason.",
+      "normalized_index": "protocol/evidence/workbook_index.json",
+      "normalized_index_generator": "protocol/evidence/build_workbook_index.py",
+      "claims_supported": [
+        "address",
+        "declared_access",
+        "observed_decoded_value",
+        "field_label_uk"
+      ],
+      "note": "129 rows total, 117 rows carry a non-empty address cell, 113 unique 0xNNNN address tokens (re-verified 2026-09-09 via build_workbook_index.py, matching the independent review's own count).",
+      "input_filename": "LiFePO4_BMS_Parameters_registers.xlsx",
+      "provenance_status": "unknown",
+      "derivation_group": "workbook_unknown_provenance",
+      "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0"
+    },
+    {
+      "source_id": "upstream_syssi_esphome_jk_bms",
+      "type": "upstream_implementation",
+      "status": "available",
+      "repo_url": "https://github.com/syssi/esphome-jk-bms",
+      "file": "esp32-jk-pb-modbus-example.yaml",
+      "commit_sha": "08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1",
+      "commit_date": "2026-06-05T20:52:17Z",
+      "commit_message": "Add and align cell voltage sensors in JK-PB modbus example (#1013)",
+      "license": "Apache-2.0",
+      "immutable_url": "https://raw.githubusercontent.com/syssi/esphome-jk-bms/08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1/esp32-jk-pb-modbus-example.yaml",
+      "local_copy_path": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml",
+      "local_copy_sha256": "00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+      "acquisition_date": "2026-09-09",
+      "provenance": "Pinned upstream implementation snapshot at the exact commit recorded by commit_sha; the firmware build uses the same immutable revision.",
+      "normalized_index": "protocol/evidence/upstream_index.json",
+      "normalized_index_generator": "protocol/evidence/build_upstream_index.py",
+      "claims_supported": [
+        "address",
+        "wire_type",
+        "scale",
+        "canonical_unit",
+        "declared_access",
+        "implementation_entity_mapping"
+      ],
+      "note": "A register present in this index may be (a) a real implemented ESPHome entity (an 'address:' YAML key), which additionally corroborates it was actually read/written by upstream's own firmware, or (b) present ONLY inside upstream's own inline register-table comment with no implementing entity (e.g. 0x12E4 — upstream documents 'BatVol 0.01V' as a comment but never wires an entity to it). Both are recorded as evidence of the ADDRESS/FIELD MEANING claim; only (a) additionally supports an 'implemented upstream too' claim. See each address's entries in upstream_index.json (kind: 'yaml_address_key' marks case (a)).",
+      "provenance_status": "known",
+      "derivation_group": "syssi_implementation_family",
+      "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d"
+    },
+    {
+      "source_id": "project_implementation",
+      "type": "current_implementation",
+      "status": "available",
+      "locator_base": "batterylifepo4.yaml / jk_bms.js (this repository, this exact working tree)",
+      "claims_supported": [
+        "address",
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "declared_access",
+        "write_function",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "enum_mapping_reserved_unknown_policy",
+        "packed_atomicity_preserve_sibling",
+        "implementation_entity_mapping"
+      ],
+      "note": "Evidence of what THIS project implements, never proof of protocol correctness on its own (spec section 3, tier 4 — lowest trust). A field with ONLY this source is 'single_source' / 'implementation_only_unverified', never 'confirmed_multiple_sources', regardless of how many places in the implementation happen to agree with each other (batterylifepo4.yaml and jk_bms.js are not independent of one another — both were authored together).",
+      "provenance_status": "known",
+      "derivation_group": "syssi_implementation_family",
+      "implementation_files": [
+        "batterylifepo4.yaml",
+        "jk_bms.js"
+      ],
+      "fingerprint": "sha256:de1d61db66223c85d9122065fc8992e32bcec3b93a23bf9c97bbd1ffc94464ed"
+    },
+    {
+      "source_id": "hardware_audit_2026_09_09",
+      "type": "hardware_read",
+      "status": "available",
+      "document": "HARDWARE_AUDIT_2026-09-09.md",
+      "acquisition_date": "2026-09-09",
+      "session_scope": "Read-only GET/SSE session against jk-bms.local (real device, IP 192.168.27.43 at capture time). No POST/write of any kind was performed.",
+      "claims_supported": [
+        "observed_decoded_value",
+        "register_responds",
+        "device_model_identity"
+      ],
+      "note": "Per Крок C's hardware-evidence rule: a valid decoded number on the wire from this session confirms the register RESPONDS and that the DECODE (scale/sign/unit) produces a plausible physical value — it does NOT by itself confirm write semantics, enum meaning, or any RW claim. Device identity (manufacturer_device_id = 'JK-PB2A16S15P') is a MODEL/hardware-identity claim, not a BMS firmware-version claim — see protocol/registers.canonical.json's version_context block.",
+      "provenance_status": "partially_known",
+      "derivation_group": "deployed_project_decode_family",
+      "document_sha256": "3a5afd8f7ecbc9a0c5e6d672d7f39ca523d3986de178f76ac540925746f84958",
+      "fingerprint": "sha256:3a5afd8f7ecbc9a0c5e6d672d7f39ca523d3986de178f76ac540925746f84958"
+    }
+  ]
+}
