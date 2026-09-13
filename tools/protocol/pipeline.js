@@ -121,6 +121,11 @@ try {
   run("python3", ["protocol/evidence/build_upstream_index.py", "--output", tempUpstream]);
   run("python3", ["protocol/evidence/build_implementation_index.py", "--output", tempImplementation]);
   run(process.execPath, ["protocol/evidence/build_claim_matrix.js", "--root", tmp, "--output", tempClaims]);
+  // Re-run in --check mode against the file just written: the freshness
+  // half is a trivial self-compare (this IS the file), so the only thing
+  // that can fail here is CLAIM_POLICY_INCONSISTENT — a real assertion
+  // that was previously computed but never enforced anywhere.
+  run(process.execPath, ["protocol/evidence/build_claim_matrix.js", "--root", tmp, "--output", tempClaims, "--check"]);
 
   const generated = [
     [tempWorkbook, path.join(ROOT, "protocol/evidence/workbook_index.json")],
