@@ -92,8 +92,12 @@ async function main() {
   const { validateWorkbookPath, parseTimeoutSeconds, treeMutated } = require(CLI);
 
   {
+    // Work 3 (final preparation pass): the V1 workbook is now OPTIONAL --
+    // the repo-committed V2 workbook is sufficient for a self-contained
+    // release check, so a missing JK_BMS_WORKBOOK_PATH must no longer be a
+    // hard error (see scenario 16 below for the real-CLI end-to-end proof).
     const r = validateWorkbookPath(undefined);
-    check("1. workbook env missing: validateWorkbookPath reports RELEASE_WORKBOOK_REQUIRED (maps to CLI exit 2)", !r.ok && r.reasonCode === "RELEASE_WORKBOOK_REQUIRED", JSON.stringify(r));
+    check("1. workbook env missing: validateWorkbookPath now succeeds with an undefined path (optional, self-contained)", r.ok === true && r.path === undefined, JSON.stringify(r));
   }
   {
     const r = validateWorkbookPath("/nonexistent/path/definitely-not-here.xlsx", (p) => fs.existsSync(p));
@@ -191,6 +195,20 @@ async function main() {
     check("10. nominal fixture run: CLI exits 0", r.status === 0, `status=${r.status}`);
     check("10. nominal fixture run: output contains a bare \"ALL PASS\" line", /^ALL PASS$/m.test(r.stdout));
     check("10. nominal fixture run: non-mutation guard reports PASS", r.stdout.includes("PASS     git status is identical"));
+  }
+
+  // =========================================================================
+  // Scenario 16 (Work 3, final preparation pass) — the V1 workbook is now
+  // OPTIONAL: a run with JK_BMS_WORKBOOK_PATH explicitly unset must still
+  // reach exit 0 / ALL PASS through the real CLI entry point (not just the
+  // pure validateWorkbookPath function tested in scenario 1), proving the
+  // self-contained path actually works end to end, not only in isolation.
+  // =========================================================================
+  {
+    const r = runCli({ JK_BMS_WORKBOOK_PATH: "", JK_BMS_HARNESS_STEPS_MODULE: NO_TREE_STEPS, JK_BMS_RELEASE_TIMEOUT_SECS: "30" });
+    check("16. no JK_BMS_WORKBOOK_PATH: CLI does not exit 2 / RELEASE_WORKBOOK_REQUIRED", r.status !== 2 || !r.stderr.includes("RELEASE_WORKBOOK_REQUIRED"), `status=${r.status} stderr=${r.stderr.trim()}`);
+    check("16. no JK_BMS_WORKBOOK_PATH: CLI exits 0", r.status === 0, `status=${r.status}`);
+    check("16. no JK_BMS_WORKBOOK_PATH: output contains a bare \"ALL PASS\" line", /^ALL PASS$/m.test(r.stdout));
   }
 
   // =========================================================================
