@@ -2990,12 +2990,18 @@ sensor:
     bitmask: 0xFF00
 
   # 0x12A8   168    INT32    2    R    SOCCapRemain    mAH
+  # value_type is signed (S_DWORD) to match: confirmed independently by the
+  # official PDF (p.11, distinguished from neighboring UINT32 rows in the
+  # same table) and the verified V2 workbook (wire_type INT32, signed) --
+  # see protocol/registers.canonical.json's safety_notes for this register.
+  # The physical quantity itself still never goes negative in practice;
+  # that domain fact doesn't change what's on the wire.
   - platform: modbus_controller
     modbus_controller_id: bms0
     name: "capacity remaining"
     address: 0x12A8
     register_type: holding
-    value_type: U_DWORD
+    value_type: S_DWORD
     register_count: 4
     response_size: 4
     state_class: measurement

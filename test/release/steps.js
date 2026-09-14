@@ -74,6 +74,7 @@ function buildSteps({ repoRoot, buildDir, workbookPath, testPort }) {
     { name: "protocol catalog: entity/wire-ID collision regression", command: node, args: [p("test/protocol_catalog/test_entity_id_collision.js")], cwd: repoRoot, env },
     { name: "protocol catalog: secret-leakage scan", command: node, args: [p("test/protocol_catalog/test_secret_scan.js")], cwd: repoRoot, env },
     { name: "protocol catalog: claim-matrix exact-set invariant", command: node, args: [p("test/protocol_catalog/test_claim_matrix_invariant.js")], cwd: repoRoot, env },
+    { name: "protocol catalog: capacity_remaining (0x12A8) signedness regression", command: node, args: [p("test/protocol_catalog/test_capacity_remaining_signedness.js")], cwd: repoRoot, env },
     { name: "protocol catalog: mixed-generation artifact rejection", command: node, args: [p("test/protocol_catalog/test_mixed_generation_rejection.js")], cwd: repoRoot, env },
 
     { name: "JS syntax check: jk_bms.js", command: node, args: ["--check", p("jk_bms.js")], cwd: repoRoot, env },

@@ -117,6 +117,10 @@ echo "=== protocol catalog: claim-matrix exact-set invariant ==="
 node test/protocol_catalog/test_claim_matrix_invariant.js
 
 echo
+echo "=== protocol catalog: capacity_remaining (0x12A8) signedness regression ==="
+node test/protocol_catalog/test_capacity_remaining_signedness.js
+
+echo
 echo "=== protocol catalog: mixed-generation artifact rejection (self-contained; extra pass if JK_BMS_WORKBOOK_PATH is set) ==="
 node test/protocol_catalog/test_mixed_generation_rejection.js
 
