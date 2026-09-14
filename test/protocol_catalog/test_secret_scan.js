@@ -3,6 +3,7 @@
 
 const crypto = require("crypto");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
@@ -13,7 +14,6 @@ const NEGATIVE_FIXTURE = path.join(FIXTURE_ROOT, "placeholder_negative.fixture")
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const HISTORY_COMMIT_LIMIT = 25;
 
-const EXCLUDED_DIRS = new Set([".git", "node_modules", ".pio", ".esphome", "__pycache__"]);
 // The synthetic positive fixture is DELIBERATELY detectable (assertFixtureBehavior()
 // below requires it) -- it must be excluded from every scan that could report
 // it as a real leak, not just scanWorktree(). Once this file is committed
@@ -115,21 +115,37 @@ function scanText(text, fileLabel, scope, findings) {
   }
 }
 
-function walkFiles(directory, result = []) {
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (entry.isDirectory() && EXCLUDED_DIRS.has(entry.name)) continue;
-    const absolute = path.join(directory, entry.name);
-    if (entry.isDirectory()) walkFiles(absolute, result);
-    else if (entry.isFile()) result.push(absolute);
-  }
-  return result;
+/** Git-aware project file list: every TRACKED file, plus every UNTRACKED
+ * file git itself would NOT ignore. This is what "this project's files"
+ * actually means -- unlike a raw filesystem walk keyed on a hardcoded
+ * directory-name blacklist (the previous approach here), it automatically
+ * follows .gitignore, so an ignored nested path (a sibling git worktree
+ * under .claude/worktrees/, .esphome/ build output, or anything else this
+ * repo's .gitignore names) can never leak into a scan just because it
+ * happens to exist on disk -- while a real, not-yet-committed new file
+ * with a real secret in it is still caught, because it's untracked but
+ * NOT ignored. `git ls-files` never descends into an ignored directory in
+ * the first place (not even to list what's inside it), so this is a
+ * structural exclusion, not a convenience blacklist of file names. */
+function listProjectFiles() {
+  const tracked = git(["ls-files", "-z"], { encoding: "buffer" });
+  if (tracked.status !== 0) throw new Error("git ls-files failed");
+  const untracked = git(["ls-files", "--others", "--exclude-standard", "-z"], { encoding: "buffer" });
+  if (untracked.status !== 0) throw new Error("git ls-files --others --exclude-standard failed");
+  const files = new Set([
+    ...tracked.stdout.toString("utf8").split("\0").filter(Boolean),
+    ...untracked.stdout.toString("utf8").split("\0").filter(Boolean),
+  ]);
+  return [...files].sort();
 }
 
 function scanWorktree(findings, statistics) {
-  for (const absolute of walkFiles(REPO_ROOT)) {
-    const relative = path.relative(REPO_ROOT, absolute);
+  for (const relative of listProjectFiles()) {
     if (DEFAULT_EXCLUDED_FILES.has(relative)) continue;
-    const stat = fs.statSync(absolute);
+    const absolute = path.join(REPO_ROOT, relative);
+    let stat;
+    try { stat = fs.statSync(absolute); } catch (_) { continue; } // listed then deleted/renamed mid-scan
+    if (!stat.isFile()) continue; // e.g. a broken symlink git still tracks
     if (stat.size > MAX_FILE_BYTES) {
       statistics.skippedLarge += 1;
       continue;
@@ -190,8 +206,88 @@ function assertFixtureBehavior() {
   if (negativeFindings.length !== 0) throw new Error("valid placeholder fixture produced a false positive");
 }
 
+/** Regression for Work 4 (final preparation pass): scanWorktree() must be
+ * git-aware (tracked + untracked-non-ignored), not a raw filesystem walk,
+ * so an ignored nested path -- a sibling git worktree living under
+ * .claude/worktrees/, exactly like this repo's own corrective worktree --
+ * can never leak a false positive into the scan just by existing on disk,
+ * while a real untracked-but-not-ignored file is still caught. Uses a
+ * temporary probe under .claude/ (already blanket-ignored by this repo's
+ * own .gitignore) rather than depending on whether a real sibling worktree
+ * happens to exist right now. */
+function assertGitAwareScopeBehavior() {
+  const ignoredProbeDir = path.join(REPO_ROOT, ".claude", "secret-scan-self-test");
+  const ignoredProbeFile = path.join(ignoredProbeDir, "nested-worktree-simulation.fixture");
+  const untrackedProbeFile = path.join(FIXTURE_ROOT, ".secret-scan-self-test-untracked.fixture");
+  try {
+    fs.mkdirSync(ignoredProbeDir, { recursive: true });
+    fs.writeFileSync(ignoredProbeFile, fs.readFileSync(POSITIVE_FIXTURE));
+    fs.writeFileSync(untrackedProbeFile, "placeholder_probe_value = changeme\n");
+
+    const listed = new Set(listProjectFiles());
+    const ignoredRelative = path.relative(REPO_ROOT, ignoredProbeFile);
+    const untrackedRelative = path.relative(REPO_ROOT, untrackedProbeFile);
+
+    if (listed.has(ignoredRelative) || [...listed].some((f) => f.startsWith(".claude/"))) {
+      throw new Error(`git-aware file list leaked an ignored path (expected .claude/ to be structurally excluded): ${ignoredRelative}`);
+    }
+    if (!listed.has(untrackedRelative)) {
+      throw new Error(`git-aware file list dropped a real untracked-but-not-ignored file: ${untrackedRelative}`);
+    }
+
+    // The probe secret lives under an ignored directory -- a full scan run
+    // must therefore never report it, proving the exclusion holds on the
+    // actual detection path, not just the raw file listing.
+    const findings = [];
+    const statistics = { worktreeFiles: 0, indexFiles: 0, historyFiles: 0, skippedBinary: 0, skippedLarge: 0 };
+    scanWorktree(findings, statistics);
+    if (findings.some((f) => f.file === ignoredRelative)) {
+      throw new Error("scanWorktree() reported a finding inside an ignored nested path");
+    }
+  } finally {
+    try { fs.rmSync(ignoredProbeDir, { recursive: true, force: true }); } catch (_) { /* best effort */ }
+    try { fs.rmSync(untrackedProbeFile, { force: true }); } catch (_) { /* best effort */ }
+  }
+}
+
+/** Regression: a secret that's staged (git add'ed) but not yet committed
+ * must still be caught -- scanIndex() reads blob content via `git show
+ * :path`, which is exactly the staging area, not HEAD. Proven here against
+ * an isolated scratch repo (never this project's own repo/index), so this
+ * test can never leave a secret-shaped string staged in the real project's
+ * git state, even if it crashed mid-way. */
+function assertStagedSecretDetected() {
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "jk-bms-secret-scan-staged-test-"));
+  try {
+    const run = (args) => spawnSync("git", args, { cwd: scratch, encoding: "utf8" });
+    run(["init", "-q"]);
+    run(["config", "user.email", "test@example.invalid"]);
+    run(["config", "user.name", "test"]);
+    // Built from pieces at runtime, never written as one contiguous
+    // "word: value" substring in THIS file's own source text -- otherwise
+    // this test file itself (a real tracked file in this repo) would trip
+    // its own detector when the real scan later runs against the repo.
+    const secretFieldName = "ota_pass" + "word";
+    const secretFieldValue = "hunter2-not-a-real-secret-abc123";
+    fs.writeFileSync(path.join(scratch, "manifest.yaml"), `${secretFieldName}: "${secretFieldValue}"\n`);
+    const added = run(["add", "manifest.yaml"]);
+    if (added.status !== 0) throw new Error(`scratch repo: git add failed: ${added.stderr}`);
+
+    const blob = run(["show", ":manifest.yaml"]);
+    if (blob.status !== 0) throw new Error(`scratch repo: git show :manifest.yaml failed: ${blob.stderr}`);
+
+    const findings = [];
+    scanText(blob.stdout, "manifest.yaml", "index", findings);
+    if (findings.length === 0) throw new Error("a staged (git-added, uncommitted) secret-shaped value was not detected via `git show :path`");
+  } finally {
+    fs.rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
 function main() {
   assertFixtureBehavior();
+  assertGitAwareScopeBehavior();
+  assertStagedSecretDetected();
   const findings = [];
   const statistics = { worktreeFiles: 0, indexFiles: 0, historyFiles: 0, skippedBinary: 0, skippedLarge: 0 };
   scanWorktree(findings, statistics);
