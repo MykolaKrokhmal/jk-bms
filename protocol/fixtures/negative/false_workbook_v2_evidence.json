@@ -15,12 +15,12 @@
   "ui_order_gap_policy": "sparse_allowed_stable_manual_slots",
   "registers": [
     {
-      "register_id": "reg_0x1000_example",
+      "register_id": "reg_0x9998_example",
       "protocol_family": "JK_PB_MODBUS_RTU",
       "model_scope": [
         "test"
       ],
-      "address": "0x1000",
+      "address": "0x9998",
       "address_space": "holding_register",
       "register_width_bits": 32,
       "word_count": 2,
@@ -36,7 +36,7 @@
       "fields": [
         {
           "key": "example_field",
-          "parent_register_id": "reg_0x1000_example",
+          "parent_register_id": "reg_0x9998_example",
           "field_width_bits": 32,
           "byte_offset": 0,
           "mask": null,
@@ -89,12 +89,24 @@
               "locator_id": "fixture:hardware",
               "locator": "HARDWARE_AUDIT_2026-09-09.md (test fixture)",
               "claim_types": [
-                "write_function"
+                "observed_decoded_value"
               ],
               "source_fingerprint": "sha256:3a5afd8f7ecbc9a0c5e6d672d7f39ca523d3986de178f76ac540925746f84958",
               "confidence": "low",
               "applicability": "synthetic test fixture",
               "derivation_group": "deployed_project_decode_family"
+            },
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator_id": "fixture:false-workbook-v2-address",
+              "locator": "Реєстр параметрів!A1:O1 (fabricated 0x9998)",
+              "claim_types": [
+                "address"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "unrated",
+              "applicability": "synthetic negative fixture",
+              "derivation_group": "vendor_workbook_v2"
             }
           ],
           "verification_status": "corroborated_with_limitations",
