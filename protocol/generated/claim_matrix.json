@@ -30,7 +30,7 @@
     "logical_fields": 127,
     "write_ready": 0,
     "write_blocked": 127,
-    "policy_inconsistent": 18
+    "policy_inconsistent": 0
   },
   "fields": [
     {
@@ -466,9 +466,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "cell_uvp",
@@ -903,6 +904,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -1340,9 +1342,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "cell_ovp",
@@ -1777,6 +1780,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -2214,9 +2218,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "start_balance_trigger",
@@ -2651,9 +2656,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "soc_100",
@@ -3088,9 +3094,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "soc_0",
@@ -3525,9 +3532,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "cell_rcv",
@@ -3962,9 +3970,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "cell_rfv",
@@ -4399,9 +4408,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "system_power_off",
@@ -4836,6 +4846,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -5273,6 +5284,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -5710,6 +5722,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -6147,9 +6160,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "continued_discharge_current",
@@ -6584,6 +6598,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -7021,6 +7036,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -7458,9 +7474,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "scpr_time",
@@ -7895,9 +7912,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "max_balance_current",
@@ -8332,9 +8350,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "charge_otp",
@@ -8769,6 +8788,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -9206,9 +9226,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "discharge_otp",
@@ -9643,6 +9664,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -10080,9 +10102,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "charge_utp",
@@ -10517,6 +10540,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -10954,9 +10978,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "mos_otp",
@@ -11391,6 +11416,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -11828,9 +11854,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "cell_count",
@@ -12274,6 +12301,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -12675,6 +12703,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -13076,6 +13105,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -13477,6 +13507,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -13914,9 +13945,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "scp_delay",
@@ -14351,6 +14383,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -14788,9 +14821,10 @@
         "model_protocol_applicability",
         "safety_class"
       ],
-      "derived_effective_access": "r",
+      "owner_authorized": true,
+      "derived_effective_access": "rw",
       "stored_effective_access": "rw",
-      "policy_consistent": false
+      "policy_consistent": true
     },
     {
       "key": "charging_float_mode",
@@ -15352,6 +15386,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -15778,6 +15813,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -16204,6 +16240,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -16568,6 +16605,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -16780,6 +16818,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -16992,6 +17031,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -17204,6 +17244,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -17416,6 +17457,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -17628,6 +17670,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -17840,6 +17883,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -18052,6 +18096,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -18264,6 +18309,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -18476,6 +18522,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -18688,6 +18735,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -18900,6 +18948,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -19112,6 +19161,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -19324,6 +19374,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -19536,6 +19587,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -19748,6 +19800,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -20138,6 +20191,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -20584,6 +20638,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -21030,6 +21085,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -21125,6 +21181,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -21220,6 +21277,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -21423,6 +21481,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -21626,6 +21685,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -21829,6 +21889,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -22032,6 +22093,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -22235,6 +22297,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -22438,6 +22501,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -22641,6 +22705,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -22844,6 +22909,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -23047,6 +23113,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -23250,6 +23317,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -23453,6 +23521,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -23656,6 +23725,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -23859,6 +23929,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -24062,6 +24133,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -24265,6 +24337,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -24468,6 +24541,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -24878,6 +24952,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -24955,6 +25030,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -25401,6 +25477,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -25838,6 +25915,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -26166,6 +26244,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -26576,6 +26655,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -26986,6 +27066,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -27855,6 +27936,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -28258,6 +28340,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -28760,6 +28843,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -29262,6 +29346,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -29708,6 +29793,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -30145,6 +30231,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -30582,6 +30669,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -31019,6 +31107,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -31492,6 +31581,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -31956,6 +32046,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -32364,6 +32455,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -32801,6 +32893,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -33294,6 +33387,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -33787,6 +33881,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -34195,6 +34290,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -34632,6 +34728,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -35069,6 +35166,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -35506,6 +35604,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -35943,6 +36042,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -36380,6 +36480,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -36817,6 +36918,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -37324,6 +37426,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -37441,6 +37544,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "unsupported",
       "stored_effective_access": "unsupported",
       "policy_consistent": true
@@ -37849,6 +37953,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -38257,6 +38362,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -38665,6 +38771,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -39073,6 +39180,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -39481,6 +39589,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -39889,6 +39998,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -40276,6 +40386,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -40684,6 +40795,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -41044,6 +41156,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -41454,6 +41567,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -41864,6 +41978,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -42236,6 +42351,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -42637,6 +42753,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -43036,6 +43153,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -43435,6 +43553,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -43834,6 +43953,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -44233,6 +44353,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -44605,6 +44726,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -44977,6 +45099,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -45349,6 +45472,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -45721,6 +45845,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -46214,6 +46339,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
@@ -46707,6 +46833,7 @@
         "model_protocol_applicability",
         "safety_class"
       ],
+      "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true

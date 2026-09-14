@@ -159,7 +159,15 @@ function deriveField(register, field) {
   }
   const missingWriteClaims = REQUIRED_WRITE_CLAIMS.filter((claim) => !verdicts[claim] || !verdicts[claim].confirmed);
   const writeReady = field.access === "rw" && missingWriteClaims.length === 0;
-  const derivedEffectiveAccess = field.access === "rw" ? (writeReady ? "rw" : "r") : field.effective_access;
+  // Mirrors semantic-checks.js's derivedAccess: owner_write_override is a
+  // hand-authored risk acceptance that may license "rw" independently of
+  // writeReady, so this claim-level check agrees with it rather than
+  // re-flagging every field the owner already reviewed and authorized.
+  const ownerAuthorized = !!(field.owner_write_override && field.owner_write_override.authorized === true && field.access === "rw");
+  const dynamicDependencyUnresolved = !!(field.dynamic_dependency && field.dynamic_dependency.resolved === false);
+  const derivedEffectiveAccess = field.access === "rw"
+    ? ((writeReady || ownerAuthorized) && (ownerAuthorized || !dynamicDependencyUnresolved) ? "rw" : "r")
+    : field.effective_access;
   return {
     key: field.key,
     register_id: register.register_id,
@@ -169,6 +177,7 @@ function deriveField(register, field) {
     read_readiness: Object.keys(claims).length ? "implemented_unverified" : "unsupported",
     write_readiness: writeReady ? "ready" : "blocked",
     missing_write_claims: missingWriteClaims,
+    owner_authorized: ownerAuthorized,
     derived_effective_access: derivedEffectiveAccess,
     stored_effective_access: field.effective_access,
     policy_consistent: derivedEffectiveAccess === field.effective_access,

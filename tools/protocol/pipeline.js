@@ -141,6 +141,14 @@ try {
   run("python3", ["protocol/evidence/build_upstream_index.py", "--output", tempUpstream]);
   run("python3", ["protocol/evidence/build_implementation_index.py", "--output", tempImplementation]);
   run(process.execPath, ["protocol/evidence/build_claim_matrix.js", "--root", tmp, "--output", tempClaims]);
+  // Re-run in --check mode against the file just written: the freshness
+  // half is a trivial self-compare (this IS the file), so the only thing
+  // that can fail here is CLAIM_POLICY_INCONSISTENT — a real assertion
+  // that was previously computed but never enforced anywhere. Must run
+  // BEFORE stamping: stamping adds release_generation_id, and this --check
+  // recomputes its own payload from scratch (no release_generation_id of
+  // its own), so checking a stamped file here would always report drift.
+  run(process.execPath, ["protocol/evidence/build_claim_matrix.js", "--root", tmp, "--output", tempClaims, "--check"]);
   for (const p of [tempWorkbook, tempWorkbookV2, tempUpstream, tempImplementation, tempClaims]) stampReleaseGenerationId(p, releaseGenerationId);
 
   const generated = [

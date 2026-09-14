@@ -1132,3 +1132,135 @@ While re-running the full suite to verify this pass, `test/run_all.sh` failed at
 - The other 9 `PROTOCOL_CATALOG.nonRegisterKeys` entries that match no `registerEntity()` call at all (`ui_version`/`browser_connection`/`write_result_counters`/`firmware_version` — intentionally browser-only concepts, expected; `battery_state`/`min_cell_voltage`/`max_cell_voltage`/`min_voltage_cell`/`max_voltage_cell` — not investigated further this pass, likely harmless dead filter entries but not confirmed).
 
 No RW field's `effective_access` changed this pass either.
+
+## Addendum: claim-matrix policy gate made owner-override-aware and actually wired in (2026-09-13, tenth pass)
+
+An outside audit (prompted by an unrelated investigation elsewhere) asked why
+`protocol/evidence/build_claim_matrix.js --check`'s own
+`CLAIM_POLICY_INCONSISTENT` gate — comparing each field's stored
+`effective_access` against a `derived_effective_access` recomputed from
+claim-level evidence — is never actually invoked: `tools/protocol/
+pipeline.js` calls `build_claim_matrix.js` without `--check` in both `build`
+and `check` modes (its own `check` mode does a separate byte-staleness diff,
+not this policy check), and no `test/` file calls it either. True, confirmed
+by re-grepping every `test/` file and `pipeline.js` for the literal
+invocation.
+
+**But turning it on as-is would have been the wrong fix, not the right one.**
+`deriveField()`'s `derivedEffectiveAccess` had no concept of
+`owner_write_override` — the hand-authored, attributed risk-acceptance field
+the fourth/fifth/sixth-pass addenda above built specifically because this
+same mechanical 2-independent-group bar is unreachable for every field
+(`write_ready: 0` of 127, confirmed unchanged by this pass — see the sixth
+pass's "exactly as designed, not a defect" finding, still true). Regenerating
+`claim_matrix.json` fresh from the current `registers.canonical.json`/
+`sources.json` (the committed copy was itself stale — a different, already-
+logged gap, untouched by this pass) showed `policy_inconsistent: 18` —
+exactly the repo's 18 live `effective_access: "rw"` fields, every one of them
+carrying a well-formed `owner_write_override` (`authorized: true,
+authorized_by: "Mykola Krokhmal", date: "2026-09-10"`). Wiring the gate in
+unmodified would have hard-failed the pipeline on all 18 already-reviewed,
+already-authorized fields — re-litigating a decision this project's own
+sixth-pass audit already made and confirmed correct, not catching a real
+defect.
+
+**What changed instead**: `deriveField()` in `build_claim_matrix.js` now
+computes `derivedEffectiveAccess` the same way `semantic-checks.js`'s
+`FORGED_EFFECTIVE_ACCESS` check already does — `ownerAuthorized` (mirroring
+`f.owner_write_override.authorized === true && f.access === "rw"`) licenses
+`"rw"` independently of the mechanical `writeReady` verdict, and (mirroring
+the same file's `UNRESOLVED_DYNAMIC_DEPENDENCY_WRITE_ENABLED` bypass) an
+owner override also bypasses an unresolved `dynamic_dependency`. Critically,
+`write_readiness`/`missing_write_claims` themselves are untouched — still the
+honest, unforced mechanical verdict — only the separate
+`derived_effective_access`/`policy_consistent` computation now agrees with
+the override mechanism instead of contradicting it. A new `owner_authorized`
+field is added to each claim-matrix entry so this is visible directly in the
+generated evidence, not just cross-referenced against the canonical catalog.
+`tools/protocol/pipeline.js` now runs `build_claim_matrix.js --check`
+immediately after generating `tempClaims`, pointed at that same path — the
+freshness half of `--check` is a trivial self-compare, so the only thing that
+can newly fail there is `CLAIM_POLICY_INCONSISTENT`, in both `build` and
+`check` modes, before anything is ever published.
+
+This is the claim-level model becoming a real refinement of
+`semantic-checks.js`'s coarser field-level check (2 groups have cited the
+field *at all*, vs. every individual required claim type independently
+confirmed) rather than a second, conflicting, never-enforced opinion. The two
+are not fully redundant: `semantic-checks.js` runs live on every
+`validate.js` invocation without needing the workbook, while
+`build_claim_matrix.js`'s finer check only runs where `claim_matrix.json` is
+freshly regenerated — a real workbook-backed `pipeline.js build|check`.
+
+### Verification (this pass)
+
+| Check | Result |
+|---|---|
+| `node --check` on both edited files | syntax OK |
+| `node protocol/evidence/build_claim_matrix.js` against current `registers.canonical.json` | `policy_inconsistent` **18 → 0**; `write_ready`/`write_blocked` unchanged at **0/127** (mechanical honesty preserved); all 18 fields show `owner_authorized: true` |
+| `node protocol/evidence/build_claim_matrix.js --check` against that fresh output | **PASS** (was: would have failed `CLAIM_POLICY_INCONSISTENT` before this pass) |
+| Negative-path test: `owner_write_override` stripped from `smart_sleep` in a scratch copy, re-run generate+`--check` | correctly fails `CLAIM_POLICY_INCONSISTENT` — the gate has teeth, not vacuously passing |
+| `node tools/protocol/pipeline.js check --workbook <real workbook, sha256-verified>` | fails **`IMPLEMENTATION_SOURCE_FINGERPRINT_MISMATCH`** — a pre-existing gate earlier in the pipeline (line 110), unrelated to this pass, that this branch does not currently pass regardless of this change; this pass's own code is never reached by that run |
+
+### What this pass explicitly did NOT do
+
+- **Did not regenerate or commit a fresh `protocol/generated/claim_matrix.json`.**
+  The committed copy is stale relative to the current `registers.canonical.json`/
+  `sources.json` (confirmed independently — different `source_manifest_sha256`,
+  `policy_inconsistent: 0` committed vs. `18` fresh) — this is the exact gap
+  the sixth-pass addendum already logged as open
+  ("`generate.js --check` cannot catch drift in an artifact it doesn't
+  produce"). Left alone deliberately: this branch is mid-migration (the V2
+  manifest work) and committing a regenerated artifact now risks colliding
+  with that in-progress work rather than helping it.
+- **Did not fix `IMPLEMENTATION_SOURCE_FINGERPRINT_MISMATCH`** — pre-existing,
+  unrelated, blocks a full real `pipeline.js check` from ever reaching this
+  pass's code on this branch's current tip.
+- **Did not run `esphome compile` or the full `test/run_all.sh`** — this
+  pass touches only the claim-matrix policy computation and its one call
+  site; the broader suite is unaffected by construction (no test file
+  references `claim_matrix.json`, `policy_consistent`, or
+  `CLAIM_POLICY_INCONSISTENT` — confirmed by grep — so nothing there could
+  have regressed).
+- **Landed on its own branch (`fix/claim-matrix-owner-override-check`,
+  forked from this ADR's own tip), not on `bms-v1.1-manifest-audit`
+  directly** — that branch was checked out elsewhere (likely concurrent V2
+  migration work) when this pass ran; merge/rebase is left to the repo
+  owner's judgment on timing. **Superseded by the integration note below.**
+
+No RW field's `effective_access` changed. This pass changes only how
+*consistency between* `effective_access` and the claim-level evidence is
+computed and enforced — never which fields are writable.
+
+### Integration note (2026-09-14, merged into `bms-v1.1-manifest-audit`)
+
+Merged via `git merge --no-ff fix/claim-matrix-owner-override-check`. Two
+textual conflicts, both resolved by keeping both sides' content, not by
+discarding either:
+
+- `tools/protocol/pipeline.js` — both branches inserted a line immediately
+  after the same anchor (this pass's new `--check` call; the V2-manifest
+  branch's `stampReleaseGenerationId` loop). Resolved by keeping both, in
+  the order this pass's own text above already required: the policy
+  `--check` runs first, against the still-unstamped `tempClaims`, then
+  stamping happens — never the other order, which would make the `--check`
+  compare a stamped file against its own unstamped recomputation and
+  spuriously report staleness on every run.
+- `docs/adr/0001-protocol-catalog.md` (this file) — both branches forked
+  from the same eighth-pass tip and each added their own addendum labeled
+  "ninth pass". Resolved by keeping the other branch's P1-04 addendum as
+  the real ninth pass (it was already committed on `bms-v1.1-manifest-audit`
+  first) and renumbering this addendum to **tenth pass** — a label change
+  only, no content lost from either side.
+
+The two items this addendum's "what this pass explicitly did NOT do" section
+raised — the stale committed `claim_matrix.json` and
+`IMPLEMENTATION_SOURCE_FINGERPRINT_MISMATCH` blocking a full `pipeline.js
+check` from reaching this pass's code — no longer describe
+`bms-v1.1-manifest-audit`'s post-merge state (the fingerprint was already
+resolved on this branch before this merge; the stale-artifact class of gap
+is addressed by this same integration pass's next commit). They remain
+accurate as a description of the state on `fix/claim-matrix-owner-override-check`
+at the time this addendum was written, and are left unedited above for that
+reason — this note records what changed, rather than rewriting the original
+pass's own contemporaneous report of its own branch.

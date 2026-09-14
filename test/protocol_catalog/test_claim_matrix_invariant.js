@@ -48,6 +48,11 @@ function evaluateInvariant(registerDoc, claimDoc) {
 
   const effRwKeys = new Set(fields.filter((f) => f.effective_access === "rw").map((f) => f.key));
   const policyInconsistentKeys = new Set(claimDoc.fields.filter((f) => f.policy_consistent === false).map((f) => f.key));
+  // Since the owner-override-aware fix (ADR tenth-pass addendum), a
+  // correctly-authorized override field is policy_CONSISTENT, not
+  // inconsistent — the set worth exact-matching against canonical
+  // effective-RW keys is now owner_authorized, not policy_inconsistent.
+  const ownerAuthorizedKeys = new Set(claimDoc.fields.filter((f) => f.owner_authorized === true).map((f) => f.key));
 
   return {
     physicalRegisters: registerDoc.registers.length,
@@ -64,7 +69,8 @@ function evaluateInvariant(registerDoc, claimDoc) {
     noMissingClaimKeys: [...keySet].every((k) => claimKeySet.has(k)),
     effRwKeys,
     policyInconsistentKeys,
-    exactSetMatch: setsEqual(effRwKeys, policyInconsistentKeys),
+    ownerAuthorizedKeys,
+    exactSetMatch: setsEqual(effRwKeys, ownerAuthorizedKeys),
     overridesWellFormed: fields.filter((f) => f.effective_access === "rw").every((f) => {
       const o = f.owner_write_override;
       return o && o.authorized === true && typeof o.authorized_by === "string" && o.authorized_by.trim().length > 0
@@ -97,9 +103,11 @@ check("6b. declared_r + declared_rw == logical field count", r.declaredR + r.dec
 check("6c. effective_rw + effective_r + unsupported == logical field count", r.effectiveRw + r.effectiveR + r.unsupported === r.logicalFields);
 check("7. claim_matrix.counts.write_ready is 0 (no field is independently protocol-verified yet)", r.claimCounts.write_ready === 0, `actual=${r.claimCounts.write_ready}`);
 check("8. claim_matrix.counts.write_blocked equals logical field count", r.claimCounts.write_blocked === r.logicalFields, `write_blocked=${r.claimCounts.write_blocked} fields=${r.logicalFields}`);
-check("9. claim_matrix.counts.policy_inconsistent is 18 (documented baseline)", r.claimCounts.policy_inconsistent === 18, `actual=${r.claimCounts.policy_inconsistent}`);
-check("10. EXACT set equality: canonical effective-RW keys === claim_matrix policy_inconsistent keys (no extra/missing/duplicate)",
-  r.exactSetMatch, `canonical-only=${[...r.effRwKeys].filter((k) => !r.policyInconsistentKeys.has(k))} claim-only=${[...r.policyInconsistentKeys].filter((k) => !r.effRwKeys.has(k))}`);
+check("9. claim_matrix.counts.policy_inconsistent is 0 (owner-override-aware gate: every effective-RW field reconciles)", r.claimCounts.policy_inconsistent === 0, `actual=${r.claimCounts.policy_inconsistent}`);
+check("10. EXACT set equality: canonical effective-RW keys === claim_matrix owner_authorized keys (no extra/missing/duplicate)",
+  r.exactSetMatch, `canonical-only=${[...r.effRwKeys].filter((k) => !r.ownerAuthorizedKeys.has(k))} claim-only=${[...r.ownerAuthorizedKeys].filter((k) => !r.effRwKeys.has(k))}`);
+check("10b. claim_matrix policy_inconsistent key set is empty (no field, override or not, disagrees with its stored effective_access)",
+  r.policyInconsistentKeys.size === 0, `inconsistent=${[...r.policyInconsistentKeys]}`);
 check("11. no duplicate keys in canonical source", r.noDuplicateCanonicalKeys);
 check("11b. no duplicate keys in claim_matrix", r.noDuplicateClaimKeys);
 check("12. no unknown keys in claim_matrix (every claim_matrix key exists in canonical)", r.noUnknownClaimKeys);
@@ -140,6 +148,15 @@ console.log("\n--- self-test: deliberately broken fixtures must fail the same in
   mutated.fields = mutated.fields.filter((f) => f.key !== "smart_sleep"); // drop one known claim entry
   const mutatedResult = evaluateInvariant(registerDoc, mutated);
   check("self-test: missing-claim-key check FAILS when a claim_matrix entry is dropped (proves criterion 12b is not vacuously true)", mutatedResult.noMissingClaimKeys === false);
+}
+{
+  const mutated = JSON.parse(JSON.stringify(claimDoc));
+  const target = mutated.fields.find((f) => f.key === "smart_sleep");
+  target.policy_consistent = false; // simulate the pre-fix (dead-gate) state for one field
+  mutated.counts = { ...mutated.counts, policy_inconsistent: mutated.counts.policy_inconsistent + 1 };
+  const mutatedResult = evaluateInvariant(registerDoc, mutated);
+  check("self-test: policy_inconsistent-is-empty check FAILS when a field is marked policy_consistent:false (proves criterion 10b is not vacuously true)",
+    mutatedResult.policyInconsistentKeys.size !== 0);
 }
 
 console.log(`\n${checks} checks run, ${failures} failed.`);
