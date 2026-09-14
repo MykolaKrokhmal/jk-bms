@@ -36,10 +36,21 @@ production yet" below, now updated.
 - `wifi.ap.password`: was the hardcoded string `"change-this-password"`,
   now `!secret jk_bms_ap_password`.
 - `ota[0].password`: was unset, now `!secret jk_bms_ota_password`.
-- `web_server.auth`: new block, `username`/`password` only (this
-  ESPHome version — 2026.6.5, confirmed from the installed package — has
-  no `type:` key in its `web_server.auth` schema; Digest is not available
-  here, so this is Basic auth, implicitly).
+- `web_server.auth`: new block, `username`/`password` plus an explicit
+  `type:`. **Historical note (true when this section was first
+  written):** the ESPHome version in use then (2026.6.5) had no `type:`
+  key in its `web_server.auth` schema at all — Basic was the only,
+  implicit option, so this block was Basic auth implicitly. **Current
+  state:** the project's pinned ESPHome version is now 2026.8.2 (see
+  `toolchain.lock.json`), which added a `type: basic|digest` key;
+  `batterylifepo4.yaml`'s `web_server.auth` now sets `type: digest`
+  explicitly (`batterylifepo4.yaml:310-328`, see that block's own
+  in-line comment for the full reasoning) — Digest never puts the
+  password on the wire in an easily-reversible form the way Basic does,
+  chosen deliberately since ESPHome's own default for this key stays
+  `basic` until 2027.1.0. As that same comment notes, this is confirmed
+  by reading the config/source, not yet by a live 401 challenge test
+  against real hardware.
 - Two **pre-existing, unrelated** config bugs were fixed because they
   blocked `esphome config` from validating the file at all (found during
   the mandatory pre-edit audit, not introduced by this work):
