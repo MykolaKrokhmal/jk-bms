@@ -1,8 +1,10 @@
 secrets.yaml
 *.backup
+CLAUDE.local.md
 .esphome/
 .DS_Store
 .claude/
 Backup/
 test/jk_history/test_jk_history_format
 test/jk_write_tx/test_jk_write_tx_core
+protocol/generated/.fingerprint-review.json

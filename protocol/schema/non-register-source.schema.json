@@ -31,7 +31,12 @@
           "en_display_unit": { "type": "string" },
           "frontend_label_uk": { "type": "string", "minLength": 1 },
           "frontend_label_en": { "type": "string", "minLength": 1 },
-          "note": { "type": "string", "minLength": 1 }
+          "note": { "type": "string", "minLength": 1 },
+          "derived_from_register_key": {
+            "type": ["string", "null"],
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "Stage 5: when this computed entity is a direct, same-read derivation of one real register field (e.g. total_voltage from total_voltage_raw), names that field's key so generate.js's buildFieldMeta() can inherit its poll_group/freshness_budget_s instead of leaving this entity permanently un-stale-able. Omit/null when there is no single real register this value traces to (e.g. power = V x I, computed from two different registers)."
+          }
         }
       }
     }

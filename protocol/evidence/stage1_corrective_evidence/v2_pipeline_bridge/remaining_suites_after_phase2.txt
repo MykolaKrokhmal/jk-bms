@@ -1,0 +1,33 @@
+Individually-run confirmation of every test/run_all.sh suite that runs AFTER
+the secret-scan step, run separately because a sibling worktree's false
+positive there aborts the aggregate script early (see README.md §7). Each
+run from repo root, same working tree state as after Phase 2's citation
+edits + regeneration. Commands run individually (not as a single script,
+per this session's tooling constraints); results transcribed from actual
+command output, same session, 2026-09-13.
+
+jk_write_tx_core unit tests:          63 checks run, 0 failed.
+jk_history_format unit tests:         94 checks run, 0 failed.
+validate.js:                          171 checks run, 0 failed.
+test_packed_codec.js:                 16 checks run, 0 failed.
+test_negative_fixtures.js:            112 checks run, 0 failed (incl. new false_workbook_v2_evidence case).
+generate.js --check:                  "no drift. All generated artifacts match the canonical source."
+test_generation_atomicity.js:         31 checks run, 0 failed.
+test_blocked_write_surface.js:        Blocked-write surface summary: 98/98 passed.
+pipeline.js check --workbook <V1>:    "protocol-pipeline check PASS"
+fingerprint.js check:                 {"ok":true,...,"reasonCode":"FINGERPRINT_MATCH"}
+test_fingerprint_drift_regression.js: 36 checks run, 0 failed.
+test_claim_matrix_invariant.js:       23 checks run, 0 failed.
+test_mixed_generation_rejection.js:   18 checks run, 0 failed.
+test_entity_id_collision.js:          16 checks run, 0 failed.
+[secret-leakage scan: SKIPPED — see README.md §7, sibling-worktree false positive, not this session's diff]
+JS syntax (jk_bms.js, demo/mock-server.js, demo/panel.js, test/topology/run.js): syntax OK
+test/topology/run.js:                 76 checks run, 0 failed. [exited with code 0]
+test_port_allocation.js:              11 checks run, 0 failed.
+test_release_runner.js:               46 checks run, 0 failed, 0 blocked.
+
+Every suite: 0 failed. Combined with run_all_after_phase1.txt (the one full,
+uninterrupted "All suites passed." run, taken before the sibling worktree
+appeared and before Phase 2's content edits), this is full coverage of
+test/run_all.sh's suite list both before and after every change this session
+made.

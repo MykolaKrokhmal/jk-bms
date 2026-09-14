@@ -1,0 +1,13 @@
+PASS  parallel runs: 8 concurrent pickPort() calls all succeed
+PASS  parallel runs: all 8 picked ports are distinct (no collision)  -- [63846,63847,63848,63849,63850,63851,63852,63853]
+PASS  repeat run 1/5: pick -> bind -> release succeeds cleanly
+PASS  repeat run 2/5: pick -> bind -> release succeeds cleanly
+PASS  repeat run 3/5: pick -> bind -> release succeeds cleanly
+PASS  repeat run 4/5: pick -> bind -> release succeeds cleanly
+PASS  repeat run 5/5: pick -> bind -> release succeeds cleanly
+PASS  cleanup after use: the same port is verifiably free once released
+PASS  requestedPort collision: pickPort refuses a port that's actually busy, not a silent success  -- PORT_NOT_FREE:63860
+PASS  requestedPort after release: the same requested port is accepted once free
+PASS  no hardcoded fallback: two default picks are two different real ephemeral ports, not a shared constant  -- 63861 vs 63862
+
+11 checks run, 0 failed.

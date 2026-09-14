@@ -1,0 +1,41 @@
+PASS  1. workbook env missing: validateWorkbookPath reports RELEASE_WORKBOOK_REQUIRED (maps to CLI exit 2)  -- {"ok":false,"reasonCode":"RELEASE_WORKBOOK_REQUIRED","message":"RELEASE_WORKBOOK_REQUIRED: set JK_BMS_WORKBOOK_PATH to the local\nLiFePO4_BMS_Parameters_registers.xlsx before running the release gate.\n(test/run_all.sh remains available for fast iteration without it.)"}
+PASS  2. workbook path missing (file doesn't exist): validateWorkbookPath reports RELEASE_WORKBOOK_NOT_FOUND (maps to CLI exit 2)  -- {"ok":false,"reasonCode":"RELEASE_WORKBOOK_NOT_FOUND","message":"RELEASE_WORKBOOK_NOT_FOUND: /nonexistent/path/definitely-not-here.xlsx"}
+PASS  2b. workbook path present: validateWorkbookPath succeeds
+PASS  11. invalid timeout value: parseTimeoutSeconds reports RELEASE_INVALID_TIMEOUT (maps to CLI exit 2)  -- {"ok":false,"reasonCode":"RELEASE_INVALID_TIMEOUT","message":"RELEASE_INVALID_TIMEOUT: JK_BMS_RELEASE_TIMEOUT_SECS must be a positive integer, got \"notanumber\""}
+PASS  11b. zero timeout is also rejected
+PASS  11c. non-integer timeout is also rejected
+PASS  11d. a valid timeout is accepted
+PASS  11e. an unset timeout defaults to a sane positive value
+PASS  non-mutation helper: identical snapshots report no mutation
+PASS  non-mutation helper: different snapshots report mutation
+PASS  3. forced failed step: CLI exits 1  -- status=1
+PASS  3. forced failed step: summary reports FAILED for that step
+PASS  3. forced failed step: overall verdict line says FAILED
+PASS  4. forced skipped step: CLI exits 3  -- status=3
+PASS  4. forced skipped step: summary reports SKIPPED for that step
+PASS  4. forced skipped step: overall verdict line says PARTIAL PASS
+PASS  5. skipped run's output never contains a bare "ALL PASS" line
+PASS  6. failed run's output never contains a bare "ALL PASS" line
+PASS  15. a run with a forced-skip step never exits 0  -- status=3
+PASS  15. a run with a forced-fail step never exits 0  -- status=1
+PASS  10. nominal fixture run: CLI exits 0  -- status=0
+PASS  10. nominal fixture run: output contains a bare "ALL PASS" line
+PASS  10. nominal fixture run: non-mutation guard reports PASS
+PASS  7. timeout: CLI exits non-zero  -- status=1
+PASS  7. timeout: summary reports TIMEOUT for the never-exiting step  -- EXECUTED fixture: quick pass B | TIMEOUT  fixture: spawn-tree (parent/child/grandchild + port) -- exceeded the remaining release budget (~1940ms allotted) |  | === non-mutation guard === | PASS     git status is identical before and after this release run. |  | FAILED: one or more release steps did not pass, or the working tree was mutated. See the summary above. | 
+PASS  8. fixture sanity: parent+child+grandchild PIDs were actually recorded  -- parent:80725,child:80726,grandchild:80727
+PASS  8. timeout kills the WHOLE tree: no parent/child/grandchild PID survives  -- still alive: 
+PASS  8b. after timeout, the fixture's port is no longer held (mock-server-equivalent case)
+PASS  repeat allocation: a fresh ephemeral port can be picked again right after cleanup
+PASS  9. SIGINT: CLI exits with the documented code (130)  -- code=130
+PASS  9. SIGINT: output states no further steps will run
+PASS  9. SIGINT: the spawn-tree step never reached a normal terminal status in the summary
+PASS  9. signal cleanup: no parent/child/grandchild PID survives SIGINT  -- pids=parent:80754,child:80755,grandchild:80756 still alive=
+PASS  12. non-mutating run: CLI exits 0 against the clean scratch repo  -- status=0
+PASS  12. non-mutating run: non-mutation guard reports PASS
+PASS  13. a step that mutates the scratch repo: CLI exits non-zero (verification FAILs)  -- status=1
+PASS  13. a step that mutates the scratch repo: non-mutation guard reports FAILED
+PASS  14. after restoring cleanliness: CLI exits 0 again  -- status=0
+PASS  14. after restoring cleanliness: non-mutation guard reports PASS again
+
+39 checks run, 0 failed, 0 blocked.

@@ -4,17 +4,34 @@
     {
       "source_id": "official_jk_documentation",
       "type": "official_document",
-      "status": "unavailable",
-      "note": "No official JK manufacturer protocol document was available anywhere in this environment (no network path to one, none supplied by the user, none found in the repository). This source_id exists so its ABSENCE is a recorded, machine-checkable fact — 'confirmed_official' verification_status can never be assigned while this entry's status is 'unavailable'.",
-      "claims_supported": [],
-      "provenance_status": "unknown",
-      "derivation_group": "official",
-      "fingerprint": null
+      "status": "available",
+      "authority_tier": "primary_protocol_spec",
+      "document": "极空BMS RS485 Modbus通用协议(V1.1) — 成都极空科技有限公司 (Chengdu Jikong Technology Co., Ltd), 2024.02, author 张鹏 (Zhang Peng); version history V1.0 (2023.02) → V1.1 (2024.01, \"修订部分错误,新增一些寄存器支持\" — corrected some errors, added support for some registers).",
+      "local_copy_path": "protocol/evidence/BMS_RS485_Modbus_V1.1.pdf",
+      "local_copy_sha256": "b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+      "acquisition_date": "2026-09-11",
+      "provenance": "User-supplied, stated to be downloaded from the manufacturer's official site. This is the manufacturer's own RS485 Modbus register-map specification — the primary source this project's Modbus register catalog is protocol-verified against. 208 physical register addresses across 4 base blocks (0x1000 settings, 0x1200 measurements/status, 0x1400 device identity/config, 0x1600 commands); this project's PRE-EXISTING 119-register canonical catalog was independently, manually cross-checked address-by-address against this document and found to match at every address (0 conflicts) — see protocol/evidence/IMPLEMENTATION_DRIFT_REVIEW.md and BMS_V2_MANIFEST_EXECUTION_LOG.md for the full cross-check. Confirms 0x111C and 0x1470 (heating thresholds, setup passcode) are genuinely ABSENT from the official V1.1 map — those two addresses fall in undocumented gaps in this document's own table, independently corroborating this project's pre-existing fail-closed classification of both fields. Also documents a real ambiguity in the manufacturer's own table: 0x1600/0x1606 (VoltageCalibration/CurrentCalibration) are typed UINT16 but declared Length=4 — an inconsistency in the primary source itself, not a transcription error downstream.",
+      "claims_supported": [
+        "address",
+        "wire_type",
+        "field_width",
+        "signedness",
+        "scale",
+        "canonical_unit",
+        "declared_access",
+        "packed_atomicity_preserve_sibling"
+      ],
+      "note": "This entry previously had status 'unavailable' — no official document was reachable in this environment. That is no longer true; the user supplied this file directly. 'confirmed_official' verification_status may now be assigned to a field ONLY once its specific claim has actually been checked against this document (not merely because this source is now 'available' in general) — see the per-field manifest built in Stage 3/4 of BMS_V2_MANIFEST_EXECUTION_LOG.md for which fields that applies to.",
+      "provenance_status": "known",
+      "derivation_group": "jikong_official",
+      "fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739"
     },
     {
       "source_id": "workbook_lifepo4_bms_parameters_registers",
       "type": "workbook",
       "status": "available",
+      "deprecated": true,
+      "superseded_by": "workbook_lifepo4_bms_parameters_registers_v2",
       "sheet": "BMS Parameters",
       "file_sha256": "333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
       "acquisition_date": "2026-09-09",
@@ -27,11 +44,37 @@
         "observed_decoded_value",
         "field_label_uk"
       ],
-      "note": "129 rows total, 117 rows carry a non-empty address cell, 113 unique 0xNNNN address tokens (re-verified 2026-09-09 via build_workbook_index.py, matching the independent review's own count).",
+      "note": "DEPRECATED 2026-09-11 — superseded by workbook_lifepo4_bms_parameters_registers_v2. This V1 workbook covered only 113 of the (now known) 208 official V1.1 physical addresses, carried no origin/verification-status columns, and predates independent confirmation against the real official protocol document. Retained in the repository and in this manifest for historical/reproducibility reasons only — no new claim should cite this source_id going forward. 129 rows total, 117 rows carry a non-empty address cell, 113 unique 0xNNNN address tokens (re-verified 2026-09-09 via build_workbook_index.py, matching the independent review's own count).",
       "input_filename": "LiFePO4_BMS_Parameters_registers.xlsx",
       "provenance_status": "unknown",
       "derivation_group": "workbook_unknown_provenance",
       "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0"
+    },
+    {
+      "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+      "type": "workbook",
+      "status": "available",
+      "authority_tier": "normalized_implementation_spec",
+      "sheet": "Реєстр параметрів",
+      "local_copy_path": "protocol/evidence/LiFePO4_BMS_Parameters_registers-V2_verified.xlsx",
+      "local_copy_sha256": "3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+      "acquisition_date": "2026-09-11",
+      "provenance": "User-supplied local file, restructured relative to the deprecated V1 workbook into 3 sheets ('Реєстр параметрів' — 265 rows/264 addresses, 'Групи UI', 'Аудит'). The register-registry sheet's own 'Статус верифікації'/'Походження даних' columns explicitly cite compliance against official_jk_documentation ('JK BMS RS485 Modbus V1.1') — independently spot-checked address-by-address against that same PDF in this session and found self-consistent (the audit sheet's own claimed counts — 208 V1.1 addresses, 0 missing, 2 vendor-extension addresses 0x111C/0x1470, 4 confirmed-reserved fields, specific unit/address corrections — all reproduced exactly from the raw row data). This is the NORMALIZED SPECIFICATION OF THIS PROJECT'S IMPLEMENTATION going forward: every parameter this project exposes must trace to a row in this sheet; it is not itself the protocol's primary source (that is official_jk_documentation) but is graded above the deprecated V1 workbook because of its explicit origin/verification tracking and its demonstrated (independently spot-checked, not merely claimed) agreement with the primary source.",
+      "normalized_index": "protocol/generated/bms_v1_1_manifest.json",
+      "normalized_index_generator": "protocol/evidence/build_v2_manifest.py",
+      "claims_supported": [
+        "address",
+        "declared_access",
+        "field_width",
+        "canonical_unit",
+        "ui_grouping",
+        "verification_status_claim",
+        "vendor_or_reserved_or_derived_classification"
+      ],
+      "note": "264 unique physical addresses (210 base addresses ignoring high/low-byte packed suffixes: 208 official V1.1 + 2 vendor extensions 0x111C/0x1470). All 119 of the pre-existing canonical catalog's addresses are present in this sheet (0 missing) plus 91 addresses not yet in that catalog. Access distribution: R=159, RW=97, W=8, calculated(non-register)=1.",
+      "provenance_status": "known",
+      "derivation_group": "vendor_workbook_v2",
+      "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8"
     },
     {
       "source_id": "upstream_syssi_esphome_jk_bms",
@@ -58,7 +101,8 @@
         "declared_access",
         "implementation_entity_mapping"
       ],
-      "note": "A register present in this index may be (a) a real implemented ESPHome entity (an 'address:' YAML key), which additionally corroborates it was actually read/written by upstream's own firmware, or (b) present ONLY inside upstream's own inline register-table comment with no implementing entity (e.g. 0x12E4 — upstream documents 'BatVol 0.01V' as a comment but never wires an entity to it). Both are recorded as evidence of the ADDRESS/FIELD MEANING claim; only (a) additionally supports an 'implemented upstream too' claim. See each address's entries in upstream_index.json (kind: 'yaml_address_key' marks case (a)).",
+      "note": "A register present in this index may be (a) a real implemented ESPHome entity (an 'address:' YAML key), which additionally corroborates it was actually read/written by upstream's own firmware, or (b) present ONLY inside upstream's own inline register-table comment with no implementing entity (e.g. 0x12E4 — upstream documents 'BatVol 0.01V' as a comment but never wires an entity to it). Both are recorded as evidence of the ADDRESS/FIELD MEANING claim; only (a) additionally supports an 'implemented upstream too' claim. See each address's entries in upstream_index.json (kind: 'yaml_address_key' marks case (a)). 2026-09-11: demoted to SECONDARY status now that official_jk_documentation is available — this community reverse-engineered YAML is retained as corroborating evidence (it independently agrees with the primary source at addresses both cover) but is no longer the highest-authority available source for any claim it shares with official_jk_documentation.",
+      "authority_tier": "secondary_implementation",
       "provenance_status": "known",
       "derivation_group": "syssi_implementation_family",
       "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d"
@@ -97,7 +141,7 @@
         "batterylifepo4.yaml",
         "jk_bms.js"
       ],
-      "fingerprint": "sha256:de1d61db66223c85d9122065fc8992e32bcec3b93a23bf9c97bbd1ffc94464ed"
+      "fingerprint": "sha256:ab8f87e186102bd571afea81babff81caf48e650cd6adfbf7d38aca024af4bec"
     },
     {
       "source_id": "hardware_audit_2026_09_09",

@@ -1,0 +1,786 @@
+Using TEST_PORT=63695
+
+=== jk_write_tx_core: compile ===
+
+=== jk_write_tx_core: run ===
+
+63 checks run, 0 failed.
+
+=== jk_history_format: compile ===
+
+=== jk_history_format: run ===
+
+94 checks run, 0 failed.
+
+=== protocol catalog: schema + semantic + cross-file validator ===
+PASS  protocol/registers.canonical.json matches register-source.schema.json
+PASS  protocol/non_register_entities.canonical.json matches non-register-source.schema.json
+PASS  protocol/evidence/sources.json matches evidence-sources.schema.json
+PASS  canonical source has no semantic invariant violations
+PASS  generated artifacts (register_catalog.json, protocol/generated/*, jk_bms.js block) match canonical source
+PASS  yaml: register 0x1000 ("smart_sleep") appears in batterylifepo4.yaml  -- 0x1000
+PASS  yaml: writable field "smart_sleep" has an ESPHome entity "id: set_smart_sleep"  -- 0x1000
+PASS  yaml: register 0x1004 ("cell_uvp") appears in batterylifepo4.yaml  -- 0x1004
+PASS  yaml: register 0x1008 ("cell_uvpr") appears in batterylifepo4.yaml  -- 0x1008
+PASS  yaml: writable field "cell_uvpr" has an ESPHome entity "id: set_cell_uvpr"  -- 0x1008
+PASS  yaml: register 0x100C ("cell_ovp") appears in batterylifepo4.yaml  -- 0x100C
+PASS  yaml: register 0x1010 ("cell_ovpr") appears in batterylifepo4.yaml  -- 0x1010
+PASS  yaml: writable field "cell_ovpr" has an ESPHome entity "id: set_cell_ovpr"  -- 0x1010
+PASS  yaml: register 0x1014 ("start_balance_trigger") appears in batterylifepo4.yaml  -- 0x1014
+PASS  yaml: writable field "start_balance_trigger" has an ESPHome entity "id: set_start_balance_trigger"  -- 0x1014
+PASS  yaml: register 0x1018 ("soc_100") appears in batterylifepo4.yaml  -- 0x1018
+PASS  yaml: writable field "soc_100" has an ESPHome entity "id: set_soc_100"  -- 0x1018
+PASS  yaml: register 0x101C ("soc_0") appears in batterylifepo4.yaml  -- 0x101C
+PASS  yaml: writable field "soc_0" has an ESPHome entity "id: set_soc_0"  -- 0x101C
+PASS  yaml: register 0x1020 ("cell_rcv") appears in batterylifepo4.yaml  -- 0x1020
+PASS  yaml: writable field "cell_rcv" has an ESPHome entity "id: set_cell_rcv"  -- 0x1020
+PASS  yaml: register 0x1024 ("cell_rfv") appears in batterylifepo4.yaml  -- 0x1024
+PASS  yaml: writable field "cell_rfv" has an ESPHome entity "id: set_cell_rfv"  -- 0x1024
+PASS  yaml: register 0x1028 ("system_power_off") appears in batterylifepo4.yaml  -- 0x1028
+PASS  yaml: register 0x102C ("continued_charge_current") appears in batterylifepo4.yaml  -- 0x102C
+PASS  yaml: register 0x1030 ("charge_ocp_delay") appears in batterylifepo4.yaml  -- 0x1030
+PASS  yaml: register 0x1034 ("charge_ocpr_time") appears in batterylifepo4.yaml  -- 0x1034
+PASS  yaml: writable field "charge_ocpr_time" has an ESPHome entity "id: set_charge_ocpr_time"  -- 0x1034
+PASS  yaml: register 0x1038 ("continued_discharge_current") appears in batterylifepo4.yaml  -- 0x1038
+PASS  yaml: register 0x103C ("discharge_ocp_delay") appears in batterylifepo4.yaml  -- 0x103C
+PASS  yaml: register 0x1040 ("discharge_ocpr_time") appears in batterylifepo4.yaml  -- 0x1040
+PASS  yaml: writable field "discharge_ocpr_time" has an ESPHome entity "id: set_discharge_ocpr_time"  -- 0x1040
+PASS  yaml: register 0x1044 ("scpr_time") appears in batterylifepo4.yaml  -- 0x1044
+PASS  yaml: writable field "scpr_time" has an ESPHome entity "id: set_scpr_time"  -- 0x1044
+PASS  yaml: register 0x1048 ("max_balance_current") appears in batterylifepo4.yaml  -- 0x1048
+PASS  yaml: writable field "max_balance_current" has an ESPHome entity "id: set_max_balance_current"  -- 0x1048
+PASS  yaml: register 0x104C ("charge_otp") appears in batterylifepo4.yaml  -- 0x104C
+PASS  yaml: register 0x1050 ("charge_otpr") appears in batterylifepo4.yaml  -- 0x1050
+PASS  yaml: writable field "charge_otpr" has an ESPHome entity "id: set_charge_otpr"  -- 0x1050
+PASS  yaml: register 0x1054 ("discharge_otp") appears in batterylifepo4.yaml  -- 0x1054
+PASS  yaml: register 0x1058 ("discharge_otpr") appears in batterylifepo4.yaml  -- 0x1058
+PASS  yaml: writable field "discharge_otpr" has an ESPHome entity "id: set_discharge_otpr"  -- 0x1058
+PASS  yaml: register 0x105C ("charge_utp") appears in batterylifepo4.yaml  -- 0x105C
+PASS  yaml: register 0x1060 ("charge_utpr") appears in batterylifepo4.yaml  -- 0x1060
+PASS  yaml: writable field "charge_utpr" has an ESPHome entity "id: set_charge_utpr"  -- 0x1060
+PASS  yaml: register 0x1064 ("mos_otp") appears in batterylifepo4.yaml  -- 0x1064
+PASS  yaml: register 0x1068 ("mos_otpr") appears in batterylifepo4.yaml  -- 0x1068
+PASS  yaml: writable field "mos_otpr" has an ESPHome entity "id: set_mos_otpr"  -- 0x1068
+PASS  yaml: register 0x106C ("cell_count") appears in batterylifepo4.yaml  -- 0x106C
+PASS  yaml: register 0x1070 ("charging") appears in batterylifepo4.yaml  -- 0x1070
+PASS  yaml: register 0x1074 ("discharging") appears in batterylifepo4.yaml  -- 0x1074
+PASS  yaml: register 0x1078 ("balancing") appears in batterylifepo4.yaml  -- 0x1078
+PASS  yaml: register 0x107C ("battery_capacity") appears in batterylifepo4.yaml  -- 0x107C
+PASS  yaml: writable field "battery_capacity" has an ESPHome entity "id: set_battery_capacity"  -- 0x107C
+PASS  yaml: register 0x1080 ("scp_delay") appears in batterylifepo4.yaml  -- 0x1080
+PASS  yaml: register 0x1084 ("start_balance") appears in batterylifepo4.yaml  -- 0x1084
+PASS  yaml: writable field "start_balance" has an ESPHome entity "id: set_start_balance"  -- 0x1084
+PASS  yaml: register 0x1114 ("charging_float_mode") appears in batterylifepo4.yaml  -- 0x1114
+PASS  yaml: register 0x111C ("heating_activation_temperature") appears in batterylifepo4.yaml  -- 0x111C
+PASS  yaml: register 0x111C ("heating_deactivation_temperature") appears in batterylifepo4.yaml  -- 0x111C
+PASS  yaml: register 0x1200 ("cell_voltage_1") appears in batterylifepo4.yaml  -- 0x1200
+PASS  yaml: register 0x1202 ("cell_voltage_2") appears in batterylifepo4.yaml  -- 0x1202
+PASS  yaml: register 0x1204 ("cell_voltage_3") appears in batterylifepo4.yaml  -- 0x1204
+PASS  yaml: register 0x1206 ("cell_voltage_4") appears in batterylifepo4.yaml  -- 0x1206
+PASS  yaml: register 0x1208 ("cell_voltage_5") appears in batterylifepo4.yaml  -- 0x1208
+PASS  yaml: register 0x120A ("cell_voltage_6") appears in batterylifepo4.yaml  -- 0x120A
+PASS  yaml: register 0x120C ("cell_voltage_7") appears in batterylifepo4.yaml  -- 0x120C
+PASS  yaml: register 0x120E ("cell_voltage_8") appears in batterylifepo4.yaml  -- 0x120E
+PASS  yaml: register 0x1210 ("cell_voltage_9") appears in batterylifepo4.yaml  -- 0x1210
+PASS  yaml: register 0x1212 ("cell_voltage_10") appears in batterylifepo4.yaml  -- 0x1212
+PASS  yaml: register 0x1214 ("cell_voltage_11") appears in batterylifepo4.yaml  -- 0x1214
+PASS  yaml: register 0x1216 ("cell_voltage_12") appears in batterylifepo4.yaml  -- 0x1216
+PASS  yaml: register 0x1218 ("cell_voltage_13") appears in batterylifepo4.yaml  -- 0x1218
+PASS  yaml: register 0x121A ("cell_voltage_14") appears in batterylifepo4.yaml  -- 0x121A
+PASS  yaml: register 0x121C ("cell_voltage_15") appears in batterylifepo4.yaml  -- 0x121C
+PASS  yaml: register 0x121E ("cell_voltage_16") appears in batterylifepo4.yaml  -- 0x121E
+PASS  yaml: register 0x1240 ("cell_connected_mask") appears in batterylifepo4.yaml  -- 0x1240
+PASS  yaml: register 0x1244 ("average_cell_voltage") appears in batterylifepo4.yaml  -- 0x1244
+PASS  yaml: register 0x1246 ("delta_cell_voltage") appears in batterylifepo4.yaml  -- 0x1246
+PASS  yaml: register 0x124A ("cell_resistance_1") appears in batterylifepo4.yaml  -- 0x124A
+PASS  yaml: register 0x124C ("cell_resistance_2") appears in batterylifepo4.yaml  -- 0x124C
+PASS  yaml: register 0x124E ("cell_resistance_3") appears in batterylifepo4.yaml  -- 0x124E
+PASS  yaml: register 0x1250 ("cell_resistance_4") appears in batterylifepo4.yaml  -- 0x1250
+PASS  yaml: register 0x1252 ("cell_resistance_5") appears in batterylifepo4.yaml  -- 0x1252
+PASS  yaml: register 0x1254 ("cell_resistance_6") appears in batterylifepo4.yaml  -- 0x1254
+PASS  yaml: register 0x1256 ("cell_resistance_7") appears in batterylifepo4.yaml  -- 0x1256
+PASS  yaml: register 0x1258 ("cell_resistance_8") appears in batterylifepo4.yaml  -- 0x1258
+PASS  yaml: register 0x125A ("cell_resistance_9") appears in batterylifepo4.yaml  -- 0x125A
+PASS  yaml: register 0x125C ("cell_resistance_10") appears in batterylifepo4.yaml  -- 0x125C
+PASS  yaml: register 0x125E ("cell_resistance_11") appears in batterylifepo4.yaml  -- 0x125E
+PASS  yaml: register 0x1260 ("cell_resistance_12") appears in batterylifepo4.yaml  -- 0x1260
+PASS  yaml: register 0x1262 ("cell_resistance_13") appears in batterylifepo4.yaml  -- 0x1262
+PASS  yaml: register 0x1264 ("cell_resistance_14") appears in batterylifepo4.yaml  -- 0x1264
+PASS  yaml: register 0x1266 ("cell_resistance_15") appears in batterylifepo4.yaml  -- 0x1266
+PASS  yaml: register 0x1268 ("cell_resistance_16") appears in batterylifepo4.yaml  -- 0x1268
+PASS  yaml: register 0x128A ("mosfet_temperature") appears in batterylifepo4.yaml  -- 0x128A
+PASS  yaml: register 0x1290 ("total_voltage_raw") appears in batterylifepo4.yaml  -- 0x1290
+PASS  yaml: register 0x1294 ("native_bms_power") appears in batterylifepo4.yaml  -- 0x1294
+PASS  yaml: register 0x1298 ("current_raw") appears in batterylifepo4.yaml  -- 0x1298
+PASS  yaml: register 0x129C ("temperature_1") appears in batterylifepo4.yaml  -- 0x129C
+PASS  yaml: register 0x129E ("temperature_2") appears in batterylifepo4.yaml  -- 0x129E
+PASS  yaml: register 0x12A0 ("alarms_bitmask") appears in batterylifepo4.yaml  -- 0x12A0
+PASS  yaml: register 0x12A4 ("balance_current") appears in batterylifepo4.yaml  -- 0x12A4
+PASS  yaml: register 0x12A6 ("balancing_active") appears in batterylifepo4.yaml  -- 0x12A6
+PASS  yaml: register 0x12A6 ("state_of_charge") appears in batterylifepo4.yaml  -- 0x12A6
+PASS  yaml: register 0x12A8 ("capacity_remaining") appears in batterylifepo4.yaml  -- 0x12A8
+PASS  yaml: register 0x12AC ("full_charge_capacity") appears in batterylifepo4.yaml  -- 0x12AC
+PASS  yaml: register 0x12B0 ("charging_cycles") appears in batterylifepo4.yaml  -- 0x12B0
+PASS  yaml: register 0x12B4 ("cycle_capacity") appears in batterylifepo4.yaml  -- 0x12B4
+PASS  yaml: register 0x12B8 ("state_of_health") appears in batterylifepo4.yaml  -- 0x12B8
+PASS  yaml: register 0x12B8 ("precharge_status") appears in batterylifepo4.yaml  -- 0x12B8
+PASS  yaml: register 0x12BA ("custom_alarm_1") appears in batterylifepo4.yaml  -- 0x12BA
+PASS  yaml: register 0x12BC ("total_runtime") appears in batterylifepo4.yaml  -- 0x12BC
+PASS  yaml: register 0x12C0 ("charging_active") appears in batterylifepo4.yaml  -- 0x12C0
+PASS  yaml: register 0x12C0 ("discharging_active") appears in batterylifepo4.yaml  -- 0x12C0
+PASS  yaml: register 0x12C2 ("custom_alarm_2") appears in batterylifepo4.yaml  -- 0x12C2
+PASS  yaml: register 0x12C4 ("discharge_ocpr_left") appears in batterylifepo4.yaml  -- 0x12C4
+PASS  yaml: register 0x12C6 ("discharge_scpr_left") appears in batterylifepo4.yaml  -- 0x12C6
+PASS  yaml: register 0x12C8 ("charge_ocpr_left") appears in batterylifepo4.yaml  -- 0x12C8
+PASS  yaml: register 0x12CA ("charge_scpr_left") appears in batterylifepo4.yaml  -- 0x12CA
+PASS  yaml: register 0x12CC ("uvpr_left") appears in batterylifepo4.yaml  -- 0x12CC
+PASS  yaml: register 0x12CE ("ovpr_left") appears in batterylifepo4.yaml  -- 0x12CE
+PASS  yaml: register 0x12D0 ("sensor_heating_mask") appears in batterylifepo4.yaml  -- 0x12D0
+PASS  yaml: register 0x12D4 ("emergency_timer") appears in batterylifepo4.yaml  -- 0x12D4
+PASS  yaml: register 0x12D6 ("battery_current_correction") appears in batterylifepo4.yaml  -- 0x12D6
+PASS  yaml: register 0x12D8 ("charge_current_measurement_voltage") appears in batterylifepo4.yaml  -- 0x12D8
+PASS  yaml: register 0x12DA ("discharge_current_measurement_voltage") appears in batterylifepo4.yaml  -- 0x12DA
+PASS  yaml: register 0x12DC ("battery_voltage_correction") appears in batterylifepo4.yaml  -- 0x12DC
+PASS  yaml: register 0x12E4 ("alternate_battery_voltage") appears in batterylifepo4.yaml  -- 0x12E4
+PASS  yaml: register 0x12E6 ("heating_current") appears in batterylifepo4.yaml  -- 0x12E6
+PASS  yaml: register 0x12F0 ("bms_system_ticks") appears in batterylifepo4.yaml  -- 0x12F0
+PASS  yaml: register 0x12F8 ("temperature_sensor_3") appears in batterylifepo4.yaml  -- 0x12F8
+PASS  yaml: register 0x12FA ("temperature_4") appears in batterylifepo4.yaml  -- 0x12FA
+PASS  yaml: register 0x12FC ("temperature_5") appears in batterylifepo4.yaml  -- 0x12FC
+PASS  yaml: register 0x1400 ("device_model") appears in batterylifepo4.yaml  -- 0x1400
+PASS  yaml: register 0x1470 ("setup_passcode") appears in batterylifepo4.yaml  -- 0x1470
+PASS  yaml: register 0x14E4 ("lcd_buzzer_trigger") appears in batterylifepo4.yaml  -- 0x14E4
+PASS  yaml: register 0x14E4 ("dry_contact_1_trigger_source") appears in batterylifepo4.yaml  -- 0x14E4
+PASS  yaml: register 0x14E6 ("dry_contact_2_trigger_source") appears in batterylifepo4.yaml  -- 0x14E6
+PASS  yaml: register 0x14E6 ("uart_protocol_library_version") appears in batterylifepo4.yaml  -- 0x14E6
+PASS  yaml: register 0x14F0 ("dry_contact_1_trigger_value") appears in batterylifepo4.yaml  -- 0x14F0
+PASS  yaml: register 0x14F4 ("dry_contact_1_recovery_value") appears in batterylifepo4.yaml  -- 0x14F4
+PASS  yaml: register 0x14F8 ("dry_contact_2_trigger_value") appears in batterylifepo4.yaml  -- 0x14F8
+PASS  yaml: register 0x14FC ("dry_contact_2_recovery_value") appears in batterylifepo4.yaml  -- 0x14FC
+PASS  yaml: register 0x1504 ("rcv_time") appears in batterylifepo4.yaml  -- 0x1504
+PASS  yaml: register 0x1504 ("rfv_time") appears in batterylifepo4.yaml  -- 0x1504
+PASS  jk_bms.js: generated genericTxAddress block is present and well-formed
+PASS  jk_bms.js genericTxAddress key set matches the catalog's generic-managed RW fields  -- catalog=18 js=18
+PASS  jk_bms.js genericTxAddress addresses match the catalog exactly for every shared key  -- 0 mismatch(es)
+PASS  jk_bms.js: generated nonRegisterKeys block is present and well-formed
+PASS  jk_bms.js nonRegisterKeys is exactly the non-register catalog's key set  -- missing= extra=
+PASS  demo/mock-server.js derives its generic-register map from register_catalog.json
+PASS  Settings ui_order has no duplicates
+PASS  "cell_voltage_*" fields sort into natural 01..N order by ui_order  -- count=16
+PASS  "cell_resistance_*" fields sort into natural 01..N order by ui_order  -- count=16
+PASS  esphome_write_entity_id has no duplicates
+PASS  backend_key has no duplicates
+PASS  field "charging" enum_map has no duplicate values
+PASS  field "discharging" enum_map has no duplicate values
+PASS  field "balancing" enum_map has no duplicate values
+PASS  field "balancing_active" enum_map has no duplicate values
+PASS  every field's uk/en display unit matches its canonical_unit via the fixed glossary  -- 0 drift(s)
+PASS  REGRESSION: setup_passcode register is 128 bits / 8 Modbus words (CODEX_STAGE_1_REVIEW.md P0-1 — was wrongly word_count 2)
+PASS  REGRESSION: device_model register is 128 bits / 8 Modbus words (same class of bug)
+PASS  REGRESSION: scp_delay canonical unit is µs (was incorrectly 's' in the pre-Stage-1 catalog)
+PASS  REGRESSION: rcv_time canonical unit is h with 0.1 scale (was incorrectly 's' in the pre-Stage-1 catalog)
+PASS  REGRESSION: rfv_time canonical unit is h with 0.1 scale (was incorrectly 's' in the pre-Stage-1 catalog)
+PASS  REGRESSION: cell_resistance_* canonical unit is mΩ (was incorrectly 'Ω' in ESPHome/UI before Stage 1)
+PASS  register_catalog.json no longer lists device_name_override (moved to non_register_entities.canonical.json)
+PASS  non_register_entities.canonical.json lists device_name_override as local_config
+PASS  every `address: 0xNNNN` modbus_controller declaration in batterylifepo4.yaml has a catalog register
+
+171 checks run, 0 failed.
+
+=== protocol catalog: packed-register codec round-trip tests ===
+PASS  0x111C: high byte decodes 5 (workbook-observed activation value)
+PASS  0x111C: low byte decodes 15 (workbook-observed deactivation value)
+PASS  0x111C: encode/decode round-trip for high byte minimum (-40)  -- raw=0xd800
+PASS  0x111C: encode/decode round-trip for high byte maximum (100)  -- raw=0x6400
+PASS  0x111C: encode/decode round-trip for low byte zero, high byte preserved  -- raw=0xff00
+PASS  0x111C: writing hi to a new value preserves the already-written lo byte
+PASS  0x111C: writing lo to a new value preserves the already-written hi byte
+PASS  0x1504: rcv_time minimum (0) round-trips
+PASS  0x1504: rcv_time maximum (25.5) round-trips
+PASS  0x1504: rfv_time maximum (25.5) round-trips independently of rcv_time
+PASS  0x1504: reserved raw byte value 0xFF (25.5h) is representable and does not overflow the 8-bit field
+PASS  0x14E4: dry_contact_1_trigger_source minimum (0) round-trips
+PASS  0x14E4: dry_contact_1_trigger_source maximum (12) round-trips
+PASS  0x14E4: lcd_buzzer_trigger high byte independent of dry1 low byte
+PASS  0x14E6: writing dry_contact_2_trigger_source (high byte) never touches the read-only low byte (version)
+PASS  0x14E6: uart_protocol_library_version has write_safety_class n/a (read-only, not part of any write path)
+
+16 checks run, 0 failed.
+
+=== protocol catalog: negative validator fixtures ===
+PASS  BASE_VALID fixture is schema+semantically clean before mutation  -- []
+Running 55 negative-fixture cases (plus the BASE_VALID sanity check above)...
+
+PASS  empty_registers_array: schema validation fails mentioning "minItems"
+PASS  empty_registers_array: at least one error total (validator is non-zero-exit-worthy)
+PASS  empty_fields_array: schema validation fails mentioning "minItems"
+PASS  empty_fields_array: at least one error total (validator is non-zero-exit-worthy)
+PASS  unknown_property: schema validation fails mentioning "additionalProperties"
+PASS  unknown_property: at least one error total (validator is non-zero-exit-worthy)
+PASS  duplicate_register_id: semantic check reports code DUPLICATE_REGISTER_ID  -- registers[reg_0x1000_example]
+PASS  duplicate_register_id: at least one error total (validator is non-zero-exit-worthy)
+PASS  duplicate_field_key: semantic check reports code DUPLICATE_FIELD_KEY  -- fields[example_field]
+PASS  duplicate_field_key: at least one error total (validator is non-zero-exit-worthy)
+PASS  duplicate_address_unrelated_registers: semantic check reports code DUPLICATE_ADDRESS  -- registers[0x1000]
+PASS  duplicate_address_unrelated_registers: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_unknown_parent_register: semantic check reports code FIELD_UNKNOWN_PARENT  -- fields[example_field]
+PASS  field_unknown_parent_register: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_mask_mismatch: semantic check reports code FIELD_MASK_MISMATCH  -- fields[example_field]
+PASS  field_mask_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_shift_mismatch: semantic check reports code FIELD_SHIFT_MISMATCH  -- fields[example_field]
+PASS  field_shift_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  overlapping_masks: semantic check reports code OVERLAPPING_MASKS  -- registers[reg_0x1000_example]
+PASS  overlapping_masks: at least one error total (validator is non-zero-exit-worthy)
+PASS  asymmetric_packed_sibling: semantic check reports code ASYMMETRIC_PACKED_SIBLING  -- fields[field_a]
+PASS  asymmetric_packed_sibling: at least one error total (validator is non-zero-exit-worthy)
+PASS  signedness_wire_type_mismatch: semantic check reports code SIGNEDNESS_WIRE_TYPE_MISMATCH  -- fields[example_field]
+PASS  signedness_wire_type_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  invalid_bounds_min_gt_max: semantic check reports code INVALID_BOUNDS  -- fields[example_field]
+PASS  invalid_bounds_min_gt_max: at least one error total (validator is non-zero-exit-worthy)
+PASS  unverified_field_write_enabled: semantic check reports code UNVERIFIED_FIELD_WRITE_ENABLED  -- fields[example_field]
+PASS  unverified_field_write_enabled: at least one error total (validator is non-zero-exit-worthy)
+PASS  effective_access_exceeds_declared: semantic check reports code EFFECTIVE_ACCESS_EXCEEDS_DECLARED  -- fields[example_field]
+PASS  effective_access_exceeds_declared: at least one error total (validator is non-zero-exit-worthy)
+PASS  unresolved_dynamic_dependency_write_enabled: semantic check reports code UNRESOLVED_DYNAMIC_DEPENDENCY_WRITE_ENABLED  -- fields[example_field]
+PASS  unresolved_dynamic_dependency_write_enabled: at least one error total (validator is non-zero-exit-worthy)
+PASS  packed_sibling_not_found: semantic check reports code PACKED_SIBLING_NOT_FOUND  -- fields[example_field]
+PASS  packed_sibling_not_found: at least one error total (validator is non-zero-exit-worthy)
+PASS  evidence_locator_file_missing: semantic check reports code EVIDENCE_LOCATOR_FILE_MISSING  -- registers[reg_0x1000_example].evidence
+PASS  evidence_locator_file_missing: at least one error total (validator is non-zero-exit-worthy)
+PASS  wrong_word_count: semantic check reports code REGISTER_WORD_COUNT_MISMATCH  -- registers[reg_0x1000_example]
+PASS  wrong_word_count: at least one error total (validator is non-zero-exit-worthy)
+PASS  passcode_128bit_wrong_word_count_2: semantic check reports code REGISTER_WORD_COUNT_MISMATCH  -- registers[reg_0x1000_example]
+PASS  passcode_128bit_wrong_word_count_2: at least one error total (validator is non-zero-exit-worthy)
+PASS  passcode_128bit_wrong_word_count_4: semantic check reports code REGISTER_WORD_COUNT_MISMATCH  -- registers[reg_0x1000_example]
+PASS  passcode_128bit_wrong_word_count_4: at least one error total (validator is non-zero-exit-worthy)
+PASS  passcode_128bit_wrong_word_count_7: semantic check reports code REGISTER_WORD_COUNT_MISMATCH  -- registers[reg_0x1000_example]
+PASS  passcode_128bit_wrong_word_count_7: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_outside_register_bounds: semantic check reports code FIELD_MASK_EXCEEDS_REGISTER_WIDTH  -- fields[example_field]
+PASS  field_outside_register_bounds: at least one error total (validator is non-zero-exit-worthy)
+PASS  uncovered_non_reserved_bits: semantic check reports code UNCOVERED_BITS_UNDOCUMENTED  -- registers[reg_0x1000_example]
+PASS  uncovered_non_reserved_bits: at least one error total (validator is non-zero-exit-worthy)
+PASS  word_order_drift: semantic check reports code WORD_ORDER_MISMATCH  -- registers[reg_0x1000_example]
+PASS  word_order_drift: at least one error total (validator is non-zero-exit-worthy)
+PASS  scale_drift_zero: semantic check reports code SCALE_ZERO  -- fields[example_field]
+PASS  scale_drift_zero: at least one error total (validator is non-zero-exit-worthy)
+PASS  invalid_step: semantic check reports code INVALID_STEP  -- fields[example_field]
+PASS  invalid_step: at least one error total (validator is non-zero-exit-worthy)
+PASS  nonrepresentable_bounds: semantic check reports code BOUNDS_NOT_REPRESENTABLE  -- fields[example_field]
+PASS  nonrepresentable_bounds: at least one error total (validator is non-zero-exit-worthy)
+PASS  duplicate_enum_value: semantic check reports code ENUM_DUPLICATE_VALUE  -- fields[example_field]
+PASS  duplicate_enum_value: at least one error total (validator is non-zero-exit-worthy)
+PASS  reserved_enum_collision: semantic check reports code RESERVED_ENUM_COLLISION  -- fields[example_field]
+PASS  reserved_enum_collision: at least one error total (validator is non-zero-exit-worthy)
+PASS  missing_unknown_code_policy: semantic check reports code ENUM_EDITOR_WITHOUT_SEMANTICS  -- fields[example_field]
+PASS  missing_unknown_code_policy: at least one error total (validator is non-zero-exit-worthy)
+PASS  blocked_field_leaked_into_write_map: semantic check reports code WRITE_ENTITY_ON_EFFECTIVE_READONLY  -- fields[example_field]
+PASS  blocked_field_leaked_into_write_map: at least one error total (validator is non-zero-exit-worthy)
+PASS  entity_id_collision: semantic check reports code ESPHOME_READ_ENTITY_ID_COLLISION  -- fields[other_field]
+PASS  entity_id_collision: at least one error total (validator is non-zero-exit-worthy)
+PASS  false_workbook_evidence: semantic check reports code EVIDENCE_ADDRESS_NOT_IN_WORKBOOK_INDEX  -- fields[example_field].evidence
+PASS  false_workbook_evidence: at least one error total (validator is non-zero-exit-worthy)
+PASS  wrong_payload_byte_length: semantic check reports code REGISTER_PAYLOAD_BYTES_MISMATCH  -- registers[reg_0x1000_example]
+PASS  wrong_payload_byte_length: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_width_larger_than_register_without_mask: semantic check reports code FIELD_WIDTH_EXCEEDS_REGISTER  -- fields[example_field]
+PASS  field_width_larger_than_register_without_mask: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_byte_offset_outside_payload: semantic check reports code FIELD_BYTE_OFFSET_EXCEEDS_PAYLOAD  -- fields[example_field]
+PASS  field_byte_offset_outside_payload: at least one error total (validator is non-zero-exit-worthy)
+PASS  step_not_raw_representable: semantic check reports code STEP_NOT_RAW_REPRESENTABLE  -- fields[example_field]
+PASS  step_not_raw_representable: at least one error total (validator is non-zero-exit-worthy)
+PASS  decimal_precision_mismatch: semantic check reports code DECIMAL_PRECISION_TOO_LOW  -- fields[example_field]
+PASS  decimal_precision_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  enum_key_out_of_raw_range: semantic check reports code ENUM_KEY_OUT_OF_RANGE  -- fields[example_field]
+PASS  enum_key_out_of_raw_range: at least one error total (validator is non-zero-exit-worthy)
+PASS  enum_unknown_policy_missing: semantic check reports code ENUM_UNKNOWN_POLICY_MISSING  -- fields[example_field]
+PASS  enum_unknown_policy_missing: at least one error total (validator is non-zero-exit-worthy)
+PASS  unknown_source_id: semantic check reports code UNKNOWN_SOURCE_ID  -- fields[example_field].evidence
+PASS  unknown_source_id: at least one error total (validator is non-zero-exit-worthy)
+PASS  unavailable_source_cited: semantic check reports code UNAVAILABLE_SOURCE_CITED  -- fields[example_field].evidence
+PASS  unavailable_source_cited: at least one error total (validator is non-zero-exit-worthy)
+PASS  unsupported_claim_type: semantic check reports code SOURCE_UNSUPPORTED_CLAIM_TYPE  -- fields[example_field].evidence
+PASS  unsupported_claim_type: at least one error total (validator is non-zero-exit-worthy)
+PASS  citation_fingerprint_mismatch: semantic check reports code CITATION_SOURCE_FINGERPRINT_MISMATCH  -- fields[example_field].evidence
+PASS  citation_fingerprint_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  citation_derivation_group_mismatch: semantic check reports code CITATION_DERIVATION_GROUP_MISMATCH  -- fields[example_field].evidence
+PASS  citation_derivation_group_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  forged_verification_status: semantic check reports code FORGED_VERIFICATION_STATUS  -- fields[example_field]
+PASS  forged_verification_status: at least one error total (validator is non-zero-exit-worthy)
+PASS  forged_effective_rw_policy: semantic check reports code FORGED_EFFECTIVE_ACCESS  -- fields[example_field]
+PASS  forged_effective_rw_policy: at least one error total (validator is non-zero-exit-worthy)
+PASS  project_version_locator_drift: semantic check reports code VERSION_CONTEXT_PROJECT_MISMATCH  -- version_context.esphome_project_version
+PASS  project_version_locator_drift: at least one error total (validator is non-zero-exit-worthy)
+PASS  ui_version_locator_drift: semantic check reports code VERSION_CONTEXT_UI_MISMATCH  -- version_context.web_ui_version
+PASS  ui_version_locator_drift: at least one error total (validator is non-zero-exit-worthy)
+PASS  external_component_pin_drift: semantic check reports code VERSION_CONTEXT_EXTERNAL_PIN_MISMATCH  -- version_context.external_component_pin
+PASS  external_component_pin_drift: at least one error total (validator is non-zero-exit-worthy)
+PASS  esphome_toolchain_version_drift: semantic check reports code VERSION_CONTEXT_ESPHOME_MISMATCH  -- version_context.esphome_framework_version_used_for_verification
+PASS  esphome_toolchain_version_drift: at least one error total (validator is non-zero-exit-worthy)
+PASS  bms_protocol_variant_overclaim: semantic check reports code BMS_PROTOCOL_VARIANT_OVERCLAIM  -- version_context.bms_protocol_variant
+PASS  bms_protocol_variant_overclaim: at least one error total (validator is non-zero-exit-worthy)
+PASS  bms_firmware_version_overclaim: semantic check reports code BMS_FIRMWARE_VERSION_OVERCLAIM  -- version_context.bms_firmware_version
+PASS  bms_firmware_version_overclaim: at least one error total (validator is non-zero-exit-worthy)
+PASS  register_nonregister_key_collision: semantic check reports code REGISTER_NONREGISTER_KEY_COLLISION
+
+110 checks run, 0 failed.
+
+=== protocol catalog: generator determinism (--check) ===
+generate.js --check: no drift. All generated artifacts match the canonical source.
+
+=== protocol catalog: generation atomicity + simulated-failure detection ===
+PASS  isolated initial generation succeeds  -- wrote register_catalog.json
+wrote protocol/generated/coverage_report.md
+wrote jk_bms.js
+wrote protocol/generated/.generation-manifest.json
+generation_id=e97f42b7310d2356
+
+catalog_version=1.1.0 source_hash=acfca050853a281e
+119 registers, 127 fields, 53 non-register entities.
+PASS  second generation succeeds  -- wrote register_catalog.json
+wrote protocol/generated/coverage_report.md
+wrote jk_bms.js
+wrote protocol/generated/.generation-manifest.json
+generation_id=e97f42b7310d2356
+
+catalog_version=1.1.0 source_hash=acfca050853a281e
+119 registers, 127 fields, 53 non-register entities.
+PASS  two generations are byte-identical
+PASS  --check accepts the completed generation
+PASS  fault before:0 exits non-zero with rollback diagnostic
+PASS  fault before:0 restores every prior artifact
+PASS  fault before:0 leaves no lock/tmp/backup debris
+PASS  fault after:0 exits non-zero with rollback diagnostic
+PASS  fault after:0 restores every prior artifact
+PASS  fault after:0 leaves no lock/tmp/backup debris
+PASS  fault before:1 exits non-zero with rollback diagnostic
+PASS  fault before:1 restores every prior artifact
+PASS  fault before:1 leaves no lock/tmp/backup debris
+PASS  fault after:1 exits non-zero with rollback diagnostic
+PASS  fault after:1 restores every prior artifact
+PASS  fault after:1 leaves no lock/tmp/backup debris
+PASS  fault before:2 exits non-zero with rollback diagnostic
+PASS  fault before:2 restores every prior artifact
+PASS  fault before:2 leaves no lock/tmp/backup debris
+PASS  fault after:2 exits non-zero with rollback diagnostic
+PASS  fault after:2 restores every prior artifact
+PASS  fault after:2 leaves no lock/tmp/backup debris
+PASS  fault before:3 exits non-zero with rollback diagnostic
+PASS  fault before:3 restores every prior artifact
+PASS  fault before:3 leaves no lock/tmp/backup debris
+PASS  fault after:3 exits non-zero with rollback diagnostic
+PASS  fault after:3 restores every prior artifact
+PASS  fault after:3 leaves no lock/tmp/backup debris
+PASS  concurrent publisher is rejected with stable code
+PASS  lock rejection leaves generation unchanged
+PASS  full manifest corruption is detected
+
+31 checks run, 0 failed.
+
+=== protocol catalog: exhaustive blocked/unlocked write surface ===
+PASS  catalog and canonical agree on the exhaustive blocked-RW count -- catalog=28 canonical=28
+PASS  every effective-RW field carries a well-formed owner_write_override -- unlocked=18
+PASS  no field carries an owner_write_override without effective_access rw
+PASS  frontend has no setup-passcode editor (id or write endpoint reference)
+PASS  jk_bms.js SETTING_DEFS/CONTROL_DEFS exactly cover the unlocked key set (excluding the bespoke setup_passcode UI) -- expected=battery_capacity,cell_ovpr,cell_rcv,cell_rfv,cell_uvpr,charge_ocpr_time,charge_otpr,charge_utpr,discharge_ocpr_time,discharge_otpr,max_balance_current,mos_otpr,scpr_time,smart_sleep,soc_0,soc_100,start_balance,start_balance_trigger frontend=battery_capacity,cell_ovpr,cell_rcv,cell_rfv,cell_uvpr,charge_ocpr_time,charge_otpr,charge_utpr,discharge_ocpr_time,discharge_otpr,max_balance_current,mos_otpr,scpr_time,smart_sleep,soc_0,soc_100,start_balance,start_balance_trigger
+PASS  frontend register renderer is data-driven from SETTING_DEFS/CONTROL_DEFS, not hardcoded
+PASS  NON_REGISTER_ENTITY_IDS is derived from PROTOCOL_CATALOG.nonRegisterKeys, not a second hand-maintained array
+PASS  PROTOCOL_CATALOG.nonRegisterKeys (now the live filter's own source) includes "charge_status_time" (previously silently leaked under a wrong hand-list name)
+PASS  PROTOCOL_CATALOG.nonRegisterKeys (now the live filter's own source) includes "charge_phase_time" (previously silently leaked under a wrong hand-list name)
+PASS  PROTOCOL_CATALOG.nonRegisterKeys (now the live filter's own source) includes "battery_state_time" (previously silently leaked under a wrong hand-list name)
+PASS  PROTOCOL_CATALOG.nonRegisterKeys (now the live filter's own source) includes "device_name" (previously silently leaked under a wrong hand-list name)
+PASS  PROTOCOL_CATALOG.nonRegisterKeys (now the live filter's own source) includes "battery_state_direction" (previously silently leaked under a wrong hand-list name)
+PASS  PROTOCOL_CATALOG.nonRegisterKeys (now the live filter's own source) includes "battery_state_candidate_samples" (previously silently leaked under a wrong hand-list name)
+PASS  set_cell_uvp's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_cell_ovp's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_system_power_off's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_continued_charge_current's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_charge_ocp_delay's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_continued_discharge_current's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_discharge_ocp_delay's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_charge_otp's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_discharge_otp's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_charge_utp's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_mos_otp's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_cell_count's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  select_charging's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  select_discharging's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  select_balancing's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_scp_delay's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_heating_activation_temperature's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_heating_deactivation_temperature's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  setup_passcode's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_lcd_buzzer_trigger's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_dry_contact_1_trigger_source's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_dry_contact_2_trigger_source's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_dry_contact_1_trigger_value's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_dry_contact_1_recovery_value's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_dry_contact_2_trigger_value's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_dry_contact_2_recovery_value's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_rcv_time's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  set_rfv_time's set_action is reverted to fail-closed (no Modbus command queued)
+PASS  mock rejects blocked field cell_uvp -- status=409 endpoint=/number/set_cell_uvp/set?value=1
+PASS  mock rejection identifies cell_uvp -- write rejected: "cell_uvp" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field cell_ovp -- status=409 endpoint=/number/set_cell_ovp/set?value=1
+PASS  mock rejection identifies cell_ovp -- write rejected: "cell_ovp" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field system_power_off -- status=409 endpoint=/number/set_system_power_off/set?value=1
+PASS  mock rejection identifies system_power_off -- write rejected: "system_power_off" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field continued_charge_current -- status=409 endpoint=/number/set_continued_charge_current/set?value=1
+PASS  mock rejection identifies continued_charge_current -- write rejected: "continued_charge_current" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field charge_ocp_delay -- status=409 endpoint=/number/set_charge_ocp_delay/set?value=1
+PASS  mock rejection identifies charge_ocp_delay -- write rejected: "charge_ocp_delay" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field continued_discharge_current -- status=409 endpoint=/number/set_continued_discharge_current/set?value=1
+PASS  mock rejection identifies continued_discharge_current -- write rejected: "continued_discharge_current" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field discharge_ocp_delay -- status=409 endpoint=/number/set_discharge_ocp_delay/set?value=1
+PASS  mock rejection identifies discharge_ocp_delay -- write rejected: "discharge_ocp_delay" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field charge_otp -- status=409 endpoint=/number/set_charge_otp/set?value=1
+PASS  mock rejection identifies charge_otp -- write rejected: "charge_otp" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field discharge_otp -- status=409 endpoint=/number/set_discharge_otp/set?value=1
+PASS  mock rejection identifies discharge_otp -- write rejected: "discharge_otp" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field charge_utp -- status=409 endpoint=/number/set_charge_utp/set?value=1
+PASS  mock rejection identifies charge_utp -- write rejected: "charge_utp" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field mos_otp -- status=409 endpoint=/number/set_mos_otp/set?value=1
+PASS  mock rejection identifies mos_otp -- write rejected: "mos_otp" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field cell_count -- status=409 endpoint=/number/set_cell_count/set?value=1
+PASS  mock rejection identifies cell_count -- write rejected: "cell_count" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field charging -- status=409 endpoint=/select/charging/set?option=Off
+PASS  mock rejection identifies charging -- write rejected: "charging" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field discharging -- status=409 endpoint=/select/discharging/set?option=Off
+PASS  mock rejection identifies discharging -- write rejected: "discharging" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field balancing -- status=409 endpoint=/select/balancing/set?option=Off
+PASS  mock rejection identifies balancing -- write rejected: "balancing" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field scp_delay -- status=409 endpoint=/number/set_scp_delay/set?value=1
+PASS  mock rejection identifies scp_delay -- write rejected: "scp_delay" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field heating_activation_temperature -- status=409 endpoint=/number/set_heating_activation_temperature/set?value=1
+PASS  mock rejection identifies heating_activation_temperature -- write rejected: "heating_activation_temperature" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field heating_deactivation_temperature -- status=409 endpoint=/number/set_heating_deactivation_temperature/set?value=1
+PASS  mock rejection identifies heating_deactivation_temperature -- write rejected: "heating_deactivation_temperature" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field setup_passcode -- status=409 endpoint=/text/setup_passcode/set?value=blocked-test
+PASS  mock rejection identifies setup_passcode -- write rejected: "setup_passcode" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field lcd_buzzer_trigger -- status=409 endpoint=/number/set_lcd_buzzer_trigger/set?value=1
+PASS  mock rejection identifies lcd_buzzer_trigger -- write rejected: "lcd_buzzer_trigger" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field dry_contact_1_trigger_source -- status=409 endpoint=/number/set_dry_contact_1_trigger_source/set?value=1
+PASS  mock rejection identifies dry_contact_1_trigger_source -- write rejected: "dry_contact_1_trigger_source" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field dry_contact_2_trigger_source -- status=409 endpoint=/number/set_dry_contact_2_trigger_source/set?value=1
+PASS  mock rejection identifies dry_contact_2_trigger_source -- write rejected: "dry_contact_2_trigger_source" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field dry_contact_1_trigger_value -- status=409 endpoint=/number/set_dry_contact_1_trigger_value/set?value=1
+PASS  mock rejection identifies dry_contact_1_trigger_value -- write rejected: "dry_contact_1_trigger_value" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field dry_contact_1_recovery_value -- status=409 endpoint=/number/set_dry_contact_1_recovery_value/set?value=1
+PASS  mock rejection identifies dry_contact_1_recovery_value -- write rejected: "dry_contact_1_recovery_value" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field dry_contact_2_trigger_value -- status=409 endpoint=/number/set_dry_contact_2_trigger_value/set?value=1
+PASS  mock rejection identifies dry_contact_2_trigger_value -- write rejected: "dry_contact_2_trigger_value" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field dry_contact_2_recovery_value -- status=409 endpoint=/number/set_dry_contact_2_recovery_value/set?value=1
+PASS  mock rejection identifies dry_contact_2_recovery_value -- write rejected: "dry_contact_2_recovery_value" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field rcv_time -- status=409 endpoint=/number/set_rcv_time/set?value=1
+PASS  mock rejection identifies rcv_time -- write rejected: "rcv_time" has no confirmed write path (see blockedWriteKeys)
+PASS  mock rejects blocked field rfv_time -- status=409 endpoint=/number/set_rfv_time/set?value=1
+PASS  mock rejection identifies rfv_time -- write rejected: "rfv_time" has no confirmed write path (see blockedWriteKeys)
+PASS  blocked-write matrix leaves the complete simulator control state unchanged
+
+Blocked-write surface summary: 98/98 passed
+
+=== protocol catalog: fingerprint-drift regression ===
+PASS  1. clean source: check exits 0  -- status=0
+PASS  1. clean source: reasonCode is FINGERPRINT_MATCH  -- {"ok":true,"actual":"sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e","stored":"sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e","reasonCode":"FINGERPRINT_MATCH"}
+PASS  1. clean source: no ENOENT anywhere in output
+PASS  1. clean source: no unrelated stderr noise
+PASS  fixture sanity: jk_bms.js carries the generated-catalog markers
+PASS  2. jk_bms.js drift: check exits non-zero  -- status=1
+PASS  2. jk_bms.js drift: reasonCode is exactly FINGERPRINT_MISMATCH  -- {"ok":false,"actual":"sha256:b0b7fed544d61e69ca4c6f3352e0a5316847e9867b0cd5bc7fde2d3e1657d892","stored":"sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e","reasonCode":"FINGERPRINT_MISMATCH"}
+PASS  3. jk_bms.js restored: check exits 0  -- status=0
+PASS  3. jk_bms.js restored: reasonCode is FINGERPRINT_MATCH
+PASS  4. yaml drift: check exits non-zero  -- status=1
+PASS  4. yaml drift: reasonCode is exactly FINGERPRINT_MISMATCH  -- {"ok":false,"actual":"sha256:31a1f3eec5d2fc861b1d38d2d1b7bc001cb89f410701e0da635f2d91c679e7cc","stored":"sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e","reasonCode":"FINGERPRINT_MISMATCH"}
+PASS  5. yaml restored: check exits 0  -- status=0
+PASS  6. missing jk_bms.js: check exits non-zero (not silently 0)  -- status=1
+PASS  6. missing jk_bms.js: reasonCode is SOURCE_FILE_MISSING (not a raw crash)  -- {"ok":false,"actual":null,"stored":null,"reasonCode":"SOURCE_FILE_MISSING","detail":"SOURCE_FILE_MISSING:jk_bms.js"}
+PASS  6. missing jk_bms.js: no unhandled-exception stack trace on stderr
+PASS  6b. jk_bms.js restored after missing-file test: check exits 0
+PASS  7. corrupted sources.json: check exits non-zero  -- status=1
+PASS  7. corrupted sources.json: reasonCode is SOURCES_JSON_MALFORMED  -- {"ok":false,"actual":"sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e","stored":null,"reasonCode":"SOURCES_JSON_MALFORMED","detail":"SOURCES_JSON_MALFORMED"}
+PASS  7b. sources.json restored: check exits 0
+PASS  8. review (1s ttl) succeeds  -- {"ok":true,"reasonCode":"REVIEW_OK","review":{"schema_version":1,"reviewed_at_iso":"2026-09-11T05:24:00.311Z","expires_at_iso":"2026-09-11T05:24:01.311Z","ttl_seconds":1,"actual_fingerprint":"sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e","stored_fingerprint":"sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e","drift_present":false,"source_state_digest":"f0f6f27d204e31354b0f28baeac25f92941be450203cdbd2eb2c2797780938bf","sources_json_digest_excluding_fingerprint":"d60c652ed8ec415bf6cebd8f46fa2ef83a868f3e340da62e37b611e6a63af616","canonical_digest":"82cb209229e5629ac78fd1e3bc45df1cdfcefed6ec7f77a4decacce9ef7c8fd5","non_register_canonical_digest":"6edb28b7e07bc5340adb62531cdab7ad115f58b95e2dc75934e7cc8a5db596d0","citation_counts":{"protocol/evidence/sources.json":1,"protocol/registers.canonical.json":239},"expected_replacement_count":240}}
+PASS  8. stale review: accept exits non-zero  -- status=1
+PASS  8. stale review: reasonCode is REVIEW_STALE  -- {"ok":false,"reasonCode":"REVIEW_STALE","detail":"review expired at 2026-09-11T05:23:00.316Z"}
+PASS  8. stale review: citation files untouched
+PASS  9. fresh review succeeds
+PASS  9. source changed after review: accept exits non-zero  -- status=1
+PASS  9. source changed after review: reasonCode is REVIEW_SOURCE_CHANGED  -- {"ok":false,"reasonCode":"REVIEW_SOURCE_CHANGED","detail":"batterylifepo4.yaml/jk_bms.js changed since review (review saw sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e, now sha256:5b283e8347fb5e5c710eb96452a94e5b0a5c2de3546a932d0d8a212bbe3d679d)"}
+PASS  9. source changed after review: citation files untouched
+PASS  10. pre-accept: check reports drift
+PASS  10. review of the real drift succeeds  -- {"ok":true,"reasonCode":"REVIEW_OK","review":{"schema_version":1,"reviewed_at_iso":"2026-09-11T05:24:00.508Z","expires_at_iso":"2026-09-12T05:24:00.508Z","ttl_seconds":86400,"actual_fingerprint":"sha256:7f5bedf6bcebe9e6580d9eeb5e02c7a68d9a7d6af0be854e30525430bcef94e7","stored_fingerprint":"sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e","drift_present":true,"source_state_digest":"b0371619f96ec4011bcac52a2eafdc94794d710d0b141834c68e130d8c527d09","sources_json_digest_excluding_fingerprint":"d60c652ed8ec415bf6cebd8f46fa2ef83a868f3e340da62e37b611e6a63af616","canonical_digest":"82cb209229e5629ac78fd1e3bc45df1cdfcefed6ec7f77a4decacce9ef7c8fd5","non_register_canonical_digest":"6edb28b7e07bc5340adb62531cdab7ad115f58b95e2dc75934e7cc8a5db596d0","citation_counts":{"protocol/evidence/sources.json":1,"protocol/registers.canonical.json":239},"expected_replacement_count":240}}
+PASS  10. accept succeeds  -- {"ok":true,"reasonCode":"ACCEPT_OK","fingerprint":"sha256:7f5bedf6bcebe9e6580d9eeb5e02c7a68d9a7d6af0be854e30525430bcef94e7","replacements":{"protocol/evidence/sources.json":1,"protocol/registers.canonical.json":239}}
+PASS  10. accept updated sources.json's fingerprint to the new value  -- sha256:7f5bedf6bcebe9e6580d9eeb5e02c7a68d9a7d6af0be854e30525430bcef94e7 vs sha256:7f5bedf6bcebe9e6580d9eeb5e02c7a68d9a7d6af0be854e30525430bcef94e7
+PASS  10. accept updated ONLY the fingerprint field in sources.json (rest of the document unchanged)
+PASS  10. accept updated registers.canonical.json's source_fingerprint citations to the new value, nothing else
+PASS  10. post-accept: check exits 0 (drift resolved)  -- {"ok":true,"actual":"sha256:7f5bedf6bcebe9e6580d9eeb5e02c7a68d9a7d6af0be854e30525430bcef94e7","stored":"sha256:7f5bedf6bcebe9e6580d9eeb5e02c7a68d9a7d6af0be854e30525430bcef94e7","reasonCode":"FINGERPRINT_MATCH"}
+PASS  10. repeat accept with the same (now-stale) review is refused, not silently re-applied  -- {"ok":false,"reasonCode":"REVIEW_SOURCES_JSON_CHANGED","detail":"stored fingerprint changed since review (review saw sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e, now sha256:7f5bedf6bcebe9e6580d9eeb5e02c7a68d9a7d6af0be854e30525430bcef94e7)"}
+PASS  10. repeat accept produced NO further diff to either citation file
+
+36 checks run, 0 failed.
+
+=== protocol catalog: implementation fingerprint (check, non-mutating) ===
+{"ok":true,"actual":"sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e","stored":"sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e","reasonCode":"FINGERPRINT_MATCH"}
+FINGERPRINT_MATCH actual=sha256:5992145b87497b511778a4a5bd145c9402d469936aaff29efb0ad7920f22985e
+
+=== protocol catalog: single-pipeline orchestrator (check, with workbook) ===
+protocol-pipeline check PASS
+
+=== protocol catalog: entity/wire-ID collision regression ===
+PASS  entity registrations extracted -- count=107
+PASS  cell_rcv has one wire owner -- owners=cell_rcv
+PASS  cell_rcv owner is canonical
+PASS  cell_rfv has one wire owner -- owners=cell_rfv
+PASS  cell_rfv owner is canonical
+PASS  charge target consumers use canonical keys
+PASS  obsolete alias keys are absent from live state consumers
+PASS  every canonical esphome_read_entity_id with a registerEntity() remap matches the REAL wire id it registers -- mismatches=0
+PASS  diagnosticUnit()'s cell-resistance branch matches the real key format (cell_resistance_N)
+PASS  DIAGNOSTIC_ENTITY_ORDER's cell-resistance entries use the real key format (cell_resistance_N)
+PASS  diagnosticNumberedSeries()/diagnosticEntityLabel()'s cell-resistance regexes use the real key format (cell_resistance_N)
+PASS  DIAGNOSTIC_ENTITY_ORDER's temperature entries use the real key format (temperature_N)
+PASS  diagnosticNumberedSeries()/diagnosticEntityLabel()'s temperature regexes use the real key format (temperature_N)
+PASS  cycle_capacity (registerEntity() key) is used consistently, not its wire id total_charging_cycle_capacity
+PASS  every reachable registerEntity() key has an EN DIAGNOSTIC_ENTITY_LABELS entry -- missing=
+PASS  every reachable registerEntity() key has a UK DIAGNOSTIC_ENTITY_LABELS entry -- missing=
+
+16 checks run, 0 failed.
+
+=== protocol catalog: secret-leakage scan ===
+secret-scan files(worktree=160,index=130,history=547) skipped(binary=6,large=0) fixtures(positive=detected,negative=clean)
+secret-scan PASS
+
+=== protocol catalog: claim-matrix exact-set invariant ===
+PASS  1. physical register count: canonical registers.length matches claim_matrix.counts.physical_registers  -- canonical=119 claim=119
+PASS  2. logical field count: canonical field count matches claim_matrix.counts.logical_fields  -- canonical=127 claim=127
+PASS  3. declared RW count is 46 (documented baseline — a change here must be a reviewed, deliberate catalog edit)  -- actual=46
+PASS  4. effective RW count is 18 (documented baseline)  -- actual=18
+PASS  5. effective R count is 108 (documented baseline)  -- actual=108
+PASS  6. unsupported count is 1 (documented baseline)  -- actual=1
+PASS  6b. declared_r + declared_rw == logical field count
+PASS  6c. effective_rw + effective_r + unsupported == logical field count
+PASS  7. claim_matrix.counts.write_ready is 0 (no field is independently protocol-verified yet)  -- actual=0
+PASS  8. claim_matrix.counts.write_blocked equals logical field count  -- write_blocked=127 fields=127
+PASS  9. claim_matrix.counts.policy_inconsistent is 18 (documented baseline)  -- actual=18
+PASS  10. EXACT set equality: canonical effective-RW keys === claim_matrix policy_inconsistent keys (no extra/missing/duplicate)  -- canonical-only= claim-only=
+PASS  11. no duplicate keys in canonical source
+PASS  11b. no duplicate keys in claim_matrix
+PASS  12. no unknown keys in claim_matrix (every claim_matrix key exists in canonical)
+PASS  12b. no missing keys (every canonical key has a claim_matrix entry)
+PASS  13. every effective-RW field's owner_write_override has authorized/authorized_by/date/rationale, all well-formed
+PASS  14. no effective-RW field's verification_status silently implies evidence-verification without either "confirmed" or the override
+
+--- self-test: deliberately broken fixtures must fail the same invariant ---
+PASS  self-test fixture sanity: a field was actually mutated
+PASS  self-test: exact-set check FAILS on the mutated fixture (proves criterion 10 is not vacuously true)
+PASS  self-test fixture sanity: an override field was actually removed
+PASS  self-test: override-well-formedness check FAILS when authorized_by is stripped (proves criterion 13 is not vacuously true)
+PASS  self-test: missing-claim-key check FAILS when a claim_matrix entry is dropped (proves criterion 12b is not vacuously true)
+
+23 checks run, 0 failed.
+
+=== protocol catalog: mixed-generation artifact rejection ===
+PASS  A1. computeReleaseGenerationId is deterministic (two calls, same input, same id)  -- 449095a089bddffd vs 449095a089bddffd
+PASS  A1b. id looks like a real hex digest, not empty/placeholder  -- 449095a089bddffd
+PASS  A2. changing the workbook source fingerprint changes release_generation_id  -- a45d5adc636e6ec9 vs 449095a089bddffd
+PASS  A3. changing the upstream source fingerprint changes release_generation_id  -- f16cb46a0150446c vs 449095a089bddffd
+PASS  A4. changing the implementation fingerprint changes release_generation_id  -- 89405c09a317e80b vs 449095a089bddffd
+PASS  A5. changing registers.canonical.json's content changes release_generation_id  -- 8f124edb30a1df89 vs 449095a089bddffd
+PASS  A6. changing a schema file's content changes release_generation_id  -- 2112519559b0f6fe vs 449095a089bddffd
+PASS  A7. after restoring every mutated input, the id returns to the original value  -- 449095a089bddffd vs 449095a089bddffd
+PASS  B1. sandbox baseline: pipeline build succeeds  -- pipeline indexes/claim matrix published | protocol-pipeline build PASS
+PASS  B2. sandbox baseline: pipeline check passes on a freshly built, consistent generation  -- protocol-pipeline check PASS
+PASS  B3. fixture sanity (claim_matrix.json): carries a real release_generation_id  -- 449095a089bddffd
+PASS  B4. mixed generation (claim_matrix.json): pipeline check exits non-zero  -- status=1
+PASS  B5. mixed generation (claim_matrix.json): rejected by a real, named mechanism (RELEASE_GENERATION_ID_MISMATCH, PIPELINE_DERIVED_ARTIFACT_STALE, or a generate.js DRIFT failure) mentioning the tampered file  -- PIPELINE_DERIVED_ARTIFACT_STALE:protocol/generated/claim_matrix.json
+PASS  B6. restored (claim_matrix.json): pipeline check passes again  -- protocol-pipeline check PASS
+PASS  B3. fixture sanity (register_catalog.json): carries a real release_generation_id  -- 449095a089bddffd
+PASS  B4. mixed generation (register_catalog.json): pipeline check exits non-zero  -- status=1
+PASS  B5. mixed generation (register_catalog.json): rejected by a real, named mechanism (RELEASE_GENERATION_ID_MISMATCH, PIPELINE_DERIVED_ARTIFACT_STALE, or a generate.js DRIFT failure) mentioning the tampered file  -- PASS  every `address: 0xNNNN` modbus_controller declaration in batterylifepo4.yaml has a catalog register |  | 171 checks run, 1 failed. | PIPELINE_COMMAND_FAILED:node:1
+PASS  B6. restored (register_catalog.json): pipeline check passes again  -- protocol-pipeline check PASS
+
+18 checks run, 0 failed.
+
+=== JS syntax check: jk_bms.js ===
+
+=== JS syntax check: demo/mock-server.js ===
+
+=== JS syntax check: demo/panel.js ===
+
+=== JS syntax check: test/topology/run.js ===
+
+=== topology + write-transaction integration suite ===
+
+-- Topology Resolver matrix --
+PASS  topology: minimum supported (1S) reaches CONFIRMED  -- topology_state=CONFIRMED
+PASS  topology: minimum supported effective_cell_count === 1  -- got 1
+PASS  topology: 4S (4S) reaches CONFIRMED  -- topology_state=CONFIRMED
+PASS  topology: 4S effective_cell_count === 4  -- got 4
+PASS  topology: 8S (8S) reaches CONFIRMED  -- topology_state=CONFIRMED
+PASS  topology: 8S effective_cell_count === 8  -- got 8
+PASS  topology: 16S / maximum supported (16S) reaches CONFIRMED  -- topology_state=CONFIRMED
+PASS  topology: 16S / maximum supported effective_cell_count === 16  -- got 16
+PASS  topology: CellCount=0 is rejected (no transaction started)  -- tx_id changed from 0 to 0
+PASS  topology: CellCount=17 (out of range) is rejected  -- tx_id changed from 0 to 0
+PASS  topology: exact contiguous mask (8S) -> CONFIRMED
+PASS  topology: non-contiguous mask (right popcount, wrong bits) -> MISMATCH  -- state=MISMATCH
+PASS  topology: non-contiguous mask reason is MASK_NOT_CONTIGUOUS (not just a popcount check)  -- reason=MASK_NOT_CONTIGUOUS
+PASS  topology: extra high mask bit above configured range -> MISMATCH  -- state=MISMATCH
+PASS  topology: wrong connected-cell popcount -> MISMATCH  -- state=MISMATCH
+PASS  topology: a missing voltage inside the active range -> MISMATCH/ACTIVE_RANGE_GAP  -- state=MISMATCH reason=ACTIVE_RANGE_GAP
+PASS  topology: NaN voltage inside the active range -> not CONFIRMED  -- state=MISMATCH
+PASS  topology: pack voltage inconsistent with cell sum -> MISMATCH/VOLTAGE_SUM_DIFFERS  -- state=MISMATCH reason=VOLTAGE_SUM_DIFFERS
+PASS  topology: simulated BMS restart immediately reports OFFLINE, not a stale CONFIRMED  -- state=OFFLINE
+PASS  topology: resolver self-heals to CONFIRMED after the simulated restart  -- state=CONFIRMED
+PASS  topology: 16S -> 8S round-trip write reaches CONFIRMED  -- tx_status=4 effective=8
+PASS  topology: 8S -> 16S round-trip write reaches CONFIRMED again  -- tx_status=4 effective=16
+PASS  topology: sustained BMS silence (>30s) -> OFFLINE, never a stale CONFIRMED  -- state=OFFLINE
+PASS  topology: OFFLINE self-heals to CONFIRMED once comms resume  -- state=CONFIRMED
+
+-- CellCount write-transaction matrix (resolver-side, via debug trigger — public endpoint tested separately below) --
+PASS  write: confirm scenario reaches tx_status CONFIRMED(4)  -- tx_status=4
+PASS  write: confirm scenario readback matches requested value exactly  -- cell_count=4
+PASS  write: mismatch_config_only NEVER reports tx_status CONFIRMED(4)  -- tx_status=5
+PASS  write: mismatch topology_state is MISMATCH, not silently CONFIRMED  -- state=MISMATCH
+PASS  write: mismatch effective_cell_count stays the safe fallback (16), never the unconfirmed 8  -- effective=16
+PASS  write: lost ACK reaches tx_status ACK_TIMEOUT(7), not a silent success  -- tx_status=7
+PASS  write: lost ACK reports topology WRITE_UNCERTAIN, never the stale old CONFIRMED  -- state=WRITE_UNCERTAIN
+PASS  write: recovery probe re-confirms the UNCHANGED old topology (16S) once uncertainty clears  -- state=CONFIRMED effective=16
+PASS  write: writeMode=http_error yields a real HTTP 500, not a fake 200  -- status=500
+PASS  write: applied_ack_lost still reports WRITE_UNCERTAIN, not an optimistic success  -- tx_status=7 state=WRITE_UNCERTAIN
+PASS  write: recovery probe eventually reveals the silently-applied NEW topology (8S)  -- state=CONFIRMED effective=8
+PASS  write: readback that lands but doesn't corroborate the new value -> MISMATCH, not CONFIRMED  -- tx_status=5
+PASS  write: ACK ok but the forced readback itself never completes -> tx_status READBACK_TIMEOUT(8)  -- tx_status=8
+PASS  write: readback timeout reports WRITE_UNCERTAIN, not a stale CONFIRMED  -- state=WRITE_UNCERTAIN
+PASS  write: recovery probe re-confirms the unchanged old topology after a readback timeout  -- state=CONFIRMED effective=16
+PASS  write: sse_before_http -- HTTP response and the SSE terminal event land within the same short window (server broadcasts before responding)  -- tx_status=4
+PASS  write: a duplicated terminal SSE event doesn't corrupt the final state  -- tx_status=4
+PASS  write: the transaction still settles on tx_status CONFIRMED(4) as its real terminal event  -- tx_status=4
+PASS  write: the stale replay is observable but doesn't retroactively invalidate the already-settled terminal event  -- replayed value=3 (expected the deliberate stale replay, "3")
+PASS  write: a second CellCount write while one is in flight is ignored (single-flight guard)  -- tx_id changed from 12 to 12
+PASS  write: the FIRST (not the rejected second) transaction reaches its own terminal state  -- tx_status=4 cell_count=8
+PASS  cell_count: direct POST to the public endpoint is rejected (409), not 200  -- status=409
+PASS  cell_count: unchanged after the rejected public write  -- before=16 after=16
+
+-- Generic write transaction matrix (owner-authorized RW registers) --
+PASS  generic write: direct POST to set_cell_uvpr is accepted (200), not 409  -- status=200
+PASS  generic write: cell_uvpr reaches the requested value via the real transaction machinery  -- cell_uvpr=2.90
+PASS  generic write: write_tx_snapshot carries a CONFIRMED (status 4) entry for 0x1008  -- snapshot=[{"addr":4104,"tx_id":1,"status":4,"req":"2.90","rb":"2.90"}]
+PASS  generic write: set_cell_uvpr is accepted (200) under generic-write-scenario=mismatch  -- status=200
+PASS  generic write: cell_uvpr is unchanged under generic-write-scenario=mismatch (no false success)  -- before=2.90 after=2.90
+PASS  generic write: set_cell_uvpr is accepted (200) under generic-write-scenario=ack_timeout  -- status=200
+PASS  generic write: cell_uvpr is unchanged under generic-write-scenario=ack_timeout (no false success)  -- before=2.90 after=2.90
+PASS  generic write: set_cell_uvpr is accepted (200) under generic-write-scenario=readback_timeout  -- status=200
+PASS  generic write: cell_uvpr is unchanged under generic-write-scenario=readback_timeout (no false success)  -- before=2.90 after=2.90
+PASS  generic write: two different registers are both accepted (200) concurrently  -- cell_uvpr=200 cell_ovpr=200
+PASS  generic write: both independent transactions reach their own requested value  -- cell_uvpr=2.60 cell_ovpr=3.80
+PASS  generic write collision: first write to set_cell_uvpr is accepted (200)  -- status=200
+PASS  generic write collision: second write to the SAME address while the first is pending is still HTTP 200 (ESPHome always accepts the action)  -- status=200
+PASS  generic write collision: a real REJECTED(9) snapshot entry is published for the second write (not silently dropped)  -- snapshot=[{"addr":4112,"tx_id":6,"status":4,"req":"3.80","rb":"3.80"},{"addr":4104,"tx_id":7,"status":1,"req":"2.70","rb":null},{"addr":4104,"tx_id":8,"status":9}]
+PASS  uncertainty recovery: applied_ack_lost write is accepted (200)  -- status=200
+PASS  uncertainty recovery: an ACK timeout is surfaced as WRITE_UNCERTAIN(6), not an immediate completed error  -- entry={"addr":4104,"tx_id":9,"status":6,"req":"2.65","rb":null}
+PASS  uncertainty recovery: applied_ack_lost eventually resolves to RECOVERED_CONFIRMED(10)  -- entry={"addr":4104,"tx_id":9,"status":10,"req":"2.65","rb":"2.65"}
+PASS  uncertainty recovery: cell_uvpr genuinely reflects the silently-applied new value once recovered  -- cell_uvpr=2.65
+PASS  uncertainty recovery: plain ack_timeout write is accepted (200)  -- status=200
+PASS  uncertainty recovery: a genuinely lost write resolves to RECOVERED_MISMATCH(11), never a false RECOVERED_CONFIRMED  -- entry={"addr":4104,"tx_id":10,"status":11,"req":"2.99","rb":"2.65"}
+PASS  uncertainty recovery: cell_uvpr is unchanged after a genuine RECOVERED_MISMATCH  -- before=2.65 after=2.65
+
+-- Control-register write (charging/discharging/balancing all blocked) --
+PASS  control register: direct POST to charging is rejected (409), not 200  -- status=409
+PASS  control register: direct POST to discharging is rejected (409), not 200  -- status=409
+PASS  control register: direct POST to balancing is rejected (409), not 200  -- status=409
+PASS  control register: charging_allowed/discharging_allowed/balancing_allowed unchanged after the rejected writes  -- charging=On discharging=On balancing=On
+PASS  control override: active_alarm publishes an explicit, non-empty override reason  -- reason=active_alarm_protection_trip
+PASS  control override: live charging status reflects the trip (binary_sensor Off)  -- binary_sensor-charging=Off
+PASS  control override: the CONTROL register itself is untouched by the trip (still On)  -- binary_sensor-charging_allowed=On
+PASS  control override: reason clears once the scenario moves away from active_alarm  -- reason=
+
+76 checks run, 0 failed.
+
+=== release runner: ephemeral port allocation ===
+PASS  parallel runs: 8 concurrent pickPort() calls all succeed
+PASS  parallel runs: all 8 picked ports are distinct (no collision)  -- [63777,63778,63779,63780,63781,63782,63783,63784]
+PASS  repeat run 1/5: pick -> bind -> release succeeds cleanly
+PASS  repeat run 2/5: pick -> bind -> release succeeds cleanly
+PASS  repeat run 3/5: pick -> bind -> release succeeds cleanly
+PASS  repeat run 4/5: pick -> bind -> release succeeds cleanly
+PASS  repeat run 5/5: pick -> bind -> release succeeds cleanly
+PASS  cleanup after use: the same port is verifiably free once released
+PASS  requestedPort collision: pickPort refuses a port that's actually busy, not a silent success  -- PORT_NOT_FREE:63791
+PASS  requestedPort after release: the same requested port is accepted once free
+PASS  no hardcoded fallback: two default picks are two different real ephemeral ports, not a shared constant  -- 63792 vs 63793
+
+11 checks run, 0 failed.
+
+=== release runner: orchestration engine regression ===
+PASS  1. workbook env missing: validateWorkbookPath reports RELEASE_WORKBOOK_REQUIRED (maps to CLI exit 2)  -- {"ok":false,"reasonCode":"RELEASE_WORKBOOK_REQUIRED","message":"RELEASE_WORKBOOK_REQUIRED: set JK_BMS_WORKBOOK_PATH to the local\nLiFePO4_BMS_Parameters_registers.xlsx before running the release gate.\n(test/run_all.sh remains available for fast iteration without it.)"}
+PASS  2. workbook path missing (file doesn't exist): validateWorkbookPath reports RELEASE_WORKBOOK_NOT_FOUND (maps to CLI exit 2)  -- {"ok":false,"reasonCode":"RELEASE_WORKBOOK_NOT_FOUND","message":"RELEASE_WORKBOOK_NOT_FOUND: /nonexistent/path/definitely-not-here.xlsx"}
+PASS  2b. workbook path present: validateWorkbookPath succeeds
+PASS  11. invalid timeout value: parseTimeoutSeconds reports RELEASE_INVALID_TIMEOUT (maps to CLI exit 2)  -- {"ok":false,"reasonCode":"RELEASE_INVALID_TIMEOUT","message":"RELEASE_INVALID_TIMEOUT: JK_BMS_RELEASE_TIMEOUT_SECS must be a positive integer, got \"notanumber\""}
+PASS  11b. zero timeout is also rejected
+PASS  11c. non-integer timeout is also rejected
+PASS  11d. a valid timeout is accepted
+PASS  11e. an unset timeout defaults to a sane positive value
+PASS  non-mutation helper: identical snapshots report no mutation
+PASS  non-mutation helper: different snapshots report mutation
+PASS  3. forced failed step: CLI exits 1  -- status=1
+PASS  3. forced failed step: summary reports FAILED for that step
+PASS  3. forced failed step: overall verdict line says FAILED
+PASS  4. forced skipped step: CLI exits 3  -- status=3
+PASS  4. forced skipped step: summary reports SKIPPED for that step
+PASS  4. forced skipped step: overall verdict line says PARTIAL PASS
+PASS  5. skipped run's output never contains a bare "ALL PASS" line
+PASS  6. failed run's output never contains a bare "ALL PASS" line
+PASS  15. a run with a forced-skip step never exits 0  -- status=3
+PASS  15. a run with a forced-fail step never exits 0  -- status=1
+PASS  10. nominal fixture run: CLI exits 0  -- status=0
+PASS  10. nominal fixture run: output contains a bare "ALL PASS" line
+PASS  10. nominal fixture run: non-mutation guard reports PASS
+PASS  7. timeout: CLI exits non-zero  -- status=1
+PASS  7. timeout: summary reports TIMEOUT for the never-exiting step  -- EXECUTED fixture: quick pass B | TIMEOUT  fixture: spawn-tree (parent/child/grandchild + port) -- exceeded the remaining release budget (~1940ms allotted) |  | === non-mutation guard === | PASS     git status is identical before and after this release run. |  | FAILED: one or more release steps did not pass, or the working tree was mutated. See the summary above. | 
+PASS  8. fixture sanity: parent+child+grandchild PIDs were actually recorded  -- parent:78984,child:78985,grandchild:78986
+PASS  8. timeout kills the WHOLE tree: no parent/child/grandchild PID survives  -- still alive: 
+PASS  8b. after timeout, the fixture's port is no longer held (mock-server-equivalent case)
+PASS  repeat allocation: a fresh ephemeral port can be picked again right after cleanup
+PASS  9. SIGINT: CLI exits with the documented code (130)  -- code=130
+PASS  9. SIGINT: output states no further steps will run
+PASS  9. SIGINT: the spawn-tree step never reached a normal terminal status in the summary
+PASS  9. signal cleanup: no parent/child/grandchild PID survives SIGINT  -- pids=parent:79020,child:79021,grandchild:79022 still alive=
+PASS  12. non-mutating run: CLI exits 0 against the clean scratch repo  -- status=0
+PASS  12. non-mutating run: non-mutation guard reports PASS
+PASS  13. a step that mutates the scratch repo: CLI exits non-zero (verification FAILs)  -- status=1
+PASS  13. a step that mutates the scratch repo: non-mutation guard reports FAILED
+PASS  14. after restoring cleanliness: CLI exits 0 again  -- status=0
+PASS  14. after restoring cleanliness: non-mutation guard reports PASS again
+
+39 checks run, 0 failed, 0 blocked.
+
+=== release summary ===
+EXECUTED jk_write_tx_core: compile
+EXECUTED jk_write_tx_core: run
+EXECUTED jk_history_format: compile
+EXECUTED jk_history_format: run
+EXECUTED protocol catalog: schema + semantic + cross-file validator
+EXECUTED protocol catalog: packed-register codec round-trip tests
+EXECUTED protocol catalog: negative validator fixtures
+EXECUTED protocol catalog: generator determinism (--check)
+EXECUTED protocol catalog: generation atomicity + simulated-failure detection
+EXECUTED protocol catalog: exhaustive blocked/unlocked write surface
+EXECUTED protocol catalog: fingerprint-drift regression
+EXECUTED protocol catalog: implementation fingerprint (check, non-mutating)
+EXECUTED protocol catalog: single-pipeline orchestrator (check, with workbook)
+EXECUTED protocol catalog: entity/wire-ID collision regression
+EXECUTED protocol catalog: secret-leakage scan
+EXECUTED protocol catalog: claim-matrix exact-set invariant
+EXECUTED protocol catalog: mixed-generation artifact rejection
+EXECUTED JS syntax check: jk_bms.js
+EXECUTED JS syntax check: demo/mock-server.js
+EXECUTED JS syntax check: demo/panel.js
+EXECUTED JS syntax check: test/topology/run.js
+EXECUTED topology + write-transaction integration suite
+EXECUTED release runner: ephemeral port allocation
+EXECUTED release runner: orchestration engine regression
+
+=== non-mutation guard ===
+PASS     git status is identical before and after this release run.
+
+ALL PASS
+EXIT=0

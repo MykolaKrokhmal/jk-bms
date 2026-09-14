@@ -1,0 +1,3 @@
+RELEASE_WORKBOOK_REQUIRED: set JK_BMS_WORKBOOK_PATH to the local
+LiFePO4_BMS_Parameters_registers.xlsx before running the release gate.
+(test/run_all.sh remains available for fast iteration without it.)

@@ -19,6 +19,7 @@ const stable = (value) => JSON.stringify(value, Object.keys(value || {}).sort())
 const catalog = read("protocol/registers.canonical.json");
 const sourceDoc = read("protocol/evidence/sources.json");
 const workbook = read("protocol/evidence/workbook_index.json");
+const workbookV2 = read("protocol/evidence/workbook_v2_index.json");
 const upstream = read("protocol/evidence/upstream_index.json");
 const implementation = read("protocol/evidence/implementation_index.json");
 const sources = new Map(sourceDoc.sources.map((s) => [s.source_id, s]));
@@ -97,6 +98,23 @@ function deriveField(register, field) {
       addClaim(claims, sourceRecord("workbook_lifepo4_bms_parameters_registers", locator, "field_label_uk", row.label));
       addClaim(claims, sourceRecord("workbook_lifepo4_bms_parameters_registers", locator, "observed_decoded_value", row.value_observed));
       addClaim(claims, sourceRecord("workbook_lifepo4_bms_parameters_registers", locator, "declared_access", String(row.access || "").toLowerCase()));
+    }
+  }
+
+  const workbookV2Rows = workbookV2.address_index[register.address] || [];
+  for (const row of workbookV2Rows) {
+    const locator = `${row.sheet}!${row.cell_range}`;
+    addClaim(claims, sourceRecord("workbook_lifepo4_bms_parameters_registers_v2", locator, "address", register.address));
+    // Only "address" and "declared_access" — sources.json's claims_supported
+    // for this source_id does not list field_label_uk/observed_decoded_value
+    // (unlike the V1 workbook source): the V2 sheet's "example" column is an
+    // illustrative value, not a hardware capture, so asserting it as an
+    // observed_decoded_value claim would overstate what this source actually
+    // supports (semantic-checks.js's SOURCE_UNSUPPORTED_CLAIM_TYPE check
+    // would also reject it).
+    const appliesToField = register.fields.length === 1 || row.byte_qualifier || String(row.name_ua || "").toLowerCase().includes(field.frontend_label_uk.toLowerCase());
+    if (appliesToField) {
+      addClaim(claims, sourceRecord("workbook_lifepo4_bms_parameters_registers_v2", locator, "declared_access", String(row.access || "").toLowerCase()));
     }
   }
 

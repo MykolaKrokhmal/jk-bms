@@ -1,0 +1,36 @@
+ M .gitignore
+ M OPEN_ISSUES.md
+ M docs/adr/0001-protocol-catalog.md
+ M jk_bms.js
+ M protocol/README.md
+ M protocol/evidence/implementation_index.json
+ M protocol/evidence/sources.json
+ M protocol/evidence/upstream_index.json
+ M protocol/evidence/workbook_index.json
+ M protocol/generated/.generation-manifest.json
+ M protocol/generated/.pipeline-manifest.json
+ M protocol/generated/claim_matrix.json
+ M protocol/generated/coverage_report.md
+ M protocol/registers.canonical.json
+ M register_catalog.json
+ M test/protocol_catalog/test_blocked_write_surface.js
+ M test/protocol_catalog/test_entity_id_collision.js
+ M test/protocol_catalog/test_generation_atomicity.js
+ M test/protocol_catalog/test_secret_scan.js
+ M test/run_all.sh
+ M tools/protocol/generate.js
+ M tools/protocol/pipeline.js
+?? CURRENT_STATE_AUDIT.md
+?? IMPLEMENTATION_EXECUTION_LOG.md
+?? protocol/evidence/IMPLEMENTATION_DRIFT_REVIEW.md
+?? test/protocol_catalog/test_claim_matrix_invariant.js
+?? test/protocol_catalog/test_fingerprint_drift_regression.js
+?? test/protocol_catalog/test_mixed_generation_rejection.js
+?? test/protocol_catalog/test_port_allocation.js
+?? test/protocol_catalog/test_release_runner.js
+?? test/regenerate_protocol_artifacts.sh
+?? test/release/
+?? test/run_release.sh
+?? tools/protocol/fingerprint.js
+?? tools/protocol/lib/fingerprint.js
+?? tools/protocol/lib/release-id.js

@@ -14,6 +14,12 @@ const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const HISTORY_COMMIT_LIMIT = 25;
 
 const EXCLUDED_DIRS = new Set([".git", "node_modules", ".pio", ".esphome", "__pycache__"]);
+// The synthetic positive fixture is DELIBERATELY detectable (assertFixtureBehavior()
+// below requires it) -- it must be excluded from every scan that could report
+// it as a real leak, not just scanWorktree(). Once this file is committed
+// (it lives under version control, same as any other test fixture),
+// scanIndex() and scanRecentHistory() would otherwise "find" it too and
+// fail the whole suite on a fixture that is working exactly as intended.
 const DEFAULT_EXCLUDED_FILES = new Set([path.relative(REPO_ROOT, POSITIVE_FIXTURE)]);
 
 const DETECTORS = [
@@ -143,6 +149,7 @@ function scanIndex(findings, statistics) {
   if (listed.status !== 0) throw new Error("git ls-files failed");
   const files = listed.stdout.toString("utf8").split("\0").filter(Boolean);
   for (const relative of files) {
+    if (DEFAULT_EXCLUDED_FILES.has(relative)) continue;
     const blob = git(["show", `:${relative}`], { encoding: "buffer" });
     if (blob.status !== 0) continue;
     if (blob.stdout.length > MAX_FILE_BYTES) {
@@ -165,6 +172,7 @@ function scanRecentHistory(findings, statistics) {
     const files = git(["ls-tree", "-r", "--name-only", "-z", revision], { encoding: "buffer" });
     if (files.status !== 0) continue;
     for (const relative of files.stdout.toString("utf8").split("\0").filter(Boolean)) {
+      if (DEFAULT_EXCLUDED_FILES.has(relative)) continue;
       const blob = git(["show", `${revision}:${relative}`], { encoding: "buffer" });
       if (blob.status !== 0 || blob.stdout.length > MAX_FILE_BYTES || isProbablyBinary(blob.stdout)) continue;
       statistics.historyFiles += 1;

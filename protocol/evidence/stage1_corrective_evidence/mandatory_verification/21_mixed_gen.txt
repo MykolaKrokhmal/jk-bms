@@ -1,0 +1,11 @@
+PASS  A1. computeReleaseGenerationId is deterministic (two calls, same input, same id)  -- 449095a089bddffd vs 449095a089bddffd
+PASS  A1b. id looks like a real hex digest, not empty/placeholder  -- 449095a089bddffd
+PASS  A2. changing the workbook source fingerprint changes release_generation_id  -- a45d5adc636e6ec9 vs 449095a089bddffd
+PASS  A3. changing the upstream source fingerprint changes release_generation_id  -- f16cb46a0150446c vs 449095a089bddffd
+PASS  A4. changing the implementation fingerprint changes release_generation_id  -- 89405c09a317e80b vs 449095a089bddffd
+PASS  A5. changing registers.canonical.json's content changes release_generation_id  -- 8f124edb30a1df89 vs 449095a089bddffd
+PASS  A6. changing a schema file's content changes release_generation_id  -- 2112519559b0f6fe vs 449095a089bddffd
+PASS  A7. after restoring every mutated input, the id returns to the original value  -- 449095a089bddffd vs 449095a089bddffd
+NOT_EXECUTED (Part B): JK_BMS_WORKBOOK_PATH not set — Part B needs a real pipeline build/check cycle.
+
+8 checks run, 0 failed. (Part B skipped, visibly, not counted as passed.)

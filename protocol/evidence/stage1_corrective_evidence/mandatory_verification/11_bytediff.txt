@@ -1,0 +1,9 @@
+IDENTICAL register_catalog.json
+IDENTICAL protocol/generated/.generation-manifest.json
+IDENTICAL protocol/generated/coverage_report.md
+IDENTICAL protocol/generated/.pipeline-manifest.json
+IDENTICAL protocol/generated/claim_matrix.json
+IDENTICAL protocol/evidence/workbook_index.json
+IDENTICAL protocol/evidence/upstream_index.json
+IDENTICAL protocol/evidence/implementation_index.json
+IDENTICAL jk_bms.js

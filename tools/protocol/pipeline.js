@@ -9,6 +9,8 @@ const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 const { spawnSync } = require("child_process");
+const { computeImplementationFingerprint } = require("./lib/fingerprint");
+const { computeReleaseGenerationId } = require("./lib/release-id");
 
 const ROOT = path.join(__dirname, "..", "..");
 const mode = process.argv[2];
@@ -47,24 +49,19 @@ function copy(relative) {
   fs.copyFileSync(path.join(ROOT, relative), target);
 }
 
+// Single reusable implementation now lives in tools/protocol/lib/fingerprint.js
+// (also used by tools/protocol/fingerprint.js's check/review/accept CLI) —
+// this used to be a second, independent copy of the same algorithm, which
+// is exactly how the two could silently drift apart from each other.
 function normalizedImplementationFingerprint() {
-  let js = fs.readFileSync(path.join(ROOT, "jk_bms.js"), "utf8");
-  const begin = js.indexOf("  // >>> BEGIN GENERATED PROTOCOL CATALOG");
-  const endMarker = js.indexOf("  // <<< END GENERATED PROTOCOL CATALOG");
-  const end = js.indexOf("\n", endMarker);
-  if (begin < 0 || endMarker < 0) throw new Error("PIPELINE_JS_MARKERS_MISSING");
-  js = js.slice(0, begin) + "<GENERATED_PROTOCOL_CATALOG>\n" + js.slice(end + 1);
-  const hash = crypto.createHash("sha256");
-  hash.update(fs.readFileSync(path.join(ROOT, "batterylifepo4.yaml")));
-  hash.update(Buffer.from([0]));
-  hash.update(js);
-  return `sha256:${hash.digest("hex")}`;
+  return computeImplementationFingerprint(ROOT);
 }
 
 function fullManifest() {
   const files = [
     "protocol/evidence/sources.json",
     "protocol/evidence/workbook_index.json",
+    "protocol/evidence/workbook_v2_index.json",
     "protocol/evidence/upstream_index.json",
     "protocol/evidence/implementation_index.json",
     "protocol/registers.canonical.json",
@@ -78,11 +75,24 @@ function fullManifest() {
   const file_hashes = Object.fromEntries(files.map((file) => [file, hashFile(path.join(ROOT, file))]));
   return {
     pipeline_version: 1,
+    release_generation_id: computeReleaseGenerationId(ROOT),
     node_version: process.version,
     python_version: run("python3", ["--version"]).replace(/^Python\s+/, ""),
     file_hashes,
     generation_id: sha(JSON.stringify(file_hashes)).slice(0, 16),
   };
+}
+
+/** Reads a JSON file, adds/overwrites `release_generation_id`, writes it
+ * back to the same path. Used to stamp the id into the python/JS-generated
+ * evidence index and claim-matrix files, which don't know about this
+ * concept themselves — kept as one post-processing step here rather than
+ * teaching four separate generator scripts (three Python, one Node) about
+ * it, so there is exactly one place this stamping logic can drift. */
+function stampReleaseGenerationId(jsonPath, releaseGenerationId) {
+  const doc = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+  doc.release_generation_id = releaseGenerationId;
+  fs.writeFileSync(jsonPath, `${JSON.stringify(doc, null, 2)}\n`);
 }
 
 function publish(source, target) {
@@ -109,21 +119,33 @@ try {
   const implementationSource = sourceDoc.sources.find((s) => s.source_id === "project_implementation");
   if (implementationSource.fingerprint !== normalizedImplementationFingerprint()) throw new Error("IMPLEMENTATION_SOURCE_FINGERPRINT_MISMATCH");
 
+  // Work 7 (Stage 1 corrective pass): one release_generation_id, derived
+  // purely from immutable inputs, embedded in every derived artifact below
+  // and cross-checked at the end of this run.
+  const releaseGenerationId = computeReleaseGenerationId(ROOT);
+
   copy("protocol/registers.canonical.json");
   copy("protocol/non_register_entities.canonical.json");
   copy("protocol/evidence/sources.json");
   const tempWorkbook = path.join(tmp, "protocol/evidence/workbook_index.json");
+  const tempWorkbookV2 = path.join(tmp, "protocol/evidence/workbook_v2_index.json");
   const tempUpstream = path.join(tmp, "protocol/evidence/upstream_index.json");
   const tempImplementation = path.join(tmp, "protocol/evidence/implementation_index.json");
   const tempClaims = path.join(tmp, "protocol/generated/claim_matrix.json");
 
   run("python3", ["protocol/evidence/build_workbook_index.py", "--workbook", workbook, "--output", tempWorkbook]);
+  // The V2 workbook is a repo-committed evidence file (unlike the V1
+  // workbook's external, never-hardcoded personal path) — the indexer
+  // defaults to it on its own; no --workbook needed here.
+  run("python3", ["protocol/evidence/build_workbook_v2_index.py", "--output", tempWorkbookV2]);
   run("python3", ["protocol/evidence/build_upstream_index.py", "--output", tempUpstream]);
   run("python3", ["protocol/evidence/build_implementation_index.py", "--output", tempImplementation]);
   run(process.execPath, ["protocol/evidence/build_claim_matrix.js", "--root", tmp, "--output", tempClaims]);
+  for (const p of [tempWorkbook, tempWorkbookV2, tempUpstream, tempImplementation, tempClaims]) stampReleaseGenerationId(p, releaseGenerationId);
 
   const generated = [
     [tempWorkbook, path.join(ROOT, "protocol/evidence/workbook_index.json")],
+    [tempWorkbookV2, path.join(ROOT, "protocol/evidence/workbook_v2_index.json")],
     [tempUpstream, path.join(ROOT, "protocol/evidence/upstream_index.json")],
     [tempImplementation, path.join(ROOT, "protocol/evidence/implementation_index.json")],
     [tempClaims, path.join(ROOT, "protocol/generated/claim_matrix.json")],
@@ -139,6 +161,36 @@ try {
   run(process.execPath, ["test/register_catalog/validate.js"]);
   if (mode === "build") run(process.execPath, ["tools/protocol/generate.js"]);
   run(process.execPath, ["tools/protocol/generate.js", "--check"]);
+
+  // Work 7: every artifact generate.js owns must carry the SAME
+  // release_generation_id as the one this run just computed and stamped
+  // into the evidence/claim-matrix files above. A mismatch here means
+  // register_catalog.json/coverage_report.md/.generation-manifest.json/
+  // jk_bms.js's generated block belong to a DIFFERENT generation than the
+  // evidence indices — exactly the "mixed generation" state that must
+  // never pass check (Gate 1 criterion 17), whatever each individual
+  // file's own staleness check happened to conclude.
+  const registerCatalogDoc = JSON.parse(fs.readFileSync(path.join(ROOT, "register_catalog.json"), "utf8"));
+  const generationManifestDoc = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/generated/.generation-manifest.json"), "utf8"));
+  const coverageReportText = fs.readFileSync(path.join(ROOT, "protocol/generated/coverage_report.md"), "utf8");
+  const jkBmsJsText = fs.readFileSync(path.join(ROOT, "jk_bms.js"), "utf8");
+  const jsBlockMatch = jkBmsJsText.match(/releaseGenerationId:\s*"([0-9a-f]+)"/);
+  const idsToCompare = {
+    "register_catalog.json": registerCatalogDoc.release_generation_id,
+    "protocol/generated/.generation-manifest.json": generationManifestDoc.release_generation_id,
+    "protocol/generated/coverage_report.md": (coverageReportText.match(/Release generation id: `([0-9a-f]+)`/) || [])[1],
+    "jk_bms.js (generated block)": jsBlockMatch ? jsBlockMatch[1] : undefined,
+    "protocol/evidence/workbook_index.json": JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/evidence/workbook_index.json"), "utf8")).release_generation_id,
+    "protocol/evidence/workbook_v2_index.json": JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/evidence/workbook_v2_index.json"), "utf8")).release_generation_id,
+    "protocol/evidence/upstream_index.json": JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/evidence/upstream_index.json"), "utf8")).release_generation_id,
+    "protocol/evidence/implementation_index.json": JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/evidence/implementation_index.json"), "utf8")).release_generation_id,
+    "protocol/generated/claim_matrix.json": JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/generated/claim_matrix.json"), "utf8")).release_generation_id,
+  };
+  const mismatched = Object.entries(idsToCompare).filter(([, id]) => id !== releaseGenerationId);
+  if (mismatched.length) {
+    throw new Error(`RELEASE_GENERATION_ID_MISMATCH:expected=${releaseGenerationId}:` +
+      mismatched.map(([file, id]) => `${file}=${id || "MISSING"}`).join(","));
+  }
 
   const expectedManifest = JSON.stringify(fullManifest(), null, 2) + "\n";
   if (mode === "check") {

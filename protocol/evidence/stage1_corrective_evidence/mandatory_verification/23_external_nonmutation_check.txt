@@ -1,0 +1,1 @@
+23_NONMUTATION_EXTERNAL_CHECK: PASS (git status identical before/after, verified externally, not just by the runner's own self-report)

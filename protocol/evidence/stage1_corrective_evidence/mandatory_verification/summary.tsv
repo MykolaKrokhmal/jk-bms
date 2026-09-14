@@ -1,0 +1,16 @@
+1	git diff --check	2026-09-11T05:27:15Z	0s	0	01_git_diff_check.txt	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+4	fingerprint clean check	2026-09-11T05:27:15Z	0s	0	04_fp_check.txt	601fc1d44a977d124a422bfffe35b2185f3236dbcc2d2a13b5564313d588d08e
+5	fingerprint JS drift + 6 YAML drift + 7 restored (regression test)	2026-09-11T05:27:15Z	1s	0	05_fp_drift_test.txt	b6144e1ac3c01cc3e065b50d481398d3184fb97e3c59ec8704535f893ac477e2
+8	pipeline build with workbook	2026-09-11T05:27:16Z	1s	0	08_pipeline_build.txt	fbdb7c65da2c276e52cea40a05baa787e506435d85cd5b64d072928972f999db
+9	pipeline check with workbook	2026-09-11T05:27:17Z	2s	0	09_pipeline_check.txt	2afcbf14d8a1b9ad7c3e266450676e449c7a8eed3e6933d54b29169903160e72
+20	claim-matrix exact-set invariant	2026-09-11T05:27:19Z	0s	0	20_claim_matrix.txt	44b2d915f4275169ce7a5907de58d6951fa8792e5514658742d258bc327aaa95
+21	mixed-generation artifact negative test	2026-09-11T05:27:19Z	0s	0	21_mixed_gen.txt	8444bfadacb1384dc71fc35d5a3dce0862b9b150702c6b72faf972ea43369c13
+2b	checked-in unit/regression tests: test_release_runner.js	2026-09-11T05:27:19Z	6s	0	02b_release_runner_test.txt	d84abe5f3becdf7b40fa85418c80f3dac8355962abec24f9723575e926be8ff2
+2c	checked-in unit/regression tests: test_port_allocation.js	2026-09-11T05:27:25Z	1s	0	02c_port_alloc_test.txt	2b7e56a4a7ceb3950033a0b21827bd467371367f9b957fbc41f59b091c8d8d99
+3	fast suite (run_all.sh) WITHOUT workbook	2026-09-11T05:27:41Z	166s	0	03_run_all_no_workbook.txt	842c9c0336fbb3e2829f263624f23845032bcba988bcf87e531caf73789a5328
+10a	second generate.js run (determinism)	2026-09-11T05:30:27Z	0s	0	10a_generate2.txt	c5b442cbe76887880fe3fce337be5d2511c425f7fc311fa14f9f56e1c96f99a4
+10b	second pipeline build (determinism)	2026-09-11T05:30:27Z	1s	0	10b_build2.txt	fbdb7c65da2c276e52cea40a05baa787e506435d85cd5b64d072928972f999db
+11	byte-for-byte diff of all 9 derived artifacts vs first build	2026-09-11T05:30:28Z	1s	0	11_bytediff.txt	19fec32f7c9d504ed8301aab7e5c0beea003c494f786441e22e376da767202d3
+12	release verification WITHOUT workbook	2026-09-11T05:30:29Z	0s	2	12_release_no_workbook.txt	c00f1aae863bf2500fec348590e981bdddd8b958970279c5a4534e6ece31fa7b
+13	release verification with workbook path set but missing	2026-09-11T05:30:29Z	0s	2	13_release_missing_workbook.txt	6602f939996869bf6b9cb10546bddff52317c0371b3d07b47db0ad79782065af
+15	release verification with forced SKIP (real production steps.js)	2026-09-11T05:31:01Z	166s	3	15_forced_skip_real.txt	3e1467ed55d9d93aeab01c21ca84dfcaaadd4f0185c31adc5ca5b5b2087c990f

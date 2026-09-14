@@ -1091,3 +1091,44 @@ completeness fix.
   not derived from any protocol document or real-device observation.
 
 No RW field's `effective_access` changed. `RW_REGISTER_VERIFICATION_MATRIX.md` counts (18 WRITE_VERIFIED / 21 BLOCKED_CONFLICT / 7 NOT_IMPLEMENTED / 81 READ_ONLY_UNVERIFIED) are unaffected by this pass.
+
+## Addendum: P1-04 closed — non-register entity filter now single-sourced (2026-09-10, ninth pass)
+
+A second self-scoped follow-up action (after the eighth pass's P0-04). Root cause: `jk_bms.js`'s `NON_REGISTER_ENTITY_IDS` was a SEPARATE, hand-typed array (~41 entries) that had drifted from reality, while a correct, GENERATED `PROTOCOL_CATALOG.nonRegisterKeys` (53 entries, from `protocol/non_register_entities.canonical.json`) already existed in the same file and was simply never consulted by the filter.
+
+### The actual bug, precisely
+
+`diagnosticObjectId(entry)` always resolves to the LOGICAL key a `registerEntity(key, domain, configuredName, legacyObjectId)` call registered — never a raw YAML `id:` (which is only a C++ config-reference name, invisible to the frontend) and never the raw wire name either. Six entries in the old hand list used the WRONG logical key — a name that no `registerEntity()` call actually produces — so they silently matched nothing:
+
+| Hand list had (wrong) | Real `registerEntity()` key |
+|---|---|
+| `bms_display_name` | `device_name` |
+| `charge_status_time_elapsed` | `charge_status_time` |
+| `charge_phase_elapsed` | `charge_phase_time` |
+| `battery_state_elapsed` | `battery_state_time` |
+| `battery_state_candidate_direction` | `battery_state_direction` |
+| `battery_state_candidate_fresh_samples` | `battery_state_candidate_samples` |
+
+Each of these six entities therefore leaked straight into the Settings register list — this is the exact, named defect `HARDWARE_AUDIT_2026-09-09.md` recorded against real hardware ("Battery state time", "Charge phase time", "Runtime" appearing as if they were BMS registers). `Balancing active`/`Charging active`/`Discharging active`, also named in that same hardware observation, turned out on investigation to be genuine registers (`balancing_active` 0x12A6 etc., `READ_ONLY_UNVERIFIED`) correctly belonging in the list — not part of this defect, contrary to the original P1-04 description's grouping.
+
+### The fix
+
+`NON_REGISTER_ENTITY_IDS` is now `new Set(PROTOCOL_CATALOG.nonRegisterKeys)` — a derivation, not a second hand-maintained source. This makes the exact class of drift that caused the leak structurally impossible going forward: there is only one list to maintain, and it is already the one `tools/protocol/generate.js --check` keeps honest against `protocol/non_register_entities.canonical.json`.
+
+### Verification
+
+- New checks in `test/protocol_catalog/test_blocked_write_surface.js`: the derivation is in place (regex on source), and all six previously-broken keys are present in the live `PROTOCOL_CATALOG.nonRegisterKeys` the filter now actually uses.
+- **Live browser verification** (Browser pane, real `jk_bms.js` served by `demo/mock-server.js`, not a Node re-implementation): confirmed `Battery state time`, `Charge phase time`, `Charge status time`, `Runtime`, `Device name` now render correctly under Діагностика and are absent from the Settings register list; `Balancing active`/`Charging active`/`Discharging active` remain in Settings, confirmed correct.
+- `esphome config batterylifepo4.yaml` — Valid (this pass touched only `jk_bms.js` and test files, never the YAML/C++ write paths).
+- Full `bash test/run_all.sh` — exit 0, "All suites passed." (98/98 blocked-write-surface, was 91 — the 7 new checks; every other suite's count is unchanged from the eighth pass).
+
+### A real, unrelated bug found and fixed along the way
+
+While re-running the full suite to verify this pass, `test/run_all.sh` failed at the secret-scan step (exit 1) — a regression exposed by THIS SESSION's earlier `git push`, not by this pass's own change. `test/protocol_catalog/test_secret_scan.js`'s synthetic-positive-fixture exclusion (`DEFAULT_EXCLUDED_FILES`) was applied only in `scanWorktree()`, never in `scanIndex()`/`scanRecentHistory()`. Before the fixture was committed, those two scans never saw it, so the gap was invisible; the moment it landed in the git index and history (this session's earlier push), both scans correctly "detected" the deliberately-detectable fixture and the test wrongly counted that as a real leak. Fixed by applying the same exclusion check uniformly across all three scan functions — `node test/protocol_catalog/test_secret_scan.js` now prints `secret-scan PASS` again, exit 0.
+
+### What this pass explicitly did NOT do
+
+- **`registers.canonical.json`'s `esphome_read_entity_id` drift, tracked as `OPEN_ISSUES.md` P1-13** — discovered during this pass's own verification, not fixed this pass (closed the following pass — see this ADR's own addendum below). The claim above that `cell_rcv`/`cell_rfv` were also affected was **wrong**, corrected in that same later addendum: it came from checking the YAML's internal `id:` field (a C++ config-reference name, never sent over the wire) instead of the real `name:`-derived wire id — `cell_rcv`/`cell_rfv` are in fact correct, already independently proven by `test/protocol_catalog/test_entity_id_collision.js`'s pre-existing "Крок M" checks.
+- The other 9 `PROTOCOL_CATALOG.nonRegisterKeys` entries that match no `registerEntity()` call at all (`ui_version`/`browser_connection`/`write_result_counters`/`firmware_version` — intentionally browser-only concepts, expected; `battery_state`/`min_cell_voltage`/`max_cell_voltage`/`min_voltage_cell`/`max_voltage_cell` — not investigated further this pass, likely harmless dead filter entries but not confirmed).
+
+No RW field's `effective_access` changed this pass either.

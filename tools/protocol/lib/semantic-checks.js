@@ -549,8 +549,10 @@ function check(registerDoc, nonRegisterDoc, repoRoot) {
   // test running against a synthetic register with no real-world address),
   // this check is skipped for that source, not treated as a failure.
   let workbookIndex = null;
+  let workbookV2Index = null;
   let upstreamIndex = null;
   try { workbookIndex = JSON.parse(fs.readFileSync(path.join(repoRoot, "protocol", "evidence", "workbook_index.json"), "utf8")).address_index; } catch (e) { /* optional */ }
+  try { workbookV2Index = JSON.parse(fs.readFileSync(path.join(repoRoot, "protocol", "evidence", "workbook_v2_index.json"), "utf8")).address_index; } catch (e) { /* optional */ }
   try { upstreamIndex = JSON.parse(fs.readFileSync(path.join(repoRoot, "protocol", "evidence", "upstream_index.json"), "utf8")).address_index; } catch (e) { /* optional */ }
 
   function checkIndexBackedEvidence(evidenceList, address, ownerPath) {
@@ -560,6 +562,13 @@ function check(registerDoc, nonRegisterDoc, repoRoot) {
           errors.push(issue("EVIDENCE_ADDRESS_NOT_IN_WORKBOOK_INDEX", ownerPath,
             `evidence cites source "workbook" for address ${address}, but ${address} is not present in ` +
             `protocol/evidence/workbook_index.json (regenerate with build_workbook_index.py to re-check)`));
+        }
+      }
+      if (ev.source_id === "workbook_lifepo4_bms_parameters_registers_v2" && workbookV2Index) {
+        if (!Object.prototype.hasOwnProperty.call(workbookV2Index, address)) {
+          errors.push(issue("EVIDENCE_ADDRESS_NOT_IN_WORKBOOK_V2_INDEX", ownerPath,
+            `evidence cites source "workbook_lifepo4_bms_parameters_registers_v2" for address ${address}, but ${address} is not present in ` +
+            `protocol/evidence/workbook_v2_index.json (regenerate with build_workbook_v2_index.py to re-check)`));
         }
       }
       if (ev.source_id === "upstream_syssi_esphome_jk_bms" && upstreamIndex) {

@@ -371,6 +371,26 @@ negativeCase("false_workbook_evidence", "EVIDENCE_ADDRESS_NOT_IN_WORKBOOK_INDEX"
   });
 });
 
+negativeCase("false_workbook_v2_evidence", "EVIDENCE_ADDRESS_NOT_IN_WORKBOOK_V2_INDEX", (doc) => {
+  // V2 counterpart of "false_workbook_evidence" above, proving
+  // build_workbook_v2_index.py's index is actually consulted (not just a
+  // non-empty locator string accepted as proof) for the verified V2
+  // workbook source too. 0x9998 is not a real JK-PB register and is
+  // verified absent from the real protocol/evidence/workbook_v2_index.json.
+  doc.registers[0].address = "0x9998";
+  doc.registers[0].register_id = "reg_0x9998_example";
+  doc.registers[0].fields[0].parent_register_id = "reg_0x9998_example";
+  doc.registers[0].fields[0].evidence.push({
+    source_id: "workbook_lifepo4_bms_parameters_registers_v2",
+    locator_id: "fixture:false-workbook-v2-address",
+    locator: "Реєстр параметрів!A1:O1 (fabricated 0x9998)",
+    claim_types: ["address"],
+    source_fingerprint: fingerprintFor("workbook_lifepo4_bms_parameters_registers_v2"),
+    confidence: "unrated", applicability: "synthetic negative fixture",
+    derivation_group: "vendor_workbook_v2",
+  });
+});
+
 // Completion-pass additions: the matrix now covers 55 distinct adversarial
 // classes. Each case still starts from the same validated baseline and changes
 // one condition only.
@@ -400,10 +420,31 @@ negativeCase("enum_unknown_policy_missing", "ENUM_UNKNOWN_POLICY_MISSING", (doc)
 negativeCase("unknown_source_id", "UNKNOWN_SOURCE_ID", (doc) => {
   doc.registers[0].fields[0].evidence[0].source_id = "fabricated_source";
 });
+// Every real source_id in the live sources.json is "available" now that
+// official_jk_documentation (the manufacturer's own V1.1 spec) has been
+// supplied — there is no longer a real entry this case can point at in the
+// actual repo. Same technique as FAKE_EMPTY_ROOT below: a sandboxed root
+// with its own protocol/evidence/sources.json carrying one synthetic,
+// clearly-fake, permanently-unavailable entry, so this failure path stays
+// exercised without depending on some real source staying unavailable.
+const UNAVAILABLE_SOURCE_ROOT = fs.mkdtempSync(path.join(require("os").tmpdir(), "jk-bms-negative-fixture-unavailable-"));
+fs.mkdirSync(path.join(UNAVAILABLE_SOURCE_ROOT, "protocol", "evidence"), { recursive: true });
+fs.writeFileSync(path.join(UNAVAILABLE_SOURCE_ROOT, "protocol", "evidence", "sources.json"), JSON.stringify({
+  sources: [{
+    source_id: "test_only_unavailable_source",
+    type: "official_document",
+    status: "unavailable",
+    note: "Synthetic fixture-only entry (test_negative_fixtures.js) — never a real evidence source.",
+    claims_supported: [],
+    provenance_status: "unknown",
+    derivation_group: "test_only",
+    fingerprint: null,
+  }],
+}, null, 2));
 negativeCase("unavailable_source_cited", "UNAVAILABLE_SOURCE_CITED", (doc) => {
-  const e = doc.registers[0].fields[0].evidence[0]; e.source_id = "official_jk_documentation";
-  e.source_fingerprint = null; e.derivation_group = "official"; e.claim_types = ["address"];
-});
+  const e = doc.registers[0].fields[0].evidence[0]; e.source_id = "test_only_unavailable_source";
+  e.source_fingerprint = null; e.derivation_group = "test_only"; e.claim_types = ["address"];
+}, UNAVAILABLE_SOURCE_ROOT);
 negativeCase("unsupported_claim_type", "SOURCE_UNSUPPORTED_CLAIM_TYPE", (doc) => {
   doc.registers[0].fields[0].evidence[1].claim_types = ["write_function"];
 });

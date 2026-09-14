@@ -213,6 +213,16 @@ def build_index(workbook_path):
                      "The full input filesystem path is deliberately NOT recorded here (CODEX "
                      "P1-8) — source identity is source_sha256, cross-checked against "
                      "protocol/evidence/sources.json's file_sha256, not a path.",
+        "$deprecated": "DEPRECATED as of the V2 workbook normative switch: this index covers only "
+                        "113 of the 208 V1.1-documented addresses (the V1 workbook is a partial, "
+                        "unverified source). The current normative parameter list is "
+                        "protocol/generated/bms_v1_1_manifest.json, generated from "
+                        "protocol/evidence/LiFePO4_BMS_Parameters_registers-V2_verified.xlsx by "
+                        "protocol/evidence/build_v2_manifest.py. See protocol/evidence/sources.json's "
+                        "workbook_lifepo4_bms_parameters_registers entry (deprecated: true, "
+                        "superseded_by: workbook_lifepo4_bms_parameters_registers_v2) for the "
+                        "authoritative source-status record. This file is retained only for "
+                        "historical/regression-test comparison, not as a live specification.",
         "source_basename": os.path.basename(workbook_path),
         "source_sha256": file_sha256,
         "sheet_name": SHEET_NAME,

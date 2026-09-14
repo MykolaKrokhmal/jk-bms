@@ -1,0 +1,8 @@
+wrote register_catalog.json
+wrote protocol/generated/coverage_report.md
+wrote jk_bms.js
+wrote protocol/generated/.generation-manifest.json
+generation_id=e97f42b7310d2356
+
+catalog_version=1.1.0 source_hash=acfca050853a281e
+119 registers, 127 fields, 53 non-register entities.

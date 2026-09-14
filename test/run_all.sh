@@ -97,6 +97,22 @@ else
 fi
 
 echo
+echo "=== protocol catalog: implementation fingerprint (check, non-mutating) ==="
+node tools/protocol/fingerprint.js check
+
+echo
+echo "=== protocol catalog: fingerprint-drift regression ==="
+node test/protocol_catalog/test_fingerprint_drift_regression.js
+
+echo
+echo "=== protocol catalog: claim-matrix exact-set invariant ==="
+node test/protocol_catalog/test_claim_matrix_invariant.js
+
+echo
+echo "=== protocol catalog: mixed-generation artifact rejection (Part B needs JK_BMS_WORKBOOK_PATH) ==="
+node test/protocol_catalog/test_mixed_generation_rejection.js
+
+echo
 echo "=== protocol catalog: entity/wire-ID collision regression (Крок M) ==="
 node test/protocol_catalog/test_entity_id_collision.js
 
@@ -115,6 +131,14 @@ echo "syntax OK"
 echo
 echo "=== topology + write-transaction integration suite ==="
 node test/topology/run.js
+
+echo
+echo "=== release runner: ephemeral port allocation ==="
+node test/protocol_catalog/test_port_allocation.js
+
+echo
+echo "=== release runner: orchestration engine regression (timeout/process-tree/non-mutation guard) ==="
+node test/protocol_catalog/test_release_runner.js
 
 echo
 echo "All suites passed."

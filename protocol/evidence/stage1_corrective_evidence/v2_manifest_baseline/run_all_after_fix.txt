@@ -1,0 +1,386 @@
+Using TEST_PORT=65338 (verified free just before use)
+
+=== jk_write_tx_core unit tests ===
+
+63 checks run, 0 failed.
+
+=== jk_history_format unit tests ===
+
+94 checks run, 0 failed.
+
+=== protocol catalog: schema + semantic + cross-file validator ===
+PASS  protocol/registers.canonical.json matches register-source.schema.json
+PASS  protocol/non_register_entities.canonical.json matches non-register-source.schema.json
+PASS  protocol/evidence/sources.json matches evidence-sources.schema.json
+PASS  canonical source has no semantic invariant violations
+PASS  generated artifacts (register_catalog.json, protocol/generated/*, jk_bms.js block) match canonical source
+PASS  yaml: register 0x1000 ("smart_sleep") appears in batterylifepo4.yaml  -- 0x1000
+PASS  yaml: writable field "smart_sleep" has an ESPHome entity "id: set_smart_sleep"  -- 0x1000
+PASS  yaml: register 0x1004 ("cell_uvp") appears in batterylifepo4.yaml  -- 0x1004
+PASS  yaml: register 0x1008 ("cell_uvpr") appears in batterylifepo4.yaml  -- 0x1008
+PASS  yaml: writable field "cell_uvpr" has an ESPHome entity "id: set_cell_uvpr"  -- 0x1008
+PASS  yaml: register 0x100C ("cell_ovp") appears in batterylifepo4.yaml  -- 0x100C
+PASS  yaml: register 0x1010 ("cell_ovpr") appears in batterylifepo4.yaml  -- 0x1010
+PASS  yaml: writable field "cell_ovpr" has an ESPHome entity "id: set_cell_ovpr"  -- 0x1010
+PASS  yaml: register 0x1014 ("start_balance_trigger") appears in batterylifepo4.yaml  -- 0x1014
+PASS  yaml: writable field "start_balance_trigger" has an ESPHome entity "id: set_start_balance_trigger"  -- 0x1014
+PASS  yaml: register 0x1018 ("soc_100") appears in batterylifepo4.yaml  -- 0x1018
+PASS  yaml: writable field "soc_100" has an ESPHome entity "id: set_soc_100"  -- 0x1018
+PASS  yaml: register 0x101C ("soc_0") appears in batterylifepo4.yaml  -- 0x101C
+PASS  yaml: writable field "soc_0" has an ESPHome entity "id: set_soc_0"  -- 0x101C
+PASS  yaml: register 0x1020 ("cell_rcv") appears in batterylifepo4.yaml  -- 0x1020
+PASS  yaml: writable field "cell_rcv" has an ESPHome entity "id: set_cell_rcv"  -- 0x1020
+PASS  yaml: register 0x1024 ("cell_rfv") appears in batterylifepo4.yaml  -- 0x1024
+PASS  yaml: writable field "cell_rfv" has an ESPHome entity "id: set_cell_rfv"  -- 0x1024
+PASS  yaml: register 0x1028 ("system_power_off") appears in batterylifepo4.yaml  -- 0x1028
+PASS  yaml: register 0x102C ("continued_charge_current") appears in batterylifepo4.yaml  -- 0x102C
+PASS  yaml: register 0x1030 ("charge_ocp_delay") appears in batterylifepo4.yaml  -- 0x1030
+PASS  yaml: register 0x1034 ("charge_ocpr_time") appears in batterylifepo4.yaml  -- 0x1034
+PASS  yaml: writable field "charge_ocpr_time" has an ESPHome entity "id: set_charge_ocpr_time"  -- 0x1034
+PASS  yaml: register 0x1038 ("continued_discharge_current") appears in batterylifepo4.yaml  -- 0x1038
+PASS  yaml: register 0x103C ("discharge_ocp_delay") appears in batterylifepo4.yaml  -- 0x103C
+PASS  yaml: register 0x1040 ("discharge_ocpr_time") appears in batterylifepo4.yaml  -- 0x1040
+PASS  yaml: writable field "discharge_ocpr_time" has an ESPHome entity "id: set_discharge_ocpr_time"  -- 0x1040
+PASS  yaml: register 0x1044 ("scpr_time") appears in batterylifepo4.yaml  -- 0x1044
+PASS  yaml: writable field "scpr_time" has an ESPHome entity "id: set_scpr_time"  -- 0x1044
+PASS  yaml: register 0x1048 ("max_balance_current") appears in batterylifepo4.yaml  -- 0x1048
+PASS  yaml: writable field "max_balance_current" has an ESPHome entity "id: set_max_balance_current"  -- 0x1048
+PASS  yaml: register 0x104C ("charge_otp") appears in batterylifepo4.yaml  -- 0x104C
+PASS  yaml: register 0x1050 ("charge_otpr") appears in batterylifepo4.yaml  -- 0x1050
+PASS  yaml: writable field "charge_otpr" has an ESPHome entity "id: set_charge_otpr"  -- 0x1050
+PASS  yaml: register 0x1054 ("discharge_otp") appears in batterylifepo4.yaml  -- 0x1054
+PASS  yaml: register 0x1058 ("discharge_otpr") appears in batterylifepo4.yaml  -- 0x1058
+PASS  yaml: writable field "discharge_otpr" has an ESPHome entity "id: set_discharge_otpr"  -- 0x1058
+PASS  yaml: register 0x105C ("charge_utp") appears in batterylifepo4.yaml  -- 0x105C
+PASS  yaml: register 0x1060 ("charge_utpr") appears in batterylifepo4.yaml  -- 0x1060
+PASS  yaml: writable field "charge_utpr" has an ESPHome entity "id: set_charge_utpr"  -- 0x1060
+PASS  yaml: register 0x1064 ("mos_otp") appears in batterylifepo4.yaml  -- 0x1064
+PASS  yaml: register 0x1068 ("mos_otpr") appears in batterylifepo4.yaml  -- 0x1068
+PASS  yaml: writable field "mos_otpr" has an ESPHome entity "id: set_mos_otpr"  -- 0x1068
+PASS  yaml: register 0x106C ("cell_count") appears in batterylifepo4.yaml  -- 0x106C
+PASS  yaml: register 0x1070 ("charging") appears in batterylifepo4.yaml  -- 0x1070
+PASS  yaml: register 0x1074 ("discharging") appears in batterylifepo4.yaml  -- 0x1074
+PASS  yaml: register 0x1078 ("balancing") appears in batterylifepo4.yaml  -- 0x1078
+PASS  yaml: register 0x107C ("battery_capacity") appears in batterylifepo4.yaml  -- 0x107C
+PASS  yaml: writable field "battery_capacity" has an ESPHome entity "id: set_battery_capacity"  -- 0x107C
+PASS  yaml: register 0x1080 ("scp_delay") appears in batterylifepo4.yaml  -- 0x1080
+PASS  yaml: register 0x1084 ("start_balance") appears in batterylifepo4.yaml  -- 0x1084
+PASS  yaml: writable field "start_balance" has an ESPHome entity "id: set_start_balance"  -- 0x1084
+PASS  yaml: register 0x1114 ("charging_float_mode") appears in batterylifepo4.yaml  -- 0x1114
+PASS  yaml: register 0x111C ("heating_activation_temperature") appears in batterylifepo4.yaml  -- 0x111C
+PASS  yaml: register 0x111C ("heating_deactivation_temperature") appears in batterylifepo4.yaml  -- 0x111C
+PASS  yaml: register 0x1200 ("cell_voltage_1") appears in batterylifepo4.yaml  -- 0x1200
+PASS  yaml: register 0x1202 ("cell_voltage_2") appears in batterylifepo4.yaml  -- 0x1202
+PASS  yaml: register 0x1204 ("cell_voltage_3") appears in batterylifepo4.yaml  -- 0x1204
+PASS  yaml: register 0x1206 ("cell_voltage_4") appears in batterylifepo4.yaml  -- 0x1206
+PASS  yaml: register 0x1208 ("cell_voltage_5") appears in batterylifepo4.yaml  -- 0x1208
+PASS  yaml: register 0x120A ("cell_voltage_6") appears in batterylifepo4.yaml  -- 0x120A
+PASS  yaml: register 0x120C ("cell_voltage_7") appears in batterylifepo4.yaml  -- 0x120C
+PASS  yaml: register 0x120E ("cell_voltage_8") appears in batterylifepo4.yaml  -- 0x120E
+PASS  yaml: register 0x1210 ("cell_voltage_9") appears in batterylifepo4.yaml  -- 0x1210
+PASS  yaml: register 0x1212 ("cell_voltage_10") appears in batterylifepo4.yaml  -- 0x1212
+PASS  yaml: register 0x1214 ("cell_voltage_11") appears in batterylifepo4.yaml  -- 0x1214
+PASS  yaml: register 0x1216 ("cell_voltage_12") appears in batterylifepo4.yaml  -- 0x1216
+PASS  yaml: register 0x1218 ("cell_voltage_13") appears in batterylifepo4.yaml  -- 0x1218
+PASS  yaml: register 0x121A ("cell_voltage_14") appears in batterylifepo4.yaml  -- 0x121A
+PASS  yaml: register 0x121C ("cell_voltage_15") appears in batterylifepo4.yaml  -- 0x121C
+PASS  yaml: register 0x121E ("cell_voltage_16") appears in batterylifepo4.yaml  -- 0x121E
+PASS  yaml: register 0x1240 ("cell_connected_mask") appears in batterylifepo4.yaml  -- 0x1240
+PASS  yaml: register 0x1244 ("average_cell_voltage") appears in batterylifepo4.yaml  -- 0x1244
+PASS  yaml: register 0x1246 ("delta_cell_voltage") appears in batterylifepo4.yaml  -- 0x1246
+PASS  yaml: register 0x124A ("cell_resistance_1") appears in batterylifepo4.yaml  -- 0x124A
+PASS  yaml: register 0x124C ("cell_resistance_2") appears in batterylifepo4.yaml  -- 0x124C
+PASS  yaml: register 0x124E ("cell_resistance_3") appears in batterylifepo4.yaml  -- 0x124E
+PASS  yaml: register 0x1250 ("cell_resistance_4") appears in batterylifepo4.yaml  -- 0x1250
+PASS  yaml: register 0x1252 ("cell_resistance_5") appears in batterylifepo4.yaml  -- 0x1252
+PASS  yaml: register 0x1254 ("cell_resistance_6") appears in batterylifepo4.yaml  -- 0x1254
+PASS  yaml: register 0x1256 ("cell_resistance_7") appears in batterylifepo4.yaml  -- 0x1256
+PASS  yaml: register 0x1258 ("cell_resistance_8") appears in batterylifepo4.yaml  -- 0x1258
+PASS  yaml: register 0x125A ("cell_resistance_9") appears in batterylifepo4.yaml  -- 0x125A
+PASS  yaml: register 0x125C ("cell_resistance_10") appears in batterylifepo4.yaml  -- 0x125C
+PASS  yaml: register 0x125E ("cell_resistance_11") appears in batterylifepo4.yaml  -- 0x125E
+PASS  yaml: register 0x1260 ("cell_resistance_12") appears in batterylifepo4.yaml  -- 0x1260
+PASS  yaml: register 0x1262 ("cell_resistance_13") appears in batterylifepo4.yaml  -- 0x1262
+PASS  yaml: register 0x1264 ("cell_resistance_14") appears in batterylifepo4.yaml  -- 0x1264
+PASS  yaml: register 0x1266 ("cell_resistance_15") appears in batterylifepo4.yaml  -- 0x1266
+PASS  yaml: register 0x1268 ("cell_resistance_16") appears in batterylifepo4.yaml  -- 0x1268
+PASS  yaml: register 0x128A ("mosfet_temperature") appears in batterylifepo4.yaml  -- 0x128A
+PASS  yaml: register 0x1290 ("total_voltage_raw") appears in batterylifepo4.yaml  -- 0x1290
+PASS  yaml: register 0x1294 ("native_bms_power") appears in batterylifepo4.yaml  -- 0x1294
+PASS  yaml: register 0x1298 ("current_raw") appears in batterylifepo4.yaml  -- 0x1298
+PASS  yaml: register 0x129C ("temperature_1") appears in batterylifepo4.yaml  -- 0x129C
+PASS  yaml: register 0x129E ("temperature_2") appears in batterylifepo4.yaml  -- 0x129E
+PASS  yaml: register 0x12A0 ("alarms_bitmask") appears in batterylifepo4.yaml  -- 0x12A0
+PASS  yaml: register 0x12A4 ("balance_current") appears in batterylifepo4.yaml  -- 0x12A4
+PASS  yaml: register 0x12A6 ("balancing_active") appears in batterylifepo4.yaml  -- 0x12A6
+PASS  yaml: register 0x12A6 ("state_of_charge") appears in batterylifepo4.yaml  -- 0x12A6
+PASS  yaml: register 0x12A8 ("capacity_remaining") appears in batterylifepo4.yaml  -- 0x12A8
+PASS  yaml: register 0x12AC ("full_charge_capacity") appears in batterylifepo4.yaml  -- 0x12AC
+PASS  yaml: register 0x12B0 ("charging_cycles") appears in batterylifepo4.yaml  -- 0x12B0
+PASS  yaml: register 0x12B4 ("cycle_capacity") appears in batterylifepo4.yaml  -- 0x12B4
+PASS  yaml: register 0x12B8 ("state_of_health") appears in batterylifepo4.yaml  -- 0x12B8
+PASS  yaml: register 0x12B8 ("precharge_status") appears in batterylifepo4.yaml  -- 0x12B8
+PASS  yaml: register 0x12BA ("custom_alarm_1") appears in batterylifepo4.yaml  -- 0x12BA
+PASS  yaml: register 0x12BC ("total_runtime") appears in batterylifepo4.yaml  -- 0x12BC
+PASS  yaml: register 0x12C0 ("charging_active") appears in batterylifepo4.yaml  -- 0x12C0
+PASS  yaml: register 0x12C0 ("discharging_active") appears in batterylifepo4.yaml  -- 0x12C0
+PASS  yaml: register 0x12C2 ("custom_alarm_2") appears in batterylifepo4.yaml  -- 0x12C2
+PASS  yaml: register 0x12C4 ("discharge_ocpr_left") appears in batterylifepo4.yaml  -- 0x12C4
+PASS  yaml: register 0x12C6 ("discharge_scpr_left") appears in batterylifepo4.yaml  -- 0x12C6
+PASS  yaml: register 0x12C8 ("charge_ocpr_left") appears in batterylifepo4.yaml  -- 0x12C8
+PASS  yaml: register 0x12CA ("charge_scpr_left") appears in batterylifepo4.yaml  -- 0x12CA
+PASS  yaml: register 0x12CC ("uvpr_left") appears in batterylifepo4.yaml  -- 0x12CC
+PASS  yaml: register 0x12CE ("ovpr_left") appears in batterylifepo4.yaml  -- 0x12CE
+PASS  yaml: register 0x12D0 ("sensor_heating_mask") appears in batterylifepo4.yaml  -- 0x12D0
+PASS  yaml: register 0x12D4 ("emergency_timer") appears in batterylifepo4.yaml  -- 0x12D4
+PASS  yaml: register 0x12D6 ("battery_current_correction") appears in batterylifepo4.yaml  -- 0x12D6
+PASS  yaml: register 0x12D8 ("charge_current_measurement_voltage") appears in batterylifepo4.yaml  -- 0x12D8
+PASS  yaml: register 0x12DA ("discharge_current_measurement_voltage") appears in batterylifepo4.yaml  -- 0x12DA
+PASS  yaml: register 0x12DC ("battery_voltage_correction") appears in batterylifepo4.yaml  -- 0x12DC
+PASS  yaml: register 0x12E4 ("alternate_battery_voltage") appears in batterylifepo4.yaml  -- 0x12E4
+PASS  yaml: register 0x12E6 ("heating_current") appears in batterylifepo4.yaml  -- 0x12E6
+PASS  yaml: register 0x12F0 ("bms_system_ticks") appears in batterylifepo4.yaml  -- 0x12F0
+PASS  yaml: register 0x12F8 ("temperature_sensor_3") appears in batterylifepo4.yaml  -- 0x12F8
+PASS  yaml: register 0x12FA ("temperature_4") appears in batterylifepo4.yaml  -- 0x12FA
+PASS  yaml: register 0x12FC ("temperature_5") appears in batterylifepo4.yaml  -- 0x12FC
+PASS  yaml: register 0x1400 ("device_model") appears in batterylifepo4.yaml  -- 0x1400
+PASS  yaml: register 0x1470 ("setup_passcode") appears in batterylifepo4.yaml  -- 0x1470
+PASS  yaml: register 0x14E4 ("lcd_buzzer_trigger") appears in batterylifepo4.yaml  -- 0x14E4
+PASS  yaml: register 0x14E4 ("dry_contact_1_trigger_source") appears in batterylifepo4.yaml  -- 0x14E4
+PASS  yaml: register 0x14E6 ("dry_contact_2_trigger_source") appears in batterylifepo4.yaml  -- 0x14E6
+PASS  yaml: register 0x14E6 ("uart_protocol_library_version") appears in batterylifepo4.yaml  -- 0x14E6
+PASS  yaml: register 0x14F0 ("dry_contact_1_trigger_value") appears in batterylifepo4.yaml  -- 0x14F0
+PASS  yaml: register 0x14F4 ("dry_contact_1_recovery_value") appears in batterylifepo4.yaml  -- 0x14F4
+PASS  yaml: register 0x14F8 ("dry_contact_2_trigger_value") appears in batterylifepo4.yaml  -- 0x14F8
+PASS  yaml: register 0x14FC ("dry_contact_2_recovery_value") appears in batterylifepo4.yaml  -- 0x14FC
+PASS  yaml: register 0x1504 ("rcv_time") appears in batterylifepo4.yaml  -- 0x1504
+PASS  yaml: register 0x1504 ("rfv_time") appears in batterylifepo4.yaml  -- 0x1504
+PASS  jk_bms.js: generated genericTxAddress block is present and well-formed
+PASS  jk_bms.js genericTxAddress key set matches the catalog's generic-managed RW fields  -- catalog=18 js=18
+PASS  jk_bms.js genericTxAddress addresses match the catalog exactly for every shared key  -- 0 mismatch(es)
+PASS  jk_bms.js: generated nonRegisterKeys block is present and well-formed
+PASS  jk_bms.js nonRegisterKeys is exactly the non-register catalog's key set  -- missing= extra=
+PASS  demo/mock-server.js derives its generic-register map from register_catalog.json
+PASS  Settings ui_order has no duplicates
+PASS  "cell_voltage_*" fields sort into natural 01..N order by ui_order  -- count=16
+PASS  "cell_resistance_*" fields sort into natural 01..N order by ui_order  -- count=16
+PASS  esphome_write_entity_id has no duplicates
+PASS  backend_key has no duplicates
+PASS  field "charging" enum_map has no duplicate values
+PASS  field "discharging" enum_map has no duplicate values
+PASS  field "balancing" enum_map has no duplicate values
+PASS  field "balancing_active" enum_map has no duplicate values
+PASS  every field's uk/en display unit matches its canonical_unit via the fixed glossary  -- 0 drift(s)
+PASS  REGRESSION: setup_passcode register is 128 bits / 8 Modbus words (CODEX_STAGE_1_REVIEW.md P0-1 — was wrongly word_count 2)
+PASS  REGRESSION: device_model register is 128 bits / 8 Modbus words (same class of bug)
+PASS  REGRESSION: scp_delay canonical unit is µs (was incorrectly 's' in the pre-Stage-1 catalog)
+PASS  REGRESSION: rcv_time canonical unit is h with 0.1 scale (was incorrectly 's' in the pre-Stage-1 catalog)
+PASS  REGRESSION: rfv_time canonical unit is h with 0.1 scale (was incorrectly 's' in the pre-Stage-1 catalog)
+PASS  REGRESSION: cell_resistance_* canonical unit is mΩ (was incorrectly 'Ω' in ESPHome/UI before Stage 1)
+PASS  register_catalog.json no longer lists device_name_override (moved to non_register_entities.canonical.json)
+PASS  non_register_entities.canonical.json lists device_name_override as local_config
+PASS  every `address: 0xNNNN` modbus_controller declaration in batterylifepo4.yaml has a catalog register
+
+171 checks run, 0 failed.
+
+=== protocol catalog: packed-register codec round-trip tests ===
+PASS  0x111C: high byte decodes 5 (workbook-observed activation value)
+PASS  0x111C: low byte decodes 15 (workbook-observed deactivation value)
+PASS  0x111C: encode/decode round-trip for high byte minimum (-40)  -- raw=0xd800
+PASS  0x111C: encode/decode round-trip for high byte maximum (100)  -- raw=0x6400
+PASS  0x111C: encode/decode round-trip for low byte zero, high byte preserved  -- raw=0xff00
+PASS  0x111C: writing hi to a new value preserves the already-written lo byte
+PASS  0x111C: writing lo to a new value preserves the already-written hi byte
+PASS  0x1504: rcv_time minimum (0) round-trips
+PASS  0x1504: rcv_time maximum (25.5) round-trips
+PASS  0x1504: rfv_time maximum (25.5) round-trips independently of rcv_time
+PASS  0x1504: reserved raw byte value 0xFF (25.5h) is representable and does not overflow the 8-bit field
+PASS  0x14E4: dry_contact_1_trigger_source minimum (0) round-trips
+PASS  0x14E4: dry_contact_1_trigger_source maximum (12) round-trips
+PASS  0x14E4: lcd_buzzer_trigger high byte independent of dry1 low byte
+PASS  0x14E6: writing dry_contact_2_trigger_source (high byte) never touches the read-only low byte (version)
+PASS  0x14E6: uart_protocol_library_version has write_safety_class n/a (read-only, not part of any write path)
+
+16 checks run, 0 failed.
+
+=== protocol catalog: negative validator fixtures ===
+PASS  BASE_VALID fixture is schema+semantically clean before mutation  -- []
+Running 55 negative-fixture cases (plus the BASE_VALID sanity check above)...
+
+PASS  empty_registers_array: schema validation fails mentioning "minItems"
+PASS  empty_registers_array: at least one error total (validator is non-zero-exit-worthy)
+PASS  empty_fields_array: schema validation fails mentioning "minItems"
+PASS  empty_fields_array: at least one error total (validator is non-zero-exit-worthy)
+PASS  unknown_property: schema validation fails mentioning "additionalProperties"
+PASS  unknown_property: at least one error total (validator is non-zero-exit-worthy)
+PASS  duplicate_register_id: semantic check reports code DUPLICATE_REGISTER_ID  -- registers[reg_0x1000_example]
+PASS  duplicate_register_id: at least one error total (validator is non-zero-exit-worthy)
+PASS  duplicate_field_key: semantic check reports code DUPLICATE_FIELD_KEY  -- fields[example_field]
+PASS  duplicate_field_key: at least one error total (validator is non-zero-exit-worthy)
+PASS  duplicate_address_unrelated_registers: semantic check reports code DUPLICATE_ADDRESS  -- registers[0x1000]
+PASS  duplicate_address_unrelated_registers: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_unknown_parent_register: semantic check reports code FIELD_UNKNOWN_PARENT  -- fields[example_field]
+PASS  field_unknown_parent_register: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_mask_mismatch: semantic check reports code FIELD_MASK_MISMATCH  -- fields[example_field]
+PASS  field_mask_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_shift_mismatch: semantic check reports code FIELD_SHIFT_MISMATCH  -- fields[example_field]
+PASS  field_shift_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  overlapping_masks: semantic check reports code OVERLAPPING_MASKS  -- registers[reg_0x1000_example]
+PASS  overlapping_masks: at least one error total (validator is non-zero-exit-worthy)
+PASS  asymmetric_packed_sibling: semantic check reports code ASYMMETRIC_PACKED_SIBLING  -- fields[field_a]
+PASS  asymmetric_packed_sibling: at least one error total (validator is non-zero-exit-worthy)
+PASS  signedness_wire_type_mismatch: semantic check reports code SIGNEDNESS_WIRE_TYPE_MISMATCH  -- fields[example_field]
+PASS  signedness_wire_type_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  invalid_bounds_min_gt_max: semantic check reports code INVALID_BOUNDS  -- fields[example_field]
+PASS  invalid_bounds_min_gt_max: at least one error total (validator is non-zero-exit-worthy)
+PASS  unverified_field_write_enabled: semantic check reports code UNVERIFIED_FIELD_WRITE_ENABLED  -- fields[example_field]
+PASS  unverified_field_write_enabled: at least one error total (validator is non-zero-exit-worthy)
+PASS  effective_access_exceeds_declared: semantic check reports code EFFECTIVE_ACCESS_EXCEEDS_DECLARED  -- fields[example_field]
+PASS  effective_access_exceeds_declared: at least one error total (validator is non-zero-exit-worthy)
+PASS  unresolved_dynamic_dependency_write_enabled: semantic check reports code UNRESOLVED_DYNAMIC_DEPENDENCY_WRITE_ENABLED  -- fields[example_field]
+PASS  unresolved_dynamic_dependency_write_enabled: at least one error total (validator is non-zero-exit-worthy)
+PASS  packed_sibling_not_found: semantic check reports code PACKED_SIBLING_NOT_FOUND  -- fields[example_field]
+PASS  packed_sibling_not_found: at least one error total (validator is non-zero-exit-worthy)
+PASS  evidence_locator_file_missing: semantic check reports code EVIDENCE_LOCATOR_FILE_MISSING  -- registers[reg_0x1000_example].evidence
+PASS  evidence_locator_file_missing: at least one error total (validator is non-zero-exit-worthy)
+PASS  wrong_word_count: semantic check reports code REGISTER_WORD_COUNT_MISMATCH  -- registers[reg_0x1000_example]
+PASS  wrong_word_count: at least one error total (validator is non-zero-exit-worthy)
+PASS  passcode_128bit_wrong_word_count_2: semantic check reports code REGISTER_WORD_COUNT_MISMATCH  -- registers[reg_0x1000_example]
+PASS  passcode_128bit_wrong_word_count_2: at least one error total (validator is non-zero-exit-worthy)
+PASS  passcode_128bit_wrong_word_count_4: semantic check reports code REGISTER_WORD_COUNT_MISMATCH  -- registers[reg_0x1000_example]
+PASS  passcode_128bit_wrong_word_count_4: at least one error total (validator is non-zero-exit-worthy)
+PASS  passcode_128bit_wrong_word_count_7: semantic check reports code REGISTER_WORD_COUNT_MISMATCH  -- registers[reg_0x1000_example]
+PASS  passcode_128bit_wrong_word_count_7: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_outside_register_bounds: semantic check reports code FIELD_MASK_EXCEEDS_REGISTER_WIDTH  -- fields[example_field]
+PASS  field_outside_register_bounds: at least one error total (validator is non-zero-exit-worthy)
+PASS  uncovered_non_reserved_bits: semantic check reports code UNCOVERED_BITS_UNDOCUMENTED  -- registers[reg_0x1000_example]
+PASS  uncovered_non_reserved_bits: at least one error total (validator is non-zero-exit-worthy)
+PASS  word_order_drift: semantic check reports code WORD_ORDER_MISMATCH  -- registers[reg_0x1000_example]
+PASS  word_order_drift: at least one error total (validator is non-zero-exit-worthy)
+PASS  scale_drift_zero: semantic check reports code SCALE_ZERO  -- fields[example_field]
+PASS  scale_drift_zero: at least one error total (validator is non-zero-exit-worthy)
+PASS  invalid_step: semantic check reports code INVALID_STEP  -- fields[example_field]
+PASS  invalid_step: at least one error total (validator is non-zero-exit-worthy)
+PASS  nonrepresentable_bounds: semantic check reports code BOUNDS_NOT_REPRESENTABLE  -- fields[example_field]
+PASS  nonrepresentable_bounds: at least one error total (validator is non-zero-exit-worthy)
+PASS  duplicate_enum_value: semantic check reports code ENUM_DUPLICATE_VALUE  -- fields[example_field]
+PASS  duplicate_enum_value: at least one error total (validator is non-zero-exit-worthy)
+PASS  reserved_enum_collision: semantic check reports code RESERVED_ENUM_COLLISION  -- fields[example_field]
+PASS  reserved_enum_collision: at least one error total (validator is non-zero-exit-worthy)
+PASS  missing_unknown_code_policy: semantic check reports code ENUM_EDITOR_WITHOUT_SEMANTICS  -- fields[example_field]
+PASS  missing_unknown_code_policy: at least one error total (validator is non-zero-exit-worthy)
+PASS  blocked_field_leaked_into_write_map: semantic check reports code WRITE_ENTITY_ON_EFFECTIVE_READONLY  -- fields[example_field]
+PASS  blocked_field_leaked_into_write_map: at least one error total (validator is non-zero-exit-worthy)
+PASS  entity_id_collision: semantic check reports code ESPHOME_READ_ENTITY_ID_COLLISION  -- fields[other_field]
+PASS  entity_id_collision: at least one error total (validator is non-zero-exit-worthy)
+PASS  false_workbook_evidence: semantic check reports code EVIDENCE_ADDRESS_NOT_IN_WORKBOOK_INDEX  -- fields[example_field].evidence
+PASS  false_workbook_evidence: at least one error total (validator is non-zero-exit-worthy)
+PASS  wrong_payload_byte_length: semantic check reports code REGISTER_PAYLOAD_BYTES_MISMATCH  -- registers[reg_0x1000_example]
+PASS  wrong_payload_byte_length: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_width_larger_than_register_without_mask: semantic check reports code FIELD_WIDTH_EXCEEDS_REGISTER  -- fields[example_field]
+PASS  field_width_larger_than_register_without_mask: at least one error total (validator is non-zero-exit-worthy)
+PASS  field_byte_offset_outside_payload: semantic check reports code FIELD_BYTE_OFFSET_EXCEEDS_PAYLOAD  -- fields[example_field]
+PASS  field_byte_offset_outside_payload: at least one error total (validator is non-zero-exit-worthy)
+PASS  step_not_raw_representable: semantic check reports code STEP_NOT_RAW_REPRESENTABLE  -- fields[example_field]
+PASS  step_not_raw_representable: at least one error total (validator is non-zero-exit-worthy)
+PASS  decimal_precision_mismatch: semantic check reports code DECIMAL_PRECISION_TOO_LOW  -- fields[example_field]
+PASS  decimal_precision_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  enum_key_out_of_raw_range: semantic check reports code ENUM_KEY_OUT_OF_RANGE  -- fields[example_field]
+PASS  enum_key_out_of_raw_range: at least one error total (validator is non-zero-exit-worthy)
+PASS  enum_unknown_policy_missing: semantic check reports code ENUM_UNKNOWN_POLICY_MISSING  -- fields[example_field]
+PASS  enum_unknown_policy_missing: at least one error total (validator is non-zero-exit-worthy)
+PASS  unknown_source_id: semantic check reports code UNKNOWN_SOURCE_ID  -- fields[example_field].evidence
+PASS  unknown_source_id: at least one error total (validator is non-zero-exit-worthy)
+PASS  unavailable_source_cited: semantic check reports code UNAVAILABLE_SOURCE_CITED  -- fields[example_field].evidence
+PASS  unavailable_source_cited: at least one error total (validator is non-zero-exit-worthy)
+PASS  unsupported_claim_type: semantic check reports code SOURCE_UNSUPPORTED_CLAIM_TYPE  -- fields[example_field].evidence
+PASS  unsupported_claim_type: at least one error total (validator is non-zero-exit-worthy)
+PASS  citation_fingerprint_mismatch: semantic check reports code CITATION_SOURCE_FINGERPRINT_MISMATCH  -- fields[example_field].evidence
+PASS  citation_fingerprint_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  citation_derivation_group_mismatch: semantic check reports code CITATION_DERIVATION_GROUP_MISMATCH  -- fields[example_field].evidence
+PASS  citation_derivation_group_mismatch: at least one error total (validator is non-zero-exit-worthy)
+PASS  forged_verification_status: semantic check reports code FORGED_VERIFICATION_STATUS  -- fields[example_field]
+PASS  forged_verification_status: at least one error total (validator is non-zero-exit-worthy)
+PASS  forged_effective_rw_policy: semantic check reports code FORGED_EFFECTIVE_ACCESS  -- fields[example_field]
+PASS  forged_effective_rw_policy: at least one error total (validator is non-zero-exit-worthy)
+PASS  project_version_locator_drift: semantic check reports code VERSION_CONTEXT_PROJECT_MISMATCH  -- version_context.esphome_project_version
+PASS  project_version_locator_drift: at least one error total (validator is non-zero-exit-worthy)
+PASS  ui_version_locator_drift: semantic check reports code VERSION_CONTEXT_UI_MISMATCH  -- version_context.web_ui_version
+PASS  ui_version_locator_drift: at least one error total (validator is non-zero-exit-worthy)
+PASS  external_component_pin_drift: semantic check reports code VERSION_CONTEXT_EXTERNAL_PIN_MISMATCH  -- version_context.external_component_pin
+PASS  external_component_pin_drift: at least one error total (validator is non-zero-exit-worthy)
+PASS  esphome_toolchain_version_drift: semantic check reports code VERSION_CONTEXT_ESPHOME_MISMATCH  -- version_context.esphome_framework_version_used_for_verification
+PASS  esphome_toolchain_version_drift: at least one error total (validator is non-zero-exit-worthy)
+PASS  bms_protocol_variant_overclaim: semantic check reports code BMS_PROTOCOL_VARIANT_OVERCLAIM  -- version_context.bms_protocol_variant
+PASS  bms_protocol_variant_overclaim: at least one error total (validator is non-zero-exit-worthy)
+PASS  bms_firmware_version_overclaim: semantic check reports code BMS_FIRMWARE_VERSION_OVERCLAIM  -- version_context.bms_firmware_version
+PASS  bms_firmware_version_overclaim: at least one error total (validator is non-zero-exit-worthy)
+PASS  register_nonregister_key_collision: semantic check reports code REGISTER_NONREGISTER_KEY_COLLISION
+
+110 checks run, 0 failed.
+
+=== protocol catalog: generator determinism (--check) ===
+generate.js --check: no drift. All generated artifacts match the canonical source.
+
+=== protocol catalog: generation atomicity + simulated-failure detection ===
+FAIL  isolated initial generation succeeds  -- Canonical source is INVALID — refusing to generate anything (spec: no partial outputs).
+Schema errors: 0
+Semantic errors: 2
+  SOURCE_HASH_MISMATCH  sources[official_jk_documentation]  local_copy_sha256 does not match protocol/evidence/BMS_RS485_Modbus_V1.1.pdf
+  SOURCE_HASH_MISMATCH  sources[workbook_lifepo4_bms_parameters_registers_v2]  local_copy_sha256 does not match protocol/evidence/LiFePO4_BMS_Parameters_registers-V2_verified.xlsx
+FAIL  second generation succeeds  -- Canonical source is INVALID — refusing to generate anything (spec: no partial outputs).
+Schema errors: 0
+Semantic errors: 2
+  SOURCE_HASH_MISMATCH  sources[official_jk_documentation]  local_copy_sha256 does not match protocol/evidence/BMS_RS485_Modbus_V1.1.pdf
+  SOURCE_HASH_MISMATCH  sources[workbook_lifepo4_bms_parameters_registers_v2]  local_copy_sha256 does not match protocol/evidence/LiFePO4_BMS_Parameters_registers-V2_verified.xlsx
+PASS  two generations are byte-identical
+FAIL  --check accepts the completed generation
+FAIL  fault before:0 exits non-zero with rollback diagnostic
+PASS  fault before:0 restores every prior artifact
+PASS  fault before:0 leaves no lock/tmp/backup debris
+FAIL  fault after:0 exits non-zero with rollback diagnostic
+PASS  fault after:0 restores every prior artifact
+PASS  fault after:0 leaves no lock/tmp/backup debris
+FAIL  fault before:1 exits non-zero with rollback diagnostic
+PASS  fault before:1 restores every prior artifact
+PASS  fault before:1 leaves no lock/tmp/backup debris
+FAIL  fault after:1 exits non-zero with rollback diagnostic
+PASS  fault after:1 restores every prior artifact
+PASS  fault after:1 leaves no lock/tmp/backup debris
+FAIL  fault before:2 exits non-zero with rollback diagnostic
+PASS  fault before:2 restores every prior artifact
+PASS  fault before:2 leaves no lock/tmp/backup debris
+FAIL  fault after:2 exits non-zero with rollback diagnostic
+PASS  fault after:2 restores every prior artifact
+PASS  fault after:2 leaves no lock/tmp/backup debris
+FAIL  fault before:3 exits non-zero with rollback diagnostic
+PASS  fault before:3 restores every prior artifact
+PASS  fault before:3 leaves no lock/tmp/backup debris
+FAIL  fault after:3 exits non-zero with rollback diagnostic
+PASS  fault after:3 restores every prior artifact
+PASS  fault after:3 leaves no lock/tmp/backup debris
+FAIL  concurrent publisher is rejected with stable code
+PASS  lock rejection leaves generation unchanged
+node:fs:433
+    return binding.readFileUtf8(path, stringToFlags(options.flag));
+                   ^
+
+Error: ENOENT: no such file or directory, open '/var/folders/kx/4qd5pzhx5vvbtlm0k1pf48j80000gn/T/jk-bms-generator-test-rZRVJF/protocol/generated/.generation-manifest.json'
+    at Object.readFileSync (node:fs:433:20)
+    at Object.<anonymous> (/Users/mykola.krokhmal/Claude/jk-bms/test/protocol_catalog/test_generation_atomicity.js:100:31)
+    at Module._compile (node:internal/modules/cjs/loader:1734:14)
+    at Object..js (node:internal/modules/cjs/loader:1899:10)
+    at Module.load (node:internal/modules/cjs/loader:1469:32)
+    at Module._load (node:internal/modules/cjs/loader:1286:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:152:5)
+    at node:internal/main/run_main_module:33:47 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/var/folders/kx/4qd5pzhx5vvbtlm0k1pf48j80000gn/T/jk-bms-generator-test-rZRVJF/protocol/generated/.generation-manifest.json'
+}
+
+Node.js v24.2.0
+EXIT=1

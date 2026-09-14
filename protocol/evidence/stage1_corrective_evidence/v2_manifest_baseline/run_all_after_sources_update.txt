@@ -1,0 +1,185 @@
+Using TEST_PORT=65289 (verified free just before use)
+
+=== jk_write_tx_core unit tests ===
+
+63 checks run, 0 failed.
+
+=== jk_history_format unit tests ===
+
+94 checks run, 0 failed.
+
+=== protocol catalog: schema + semantic + cross-file validator ===
+PASS  protocol/registers.canonical.json matches register-source.schema.json
+PASS  protocol/non_register_entities.canonical.json matches non-register-source.schema.json
+PASS  protocol/evidence/sources.json matches evidence-sources.schema.json
+PASS  canonical source has no semantic invariant violations
+FAIL  generated artifacts (register_catalog.json, protocol/generated/*, jk_bms.js block) match canonical source  -- DRIFT  register_catalog.json | DRIFT  protocol/generated/coverage_report.md | DRIFT  jk_bms.js (generated block out of date) | DRIFT  protocol/generated/.generation-manifest.json does not match the current canonical source's expected output hashes | generate.js --check: 4 artifact(s) out of date. Run 'node tools/protocol/generate.js' to regenerate.
+PASS  yaml: register 0x1000 ("smart_sleep") appears in batterylifepo4.yaml  -- 0x1000
+PASS  yaml: writable field "smart_sleep" has an ESPHome entity "id: set_smart_sleep"  -- 0x1000
+PASS  yaml: register 0x1004 ("cell_uvp") appears in batterylifepo4.yaml  -- 0x1004
+PASS  yaml: register 0x1008 ("cell_uvpr") appears in batterylifepo4.yaml  -- 0x1008
+PASS  yaml: writable field "cell_uvpr" has an ESPHome entity "id: set_cell_uvpr"  -- 0x1008
+PASS  yaml: register 0x100C ("cell_ovp") appears in batterylifepo4.yaml  -- 0x100C
+PASS  yaml: register 0x1010 ("cell_ovpr") appears in batterylifepo4.yaml  -- 0x1010
+PASS  yaml: writable field "cell_ovpr" has an ESPHome entity "id: set_cell_ovpr"  -- 0x1010
+PASS  yaml: register 0x1014 ("start_balance_trigger") appears in batterylifepo4.yaml  -- 0x1014
+PASS  yaml: writable field "start_balance_trigger" has an ESPHome entity "id: set_start_balance_trigger"  -- 0x1014
+PASS  yaml: register 0x1018 ("soc_100") appears in batterylifepo4.yaml  -- 0x1018
+PASS  yaml: writable field "soc_100" has an ESPHome entity "id: set_soc_100"  -- 0x1018
+PASS  yaml: register 0x101C ("soc_0") appears in batterylifepo4.yaml  -- 0x101C
+PASS  yaml: writable field "soc_0" has an ESPHome entity "id: set_soc_0"  -- 0x101C
+PASS  yaml: register 0x1020 ("cell_rcv") appears in batterylifepo4.yaml  -- 0x1020
+PASS  yaml: writable field "cell_rcv" has an ESPHome entity "id: set_cell_rcv"  -- 0x1020
+PASS  yaml: register 0x1024 ("cell_rfv") appears in batterylifepo4.yaml  -- 0x1024
+PASS  yaml: writable field "cell_rfv" has an ESPHome entity "id: set_cell_rfv"  -- 0x1024
+PASS  yaml: register 0x1028 ("system_power_off") appears in batterylifepo4.yaml  -- 0x1028
+PASS  yaml: register 0x102C ("continued_charge_current") appears in batterylifepo4.yaml  -- 0x102C
+PASS  yaml: register 0x1030 ("charge_ocp_delay") appears in batterylifepo4.yaml  -- 0x1030
+PASS  yaml: register 0x1034 ("charge_ocpr_time") appears in batterylifepo4.yaml  -- 0x1034
+PASS  yaml: writable field "charge_ocpr_time" has an ESPHome entity "id: set_charge_ocpr_time"  -- 0x1034
+PASS  yaml: register 0x1038 ("continued_discharge_current") appears in batterylifepo4.yaml  -- 0x1038
+PASS  yaml: register 0x103C ("discharge_ocp_delay") appears in batterylifepo4.yaml  -- 0x103C
+PASS  yaml: register 0x1040 ("discharge_ocpr_time") appears in batterylifepo4.yaml  -- 0x1040
+PASS  yaml: writable field "discharge_ocpr_time" has an ESPHome entity "id: set_discharge_ocpr_time"  -- 0x1040
+PASS  yaml: register 0x1044 ("scpr_time") appears in batterylifepo4.yaml  -- 0x1044
+PASS  yaml: writable field "scpr_time" has an ESPHome entity "id: set_scpr_time"  -- 0x1044
+PASS  yaml: register 0x1048 ("max_balance_current") appears in batterylifepo4.yaml  -- 0x1048
+PASS  yaml: writable field "max_balance_current" has an ESPHome entity "id: set_max_balance_current"  -- 0x1048
+PASS  yaml: register 0x104C ("charge_otp") appears in batterylifepo4.yaml  -- 0x104C
+PASS  yaml: register 0x1050 ("charge_otpr") appears in batterylifepo4.yaml  -- 0x1050
+PASS  yaml: writable field "charge_otpr" has an ESPHome entity "id: set_charge_otpr"  -- 0x1050
+PASS  yaml: register 0x1054 ("discharge_otp") appears in batterylifepo4.yaml  -- 0x1054
+PASS  yaml: register 0x1058 ("discharge_otpr") appears in batterylifepo4.yaml  -- 0x1058
+PASS  yaml: writable field "discharge_otpr" has an ESPHome entity "id: set_discharge_otpr"  -- 0x1058
+PASS  yaml: register 0x105C ("charge_utp") appears in batterylifepo4.yaml  -- 0x105C
+PASS  yaml: register 0x1060 ("charge_utpr") appears in batterylifepo4.yaml  -- 0x1060
+PASS  yaml: writable field "charge_utpr" has an ESPHome entity "id: set_charge_utpr"  -- 0x1060
+PASS  yaml: register 0x1064 ("mos_otp") appears in batterylifepo4.yaml  -- 0x1064
+PASS  yaml: register 0x1068 ("mos_otpr") appears in batterylifepo4.yaml  -- 0x1068
+PASS  yaml: writable field "mos_otpr" has an ESPHome entity "id: set_mos_otpr"  -- 0x1068
+PASS  yaml: register 0x106C ("cell_count") appears in batterylifepo4.yaml  -- 0x106C
+PASS  yaml: register 0x1070 ("charging") appears in batterylifepo4.yaml  -- 0x1070
+PASS  yaml: register 0x1074 ("discharging") appears in batterylifepo4.yaml  -- 0x1074
+PASS  yaml: register 0x1078 ("balancing") appears in batterylifepo4.yaml  -- 0x1078
+PASS  yaml: register 0x107C ("battery_capacity") appears in batterylifepo4.yaml  -- 0x107C
+PASS  yaml: writable field "battery_capacity" has an ESPHome entity "id: set_battery_capacity"  -- 0x107C
+PASS  yaml: register 0x1080 ("scp_delay") appears in batterylifepo4.yaml  -- 0x1080
+PASS  yaml: register 0x1084 ("start_balance") appears in batterylifepo4.yaml  -- 0x1084
+PASS  yaml: writable field "start_balance" has an ESPHome entity "id: set_start_balance"  -- 0x1084
+PASS  yaml: register 0x1114 ("charging_float_mode") appears in batterylifepo4.yaml  -- 0x1114
+PASS  yaml: register 0x111C ("heating_activation_temperature") appears in batterylifepo4.yaml  -- 0x111C
+PASS  yaml: register 0x111C ("heating_deactivation_temperature") appears in batterylifepo4.yaml  -- 0x111C
+PASS  yaml: register 0x1200 ("cell_voltage_1") appears in batterylifepo4.yaml  -- 0x1200
+PASS  yaml: register 0x1202 ("cell_voltage_2") appears in batterylifepo4.yaml  -- 0x1202
+PASS  yaml: register 0x1204 ("cell_voltage_3") appears in batterylifepo4.yaml  -- 0x1204
+PASS  yaml: register 0x1206 ("cell_voltage_4") appears in batterylifepo4.yaml  -- 0x1206
+PASS  yaml: register 0x1208 ("cell_voltage_5") appears in batterylifepo4.yaml  -- 0x1208
+PASS  yaml: register 0x120A ("cell_voltage_6") appears in batterylifepo4.yaml  -- 0x120A
+PASS  yaml: register 0x120C ("cell_voltage_7") appears in batterylifepo4.yaml  -- 0x120C
+PASS  yaml: register 0x120E ("cell_voltage_8") appears in batterylifepo4.yaml  -- 0x120E
+PASS  yaml: register 0x1210 ("cell_voltage_9") appears in batterylifepo4.yaml  -- 0x1210
+PASS  yaml: register 0x1212 ("cell_voltage_10") appears in batterylifepo4.yaml  -- 0x1212
+PASS  yaml: register 0x1214 ("cell_voltage_11") appears in batterylifepo4.yaml  -- 0x1214
+PASS  yaml: register 0x1216 ("cell_voltage_12") appears in batterylifepo4.yaml  -- 0x1216
+PASS  yaml: register 0x1218 ("cell_voltage_13") appears in batterylifepo4.yaml  -- 0x1218
+PASS  yaml: register 0x121A ("cell_voltage_14") appears in batterylifepo4.yaml  -- 0x121A
+PASS  yaml: register 0x121C ("cell_voltage_15") appears in batterylifepo4.yaml  -- 0x121C
+PASS  yaml: register 0x121E ("cell_voltage_16") appears in batterylifepo4.yaml  -- 0x121E
+PASS  yaml: register 0x1240 ("cell_connected_mask") appears in batterylifepo4.yaml  -- 0x1240
+PASS  yaml: register 0x1244 ("average_cell_voltage") appears in batterylifepo4.yaml  -- 0x1244
+PASS  yaml: register 0x1246 ("delta_cell_voltage") appears in batterylifepo4.yaml  -- 0x1246
+PASS  yaml: register 0x124A ("cell_resistance_1") appears in batterylifepo4.yaml  -- 0x124A
+PASS  yaml: register 0x124C ("cell_resistance_2") appears in batterylifepo4.yaml  -- 0x124C
+PASS  yaml: register 0x124E ("cell_resistance_3") appears in batterylifepo4.yaml  -- 0x124E
+PASS  yaml: register 0x1250 ("cell_resistance_4") appears in batterylifepo4.yaml  -- 0x1250
+PASS  yaml: register 0x1252 ("cell_resistance_5") appears in batterylifepo4.yaml  -- 0x1252
+PASS  yaml: register 0x1254 ("cell_resistance_6") appears in batterylifepo4.yaml  -- 0x1254
+PASS  yaml: register 0x1256 ("cell_resistance_7") appears in batterylifepo4.yaml  -- 0x1256
+PASS  yaml: register 0x1258 ("cell_resistance_8") appears in batterylifepo4.yaml  -- 0x1258
+PASS  yaml: register 0x125A ("cell_resistance_9") appears in batterylifepo4.yaml  -- 0x125A
+PASS  yaml: register 0x125C ("cell_resistance_10") appears in batterylifepo4.yaml  -- 0x125C
+PASS  yaml: register 0x125E ("cell_resistance_11") appears in batterylifepo4.yaml  -- 0x125E
+PASS  yaml: register 0x1260 ("cell_resistance_12") appears in batterylifepo4.yaml  -- 0x1260
+PASS  yaml: register 0x1262 ("cell_resistance_13") appears in batterylifepo4.yaml  -- 0x1262
+PASS  yaml: register 0x1264 ("cell_resistance_14") appears in batterylifepo4.yaml  -- 0x1264
+PASS  yaml: register 0x1266 ("cell_resistance_15") appears in batterylifepo4.yaml  -- 0x1266
+PASS  yaml: register 0x1268 ("cell_resistance_16") appears in batterylifepo4.yaml  -- 0x1268
+PASS  yaml: register 0x128A ("mosfet_temperature") appears in batterylifepo4.yaml  -- 0x128A
+PASS  yaml: register 0x1290 ("total_voltage_raw") appears in batterylifepo4.yaml  -- 0x1290
+PASS  yaml: register 0x1294 ("native_bms_power") appears in batterylifepo4.yaml  -- 0x1294
+PASS  yaml: register 0x1298 ("current_raw") appears in batterylifepo4.yaml  -- 0x1298
+PASS  yaml: register 0x129C ("temperature_1") appears in batterylifepo4.yaml  -- 0x129C
+PASS  yaml: register 0x129E ("temperature_2") appears in batterylifepo4.yaml  -- 0x129E
+PASS  yaml: register 0x12A0 ("alarms_bitmask") appears in batterylifepo4.yaml  -- 0x12A0
+PASS  yaml: register 0x12A4 ("balance_current") appears in batterylifepo4.yaml  -- 0x12A4
+PASS  yaml: register 0x12A6 ("balancing_active") appears in batterylifepo4.yaml  -- 0x12A6
+PASS  yaml: register 0x12A6 ("state_of_charge") appears in batterylifepo4.yaml  -- 0x12A6
+PASS  yaml: register 0x12A8 ("capacity_remaining") appears in batterylifepo4.yaml  -- 0x12A8
+PASS  yaml: register 0x12AC ("full_charge_capacity") appears in batterylifepo4.yaml  -- 0x12AC
+PASS  yaml: register 0x12B0 ("charging_cycles") appears in batterylifepo4.yaml  -- 0x12B0
+PASS  yaml: register 0x12B4 ("cycle_capacity") appears in batterylifepo4.yaml  -- 0x12B4
+PASS  yaml: register 0x12B8 ("state_of_health") appears in batterylifepo4.yaml  -- 0x12B8
+PASS  yaml: register 0x12B8 ("precharge_status") appears in batterylifepo4.yaml  -- 0x12B8
+PASS  yaml: register 0x12BA ("custom_alarm_1") appears in batterylifepo4.yaml  -- 0x12BA
+PASS  yaml: register 0x12BC ("total_runtime") appears in batterylifepo4.yaml  -- 0x12BC
+PASS  yaml: register 0x12C0 ("charging_active") appears in batterylifepo4.yaml  -- 0x12C0
+PASS  yaml: register 0x12C0 ("discharging_active") appears in batterylifepo4.yaml  -- 0x12C0
+PASS  yaml: register 0x12C2 ("custom_alarm_2") appears in batterylifepo4.yaml  -- 0x12C2
+PASS  yaml: register 0x12C4 ("discharge_ocpr_left") appears in batterylifepo4.yaml  -- 0x12C4
+PASS  yaml: register 0x12C6 ("discharge_scpr_left") appears in batterylifepo4.yaml  -- 0x12C6
+PASS  yaml: register 0x12C8 ("charge_ocpr_left") appears in batterylifepo4.yaml  -- 0x12C8
+PASS  yaml: register 0x12CA ("charge_scpr_left") appears in batterylifepo4.yaml  -- 0x12CA
+PASS  yaml: register 0x12CC ("uvpr_left") appears in batterylifepo4.yaml  -- 0x12CC
+PASS  yaml: register 0x12CE ("ovpr_left") appears in batterylifepo4.yaml  -- 0x12CE
+PASS  yaml: register 0x12D0 ("sensor_heating_mask") appears in batterylifepo4.yaml  -- 0x12D0
+PASS  yaml: register 0x12D4 ("emergency_timer") appears in batterylifepo4.yaml  -- 0x12D4
+PASS  yaml: register 0x12D6 ("battery_current_correction") appears in batterylifepo4.yaml  -- 0x12D6
+PASS  yaml: register 0x12D8 ("charge_current_measurement_voltage") appears in batterylifepo4.yaml  -- 0x12D8
+PASS  yaml: register 0x12DA ("discharge_current_measurement_voltage") appears in batterylifepo4.yaml  -- 0x12DA
+PASS  yaml: register 0x12DC ("battery_voltage_correction") appears in batterylifepo4.yaml  -- 0x12DC
+PASS  yaml: register 0x12E4 ("alternate_battery_voltage") appears in batterylifepo4.yaml  -- 0x12E4
+PASS  yaml: register 0x12E6 ("heating_current") appears in batterylifepo4.yaml  -- 0x12E6
+PASS  yaml: register 0x12F0 ("bms_system_ticks") appears in batterylifepo4.yaml  -- 0x12F0
+PASS  yaml: register 0x12F8 ("temperature_sensor_3") appears in batterylifepo4.yaml  -- 0x12F8
+PASS  yaml: register 0x12FA ("temperature_4") appears in batterylifepo4.yaml  -- 0x12FA
+PASS  yaml: register 0x12FC ("temperature_5") appears in batterylifepo4.yaml  -- 0x12FC
+PASS  yaml: register 0x1400 ("device_model") appears in batterylifepo4.yaml  -- 0x1400
+PASS  yaml: register 0x1470 ("setup_passcode") appears in batterylifepo4.yaml  -- 0x1470
+PASS  yaml: register 0x14E4 ("lcd_buzzer_trigger") appears in batterylifepo4.yaml  -- 0x14E4
+PASS  yaml: register 0x14E4 ("dry_contact_1_trigger_source") appears in batterylifepo4.yaml  -- 0x14E4
+PASS  yaml: register 0x14E6 ("dry_contact_2_trigger_source") appears in batterylifepo4.yaml  -- 0x14E6
+PASS  yaml: register 0x14E6 ("uart_protocol_library_version") appears in batterylifepo4.yaml  -- 0x14E6
+PASS  yaml: register 0x14F0 ("dry_contact_1_trigger_value") appears in batterylifepo4.yaml  -- 0x14F0
+PASS  yaml: register 0x14F4 ("dry_contact_1_recovery_value") appears in batterylifepo4.yaml  -- 0x14F4
+PASS  yaml: register 0x14F8 ("dry_contact_2_trigger_value") appears in batterylifepo4.yaml  -- 0x14F8
+PASS  yaml: register 0x14FC ("dry_contact_2_recovery_value") appears in batterylifepo4.yaml  -- 0x14FC
+PASS  yaml: register 0x1504 ("rcv_time") appears in batterylifepo4.yaml  -- 0x1504
+PASS  yaml: register 0x1504 ("rfv_time") appears in batterylifepo4.yaml  -- 0x1504
+PASS  jk_bms.js: generated genericTxAddress block is present and well-formed
+PASS  jk_bms.js genericTxAddress key set matches the catalog's generic-managed RW fields  -- catalog=18 js=18
+PASS  jk_bms.js genericTxAddress addresses match the catalog exactly for every shared key  -- 0 mismatch(es)
+PASS  jk_bms.js: generated nonRegisterKeys block is present and well-formed
+PASS  jk_bms.js nonRegisterKeys is exactly the non-register catalog's key set  -- missing= extra=
+PASS  demo/mock-server.js derives its generic-register map from register_catalog.json
+PASS  Settings ui_order has no duplicates
+PASS  "cell_voltage_*" fields sort into natural 01..N order by ui_order  -- count=16
+PASS  "cell_resistance_*" fields sort into natural 01..N order by ui_order  -- count=16
+PASS  esphome_write_entity_id has no duplicates
+PASS  backend_key has no duplicates
+PASS  field "charging" enum_map has no duplicate values
+PASS  field "discharging" enum_map has no duplicate values
+PASS  field "balancing" enum_map has no duplicate values
+PASS  field "balancing_active" enum_map has no duplicate values
+PASS  every field's uk/en display unit matches its canonical_unit via the fixed glossary  -- 0 drift(s)
+PASS  REGRESSION: setup_passcode register is 128 bits / 8 Modbus words (CODEX_STAGE_1_REVIEW.md P0-1 — was wrongly word_count 2)
+PASS  REGRESSION: device_model register is 128 bits / 8 Modbus words (same class of bug)
+PASS  REGRESSION: scp_delay canonical unit is µs (was incorrectly 's' in the pre-Stage-1 catalog)
+PASS  REGRESSION: rcv_time canonical unit is h with 0.1 scale (was incorrectly 's' in the pre-Stage-1 catalog)
+PASS  REGRESSION: rfv_time canonical unit is h with 0.1 scale (was incorrectly 's' in the pre-Stage-1 catalog)
+PASS  REGRESSION: cell_resistance_* canonical unit is mΩ (was incorrectly 'Ω' in ESPHome/UI before Stage 1)
+PASS  register_catalog.json no longer lists device_name_override (moved to non_register_entities.canonical.json)
+PASS  non_register_entities.canonical.json lists device_name_override as local_config
+PASS  every `address: 0xNNNN` modbus_controller declaration in batterylifepo4.yaml has a catalog register
+
+171 checks run, 1 failed.
+EXIT=1

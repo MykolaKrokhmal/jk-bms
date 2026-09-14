@@ -1,0 +1,21 @@
+PASS  A1. computeReleaseGenerationId is deterministic (two calls, same input, same id)  -- 449095a089bddffd vs 449095a089bddffd
+PASS  A1b. id looks like a real hex digest, not empty/placeholder  -- 449095a089bddffd
+PASS  A2. changing the workbook source fingerprint changes release_generation_id  -- a45d5adc636e6ec9 vs 449095a089bddffd
+PASS  A3. changing the upstream source fingerprint changes release_generation_id  -- f16cb46a0150446c vs 449095a089bddffd
+PASS  A4. changing the implementation fingerprint changes release_generation_id  -- 89405c09a317e80b vs 449095a089bddffd
+PASS  A5. changing registers.canonical.json's content changes release_generation_id  -- 8f124edb30a1df89 vs 449095a089bddffd
+PASS  A6. changing a schema file's content changes release_generation_id  -- 2112519559b0f6fe vs 449095a089bddffd
+PASS  A7. after restoring every mutated input, the id returns to the original value  -- 449095a089bddffd vs 449095a089bddffd
+PASS  B1. sandbox baseline: pipeline build succeeds  -- pipeline indexes/claim matrix published | protocol-pipeline build PASS
+PASS  B2. sandbox baseline: pipeline check passes on a freshly built, consistent generation  -- protocol-pipeline check PASS
+PASS  B3. fixture sanity (claim_matrix.json): carries a real release_generation_id  -- 449095a089bddffd
+PASS  B4. mixed generation (claim_matrix.json): pipeline check exits non-zero  -- status=1
+PASS  B5. mixed generation (claim_matrix.json): rejected by a real, named mechanism (RELEASE_GENERATION_ID_MISMATCH, PIPELINE_DERIVED_ARTIFACT_STALE, or a generate.js DRIFT failure) mentioning the tampered file  -- PIPELINE_DERIVED_ARTIFACT_STALE:protocol/generated/claim_matrix.json
+PASS  B6. restored (claim_matrix.json): pipeline check passes again  -- protocol-pipeline check PASS
+PASS  B3. fixture sanity (register_catalog.json): carries a real release_generation_id  -- 449095a089bddffd
+PASS  B4. mixed generation (register_catalog.json): pipeline check exits non-zero  -- status=1
+PASS  B5. mixed generation (register_catalog.json): rejected by a real, named mechanism (RELEASE_GENERATION_ID_MISMATCH, PIPELINE_DERIVED_ARTIFACT_STALE, or a generate.js DRIFT failure) mentioning the tampered file  -- PASS  every `address: 0xNNNN` modbus_controller declaration in batterylifepo4.yaml has a catalog register |  | 171 checks run, 1 failed. | PIPELINE_COMMAND_FAILED:node:1
+PASS  B6. restored (register_catalog.json): pipeline check passes again  -- protocol-pipeline check PASS
+
+18 checks run, 0 failed.
+EXIT=0

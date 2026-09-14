@@ -41,7 +41,10 @@
           "implementation_files": { "type": "array", "items": { "type": "string" } },
           "document": { "type": "string" },
           "document_sha256": { "type": "string" },
-          "session_scope": { "type": "string" }
+          "session_scope": { "type": "string" },
+          "deprecated": { "type": "boolean" },
+          "superseded_by": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "authority_tier": { "enum": ["primary_protocol_spec", "normalized_implementation_spec", "secondary_implementation", "current_implementation", "hardware_capture"] }
         },
         "additionalProperties": false
       }

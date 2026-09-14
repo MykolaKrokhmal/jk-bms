@@ -154,6 +154,33 @@ async function main() {
   check("frontend register renderer is data-driven from SETTING_DEFS/CONTROL_DEFS, not hardcoded",
     /function writableDefinitionForEntry\([\s\S]*?CONTROL_DEFS\[objectId\][\s\S]*?SETTING_DEFS\.find/.test(js));
 
+  // P1-04 follow-up (2026-09-10): NON_REGISTER_ENTITY_IDS (used to hide
+  // computed/presentation entities from the Settings register list, and to
+  // populate them into Diagnostics instead) must be derived from
+  // PROTOCOL_CATALOG.nonRegisterKeys, not a second, independently
+  // hand-maintained array — a real, hardware-observed defect
+  // (HARDWARE_AUDIT_2026-09-09.md) traced to exactly that: the hand list
+  // had drifted to using stale/wrong logical keys ("bms_display_name"
+  // instead of "device_name", "charge_status_time_elapsed" instead of
+  // "charge_status_time", "battery_state_elapsed" instead of
+  // "battery_state_time", etc.) that diagnosticObjectId() never actually
+  // returns, so those entities silently leaked into the register list.
+  check("NON_REGISTER_ENTITY_IDS is derived from PROTOCOL_CATALOG.nonRegisterKeys, not a second hand-maintained array",
+    /const NON_REGISTER_ENTITY_IDS = new Set\(PROTOCOL_CATALOG\.nonRegisterKeys\)/.test(js));
+
+  const nonRegisterKeysMatch = js.match(/nonRegisterKeys: Object\.freeze\(\[([\s\S]*?)\]\)/);
+  const nonRegisterKeys = nonRegisterKeysMatch
+    ? [...nonRegisterKeysMatch[1].matchAll(/"([a-z0-9_]+)"/g)].map((m) => m[1])
+    : [];
+  // The exact keys previously silently excluded by the OLD list's wrong
+  // names (see above) — proves the fix actually closes the real leak,
+  // not just that some derivation exists.
+  for (const key of ["charge_status_time", "charge_phase_time", "battery_state_time",
+    "device_name", "battery_state_direction", "battery_state_candidate_samples"]) {
+    check(`PROTOCOL_CATALOG.nonRegisterKeys (now the live filter's own source) includes "${key}" (previously silently leaked under a wrong hand-list name)`,
+      nonRegisterKeys.includes(key));
+  }
+
   // Third critical audit (2026-09-10): NO control select remains
   // owner-authorized any more — "balancing" was reclassified "disruptive"
   // (registers.canonical.json had wrongly said "normal", contradicting

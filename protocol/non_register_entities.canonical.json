@@ -13,7 +13,8 @@
       "en_display_unit": "V",
       "frontend_label_uk": "Загальна напруга",
       "frontend_label_en": "Total voltage",
-      "note": "Derived from total_voltage_raw (0x1290) inside the same gapless read; not itself a separate register."
+      "note": "Derived from total_voltage_raw (0x1290) inside the same gapless read; not itself a separate register.",
+      "derived_from_register_key": "total_voltage_raw"
     },
     {
       "key": "current",
@@ -25,7 +26,8 @@
       "en_display_unit": "A",
       "frontend_label_uk": "Струм",
       "frontend_label_en": "Current",
-      "note": "Derived from current_raw (0x1298)."
+      "note": "Derived from current_raw (0x1298).",
+      "derived_from_register_key": "current_raw"
     },
     {
       "key": "power",

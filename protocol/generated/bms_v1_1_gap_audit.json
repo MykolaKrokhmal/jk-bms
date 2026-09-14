@@ -1,0 +1,4257 @@
+{
+  "generated_at_note": "audit-only pass; no firmware/UI logic was changed",
+  "manifest_parameter_count": 265,
+  "status_distribution": {
+    "implemented": 130,
+    "missing": 97,
+    "partial": 38
+  },
+  "code_smells": {
+    "hardcoded_16_constants": [
+      "jk_bms.js: MAX_CELL_COUNT = 16",
+      "batterylifepo4.yaml: cell_voltage_1",
+      "batterylifepo4.yaml: cell_voltage_2",
+      "batterylifepo4.yaml: cell_voltage_3",
+      "batterylifepo4.yaml: cell_voltage_4",
+      "batterylifepo4.yaml: cell_voltage_5",
+      "batterylifepo4.yaml: cell_voltage_6",
+      "batterylifepo4.yaml: cell_voltage_7",
+      "batterylifepo4.yaml: cell_voltage_8",
+      "batterylifepo4.yaml: cell_voltage_9",
+      "batterylifepo4.yaml: cell_voltage_10",
+      "batterylifepo4.yaml: cell_voltage_11",
+      "batterylifepo4.yaml: cell_voltage_12",
+      "batterylifepo4.yaml: cell_voltage_13",
+      "batterylifepo4.yaml: cell_voltage_14",
+      "batterylifepo4.yaml: cell_voltage_15",
+      "batterylifepo4.yaml: cell_voltage_16",
+      "batterylifepo4.yaml: cell_resistance_1",
+      "batterylifepo4.yaml: cell_resistance_2",
+      "batterylifepo4.yaml: cell_resistance_3",
+      "batterylifepo4.yaml: cell_resistance_4",
+      "batterylifepo4.yaml: cell_resistance_5",
+      "batterylifepo4.yaml: cell_resistance_6",
+      "batterylifepo4.yaml: cell_resistance_7",
+      "batterylifepo4.yaml: cell_resistance_8",
+      "batterylifepo4.yaml: cell_resistance_9",
+      "batterylifepo4.yaml: cell_resistance_10",
+      "batterylifepo4.yaml: cell_resistance_11",
+      "batterylifepo4.yaml: cell_resistance_12",
+      "batterylifepo4.yaml: cell_resistance_13",
+      "batterylifepo4.yaml: cell_resistance_14",
+      "batterylifepo4.yaml: cell_resistance_15",
+      "batterylifepo4.yaml: cell_resistance_16",
+      "demo/mock-server.js: CELL_COUNT = 16"
+    ],
+    "non_register_entity_ids_is_generator_derived": {
+      "label": "jk_bms.js",
+      "match": "const NON_REGISTER_ENTITY_IDS = new Set(PROTOCOL_CATALOG.nonRegisterKeys);",
+      "ok": true
+    },
+    "setting_defs_manual_list": {
+      "label": "jk_bms.js",
+      "entry_count": 18,
+      "is_hand_maintained": true,
+      "note": "SETTING_DEFS is a hand-typed array of {key, endpoint, min, max, step} — not generator-derived from the manifest. This is a KNOWN limitation: the manifest's precision/step/minimum/maximum fields are all null (not present as distinct columns in the V2 workbook — see manifest parameter.precision_step_minmax_note), so there is currently no normative source to auto-generate these bounds from. Recorded here for visibility, not silently ignored."
+    },
+    "polling_may_overwrite_edited_field": {
+      "preserved_dirty_capture_and_reapply_present": true,
+      "entry_value_assignment_sites": [
+        {
+          "line": 1411,
+          "dataset_dirty_guard_nearby": false
+        },
+        {
+          "line": 1588,
+          "dataset_dirty_guard_nearby": true
+        }
+      ],
+      "note": "preserved_dirty_capture_and_reapply_present=true confirms the full-rebuild diagnostic panel protects pending edits via capture-before/reapply-after rather than a per-assignment guard, so a 'false' dataset_dirty_guard_nearby on one of those specific sites is expected and not a defect by itself — cross-check against the reapply flag before treating any site as unsafe."
+    },
+    "rw_fields_without_address_readback": {
+      "rw_implemented_or_partial_count": 56,
+      "without_address_readback_count": 0,
+      "ids": []
+    },
+    "packed_fields_without_read_modify_write": {
+      "packed_rw_row_count": 21,
+      "candidates_without_confirmed_rmw_flag": [],
+      "note": "registers.canonical.json fields do not currently carry an explicit write_uses_read_modify_write flag, so this check cannot positively confirm RMW compliance — it only reports packed RW rows whose canonical register has an effective_access=rw field, as a manual-review worklist. Absence of the flag is not proof of a missing RMW; the flag itself does not yet exist in the schema."
+    },
+    "hazard_class_fields_currently_enabled": {
+      "count": 0,
+      "fields": [],
+      "note": "Direct scan of protocol/registers.canonical.json — a non-empty result here means a disruptive/topology/credential/unsupported-class field is currently write-enabled, regardless of manifest coverage. Expected count is 0 under this project's fail-closed policy."
+    }
+  },
+  "self_audit_note": "2026-09-11: extended per critical self-review of the original Stage 4 pass — see BMS_V2_GAP_REMEDIATION_PLAN.md and BMS_V2_MANIFEST_EXECUTION_LOG.md 'Виправлення розривів' section for what changed and why.",
+  "results": [
+    {
+      "id": "ManufacturerDeviceID",
+      "name_ua": "Модель BMS",
+      "address": "0x1400",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "ManufacturerDeviceID",
+        "base_address": "0X1400",
+        "canonical_register_id": "reg_0x1400_device_model",
+        "canonical_field_keys": [
+          "device_model"
+        ]
+      }
+    },
+    {
+      "id": "HardwareVersion",
+      "name_ua": "Апаратна версія BMS (Hardware)",
+      "address": "0x1410",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "HardwareVersion",
+        "base_address": "0X1410"
+      }
+    },
+    {
+      "id": "SoftwareVersion",
+      "name_ua": "Програмна версія BMS (Software)",
+      "address": "0x1418",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "SoftwareVersion",
+        "base_address": "0X1418"
+      }
+    },
+    {
+      "id": "ODDRunTime",
+      "name_ua": "Сумарний час напрацювання (ODD)",
+      "address": "0x1420",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "ODDRunTime",
+        "base_address": "0X1420"
+      }
+    },
+    {
+      "id": "PWROnTimes",
+      "name_ua": "Кількість циклів увімкнення живлення",
+      "address": "0x1424",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "PWROnTimes",
+        "base_address": "0X1424"
+      }
+    },
+    {
+      "id": "RunTime",
+      "name_ua": "Час безперервної роботи BMS",
+      "address": "0x12BC",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "RunTime",
+        "base_address": "0X12BC",
+        "canonical_register_id": "reg_0x12BC_total_runtime",
+        "canonical_field_keys": [
+          "total_runtime"
+        ]
+      }
+    },
+    {
+      "id": "SysRunTicks",
+      "name_ua": "Системні тики процесора BMS",
+      "address": "0x12F0",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "SysRunTicks",
+        "base_address": "0X12F0",
+        "canonical_register_id": "reg_0x12F0_bms_system_ticks",
+        "canonical_field_keys": [
+          "bms_system_ticks"
+        ]
+      }
+    },
+    {
+      "id": "RTCTicks",
+      "name_ua": "Системний годинник реального часу (RTC)",
+      "address": "0x1300",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "RTCTicks",
+        "base_address": "0X1300"
+      }
+    },
+    {
+      "id": "Charge",
+      "name_ua": "Стан заряджання",
+      "address": "0x12C0 (старший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "Charge",
+        "base_address": "0X12C0",
+        "canonical_register_id": "reg_0x12C0_charge_discharge_active",
+        "canonical_field_keys": [
+          "charging_active",
+          "discharging_active"
+        ]
+      }
+    },
+    {
+      "id": "Discharge",
+      "name_ua": "Стан розряджання",
+      "address": "0x12C0 (молодший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "Discharge",
+        "base_address": "0X12C0",
+        "canonical_register_id": "reg_0x12C0_charge_discharge_active",
+        "canonical_field_keys": [
+          "charging_active",
+          "discharging_active"
+        ]
+      }
+    },
+    {
+      "id": "Precharge",
+      "name_ua": "Стан передзаряду",
+      "address": "0x12B8 (молодший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "Precharge",
+        "base_address": "0X12B8",
+        "canonical_register_id": "reg_0x12B8_soh_precharge",
+        "canonical_field_keys": [
+          "state_of_health",
+          "precharge_status"
+        ]
+      }
+    },
+    {
+      "id": "Heating",
+      "name_ua": "Фактичний стан підігріву",
+      "address": "0x12D0 (молодший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "Heating",
+        "base_address": "0X12D0",
+        "canonical_register_id": "reg_0x12D0_sensor_heating_mask",
+        "canonical_field_keys": [
+          "sensor_heating_mask"
+        ]
+      }
+    },
+    {
+      "id": "ChargerPlugged",
+      "name_ua": "Статус підключення зарядного пристрою",
+      "address": "0x12EE (молодший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "ChargerPlugged",
+        "base_address": "0X12EE"
+      }
+    },
+    {
+      "id": "PCLModuleSta",
+      "name_ua": "Стан модуля паралельного обмеження струму",
+      "address": "0x130C (старший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "PCLModuleSta",
+        "base_address": "0X130C"
+      }
+    },
+    {
+      "id": "TimeEnterSleep",
+      "name_ua": "Час до переходу в сон",
+      "address": "0x1308",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "TimeEnterSleep",
+        "base_address": "0X1308"
+      }
+    },
+    {
+      "id": "SOCCapRemain",
+      "name_ua": "Залишкова ємність",
+      "address": "0x12A8",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "SOCCapRemain",
+        "base_address": "0X12A8",
+        "canonical_register_id": "reg_0x12A8_capacity_remaining",
+        "canonical_field_keys": [
+          "capacity_remaining"
+        ]
+      }
+    },
+    {
+      "id": "SOCFullChargeCap",
+      "name_ua": "Повна виміряна ємність BMS",
+      "address": "0x12AC",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "SOCFullChargeCap",
+        "base_address": "0X12AC",
+        "canonical_register_id": "reg_0x12AC_full_charge_capacity",
+        "canonical_field_keys": [
+          "full_charge_capacity"
+        ]
+      }
+    },
+    {
+      "id": "SOCCycleCap",
+      "name_ua": "Загальна віддана ємність",
+      "address": "0x12B4",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "SOCCycleCap",
+        "base_address": "0X12B4",
+        "canonical_register_id": "reg_0x12B4_cycle_capacity",
+        "canonical_field_keys": [
+          "cycle_capacity"
+        ]
+      }
+    },
+    {
+      "id": "SOCCycleCount",
+      "name_ua": "Цикли заряду",
+      "address": "0x12B0",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "SOCCycleCount",
+        "base_address": "0X12B0",
+        "canonical_register_id": "reg_0x12B0_charging_cycles",
+        "canonical_field_keys": [
+          "charging_cycles"
+        ]
+      }
+    },
+    {
+      "id": "SOCSOH",
+      "name_ua": "Стан здоров'я батареї (SOH)",
+      "address": "0x12B8 (старший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "SOCSOH",
+        "base_address": "0X12B8",
+        "canonical_register_id": "reg_0x12B8_soh_precharge",
+        "canonical_field_keys": [
+          "state_of_health",
+          "precharge_status"
+        ]
+      }
+    },
+    {
+      "id": "SOCStateOfcharge",
+      "name_ua": "Рівень заряду",
+      "address": "0x12A6 (молодший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "SOCStateOfcharge",
+        "base_address": "0X12A6",
+        "canonical_register_id": "reg_0x12A6_balan_status_soc",
+        "canonical_field_keys": [
+          "balancing_active",
+          "state_of_charge"
+        ]
+      }
+    },
+    {
+      "id": "BatVol",
+      "name_ua": "Напруга батареї",
+      "address": "0x1290",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BatVol",
+        "base_address": "0X1290",
+        "canonical_register_id": "reg_0x1290_total_voltage_raw",
+        "canonical_field_keys": [
+          "total_voltage_raw"
+        ]
+      }
+    },
+    {
+      "id": "BatVol__dup2",
+      "name_ua": "Альтернативна напруга батареї (цілочисельна)",
+      "address": "0x12E4",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BatVol__dup2",
+        "base_address": "0X12E4",
+        "canonical_register_id": "reg_0x12E4_alternate_battery_voltage",
+        "canonical_field_keys": [
+          "alternate_battery_voltage"
+        ]
+      }
+    },
+    {
+      "id": "BatCurrent",
+      "name_ua": "Струм батареї",
+      "address": "0x1298",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BatCurrent",
+        "base_address": "0X1298",
+        "canonical_register_id": "reg_0x1298_current_raw",
+        "canonical_field_keys": [
+          "current_raw"
+        ]
+      }
+    },
+    {
+      "id": "BatWatt",
+      "name_ua": "Потужність батареї (нативне значення BMS)",
+      "address": "0x1294",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BatWatt",
+        "base_address": "0X1294",
+        "canonical_register_id": "reg_0x1294_native_bms_power",
+        "canonical_field_keys": [
+          "native_bms_power"
+        ]
+      }
+    },
+    {
+      "id": "CellVolAve",
+      "name_ua": "Середня напруга комірки",
+      "address": "0x1244",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVolAve",
+        "base_address": "0X1244",
+        "canonical_register_id": "reg_0x1244_average_cell_voltage",
+        "canonical_field_keys": [
+          "average_cell_voltage"
+        ]
+      }
+    },
+    {
+      "id": "CellVdifMax",
+      "name_ua": "Максимальна різниця напруг комірок (дельта)",
+      "address": "0x1246",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVdifMax",
+        "base_address": "0X1246",
+        "canonical_register_id": "reg_0x1246_delta_cell_voltage",
+        "canonical_field_keys": [
+          "delta_cell_voltage"
+        ]
+      }
+    },
+    {
+      "id": "BalanSta",
+      "name_ua": "Стан балансування",
+      "address": "0x12A6 (старший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BalanSta",
+        "base_address": "0X12A6",
+        "canonical_register_id": "reg_0x12A6_balan_status_soc",
+        "canonical_field_keys": [
+          "balancing_active",
+          "state_of_charge"
+        ]
+      }
+    },
+    {
+      "id": "BalanCurrent",
+      "name_ua": "Струм активного балансування (поточний)",
+      "address": "0x12A4",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BalanCurrent",
+        "base_address": "0X12A4",
+        "canonical_register_id": "reg_0x12A4_balance_current",
+        "canonical_field_keys": [
+          "balance_current"
+        ]
+      }
+    },
+    {
+      "id": "TempMos",
+      "name_ua": "Температура силової плати MOSFET",
+      "address": "0x128A",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TempMos",
+        "base_address": "0X128A",
+        "canonical_register_id": "reg_0x128A_mosfet_temperature",
+        "canonical_field_keys": [
+          "mosfet_temperature"
+        ]
+      }
+    },
+    {
+      "id": "TempBat 1",
+      "name_ua": "Температура акумулятора 1 (T1)",
+      "address": "0x129C",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TempBat 1",
+        "base_address": "0X129C",
+        "canonical_register_id": "reg_0x129C_temperature_1",
+        "canonical_field_keys": [
+          "temperature_1"
+        ]
+      }
+    },
+    {
+      "id": "TempBat 2",
+      "name_ua": "Температура акумулятора 2 (T2)",
+      "address": "0x129E",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TempBat 2",
+        "base_address": "0X129E",
+        "canonical_register_id": "reg_0x129E_temperature_2",
+        "canonical_field_keys": [
+          "temperature_2"
+        ]
+      }
+    },
+    {
+      "id": "TempBat 3",
+      "name_ua": "Температура акумулятора 3 (T3)",
+      "address": "0x12F8",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TempBat 3",
+        "base_address": "0X12F8",
+        "canonical_register_id": "reg_0x12F8_temperature_sensor_3",
+        "canonical_field_keys": [
+          "temperature_sensor_3"
+        ]
+      }
+    },
+    {
+      "id": "TempBat 4",
+      "name_ua": "Температура акумулятора 4 (T4)",
+      "address": "0x12FA",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TempBat 4",
+        "base_address": "0X12FA",
+        "canonical_register_id": "reg_0x12FA_temperature_4",
+        "canonical_field_keys": [
+          "temperature_4"
+        ]
+      }
+    },
+    {
+      "id": "TempBat 5",
+      "name_ua": "Температура акумулятора 5 (T5)",
+      "address": "0x12FC",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TempBat 5",
+        "base_address": "0X12FC",
+        "canonical_register_id": "reg_0x12FC_temperature_5",
+        "canonical_field_keys": [
+          "temperature_5"
+        ]
+      }
+    },
+    {
+      "id": "HeatCurrent",
+      "name_ua": "Струм підігріву",
+      "address": "0x12E6",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "HeatCurrent",
+        "base_address": "0X12E6",
+        "canonical_register_id": "reg_0x12E6_heating_current",
+        "canonical_field_keys": [
+          "heating_current"
+        ]
+      }
+    },
+    {
+      "id": "Alarm Mask",
+      "name_ua": "Маска тривог (статус аварій та захистів)",
+      "address": "0x12A0",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "Alarm Mask",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "CellWireResSta",
+      "name_ua": "Стан тривоги опору балансувальних проводів",
+      "address": "0x128C",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireResSta",
+        "base_address": "0X128C",
+        "canonical_register_id": "reg_0x128C_cell_wire_res_status",
+        "canonical_field_keys": [
+          "cell_wire_resistance_status_mask"
+        ]
+      }
+    },
+    {
+      "id": "TempSensorAbsent",
+      "name_ua": "Маска справності датчиків температури",
+      "address": "0x12D0 (старший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TempSensorAbsent",
+        "base_address": "0X12D0",
+        "canonical_register_id": "reg_0x12D0_sensor_heating_mask",
+        "canonical_field_keys": [
+          "sensor_heating_mask"
+        ]
+      }
+    },
+    {
+      "id": "UserAlarm",
+      "name_ua": "Користувацька тривога 1",
+      "address": "0x12BA",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "UserAlarm",
+        "base_address": "0X12BA",
+        "canonical_register_id": "reg_0x12BA_custom_alarm_1",
+        "canonical_field_keys": [
+          "custom_alarm_1"
+        ]
+      }
+    },
+    {
+      "id": "UserAlarm2",
+      "name_ua": "Користувацька тривога 2",
+      "address": "0x12C2",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "UserAlarm2",
+        "base_address": "0X12C2",
+        "canonical_register_id": "reg_0x12C2_custom_alarm_2",
+        "canonical_field_keys": [
+          "custom_alarm_2"
+        ]
+      }
+    },
+    {
+      "id": "AlarmWireRes",
+      "name_ua": "Надмірний опір балансувального проводу",
+      "address": "0x12A0, біт 0",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmWireRes",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmMosOTP",
+      "name_ua": "Перегрів MOSFET",
+      "address": "0x12A0, біт 1",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmMosOTP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmCellQuantity",
+      "name_ua": "Кількість комірок не відповідає налаштуванню",
+      "address": "0x12A0, біт 2",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmCellQuantity",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmCurSensorErr",
+      "name_ua": "Несправність датчика струму",
+      "address": "0x12A0, біт 3",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmCurSensorErr",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmCellOVP",
+      "name_ua": "Перенапруга комірки",
+      "address": "0x12A0, біт 4",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmCellOVP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmBatOVP",
+      "name_ua": "Перенапруга батареї",
+      "address": "0x12A0, біт 5",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmBatOVP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmChOCP",
+      "name_ua": "Надструм заряду",
+      "address": "0x12A0, біт 6",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmChOCP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmChSCP",
+      "name_ua": "Коротке замикання кола заряду",
+      "address": "0x12A0, біт 7",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmChSCP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmChOTP",
+      "name_ua": "Перегрів під час заряду",
+      "address": "0x12A0, біт 8",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmChOTP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmChUTP",
+      "name_ua": "Низька температура під час заряду",
+      "address": "0x12A0, біт 9",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmChUTP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmCPUAuxCommuErr",
+      "name_ua": "Помилка внутрішнього зв'язку CPU",
+      "address": "0x12A0, біт 10",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmCPUAuxCommuErr",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmCellUVP",
+      "name_ua": "Низька напруга комірки",
+      "address": "0x12A0, біт 11",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmCellUVP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmBatUVP",
+      "name_ua": "Низька напруга батареї",
+      "address": "0x12A0, біт 12",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmBatUVP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmDchOCP",
+      "name_ua": "Надструм розряду",
+      "address": "0x12A0, біт 13",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmDchOCP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmDchSCP",
+      "name_ua": "Коротке замикання кола розряду",
+      "address": "0x12A0, біт 14",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmDchSCP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmDchOTP",
+      "name_ua": "Перегрів під час розряду",
+      "address": "0x12A0, біт 15",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmDchOTP",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmChargeMOS",
+      "name_ua": "Несправність MOSFET заряду",
+      "address": "0x12A0, біт 16",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmChargeMOS",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "AlarmDischargeMOS",
+      "name_ua": "Несправність MOSFET розряду",
+      "address": "0x12A0, біт 17",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "AlarmDischargeMOS",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "GPSDisconneted",
+      "name_ua": "Втрачено зв'язок GPS",
+      "address": "0x12A0, біт 18",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "GPSDisconneted",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "ModifyPWDInTime",
+      "name_ua": "Потрібна своєчасна зміна пароля",
+      "address": "0x12A0, біт 19",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "ModifyPWDInTime",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "DischargeOnFailed",
+      "name_ua": "Не вдалося увімкнути розряд",
+      "address": "0x12A0, біт 20",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "DischargeOnFailed",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "BatteryOverTempAlarm",
+      "name_ua": "Аварія перегріву батареї",
+      "address": "0x12A0, біт 21",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BatteryOverTempAlarm",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "TemperatureSensorAnomaly",
+      "name_ua": "Несправність датчика температури",
+      "address": "0x12A0 (біт не вказано у V1.1)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TemperatureSensorAnomaly",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "PCLModuleAnomaly",
+      "name_ua": "Несправність модуля паралельного обмеження",
+      "address": "0x12A0 (біт не вказано у V1.1)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "PCLModuleAnomaly",
+        "base_address": "0X12A0",
+        "canonical_register_id": "reg_0x12A0_alarms_bitmask",
+        "canonical_field_keys": [
+          "alarms_bitmask"
+        ]
+      }
+    },
+    {
+      "id": "MOSTempSensorPresent",
+      "name_ua": "Справність датчика температури MOSFET",
+      "address": "0x12D0 (старший байт), біт 0",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "MOSTempSensorPresent",
+        "base_address": "0X12D0",
+        "canonical_register_id": "reg_0x12D0_sensor_heating_mask",
+        "canonical_field_keys": [
+          "sensor_heating_mask"
+        ]
+      }
+    },
+    {
+      "id": "BATTempSensor1Present",
+      "name_ua": "Справність датчика температури батареї 1",
+      "address": "0x12D0 (старший байт), біт 1",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BATTempSensor1Present",
+        "base_address": "0X12D0",
+        "canonical_register_id": "reg_0x12D0_sensor_heating_mask",
+        "canonical_field_keys": [
+          "sensor_heating_mask"
+        ]
+      }
+    },
+    {
+      "id": "BATTempSensor2Present",
+      "name_ua": "Справність датчика температури батареї 2",
+      "address": "0x12D0 (старший байт), біт 2",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BATTempSensor2Present",
+        "base_address": "0X12D0",
+        "canonical_register_id": "reg_0x12D0_sensor_heating_mask",
+        "canonical_field_keys": [
+          "sensor_heating_mask"
+        ]
+      }
+    },
+    {
+      "id": "BATTempSensor3Present",
+      "name_ua": "Справність датчика температури батареї 3",
+      "address": "0x12D0 (старший байт), біт 3",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BATTempSensor3Present",
+        "base_address": "0X12D0",
+        "canonical_register_id": "reg_0x12D0_sensor_heating_mask",
+        "canonical_field_keys": [
+          "sensor_heating_mask"
+        ]
+      }
+    },
+    {
+      "id": "BATTempSensor4Present",
+      "name_ua": "Справність датчика температури батареї 4",
+      "address": "0x12D0 (старший байт), біт 4",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BATTempSensor4Present",
+        "base_address": "0X12D0",
+        "canonical_register_id": "reg_0x12D0_sensor_heating_mask",
+        "canonical_field_keys": [
+          "sensor_heating_mask"
+        ]
+      }
+    },
+    {
+      "id": "BATTempSensor5Present",
+      "name_ua": "Справність датчика температури батареї 5",
+      "address": "0x12D0 (старший байт), біт 5",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BATTempSensor5Present",
+        "base_address": "0X12D0",
+        "canonical_register_id": "reg_0x12D0_sensor_heating_mask",
+        "canonical_field_keys": [
+          "sensor_heating_mask"
+        ]
+      }
+    },
+    {
+      "id": "TimeDcOCPR",
+      "name_ua": "Залишок часу відновлення захисту OCP розряду",
+      "address": "0x12C4",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TimeDcOCPR",
+        "base_address": "0X12C4",
+        "canonical_register_id": "reg_0x12C4_discharge_ocpr_left",
+        "canonical_field_keys": [
+          "discharge_ocpr_left"
+        ]
+      }
+    },
+    {
+      "id": "TimeDcSCPR",
+      "name_ua": "Залишок часу відновлення захисту SCP розряду",
+      "address": "0x12C6",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TimeDcSCPR",
+        "base_address": "0X12C6",
+        "canonical_register_id": "reg_0x12C6_discharge_scpr_left",
+        "canonical_field_keys": [
+          "discharge_scpr_left"
+        ]
+      }
+    },
+    {
+      "id": "TimeCOCPR",
+      "name_ua": "Залишок часу відновлення захисту OCP заряду",
+      "address": "0x12C8",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TimeCOCPR",
+        "base_address": "0X12C8",
+        "canonical_register_id": "reg_0x12C8_charge_ocpr_left",
+        "canonical_field_keys": [
+          "charge_ocpr_left"
+        ]
+      }
+    },
+    {
+      "id": "TimeCSCPR",
+      "name_ua": "Залишок часу відновлення захисту SCP заряду",
+      "address": "0x12CA",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TimeCSCPR",
+        "base_address": "0X12CA",
+        "canonical_register_id": "reg_0x12CA_charge_scpr_left",
+        "canonical_field_keys": [
+          "charge_scpr_left"
+        ]
+      }
+    },
+    {
+      "id": "TimeUVPR",
+      "name_ua": "Залишок часу відновлення захисту від низької напруги (UVP)",
+      "address": "0x12CC",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TimeUVPR",
+        "base_address": "0X12CC",
+        "canonical_register_id": "reg_0x12CC_uvpr_left",
+        "canonical_field_keys": [
+          "uvpr_left"
+        ]
+      }
+    },
+    {
+      "id": "TimeOVPR",
+      "name_ua": "Залишок часу відновлення захисту від перенапруги (OVP)",
+      "address": "0x12CE",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TimeOVPR",
+        "base_address": "0X12CE",
+        "canonical_register_id": "reg_0x12CE_ovpr_left",
+        "canonical_field_keys": [
+          "ovpr_left"
+        ]
+      }
+    },
+    {
+      "id": "TimeEmergency",
+      "name_ua": "Час дії кнопки аварійного увімкнення",
+      "address": "0x12D4",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TimeEmergency",
+        "base_address": "0X12D4",
+        "canonical_register_id": "reg_0x12D4_emergency_timer",
+        "canonical_field_keys": [
+          "emergency_timer"
+        ]
+      }
+    },
+    {
+      "id": "CellSta",
+      "name_ua": "Маска наявності підключених комірок",
+      "address": "0x1240",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellSta",
+        "base_address": "0X1240",
+        "canonical_register_id": "reg_0x1240_cell_connected_mask",
+        "canonical_field_keys": [
+          "cell_connected_mask"
+        ]
+      }
+    },
+    {
+      "id": "CellCount",
+      "name_ua": "Кількість комірок",
+      "address": "0x106C",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "CellCount",
+        "base_address": "0X106C",
+        "canonical_register_id": "reg_0x106C_cell_count",
+        "canonical_field_keys": [
+          "cell_count"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "CapBatCell",
+      "name_ua": "Номінальна ємність",
+      "address": "0x107C",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CapBatCell",
+        "base_address": "0X107C",
+        "canonical_register_id": "reg_0x107C_battery_capacity",
+        "canonical_field_keys": [
+          "battery_capacity"
+        ]
+      }
+    },
+    {
+      "id": "MaxVolCellNbr",
+      "name_ua": "Номер комірки з максимальною напругою",
+      "address": "0x1248 (старший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "MaxVolCellNbr",
+        "base_address": "0X1248",
+        "canonical_register_id": "reg_0x1248_cell_extrema_index",
+        "canonical_field_keys": [
+          "max_voltage_cell_index_native",
+          "min_voltage_cell_index_native"
+        ]
+      }
+    },
+    {
+      "id": "MinVolCellNbr",
+      "name_ua": "Номер комірки з мінімальною напругою",
+      "address": "0x1248 (молодший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "MinVolCellNbr",
+        "base_address": "0X1248",
+        "canonical_register_id": "reg_0x1248_cell_extrema_index",
+        "canonical_field_keys": [
+          "max_voltage_cell_index_native",
+          "min_voltage_cell_index_native"
+        ]
+      }
+    },
+    {
+      "id": "BatChargeEN",
+      "name_ua": "Заряд дозволено",
+      "address": "0x1070",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "BatChargeEN",
+        "base_address": "0X1070",
+        "canonical_register_id": "reg_0x1070_charging",
+        "canonical_field_keys": [
+          "charging"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "BatDisChargeEN",
+      "name_ua": "Розряд дозволено",
+      "address": "0x1074",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "BatDisChargeEN",
+        "base_address": "0X1074",
+        "canonical_register_id": "reg_0x1074_discharging",
+        "canonical_field_keys": [
+          "discharging"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "ChargingFloatMode",
+      "name_ua": "Режим плаваючого заряду (Float)",
+      "address": "0x1114, біт 9",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "ChargingFloatMode",
+        "base_address": "0X1114",
+        "canonical_register_id": "reg_0x1114_charging_float_mode",
+        "canonical_field_keys": [
+          "charging_float_mode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "BalanEN",
+      "name_ua": "Балансування дозволено",
+      "address": "0x1078",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "BalanEN",
+        "base_address": "0X1078",
+        "canonical_register_id": "reg_0x1078_balancing",
+        "canonical_field_keys": [
+          "balancing"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "VolCellOV",
+      "name_ua": "Захист від перенапруги комірки",
+      "address": "0x100C",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "VolCellOV",
+        "base_address": "0X100C",
+        "canonical_register_id": "reg_0x100C_cell_ovp",
+        "canonical_field_keys": [
+          "cell_ovp"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "VolCellRCV",
+      "name_ua": "Цільова напруга заряду комірки",
+      "address": "0x1020",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolCellRCV",
+        "base_address": "0X1020",
+        "canonical_register_id": "reg_0x1020_cell_rcv",
+        "canonical_field_keys": [
+          "cell_rcv"
+        ]
+      }
+    },
+    {
+      "id": "VolSOC100%",
+      "name_ua": "Напруга 100% заряду",
+      "address": "0x1018",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolSOC100%",
+        "base_address": "0X1018",
+        "canonical_register_id": "reg_0x1018_soc_100",
+        "canonical_field_keys": [
+          "soc_100"
+        ]
+      }
+    },
+    {
+      "id": "VolCellOVPR",
+      "name_ua": "Відновлення після перенапруги",
+      "address": "0x1010",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolCellOVPR",
+        "base_address": "0X1010",
+        "canonical_register_id": "reg_0x1010_cell_ovpr",
+        "canonical_field_keys": [
+          "cell_ovpr"
+        ]
+      }
+    },
+    {
+      "id": "VolCellRFV",
+      "name_ua": "Напруга плаваючого/буферного заряду комірки",
+      "address": "0x1024",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolCellRFV",
+        "base_address": "0X1024",
+        "canonical_register_id": "reg_0x1024_cell_rfv",
+        "canonical_field_keys": [
+          "cell_rfv"
+        ]
+      }
+    },
+    {
+      "id": "VolSmartSleep",
+      "name_ua": "Напруга розумного сну (Smart Sleep)",
+      "address": "0x1000",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolSmartSleep",
+        "base_address": "0X1000",
+        "canonical_register_id": "reg_0x1000_smart_sleep",
+        "canonical_field_keys": [
+          "smart_sleep"
+        ]
+      }
+    },
+    {
+      "id": "VolCellUV",
+      "name_ua": "Захист від низької напруги комірки",
+      "address": "0x1004",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "VolCellUV",
+        "base_address": "0X1004",
+        "canonical_register_id": "reg_0x1004_cell_uvp",
+        "canonical_field_keys": [
+          "cell_uvp"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "VolCellUVPR",
+      "name_ua": "Відновлення після низької напруги",
+      "address": "0x1008",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolCellUVPR",
+        "base_address": "0X1008",
+        "canonical_register_id": "reg_0x1008_cell_uvpr",
+        "canonical_field_keys": [
+          "cell_uvpr"
+        ]
+      }
+    },
+    {
+      "id": "VolSOC0%",
+      "name_ua": "Напруга 0% заряду",
+      "address": "0x101C",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolSOC0%",
+        "base_address": "0X101C",
+        "canonical_register_id": "reg_0x101C_soc_0",
+        "canonical_field_keys": [
+          "soc_0"
+        ]
+      }
+    },
+    {
+      "id": "VolSysPwrOff",
+      "name_ua": "Напруга автовимкнення живлення",
+      "address": "0x1028",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "VolSysPwrOff",
+        "base_address": "0X1028",
+        "canonical_register_id": "reg_0x1028_system_power_off",
+        "canonical_field_keys": [
+          "system_power_off"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "RCVTime",
+      "name_ua": "Час насичення заряду (Час RCV)",
+      "address": "0x1504 (старший байт*)",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "RCVTime",
+        "base_address": "0X1504",
+        "canonical_register_id": "reg_0x1504_rcv_rfv_time",
+        "canonical_field_keys": [
+          "rcv_time",
+          "rfv_time"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "RFVTime",
+      "name_ua": "Час буферного заряду (Час RFV)",
+      "address": "0x1504 (молодший байт*)",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "RFVTime",
+        "base_address": "0X1504",
+        "canonical_register_id": "reg_0x1504_rcv_rfv_time",
+        "canonical_field_keys": [
+          "rcv_time",
+          "rfv_time"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "VolBalanTrig",
+      "name_ua": "Дельта напруги запуску балансування",
+      "address": "0x1014",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolBalanTrig",
+        "base_address": "0X1014",
+        "canonical_register_id": "reg_0x1014_start_balance_trigger",
+        "canonical_field_keys": [
+          "start_balance_trigger"
+        ]
+      }
+    },
+    {
+      "id": "VolStartBalan",
+      "name_ua": "Напруга старту балансування",
+      "address": "0x1084",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolStartBalan",
+        "base_address": "0X1084",
+        "canonical_register_id": "reg_0x1084_start_balance",
+        "canonical_field_keys": [
+          "start_balance"
+        ]
+      }
+    },
+    {
+      "id": "CurBalanMax",
+      "name_ua": "Максимальний струм балансування",
+      "address": "0x1048",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CurBalanMax",
+        "base_address": "0X1048",
+        "canonical_register_id": "reg_0x1048_max_balance_current",
+        "canonical_field_keys": [
+          "max_balance_current"
+        ]
+      }
+    },
+    {
+      "id": "CurBatCOC",
+      "name_ua": "Тривалий максимальний струм заряду",
+      "address": "0x102C",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "CurBatCOC",
+        "base_address": "0X102C",
+        "canonical_register_id": "reg_0x102C_continued_charge_current",
+        "canonical_field_keys": [
+          "continued_charge_current"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TIMBatCOCPDly",
+      "name_ua": "Затримка захисту за струмом заряду",
+      "address": "0x1030",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "TIMBatCOCPDly",
+        "base_address": "0X1030",
+        "canonical_register_id": "reg_0x1030_charge_ocp_delay",
+        "canonical_field_keys": [
+          "charge_ocp_delay"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TIMBatCOCPRDly",
+      "name_ua": "Час скидання захисту струму заряду",
+      "address": "0x1034",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TIMBatCOCPRDly",
+        "base_address": "0X1034",
+        "canonical_register_id": "reg_0x1034_charge_ocpr_time",
+        "canonical_field_keys": [
+          "charge_ocpr_time"
+        ]
+      }
+    },
+    {
+      "id": "CurBatDcOC",
+      "name_ua": "Тривалий максимальний струм розряду",
+      "address": "0x1038",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "CurBatDcOC",
+        "base_address": "0X1038",
+        "canonical_register_id": "reg_0x1038_continued_discharge_current",
+        "canonical_field_keys": [
+          "continued_discharge_current"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TIMBatDcOCPDly",
+      "name_ua": "Затримка захисту за струмом розряду",
+      "address": "0x103C",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "TIMBatDcOCPDly",
+        "base_address": "0X103C",
+        "canonical_register_id": "reg_0x103C_discharge_ocp_delay",
+        "canonical_field_keys": [
+          "discharge_ocp_delay"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TIMBatDcOCPRDly",
+      "name_ua": "Час скидання захисту струму розряду",
+      "address": "0x1040",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TIMBatDcOCPRDly",
+        "base_address": "0X1040",
+        "canonical_register_id": "reg_0x1040_discharge_ocpr_time",
+        "canonical_field_keys": [
+          "discharge_ocpr_time"
+        ]
+      }
+    },
+    {
+      "id": "SCPDelay",
+      "name_ua": "Затримка захисту від короткого замикання (SCP)",
+      "address": "0x1080",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "SCPDelay",
+        "base_address": "0X1080",
+        "canonical_register_id": "reg_0x1080_scp_delay",
+        "canonical_field_keys": [
+          "scp_delay"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TIMBatSCPRDly",
+      "name_ua": "Час скидання захисту від короткого замикання",
+      "address": "0x1044",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TIMBatSCPRDly",
+        "base_address": "0X1044",
+        "canonical_register_id": "reg_0x1044_scpr_time",
+        "canonical_field_keys": [
+          "scpr_time"
+        ]
+      }
+    },
+    {
+      "id": "TIMProdischarge",
+      "name_ua": "Час передзаряду розряду",
+      "address": "0x110C",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "TIMProdischarge",
+        "base_address": "0X110C"
+      }
+    },
+    {
+      "id": "TMPBatDcOT",
+      "name_ua": "Захист від перегріву під час розряду",
+      "address": "0x1054",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "TMPBatDcOT",
+        "base_address": "0X1054",
+        "canonical_register_id": "reg_0x1054_discharge_otp",
+        "canonical_field_keys": [
+          "discharge_otp"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TMPBatDcOTPR",
+      "name_ua": "Відновлення температури розряду",
+      "address": "0x1058",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TMPBatDcOTPR",
+        "base_address": "0X1058",
+        "canonical_register_id": "reg_0x1058_discharge_otpr",
+        "canonical_field_keys": [
+          "discharge_otpr"
+        ]
+      }
+    },
+    {
+      "id": "TMPBatCOT",
+      "name_ua": "Захист від перегріву під час заряду",
+      "address": "0x104C",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "TMPBatCOT",
+        "base_address": "0X104C",
+        "canonical_register_id": "reg_0x104C_charge_otp",
+        "canonical_field_keys": [
+          "charge_otp"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TMPBatCOTPR",
+      "name_ua": "Відновлення температури заряду",
+      "address": "0x1050",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TMPBatCOTPR",
+        "base_address": "0X1050",
+        "canonical_register_id": "reg_0x1050_charge_otpr",
+        "canonical_field_keys": [
+          "charge_otpr"
+        ]
+      }
+    },
+    {
+      "id": "TMPBatCUT",
+      "name_ua": "Захист від низької температури заряду",
+      "address": "0x105C",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "TMPBatCUT",
+        "base_address": "0X105C",
+        "canonical_register_id": "reg_0x105C_charge_utp",
+        "canonical_field_keys": [
+          "charge_utp"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TMPBatCUTPR",
+      "name_ua": "Відновлення низької температури заряду",
+      "address": "0x1060",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TMPBatCUTPR",
+        "base_address": "0X1060",
+        "canonical_register_id": "reg_0x1060_charge_utpr",
+        "canonical_field_keys": [
+          "charge_utpr"
+        ]
+      }
+    },
+    {
+      "id": "TMPMosOT",
+      "name_ua": "Захист від перегріву силових MOSFET",
+      "address": "0x1064",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "TMPMosOT",
+        "base_address": "0X1064",
+        "canonical_register_id": "reg_0x1064_mos_otp",
+        "canonical_field_keys": [
+          "mos_otp"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TMPMosOTPR",
+      "name_ua": "Відновлення після перегріву MOSFET",
+      "address": "0x1068",
+      "classification": "official",
+      "access": "RW",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "TMPMosOTPR",
+        "base_address": "0X1068",
+        "canonical_register_id": "reg_0x1068_mos_otpr",
+        "canonical_field_keys": [
+          "mos_otpr"
+        ]
+      }
+    },
+    {
+      "id": "HeatStartTemp",
+      "name_ua": "Температура ввімкнення підігріву (вендорний)",
+      "address": "0x111C (старший байт)",
+      "classification": "vendor",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "HeatStartTemp",
+        "base_address": "0X111C",
+        "canonical_register_id": "reg_0x111C_heating_thresholds",
+        "canonical_field_keys": [
+          "heating_activation_temperature",
+          "heating_deactivation_temperature"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "HeatStopTemp",
+      "name_ua": "Температура вимкнення підігріву (вендорний)",
+      "address": "0x111C (молодший байт)",
+      "classification": "vendor",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "HeatStopTemp",
+        "base_address": "0X111C",
+        "canonical_register_id": "reg_0x111C_heating_thresholds",
+        "canonical_field_keys": [
+          "heating_activation_temperature",
+          "heating_deactivation_temperature"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "HeatEN",
+      "name_ua": "Перемикач нагрівача (HeatEN)",
+      "address": "0x1114, біт 0",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "HeatEN",
+        "base_address": "0X1114",
+        "canonical_register_id": "reg_0x1114_charging_float_mode",
+        "canonical_field_keys": [
+          "charging_float_mode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "Disable temp-sensor",
+      "name_ua": "Блокування термодатчиків",
+      "address": "0x1114, біт 1",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "Disable temp-sensor",
+        "base_address": "0X1114",
+        "canonical_register_id": "reg_0x1114_charging_float_mode",
+        "canonical_field_keys": [
+          "charging_float_mode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "GPS Heartbeat",
+      "name_ua": "Контроль серцебиття GPS",
+      "address": "0x1114, біт 2",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "GPS Heartbeat",
+        "base_address": "0X1114",
+        "canonical_register_id": "reg_0x1114_charging_float_mode",
+        "canonical_field_keys": [
+          "charging_float_mode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "Port Switch",
+      "name_ua": "Функція мультиплексного порту",
+      "address": "0x1114, біт 3",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "Port Switch",
+        "base_address": "0X1114",
+        "canonical_register_id": "reg_0x1114_charging_float_mode",
+        "canonical_field_keys": [
+          "charging_float_mode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "LCD Always On",
+      "name_ua": "Постійно увімкнене підсвічування LCD",
+      "address": "0x1114, біт 4",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "LCD Always On",
+        "base_address": "0X1114",
+        "canonical_register_id": "reg_0x1114_charging_float_mode",
+        "canonical_field_keys": [
+          "charging_float_mode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "Special Charger",
+      "name_ua": "Розпізнавання спеціального зарядного",
+      "address": "0x1114, біт 5",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "Special Charger",
+        "base_address": "0X1114",
+        "canonical_register_id": "reg_0x1114_charging_float_mode",
+        "canonical_field_keys": [
+          "charging_float_mode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "SmartSleep",
+      "name_ua": "Дозвіл розумного сну (SmartSleep)",
+      "address": "0x1114, біт 6",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "SmartSleep",
+        "base_address": "0X1114",
+        "canonical_register_id": "reg_0x1114_charging_float_mode",
+        "canonical_field_keys": [
+          "charging_float_mode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "DisablePCLModule",
+      "name_ua": "Блокування модуля паралельного лімітування",
+      "address": "0x1114, біт 7",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "DisablePCLModule",
+        "base_address": "0X1114",
+        "canonical_register_id": "reg_0x1114_charging_float_mode",
+        "canonical_field_keys": [
+          "charging_float_mode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TimedStoredData",
+      "name_ua": "Періодичне збереження даних",
+      "address": "0x1114, біт 8",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "TimedStoredData",
+        "base_address": "0X1114",
+        "canonical_register_id": "reg_0x1114_charging_float_mode",
+        "canonical_field_keys": [
+          "charging_float_mode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "TIMSmartSleep",
+      "name_ua": "Час переходу в Smart Sleep",
+      "address": "0x1118 (старший байт)",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "TIMSmartSleep",
+        "base_address": "0X1118"
+      }
+    },
+    {
+      "id": "DataDomainEnable0",
+      "name_ua": "Керування областю даних 0",
+      "address": "0x1118 (молодший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "DataDomainEnable0",
+        "base_address": "0X1118"
+      }
+    },
+    {
+      "id": "PWD_Config",
+      "name_ua": "Пароль доступу до налаштувань (вендорний)",
+      "address": "0x1470",
+      "classification": "vendor",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "PWD_Config",
+        "base_address": "0X1470",
+        "canonical_register_id": "reg_0x1470_setup_passcode",
+        "canonical_field_keys": [
+          "setup_passcode"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "DataStoredPeriod",
+      "name_ua": "Період збереження даних у пам'ять",
+      "address": "0x1500",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "DataStoredPeriod",
+        "base_address": "0X1500"
+      }
+    },
+    {
+      "id": "DevAddr",
+      "name_ua": "Адреса пристрою Modbus",
+      "address": "0x1108",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "DevAddr",
+        "base_address": "0X1108"
+      }
+    },
+    {
+      "id": "UARTMPTLVer",
+      "name_ua": "Версія бібліотеки UART-протоколу",
+      "address": "0x14E6 (молодший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "UARTMPTLVer",
+        "base_address": "0X14E6",
+        "canonical_register_id": "reg_0x14E6_dry2_protocol",
+        "canonical_field_keys": [
+          "dry_contact_2_trigger_source",
+          "uart_protocol_library_version"
+        ]
+      }
+    },
+    {
+      "id": "LCDBuzzerTrigger",
+      "name_ua": "Джерело спрацювання LCD-зумера",
+      "address": "0x14E4 (старший байт)",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "LCDBuzzerTrigger",
+        "base_address": "0X14E4",
+        "canonical_register_id": "reg_0x14E4_lcd_dry1_sources",
+        "canonical_field_keys": [
+          "lcd_buzzer_trigger",
+          "dry_contact_1_trigger_source"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "DRY1Trigger",
+      "name_ua": "Джерело спрацювання сухого контакту 1",
+      "address": "0x14E4 (молодший байт)",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "DRY1Trigger",
+        "base_address": "0X14E4",
+        "canonical_register_id": "reg_0x14E4_lcd_dry1_sources",
+        "canonical_field_keys": [
+          "lcd_buzzer_trigger",
+          "dry_contact_1_trigger_source"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "DRY2Trigger",
+      "name_ua": "Джерело спрацювання сухого контакту 2",
+      "address": "0x14E6 (старший байт)",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "DRY2Trigger",
+        "base_address": "0X14E6",
+        "canonical_register_id": "reg_0x14E6_dry2_protocol",
+        "canonical_field_keys": [
+          "dry_contact_2_trigger_source",
+          "uart_protocol_library_version"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "LCDBuzzerTriggerVal",
+      "name_ua": "Поріг спрацювання LCD-зумера",
+      "address": "0x14E8",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "LCDBuzzerTriggerVal",
+        "base_address": "0X14E8"
+      }
+    },
+    {
+      "id": "LCDBuzzerReleaseVal",
+      "name_ua": "Поріг вимкнення LCD-зумера",
+      "address": "0x14EC",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "LCDBuzzerReleaseVal",
+        "base_address": "0X14EC"
+      }
+    },
+    {
+      "id": "DRY1TriggerVal",
+      "name_ua": "Поріг спрацювання сухого контакту 1",
+      "address": "0x14F0",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "DRY1TriggerVal",
+        "base_address": "0X14F0",
+        "canonical_register_id": "reg_0x14F0_dry_contact_1_trigger_value",
+        "canonical_field_keys": [
+          "dry_contact_1_trigger_value"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "DRY1ReleaseVal",
+      "name_ua": "Поріг відновлення сухого контакту 1",
+      "address": "0x14F4",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "DRY1ReleaseVal",
+        "base_address": "0X14F4",
+        "canonical_register_id": "reg_0x14F4_dry_contact_1_recovery_value",
+        "canonical_field_keys": [
+          "dry_contact_1_recovery_value"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "DRY2TriggerVal",
+      "name_ua": "Поріг спрацювання сухого контакту 2",
+      "address": "0x14F8",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "DRY2TriggerVal",
+        "base_address": "0X14F8",
+        "canonical_register_id": "reg_0x14F8_dry_contact_2_trigger_value",
+        "canonical_field_keys": [
+          "dry_contact_2_trigger_value"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "DRY2ReleaseVal",
+      "name_ua": "Поріг відновлення сухого контакту 2",
+      "address": "0x14FC",
+      "classification": "official",
+      "access": "RW",
+      "status": "partial",
+      "reason": "RW per V1.1, present in canonical, but effective_access is fail-closed for every field at this address (no write path currently enabled) — correctly cautious, not yet a full RW implementation",
+      "evidence": {
+        "manifest_id": "DRY2ReleaseVal",
+        "base_address": "0X14FC",
+        "canonical_register_id": "reg_0x14FC_dry_contact_2_recovery_value",
+        "canonical_field_keys": [
+          "dry_contact_2_recovery_value"
+        ],
+        "declared_rw_but_fail_closed": true
+      }
+    },
+    {
+      "id": "CellVol0",
+      "name_ua": "Напруга комірки 01",
+      "address": "0x1200",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol0",
+        "base_address": "0X1200",
+        "canonical_register_id": "reg_0x1200_cell_voltage_1",
+        "canonical_field_keys": [
+          "cell_voltage_1"
+        ]
+      }
+    },
+    {
+      "id": "CellVol1",
+      "name_ua": "Напруга комірки 02",
+      "address": "0x1202",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol1",
+        "base_address": "0X1202",
+        "canonical_register_id": "reg_0x1202_cell_voltage_2",
+        "canonical_field_keys": [
+          "cell_voltage_2"
+        ]
+      }
+    },
+    {
+      "id": "CellVol2",
+      "name_ua": "Напруга комірки 03",
+      "address": "0x1204",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol2",
+        "base_address": "0X1204",
+        "canonical_register_id": "reg_0x1204_cell_voltage_3",
+        "canonical_field_keys": [
+          "cell_voltage_3"
+        ]
+      }
+    },
+    {
+      "id": "CellVol3",
+      "name_ua": "Напруга комірки 04",
+      "address": "0x1206",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol3",
+        "base_address": "0X1206",
+        "canonical_register_id": "reg_0x1206_cell_voltage_4",
+        "canonical_field_keys": [
+          "cell_voltage_4"
+        ]
+      }
+    },
+    {
+      "id": "CellVol4",
+      "name_ua": "Напруга комірки 05",
+      "address": "0x1208",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol4",
+        "base_address": "0X1208",
+        "canonical_register_id": "reg_0x1208_cell_voltage_5",
+        "canonical_field_keys": [
+          "cell_voltage_5"
+        ]
+      }
+    },
+    {
+      "id": "CellVol5",
+      "name_ua": "Напруга комірки 06",
+      "address": "0x120A",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol5",
+        "base_address": "0X120A",
+        "canonical_register_id": "reg_0x120A_cell_voltage_6",
+        "canonical_field_keys": [
+          "cell_voltage_6"
+        ]
+      }
+    },
+    {
+      "id": "CellVol6",
+      "name_ua": "Напруга комірки 07",
+      "address": "0x120C",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol6",
+        "base_address": "0X120C",
+        "canonical_register_id": "reg_0x120C_cell_voltage_7",
+        "canonical_field_keys": [
+          "cell_voltage_7"
+        ]
+      }
+    },
+    {
+      "id": "CellVol7",
+      "name_ua": "Напруга комірки 08",
+      "address": "0x120E",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol7",
+        "base_address": "0X120E",
+        "canonical_register_id": "reg_0x120E_cell_voltage_8",
+        "canonical_field_keys": [
+          "cell_voltage_8"
+        ]
+      }
+    },
+    {
+      "id": "CellVol8",
+      "name_ua": "Напруга комірки 09",
+      "address": "0x1210",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol8",
+        "base_address": "0X1210",
+        "canonical_register_id": "reg_0x1210_cell_voltage_9",
+        "canonical_field_keys": [
+          "cell_voltage_9"
+        ]
+      }
+    },
+    {
+      "id": "CellVol9",
+      "name_ua": "Напруга комірки 10",
+      "address": "0x1212",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol9",
+        "base_address": "0X1212",
+        "canonical_register_id": "reg_0x1212_cell_voltage_10",
+        "canonical_field_keys": [
+          "cell_voltage_10"
+        ]
+      }
+    },
+    {
+      "id": "CellVol10",
+      "name_ua": "Напруга комірки 11",
+      "address": "0x1214",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol10",
+        "base_address": "0X1214",
+        "canonical_register_id": "reg_0x1214_cell_voltage_11",
+        "canonical_field_keys": [
+          "cell_voltage_11"
+        ]
+      }
+    },
+    {
+      "id": "CellVol11",
+      "name_ua": "Напруга комірки 12",
+      "address": "0x1216",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol11",
+        "base_address": "0X1216",
+        "canonical_register_id": "reg_0x1216_cell_voltage_12",
+        "canonical_field_keys": [
+          "cell_voltage_12"
+        ]
+      }
+    },
+    {
+      "id": "CellVol12",
+      "name_ua": "Напруга комірки 13",
+      "address": "0x1218",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol12",
+        "base_address": "0X1218",
+        "canonical_register_id": "reg_0x1218_cell_voltage_13",
+        "canonical_field_keys": [
+          "cell_voltage_13"
+        ]
+      }
+    },
+    {
+      "id": "CellVol13",
+      "name_ua": "Напруга комірки 14",
+      "address": "0x121A",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol13",
+        "base_address": "0X121A",
+        "canonical_register_id": "reg_0x121A_cell_voltage_14",
+        "canonical_field_keys": [
+          "cell_voltage_14"
+        ]
+      }
+    },
+    {
+      "id": "CellVol14",
+      "name_ua": "Напруга комірки 15",
+      "address": "0x121C",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol14",
+        "base_address": "0X121C",
+        "canonical_register_id": "reg_0x121C_cell_voltage_15",
+        "canonical_field_keys": [
+          "cell_voltage_15"
+        ]
+      }
+    },
+    {
+      "id": "CellVol15",
+      "name_ua": "Напруга комірки 16",
+      "address": "0x121E",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellVol15",
+        "base_address": "0X121E",
+        "canonical_register_id": "reg_0x121E_cell_voltage_16",
+        "canonical_field_keys": [
+          "cell_voltage_16"
+        ]
+      }
+    },
+    {
+      "id": "CellVol16",
+      "name_ua": "Напруга комірки 17",
+      "address": "0x1220",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol16",
+        "base_address": "0X1220"
+      }
+    },
+    {
+      "id": "CellVol17",
+      "name_ua": "Напруга комірки 18",
+      "address": "0x1222",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol17",
+        "base_address": "0X1222"
+      }
+    },
+    {
+      "id": "CellVol18",
+      "name_ua": "Напруга комірки 19",
+      "address": "0x1224",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol18",
+        "base_address": "0X1224"
+      }
+    },
+    {
+      "id": "CellVol19",
+      "name_ua": "Напруга комірки 20",
+      "address": "0x1226",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol19",
+        "base_address": "0X1226"
+      }
+    },
+    {
+      "id": "CellVol20",
+      "name_ua": "Напруга комірки 21",
+      "address": "0x1228",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol20",
+        "base_address": "0X1228"
+      }
+    },
+    {
+      "id": "CellVol21",
+      "name_ua": "Напруга комірки 22",
+      "address": "0x122A",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol21",
+        "base_address": "0X122A"
+      }
+    },
+    {
+      "id": "CellVol22",
+      "name_ua": "Напруга комірки 23",
+      "address": "0x122C",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol22",
+        "base_address": "0X122C"
+      }
+    },
+    {
+      "id": "CellVol23",
+      "name_ua": "Напруга комірки 24",
+      "address": "0x122E",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol23",
+        "base_address": "0X122E"
+      }
+    },
+    {
+      "id": "CellVol24",
+      "name_ua": "Напруга комірки 25",
+      "address": "0x1230",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol24",
+        "base_address": "0X1230"
+      }
+    },
+    {
+      "id": "CellVol25",
+      "name_ua": "Напруга комірки 26",
+      "address": "0x1232",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol25",
+        "base_address": "0X1232"
+      }
+    },
+    {
+      "id": "CellVol26",
+      "name_ua": "Напруга комірки 27",
+      "address": "0x1234",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol26",
+        "base_address": "0X1234"
+      }
+    },
+    {
+      "id": "CellVol27",
+      "name_ua": "Напруга комірки 28",
+      "address": "0x1236",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol27",
+        "base_address": "0X1236"
+      }
+    },
+    {
+      "id": "CellVol28",
+      "name_ua": "Напруга комірки 29",
+      "address": "0x1238",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol28",
+        "base_address": "0X1238"
+      }
+    },
+    {
+      "id": "CellVol29",
+      "name_ua": "Напруга комірки 30",
+      "address": "0x123A",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol29",
+        "base_address": "0X123A"
+      }
+    },
+    {
+      "id": "CellVol30",
+      "name_ua": "Напруга комірки 31",
+      "address": "0x123C",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol30",
+        "base_address": "0X123C"
+      }
+    },
+    {
+      "id": "CellVol31",
+      "name_ua": "Напруга комірки 32",
+      "address": "0x123E",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellVol31",
+        "base_address": "0X123E"
+      }
+    },
+    {
+      "id": "CellWireRes0",
+      "name_ua": "Опір балансувального проводу 01",
+      "address": "0x124A",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes0",
+        "base_address": "0X124A",
+        "canonical_register_id": "reg_0x124A_cell_resistance_1",
+        "canonical_field_keys": [
+          "cell_resistance_1"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes1",
+      "name_ua": "Опір балансувального проводу 02",
+      "address": "0x124C",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes1",
+        "base_address": "0X124C",
+        "canonical_register_id": "reg_0x124C_cell_resistance_2",
+        "canonical_field_keys": [
+          "cell_resistance_2"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes2",
+      "name_ua": "Опір балансувального проводу 03",
+      "address": "0x124E",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes2",
+        "base_address": "0X124E",
+        "canonical_register_id": "reg_0x124E_cell_resistance_3",
+        "canonical_field_keys": [
+          "cell_resistance_3"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes3",
+      "name_ua": "Опір балансувального проводу 04",
+      "address": "0x1250",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes3",
+        "base_address": "0X1250",
+        "canonical_register_id": "reg_0x1250_cell_resistance_4",
+        "canonical_field_keys": [
+          "cell_resistance_4"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes4",
+      "name_ua": "Опір балансувального проводу 05",
+      "address": "0x1252",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes4",
+        "base_address": "0X1252",
+        "canonical_register_id": "reg_0x1252_cell_resistance_5",
+        "canonical_field_keys": [
+          "cell_resistance_5"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes5",
+      "name_ua": "Опір балансувального проводу 06",
+      "address": "0x1254",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes5",
+        "base_address": "0X1254",
+        "canonical_register_id": "reg_0x1254_cell_resistance_6",
+        "canonical_field_keys": [
+          "cell_resistance_6"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes6",
+      "name_ua": "Опір балансувального проводу 07",
+      "address": "0x1256",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes6",
+        "base_address": "0X1256",
+        "canonical_register_id": "reg_0x1256_cell_resistance_7",
+        "canonical_field_keys": [
+          "cell_resistance_7"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes7",
+      "name_ua": "Опір балансувального проводу 08",
+      "address": "0x1258",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes7",
+        "base_address": "0X1258",
+        "canonical_register_id": "reg_0x1258_cell_resistance_8",
+        "canonical_field_keys": [
+          "cell_resistance_8"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes8",
+      "name_ua": "Опір балансувального проводу 09",
+      "address": "0x125A",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes8",
+        "base_address": "0X125A",
+        "canonical_register_id": "reg_0x125A_cell_resistance_9",
+        "canonical_field_keys": [
+          "cell_resistance_9"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes9",
+      "name_ua": "Опір балансувального проводу 10",
+      "address": "0x125C",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes9",
+        "base_address": "0X125C",
+        "canonical_register_id": "reg_0x125C_cell_resistance_10",
+        "canonical_field_keys": [
+          "cell_resistance_10"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes10",
+      "name_ua": "Опір балансувального проводу 11",
+      "address": "0x125E",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes10",
+        "base_address": "0X125E",
+        "canonical_register_id": "reg_0x125E_cell_resistance_11",
+        "canonical_field_keys": [
+          "cell_resistance_11"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes11",
+      "name_ua": "Опір балансувального проводу 12",
+      "address": "0x1260",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes11",
+        "base_address": "0X1260",
+        "canonical_register_id": "reg_0x1260_cell_resistance_12",
+        "canonical_field_keys": [
+          "cell_resistance_12"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes12",
+      "name_ua": "Опір балансувального проводу 13",
+      "address": "0x1262",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes12",
+        "base_address": "0X1262",
+        "canonical_register_id": "reg_0x1262_cell_resistance_13",
+        "canonical_field_keys": [
+          "cell_resistance_13"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes13",
+      "name_ua": "Опір балансувального проводу 14",
+      "address": "0x1264",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes13",
+        "base_address": "0X1264",
+        "canonical_register_id": "reg_0x1264_cell_resistance_14",
+        "canonical_field_keys": [
+          "cell_resistance_14"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes14",
+      "name_ua": "Опір балансувального проводу 15",
+      "address": "0x1266",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes14",
+        "base_address": "0X1266",
+        "canonical_register_id": "reg_0x1266_cell_resistance_15",
+        "canonical_field_keys": [
+          "cell_resistance_15"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes15",
+      "name_ua": "Опір балансувального проводу 16",
+      "address": "0x1268",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "CellWireRes15",
+        "base_address": "0X1268",
+        "canonical_register_id": "reg_0x1268_cell_resistance_16",
+        "canonical_field_keys": [
+          "cell_resistance_16"
+        ]
+      }
+    },
+    {
+      "id": "CellWireRes16",
+      "name_ua": "Опір балансувального проводу 17",
+      "address": "0x126A",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes16",
+        "base_address": "0X126A"
+      }
+    },
+    {
+      "id": "CellWireRes17",
+      "name_ua": "Опір балансувального проводу 18",
+      "address": "0x126C",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes17",
+        "base_address": "0X126C"
+      }
+    },
+    {
+      "id": "CellWireRes18",
+      "name_ua": "Опір балансувального проводу 19",
+      "address": "0x126E",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes18",
+        "base_address": "0X126E"
+      }
+    },
+    {
+      "id": "CellWireRes19",
+      "name_ua": "Опір балансувального проводу 20",
+      "address": "0x1270",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes19",
+        "base_address": "0X1270"
+      }
+    },
+    {
+      "id": "CellWireRes20",
+      "name_ua": "Опір балансувального проводу 21",
+      "address": "0x1272",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes20",
+        "base_address": "0X1272"
+      }
+    },
+    {
+      "id": "CellWireRes21",
+      "name_ua": "Опір балансувального проводу 22",
+      "address": "0x1274",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes21",
+        "base_address": "0X1274"
+      }
+    },
+    {
+      "id": "CellWireRes22",
+      "name_ua": "Опір балансувального проводу 23",
+      "address": "0x1276",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes22",
+        "base_address": "0X1276"
+      }
+    },
+    {
+      "id": "CellWireRes23",
+      "name_ua": "Опір балансувального проводу 24",
+      "address": "0x1278",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes23",
+        "base_address": "0X1278"
+      }
+    },
+    {
+      "id": "CellWireRes24",
+      "name_ua": "Опір балансувального проводу 25",
+      "address": "0x127A",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes24",
+        "base_address": "0X127A"
+      }
+    },
+    {
+      "id": "CellWireRes25",
+      "name_ua": "Опір балансувального проводу 26",
+      "address": "0x127C",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes25",
+        "base_address": "0X127C"
+      }
+    },
+    {
+      "id": "CellWireRes26",
+      "name_ua": "Опір балансувального проводу 27",
+      "address": "0x127E",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes26",
+        "base_address": "0X127E"
+      }
+    },
+    {
+      "id": "CellWireRes27",
+      "name_ua": "Опір балансувального проводу 28",
+      "address": "0x1280",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes27",
+        "base_address": "0X1280"
+      }
+    },
+    {
+      "id": "CellWireRes28",
+      "name_ua": "Опір балансувального проводу 29",
+      "address": "0x1282",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes28",
+        "base_address": "0X1282"
+      }
+    },
+    {
+      "id": "CellWireRes29",
+      "name_ua": "Опір балансувального проводу 30",
+      "address": "0x1284",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes29",
+        "base_address": "0X1284"
+      }
+    },
+    {
+      "id": "CellWireRes30",
+      "name_ua": "Опір балансувального проводу 31",
+      "address": "0x1286",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes30",
+        "base_address": "0X1286"
+      }
+    },
+    {
+      "id": "CellWireRes31",
+      "name_ua": "Опір балансувального проводу 32",
+      "address": "0x1288",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellWireRes31",
+        "base_address": "0X1288"
+      }
+    },
+    {
+      "id": "CellConWireRes0",
+      "name_ua": "Налаштування опору з'єднувального проводу 01",
+      "address": "0x1088",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes0",
+        "base_address": "0X1088"
+      }
+    },
+    {
+      "id": "CellConWireRes1",
+      "name_ua": "Налаштування опору з'єднувального проводу 02",
+      "address": "0x108C",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes1",
+        "base_address": "0X108C"
+      }
+    },
+    {
+      "id": "CellConWireRes2",
+      "name_ua": "Налаштування опору з'єднувального проводу 03",
+      "address": "0x1090",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes2",
+        "base_address": "0X1090"
+      }
+    },
+    {
+      "id": "CellConWireRes3",
+      "name_ua": "Налаштування опору з'єднувального проводу 04",
+      "address": "0x1094",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes3",
+        "base_address": "0X1094"
+      }
+    },
+    {
+      "id": "CellConWireRes4",
+      "name_ua": "Налаштування опору з'єднувального проводу 05",
+      "address": "0x1098",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes4",
+        "base_address": "0X1098"
+      }
+    },
+    {
+      "id": "CellConWireRes5",
+      "name_ua": "Налаштування опору з'єднувального проводу 06",
+      "address": "0x109C",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes5",
+        "base_address": "0X109C"
+      }
+    },
+    {
+      "id": "CellConWireRes6",
+      "name_ua": "Налаштування опору з'єднувального проводу 07",
+      "address": "0x10A0",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes6",
+        "base_address": "0X10A0"
+      }
+    },
+    {
+      "id": "CellConWireRes7",
+      "name_ua": "Налаштування опору з'єднувального проводу 08",
+      "address": "0x10A4",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes7",
+        "base_address": "0X10A4"
+      }
+    },
+    {
+      "id": "CellConWireRes8",
+      "name_ua": "Налаштування опору з'єднувального проводу 09",
+      "address": "0x10A8",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes8",
+        "base_address": "0X10A8"
+      }
+    },
+    {
+      "id": "CellConWireRes9",
+      "name_ua": "Налаштування опору з'єднувального проводу 10",
+      "address": "0x10AC",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes9",
+        "base_address": "0X10AC"
+      }
+    },
+    {
+      "id": "CellConWireRes10",
+      "name_ua": "Налаштування опору з'єднувального проводу 11",
+      "address": "0x10B0",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes10",
+        "base_address": "0X10B0"
+      }
+    },
+    {
+      "id": "CellConWireRes11",
+      "name_ua": "Налаштування опору з'єднувального проводу 12",
+      "address": "0x10B4",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes11",
+        "base_address": "0X10B4"
+      }
+    },
+    {
+      "id": "CellConWireRes12",
+      "name_ua": "Налаштування опору з'єднувального проводу 13",
+      "address": "0x10B8",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes12",
+        "base_address": "0X10B8"
+      }
+    },
+    {
+      "id": "CellConWireRes13",
+      "name_ua": "Налаштування опору з'єднувального проводу 14",
+      "address": "0x10BC",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes13",
+        "base_address": "0X10BC"
+      }
+    },
+    {
+      "id": "CellConWireRes14",
+      "name_ua": "Налаштування опору з'єднувального проводу 15",
+      "address": "0x10C0",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes14",
+        "base_address": "0X10C0"
+      }
+    },
+    {
+      "id": "CellConWireRes15",
+      "name_ua": "Налаштування опору з'єднувального проводу 16",
+      "address": "0x10C4",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes15",
+        "base_address": "0X10C4"
+      }
+    },
+    {
+      "id": "CellConWireRes16",
+      "name_ua": "Налаштування опору з'єднувального проводу 17",
+      "address": "0x10C8",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes16",
+        "base_address": "0X10C8"
+      }
+    },
+    {
+      "id": "CellConWireRes17",
+      "name_ua": "Налаштування опору з'єднувального проводу 18",
+      "address": "0x10CC",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes17",
+        "base_address": "0X10CC"
+      }
+    },
+    {
+      "id": "CellConWireRes18",
+      "name_ua": "Налаштування опору з'єднувального проводу 19",
+      "address": "0x10D0",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes18",
+        "base_address": "0X10D0"
+      }
+    },
+    {
+      "id": "CellConWireRes19",
+      "name_ua": "Налаштування опору з'єднувального проводу 20",
+      "address": "0x10D4",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes19",
+        "base_address": "0X10D4"
+      }
+    },
+    {
+      "id": "CellConWireRes20",
+      "name_ua": "Налаштування опору з'єднувального проводу 21",
+      "address": "0x10D8",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes20",
+        "base_address": "0X10D8"
+      }
+    },
+    {
+      "id": "CellConWireRes21",
+      "name_ua": "Налаштування опору з'єднувального проводу 22",
+      "address": "0x10DC",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes21",
+        "base_address": "0X10DC"
+      }
+    },
+    {
+      "id": "CellConWireRes22",
+      "name_ua": "Налаштування опору з'єднувального проводу 23",
+      "address": "0x10E0",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes22",
+        "base_address": "0X10E0"
+      }
+    },
+    {
+      "id": "CellConWireRes23",
+      "name_ua": "Налаштування опору з'єднувального проводу 24",
+      "address": "0x10E4",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes23",
+        "base_address": "0X10E4"
+      }
+    },
+    {
+      "id": "CellConWireRes24",
+      "name_ua": "Налаштування опору з'єднувального проводу 25",
+      "address": "0x10E8",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes24",
+        "base_address": "0X10E8"
+      }
+    },
+    {
+      "id": "CellConWireRes25",
+      "name_ua": "Налаштування опору з'єднувального проводу 26",
+      "address": "0x10EC",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes25",
+        "base_address": "0X10EC"
+      }
+    },
+    {
+      "id": "CellConWireRes26",
+      "name_ua": "Налаштування опору з'єднувального проводу 27",
+      "address": "0x10F0",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes26",
+        "base_address": "0X10F0"
+      }
+    },
+    {
+      "id": "CellConWireRes27",
+      "name_ua": "Налаштування опору з'єднувального проводу 28",
+      "address": "0x10F4",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes27",
+        "base_address": "0X10F4"
+      }
+    },
+    {
+      "id": "CellConWireRes28",
+      "name_ua": "Налаштування опору з'єднувального проводу 29",
+      "address": "0x10F8",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes28",
+        "base_address": "0X10F8"
+      }
+    },
+    {
+      "id": "CellConWireRes29",
+      "name_ua": "Налаштування опору з'єднувального проводу 30",
+      "address": "0x10FC",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes29",
+        "base_address": "0X10FC"
+      }
+    },
+    {
+      "id": "CellConWireRes30",
+      "name_ua": "Налаштування опору з'єднувального проводу 31",
+      "address": "0x1100",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes30",
+        "base_address": "0X1100"
+      }
+    },
+    {
+      "id": "CellConWireRes31",
+      "name_ua": "Налаштування опору з'єднувального проводу 32",
+      "address": "0x1104",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CellConWireRes31",
+        "base_address": "0X1104"
+      }
+    },
+    {
+      "id": "BatDisCurCorrect",
+      "name_ua": "Корекція вимірювання струму розряду",
+      "address": "0x12D6",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BatDisCurCorrect",
+        "base_address": "0X12D6",
+        "canonical_register_id": "reg_0x12D6_battery_current_correction",
+        "canonical_field_keys": [
+          "battery_current_correction"
+        ]
+      }
+    },
+    {
+      "id": "VolChargCur",
+      "name_ua": "Напруга датчика струму заряду",
+      "address": "0x12D8",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolChargCur",
+        "base_address": "0X12D8",
+        "canonical_register_id": "reg_0x12D8_charge_current_measurement_voltage",
+        "canonical_field_keys": [
+          "charge_current_measurement_voltage"
+        ]
+      }
+    },
+    {
+      "id": "VolDischargCur",
+      "name_ua": "Напруга датчика струму розряду",
+      "address": "0x12DA",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "VolDischargCur",
+        "base_address": "0X12DA",
+        "canonical_register_id": "reg_0x12DA_discharge_current_measurement_voltage",
+        "canonical_field_keys": [
+          "discharge_current_measurement_voltage"
+        ]
+      }
+    },
+    {
+      "id": "BatVolCorrect",
+      "name_ua": "Корекція вимірювання напруги батареї",
+      "address": "0x12DC",
+      "classification": "official",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "BatVolCorrect",
+        "base_address": "0X12DC",
+        "canonical_register_id": "reg_0x12DC_battery_voltage_correction",
+        "canonical_field_keys": [
+          "battery_voltage_correction"
+        ]
+      }
+    },
+    {
+      "id": "VoltageCalibration",
+      "name_ua": "Калібрування напруги батареї",
+      "address": "0x1600",
+      "classification": "official",
+      "access": "W",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "VoltageCalibration",
+        "base_address": "0X1600"
+      }
+    },
+    {
+      "id": "Shutdown",
+      "name_ua": "Примусове вимкнення плати BMS",
+      "address": "0x1604",
+      "classification": "official",
+      "access": "W",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "Shutdown",
+        "base_address": "0X1604"
+      }
+    },
+    {
+      "id": "CurrentCalibration",
+      "name_ua": "Калібрування струму шунта",
+      "address": "0x1606",
+      "classification": "official",
+      "access": "W",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CurrentCalibration",
+        "base_address": "0X1606"
+      }
+    },
+    {
+      "id": "LI-ION",
+      "name_ua": "Встановлення профілю Li-ion (трійчасті)",
+      "address": "0x160A",
+      "classification": "official",
+      "access": "W",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "LI-ION",
+        "base_address": "0X160A"
+      }
+    },
+    {
+      "id": "LIFEPO4",
+      "name_ua": "Встановлення профілю LiFePO4 (залізофосфат)",
+      "address": "0x160C",
+      "classification": "official",
+      "access": "W",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "LIFEPO4",
+        "base_address": "0X160C"
+      }
+    },
+    {
+      "id": "LTO",
+      "name_ua": "Встановлення профілю LTO (титанат)",
+      "address": "0x160E",
+      "classification": "official",
+      "access": "W",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "LTO",
+        "base_address": "0X160E"
+      }
+    },
+    {
+      "id": "Emergency",
+      "name_ua": "Екстрений/аварійний запуск (Emergency)",
+      "address": "0x1610",
+      "classification": "official",
+      "access": "W",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "Emergency",
+        "base_address": "0X1610"
+      }
+    },
+    {
+      "id": "Timecalibration",
+      "name_ua": "Синхронізація часу BMS (RTC)",
+      "address": "0x1612",
+      "classification": "official",
+      "access": "W",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "Timecalibration",
+        "base_address": "0X1612"
+      }
+    },
+    {
+      "id": "ESPHome_Power",
+      "name_ua": "Потужність батареї (ESPHome)",
+      "address": "—",
+      "classification": "derived",
+      "access": "Розрахункове",
+      "status": "implemented",
+      "reason": "matching calculated-power logic found in jk_bms.js/yaml",
+      "evidence": {
+        "manifest_id": "ESPHome_Power",
+        "base_address": null
+      }
+    },
+    {
+      "id": "Reserved_12D2",
+      "name_ua": "Зарезервовано",
+      "address": "0x12D2",
+      "classification": "reserved",
+      "access": "R",
+      "status": "implemented",
+      "reason": "address present in canonical catalog with at least one mapped field/entity",
+      "evidence": {
+        "manifest_id": "Reserved_12D2",
+        "base_address": "0X12D2",
+        "canonical_register_id": "reg_0x12D2_reserved",
+        "canonical_field_keys": [
+          "reserved_0x12d2"
+        ]
+      }
+    },
+    {
+      "id": "RVD_12EE_H",
+      "name_ua": "Зарезервовано",
+      "address": "0x12EE (старший байт)",
+      "classification": "reserved",
+      "access": "R",
+      "status": "missing",
+      "reason": "reserved-in-V1.1 address; not present in current canonical catalog (expected — reserved fields are not implementable, this row exists for completeness tracking only)",
+      "evidence": {
+        "manifest_id": "RVD_12EE_H",
+        "base_address": "0X12EE"
+      }
+    },
+    {
+      "id": "RVD_130C_L",
+      "name_ua": "Зарезервовано",
+      "address": "0x130C (молодший байт)",
+      "classification": "reserved",
+      "access": "R",
+      "status": "missing",
+      "reason": "reserved-in-V1.1 address; not present in current canonical catalog (expected — reserved fields are not implementable, this row exists for completeness tracking only)",
+      "evidence": {
+        "manifest_id": "RVD_130C_L",
+        "base_address": "0X130C"
+      }
+    },
+    {
+      "id": "RVD_1506_L",
+      "name_ua": "Зарезервовано",
+      "address": "0x1506 (молодший байт)",
+      "classification": "reserved",
+      "access": "R",
+      "status": "missing",
+      "reason": "reserved-in-V1.1 address; not present in current canonical catalog (expected — reserved fields are not implementable, this row exists for completeness tracking only)",
+      "evidence": {
+        "manifest_id": "RVD_1506_L",
+        "base_address": "0X1506"
+      }
+    },
+    {
+      "id": "CANMPTLVer",
+      "name_ua": "Версія бібліотеки CAN-протоколу",
+      "address": "0x1506 (старший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CANMPTLVer",
+        "base_address": "0X1506"
+      }
+    },
+    {
+      "id": "UART1MPRTOLNbr",
+      "name_ua": "Номер протоколу порту UART1",
+      "address": "0x14B2 (старший байт)",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "UART1MPRTOLNbr",
+        "base_address": "0X14B2"
+      }
+    },
+    {
+      "id": "CANMPRTOLNbr",
+      "name_ua": "Номер протоколу шини CAN",
+      "address": "0x14B2 (молодший байт)",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "CANMPRTOLNbr",
+        "base_address": "0X14B2"
+      }
+    },
+    {
+      "id": "UART1MPRTOLEnable",
+      "name_ua": "Маска доступних протоколів UART1",
+      "address": "0x14B4",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "UART1MPRTOLEnable",
+        "base_address": "0X14B4"
+      }
+    },
+    {
+      "id": "UARTMPRTOLEnable[0-15]",
+      "name_ua": "Маска доступних протоколів CAN",
+      "address": "0x14C4",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "UARTMPRTOLEnable[0-15]",
+        "base_address": "0X14C4"
+      }
+    },
+    {
+      "id": "UART2MPRTOLNbr",
+      "name_ua": "Номер протоколу порту UART2",
+      "address": "0x14D4 (старший байт)",
+      "classification": "official",
+      "access": "RW",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "UART2MPRTOLNbr",
+        "base_address": "0X14D4"
+      }
+    },
+    {
+      "id": "UART2MPRTOLEnable[0]",
+      "name_ua": "Дозвіл протоколу UART2",
+      "address": "0x14D4 (молодший байт)",
+      "classification": "official",
+      "access": "R",
+      "status": "missing",
+      "reason": "address not present anywhere in the current 119-register canonical catalog",
+      "evidence": {
+        "manifest_id": "UART2MPRTOLEnable[0]",
+        "base_address": "0X14D4"
+      }
+    }
+  ]
+}

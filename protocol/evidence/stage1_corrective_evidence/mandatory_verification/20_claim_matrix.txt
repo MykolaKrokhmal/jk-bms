@@ -1,0 +1,27 @@
+PASS  1. physical register count: canonical registers.length matches claim_matrix.counts.physical_registers  -- canonical=119 claim=119
+PASS  2. logical field count: canonical field count matches claim_matrix.counts.logical_fields  -- canonical=127 claim=127
+PASS  3. declared RW count is 46 (documented baseline — a change here must be a reviewed, deliberate catalog edit)  -- actual=46
+PASS  4. effective RW count is 18 (documented baseline)  -- actual=18
+PASS  5. effective R count is 108 (documented baseline)  -- actual=108
+PASS  6. unsupported count is 1 (documented baseline)  -- actual=1
+PASS  6b. declared_r + declared_rw == logical field count
+PASS  6c. effective_rw + effective_r + unsupported == logical field count
+PASS  7. claim_matrix.counts.write_ready is 0 (no field is independently protocol-verified yet)  -- actual=0
+PASS  8. claim_matrix.counts.write_blocked equals logical field count  -- write_blocked=127 fields=127
+PASS  9. claim_matrix.counts.policy_inconsistent is 18 (documented baseline)  -- actual=18
+PASS  10. EXACT set equality: canonical effective-RW keys === claim_matrix policy_inconsistent keys (no extra/missing/duplicate)  -- canonical-only= claim-only=
+PASS  11. no duplicate keys in canonical source
+PASS  11b. no duplicate keys in claim_matrix
+PASS  12. no unknown keys in claim_matrix (every claim_matrix key exists in canonical)
+PASS  12b. no missing keys (every canonical key has a claim_matrix entry)
+PASS  13. every effective-RW field's owner_write_override has authorized/authorized_by/date/rationale, all well-formed
+PASS  14. no effective-RW field's verification_status silently implies evidence-verification without either "confirmed" or the override
+
+--- self-test: deliberately broken fixtures must fail the same invariant ---
+PASS  self-test fixture sanity: a field was actually mutated
+PASS  self-test: exact-set check FAILS on the mutated fixture (proves criterion 10 is not vacuously true)
+PASS  self-test fixture sanity: an override field was actually removed
+PASS  self-test: override-well-formedness check FAILS when authorized_by is stripped (proves criterion 13 is not vacuously true)
+PASS  self-test: missing-claim-key check FAILS when a claim_matrix entry is dropped (proves criterion 12b is not vacuously true)
+
+23 checks run, 0 failed.
