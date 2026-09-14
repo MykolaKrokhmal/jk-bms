@@ -44,8 +44,6 @@ tools/protocol/generate.js  --check  (drift detector, CI-safe)
 tools/protocol/generate.js           (writes the artifacts below)
         |
         +--> register_catalog.json                         (backward-compatible location/shape)
-        +--> protocol/generated/protocol_catalog.h          (C++ metadata, NOT wired into any build target)
-        +--> protocol/generated/frontend_catalog.generated.js (standalone inspectable projection)
         +--> protocol/generated/coverage_report.md
         +--> jk_bms.js's own "GENERATED PROTOCOL CATALOG" block (GENERIC_TX_ADDRESS, NON_REGISTER_ENTITY_IDS)
 

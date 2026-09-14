@@ -1,5 +1,19 @@
 # Project State
 
+> **Update (2026-09-14/15, Claude — final preparation pass):** the
+> "Нормативний V2 workbook ще не інтегрований у старий release pipeline"
+> claim below is resolved — see `codex TROUBLESHOOTING.md`'s updated
+> "Current understanding" for "Problem: V2 workbook breaks the old
+> evidence pipeline", and root `HANDOFF.md` for current state. The
+> uncommitted-tree framing below is also stale: everything through this
+> snapshot's HEAD (`93b4c1d`) plus five later commits (including this
+> file's own archival) is now committed at `c291106`, and six more commits
+> since address the specific gaps that checkpoint commit's own message
+> logged as still open (claim-matrix policy gate, self-contained pipeline,
+> secret-scan worktree scope, `capacity_remaining` signedness). The
+> 119-register/265-parameter catalog split this file identifies as the
+> core remaining gap is still real and still open — that has not changed.
+
 **Snapshot date:** 2026-09-12  
 **Repository:** `/Users/mykola.krokhmal/Claude/jk-bms`  
 **Overall verdict:** **НЕ ГОТОВО**  

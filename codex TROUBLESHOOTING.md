@@ -24,9 +24,35 @@ Claude запускав pipeline зі старим V1 workbook і повідом
 
 Це P0 architecture gap: паралельно існують V1 canonical pipeline і V2 audit pipeline.
 
+**ВИРІШЕНО 2026-09-14/15 (Claude, V2 pipeline bridge + фінальна підготовка).**
+`protocol/evidence/build_workbook_v2_index.py` (новий скрипт, окремий від
+`build_workbook_index.py`) читає правильний sheet `Реєстр параметрів`
+замість хардкоджу `BMS Parameters`; підключений у
+`tools/protocol/pipeline.js`, `protocol/evidence/build_claim_matrix.js`,
+`tools/protocol/lib/semantic-checks.js` як паралельне, адитивне джерело
+evidence (V1 workbook НЕ замінений — лишається опціональним додатковим
+шаром, `registers.canonical.json` теж НЕ переписаний під 265-параметрову
+модель — це залишається окремою, більшою майбутньою роботою, не
+"architecture gap" рівня P0). Додатково: pipeline тепер самодостатній —
+`node tools/protocol/pipeline.js check` (без `--workbook`) проходить на
+будь-якому checkout, використовуючи лише закомічений, SHA-256-звірений V2
+workbook; `test/run_all.sh`/`test/run_release.sh` більше не пропускають
+критичну pipeline-перевірку мовчки. Перевірено: `pipeline.js build/check`
+(з і без `--workbook`) — PASS, ідемпотентно; `test/run_release.sh` — ALL
+PASS, non-mutation guard PASS. Деталі: `docs/adr/0001-protocol-catalog.md`
+(addenda після "ninth pass"), `HANDOFF.md`.
+
 **Recommended next step**
 
 Спочатку додати fixture/schema tests для V2 sheets/columns/hash, потім мігрувати index/generator/release atomically. Release без V2 має fail closed.
+
+**Оновлено:** fixture/schema-тести для V2 sheets/columns/hash — зроблено
+(`test/protocol_catalog/test_negative_fixtures.js`'s `false_workbook_v2_evidence`
+case, `EVIDENCE_ADDRESS_NOT_IN_WORKBOOK_V2_INDEX`). Атомарна міграція
+index/generator/release під V2 — зроблено для evidence-шару (адитивно,
+без заміни V1). Повна міграція `registers.canonical.json` на 265-параметрову
+модель (замість V1's 119 register) залишається НЕ зробленою — окрема,
+більша майбутня робота, не preparation-blocker.
 
 ## Problem: `All suites passed` although evidence pipeline was skipped
 

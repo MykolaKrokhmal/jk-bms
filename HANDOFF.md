@@ -1,252 +1,122 @@
-## Сесія: 2026-09-12 (Claude)
+## Сесія: 2026-09-14/15 (Claude — фінальна підготовка репозиторію)
 
-> Звірено з `codex HANDOFF.md` 2026-09-12: розбіжності: так — див.
-> "Розбіжності з codex HANDOFF.md" нижче.
+> Попередній запис цього файлу (сесія 2026-09-12) описував активний
+> конфлікт із паралельною Codex-сесією на тому самому working tree,
+> незакомічене дерево 67+ файлів, і зламаний старий release pipeline проти
+> V2 workbook. Усе це вирішено цією сесією (див. нижче) — повний текст
+> попереднього запису доступний у git history (`git log -p -- HANDOFF.md`)
+> та в checkpoint-коміті `c291106`, не переписаний, а замінений.
 
-### Завершено
+### Що зроблено цим проходом
 
-- Нормативні джерела протоколу додано й задокументовано: офіційний PDF V1.1
-  (`protocol/evidence/BMS_RS485_Modbus_V1.1.pdf`) + верифікований V2 workbook
-  (`protocol/evidence/LiFePO4_BMS_Parameters_registers-V2_verified.xlsx`),
-  зареєстровані в `protocol/evidence/sources.json`; старий V1 workbook і
-  `protocol/evidence/workbook_index.json` позначені deprecated (сам генератор
-  `protocol/evidence/build_workbook_index.py` тепер пише `$deprecated` у
-  вихідний файл).
-- Детермінований manifest на 265 параметрів /210 унікальних базових адрес:
-  `protocol/generated/bms_v1_1_manifest.json`, генератор
-  `protocol/evidence/build_v2_manifest.py` (`--check` підтверджує
-  детермінізм).
-- Повний gap-аудит по всьому ланцюгу регістр→…→UI:
-  `protocol/evidence/build_v2_gap_audit.js` →
-  `protocol/generated/bms_v1_1_gap_audit.json` (усі 7 статусів словника
-  мають реальний code path, включно з `unsafe`/`blocked_by_protocol`, які
-  спершу були "мертвими").
-- "Етап 5" (фундамент читання) реалізовано прагматично під реальну SSE-push
-  архітектуру (не client-side polling, якого нема): `PROTOCOL_CATALOG.fieldMeta`
-  (генерується в `tools/protocol/generate.js`) несе `canonical_unit`/
-  `precision`/`min`/`max`/`step`/`poll_group`/`freshness_budget_s` для КОЖНОГО
-  реєстрового і non-register поля; `jk_bms.js` тепер має per-parameter
-  staleness (`isFieldStale`/`staleTitle`/`sweepDiagnosticStaleness`,
-  1-секундний sweep), підключений і до Diagnostics, і до Overview/Electrical
-  (`MEASUREMENT_BINDINGS`). Живо перевірено в браузері (demo mock-сервер,
-  сценарій "Browser Disconnected"): маркер з'являється й коректно зникає.
-- Два самоаудити цієї роботи (по 9 і по 6 знайдених реальних розривів
-  відповідно) виконано й закрито — деталі, повний перелік розривів і команди
-  перевірки для кожного: `BMS_V2_MANIFEST_EXECUTION_LOG.md` (у корені або в
-  `proj_archive docs/` — див. "Ризики" нижче щодо переміщення файлів).
-- Housekeeping: старі одноразові аудити/промпти Stage 1 (13 tracked + 3
-  untracked `.md`) впорядковано — але див. "Ризики" нижче: паралельна сесія
-  Codex перемістила їх ще раз, за іншою схемою.
-- `CLAUDE.md` створено (вперше для цього проєкту) — build/test команди,
-  архітектурні конвенції, робочий стиль.
-- `CLAUDE.local.md` створено (в .gitignore) — особистий шлях до workbook на
-  цій машині, нотатка про `$TMPDIR`/sandbox quirk.
-- Auto memory (4 файли + індекс) — див. підсумок у відповіді асистента.
+Комплексний завершальний прохід підготовки репозиторію (від checkpoint
+`c291106` до поточного `HEAD`):
 
-### Прийняті рішення
+1. **Інтегровано `4c691b7`** (`fix/claim-matrix-owner-override-check`) —
+   claim-matrix policy gate тепер owner-override-aware і реально
+   enforced у `pipeline.js` (раніше — dead code). Merge commit `736225b`,
+   2 текстові конфлікти вирішено вручну (обидва боки збережено).
+2. **`CLAIM_MATRIX_STALE`/`WORKBOOK_V2_INDEX_STALE` усунено структурно** —
+   5 генераторів (`build_claim_matrix.js`, `build_workbook_index.py`,
+   `build_workbook_v2_index.py`, `build_upstream_index.py`,
+   `build_implementation_index.py`) тепер ігнорують pipeline-owned
+   `release_generation_id` metadata у власному standalone `--check`,
+   перевіряючи лише свій payload; `pipeline.js`'s власний `check` і далі
+   строго звіряє повні байти включно з release_generation_id. Commit
+   `a53e7c4`.
+3. **Pipeline тепер самодостатній** — `node tools/protocol/pipeline.js
+   check` (без `--workbook`) проходить на будь-якому checkout, лише на
+   закомiченому, SHA-256-звіреному V2 workbook. Легасі V1 workbook —
+   опціональна додаткова ревалідація. `test/run_all.sh`/`test/release/steps.js`
+   більше не мають false-green шляху (раніше: "NOT EXECUTED" → "All
+   suites passed" без критичної pipeline-перевірки). Commit `a53e7c4`.
+4. **Secret-scan false positive усунено структурно** —
+   `scanWorktree()` тепер git-aware (`git ls-files` tracked + `git
+   ls-files --others --exclude-standard`), а не сирий filesystem walk із
+   хардкодженим directory blacklist. Ігнорований nested worktree більше
+   ніколи не потрапить у скан — не через фізичну відсутність worktree
+   (worktree на момент фіксу ще фізично існував). Commit `33f81d6`.
+5. **`capacity_remaining` (0x12A8) signed/unsigned виправлено** —
+   офіційний PDF, V2 workbook і upstream-коментар незалежно кажуть
+   signed INT32; canonical.json та YAML помилково використовували
+   unsigned. Виправлено (wire signedness ≠ domain bounds — min/max 0/2000
+   Ah лишились незмінними). Commit `248b440` + resync `74aea05`.
+6. **Corrective worktree та обидві тимчасові гілки прибрано** штатними
+   git-командами (`git worktree remove`, `git branch -d ×2`) — обидві
+   безпечно видалені лише після підтвердження git, що вони fully merged/
+   reachable.
+7. **Документація узгоджена**: `OPEN_ISSUES.md` P2-01 (auth-docs
+   staleness) позначено закритим; `docs/adr/0001-protocol-catalog.md`'s
+   top diagram більше не згадує 2 давно видалені generated-файли;
+   `codex HANDOFF.md`/`codex PROJECT_STATE.md`/`codex TROUBLESHOOTING.md`
+   отримали короткі "superseded"-примітки без видалення історичного
+   змісту; `proj_arc/README.md` — новий короткий evidence-індекс
+   (що збережено/чому, що видалено як підтверджений дублікат, де повна
+   історія). 3 підтверджено-надлишкові evidence-логи видалені (strict
+   subset пари в `stage1_corrective_evidence/`, підтверджено diff'ом,
+   нуль вхідних посилань).
 
-- **SSE-push, не polling** — "Stage 5"-текст описував client-side
-  polling-класи (live/RW-config/static), але реальна архітектура — суто
-  push через один `EventSource`. Причина: firmware сам вирішує каденс через
-  ESPHome `update_interval`; додавання client-side fetch-циклу боролося б із
-  робочою, протестованою архітектурою. Підтверджено користувачем явно
-  (`AskUserQuestion` → обрано "Прагматична адаптація").
-- **`stateUpdatedAt` — окрема мапа, не поле всередині `state[key]`** —
-  причина: Proxy-дедуп на незмінне значення лишає старий об'єкт на місці;
-  timestamp усередині нього ніколи б не оновлювався для стабільного
-  значення, хоча воно й далі активно підтверджується.
-- **`derived_from_register_key` — явне схемне поле, не text-parsing нотатки**
-  — причина: проєктна дисципліна "не вигадуй похідну, коли джерело
-  неоднозначне" (див. `[[feedback-no-fabricated-derivations]]` в auto
-  memory) — краще явна, валідована схема, ніж regex по вільному тексту.
-- **`SETTING_DEFS` лишається ручним переліком ключів (safety-гейт), але
-  min/max/step тепер з `fieldMeta`** — причина: WHICH keys are write-enabled
-  — свідоме рішення власника ризику, не похідні дані; але дублювання ЗНАЧЕНЬ
-  було чистим джерелом дрейфу, усунене.
-- **Ніколи не редагувати згенерований блок вручну** (`jk_bms.js` між
-  BEGIN/END маркерами, `register_catalog.json`, `protocol/generated/*`) —
-  причина: єдине джерело істини — генератор; ручна правка згенерованого
-  виводу неминуче розійдеться при наступному запуску.
+### Перевірка
 
-### Відкриті TODO (наступна сесія)
+- `test/run_release.sh` (self-contained, без `JK_BMS_WORKBOOK_PATH`) —
+  **ALL PASS**, non-mutation guard PASS, 25/25 кроків EXECUTED.
+- `node tools/protocol/pipeline.js check` — PASS і з, і без `--workbook`,
+  ідемпотентно (build двічі → байт-у-байт ідентичний вивід).
+- `node tools/protocol/fingerprint.js check` — `FINGERPRINT_MATCH`.
+- `node tools/protocol/generate.js --check` — no drift.
+- `node test/register_catalog/validate.js` — 171/171.
+- `node test/protocol_catalog/test_negative_fixtures.js` — 112/112.
+- `node test/protocol_catalog/test_secret_scan.js` — `secret-scan PASS`
+  (без "known acceptable false positive").
+- Повний перелік нових/оновлених regression-тестів і точні числа —
+  у відповідних commit-повідомленнях (`git log c291106..HEAD`).
 
-- [ ] **Центральний розрив**: `protocol/registers.canonical.json`
-  (119-регістрова модель, яку реально читає `tools/protocol/generate.js`)
-  досі НЕ синхронізований з новим 265-параметровим V2 manifest —
-  `protocol/generated/bms_v1_1_gap_audit.json`: 130 implemented / 97 missing
-  / 38 partial. Немає єдиного file:line — це архітектурний розрив між двома
-  паралельними каталогами. **Незалежно підтверджено паралельною
-  Codex-сесією** (`codex PROJECT_STATE.md`/`codex HANDOFF.md`, розділ
-  "Unresolved contradictions": "Old docs call
-  `protocol/registers.canonical.json` the source of truth; newer user
-  decision makes official PDF + verified V2 workbook the foundation.
-  Migration is not complete.") — обидві сесії незалежно дійшли того самого
-  висновку. Codex пропонує як перший крок: єдиний fail-closed,
-  детермінований pipeline/release-контракт навколо V2 workbook + офіційного
-  PDF, ЗАМІСТЬ точкового дописування старого `registers.canonical.json`
-  (`codex HANDOFF.md`, п. 4 "What should the next agent do first?").
-- [ ] `ui_order` — `protocol/evidence/build_v2_manifest.py:345-346` — поле
-  свідомо `None` (дві неізоморфні UI-таксономії в джерелі без явного
-  зв'язку). Потрібне або нове поле у workbook, або ручна курація для Stage
-  10 ("Побудувати Settings із груп Excel").
-- [ ] `write_uses_read_modify_write` — прапорець відсутній у схемі
-  `protocol/registers.canonical.json`; перевірка в
-  `protocol/evidence/build_v2_gap_audit.js:256-261` може лише побудувати
-  worklist, не підтвердити RMW-відповідність. Треба або додати прапорець у
-  схему й генератор, або дочекатись hardware-верифікації (Stage 9).
-  Прапорець `write_uses_read_modify_write` для packed RW-регістрів
-  (`0x1114`, `0x1118`, `0x1248`, `0x12A6`, `0x12B8`, `0x12C0`, `0x12D0`,
-  `0x12EE`, `0x130C`, `0x14B2`, `0x14D4`, `0x14E4`, `0x14E6`, `0x1504`,
-  `0x1506` — список пріоритетних адрес зі стадії 8 оригінального 14-етапного
-  плану).
-- [ ] `registerEntity()` — `jk_bms.js:845` (~130 hand-written call-сайтів
-  нижче) — без автоматичної drift-перевірки проти canonical
-  `esphome_read_entity_id`/`backend_key`. Окрема, більша робота.
-- [ ] `MAX_CELL_COUNT = 16` — `jk_bms.js:449` і `CELL_COUNT = 16` —
-  `demo/mock-server.js:71` — стеля на 16 комірок все ще захардкожена в JS І
-  в `batterylifepo4.yaml` (32 статичні `cell_voltage_N`/`cell_resistance_N`
-  сенсор-блоки, N=1..16). Динамічна топологія 1-32S (Stage 6) вимагатиме
-  зміни обох шарів.
-- [ ] `BatVol`/`BatVol__dup2` — `protocol/generated/bms_v1_1_manifest.json`
-  (`BatVol` @ 0x1290, UINT32, мВ, "загальна напруга" vs `BatVol__dup2` @
-  0x12E4, UINT16, 0.01В) — справжня неоднозначність у документі виробника,
-  не помилка парсера. Потребує hardware-верифікації (Stage 9).
-- [ ] `UK_UNIT_MAP`/`UNIT_DISPLAY`/`DIAGNOSTIC_ENTITY_LABELS` у `jk_bms.js`
-  — ще три ручні таблиці (знайдені Explore-агентом), не консолідовані в
-  `PROTOCOL_CATALOG.fieldMeta` цього разу — свідомо поза межами.
-- [ ] Staleness-візуалізація для editable input/toggle-контролів у
-  Diagnostics — лише read-only value-вузли отримали `.is-stale` цього разу.
-- [ ] Stages 6–14 з оригінального 14-етапного плану взагалі не почато:
-  динамічна топологія 1-32S, universal RW transaction manager під новий
-  manifest, packed RMW (список адрес вище), hardware-верифікація
-  неоднозначностей (`0x1600`/`0x1606` UINT16-vs-Length4, `0x111C`/`0x1470`
-  vendor-регістри, 2 ненумеровані alarm-біти, `RCVTime`/`RFVTime` byte
-  order), Settings UI з груп Excel, ізоляція W-команд (`0x1600–0x1612`),
-  автоматична тестова система, реальна hardware-валідація, фінальний аудит
-  готовності.
-- [ ] **TBD / потребує підтвердження**: паралельна сесія Codex (див.
-  "Ризики" нижче) стверджує у власному `codex PROJECT_STATE.md` ТА
-  `codex HANDOFF.md` (розділ "Unresolved contradictions" — "current V2
-  workbook causes `KeyError: 'BMS Parameters'` in the old pipeline";
-  розділ "Recommended first actions", п. 3 — пропонує відтворити цю помилку
-  як перший крок), що старий release pipeline (`build_workbook_index.py`)
-  падає з `KeyError: 'BMS Parameters'` при вказівці на V2 workbook (реальний
-  sheet називається `Реєстр параметрів`, не `BMS Parameters`). Це
-  твердження тепер присутнє у ДВОХ окремих Codex-документах (внутрішньо
-  узгоджене всередині Codex-сесії), але я особисто НЕ виконував
-  `test/run_all.sh`/`pipeline.js build --workbook <V2 path>` у цій сесії —
-  мій "EXIT=0, 0 FAIL" стосувався ЛИШЕ V1 workbook (див. "Стан перевірки"
-  нижче). Тобто це не суперечить моїм власним результатам (я просто ніколи
-  не перевіряв цю саме комбінацію), але й не підтверджено мною незалежно —
-  перш ніж вважати фактом, варто самостійно відтворити.
+### Що НЕ зроблено цим проходом (свідомо, з причин)
 
-### Розбіжності з codex HANDOFF.md
+- **Не мігрував `registers.canonical.json` на 265-параметрову V2-модель.**
+  Це й далі центральний архітектурний розрив цього проєкту (119
+  register/127 field модель vs. 265 параметрів/210 адрес офіційного
+  V1.1+V2). Це велика, окрема робота — НЕ preparation blocker, майбутня
+  функціональна розробка. Детально: `docs/adr/0001-protocol-catalog.md`
+  (addenda), `proj_arc/BMS_V2_MANIFEST_EXECUTION_LOG.md`.
+- **`charge_otp` (0x104C) можлива signed/unsigned розбіжність** — знайдено
+  побіжно під час фіксу `capacity_remaining`, явно НЕ виправлено (інший
+  регістр, інший access class `rw` замість `r`, потребує окремої
+  перевірки). Заведено окремим завданням (`spawn_task`, `task_4ad5bbbd`).
+- **ESPHome `config`/`compile` не виконано в цьому середовищі** — немає
+  локального esphome CLI, немає venv із закріпленим Python 3.9.6, Docker
+  daemon не запущений, PyYAML відсутній. Мережевих встановлень без
+  окремого дозволу не виконував. YAML-зміна (`capacity_remaining`'s
+  `value_type: S_DWORD`) підтверджена непрямо: `test/register_catalog/
+  validate.js` (звіряє кожен `address:` проти каталогу) і тим, що
+  `S_DWORD` — вже існуючий, робочий тип у цьому самому файлі (`charge_otp`,
+  0x104C).
+- **Функціональні P0/P1/P2-пункти з `OPEN_ISSUES.md` не чіпав** — це
+  hardware-верифікація й майбутня продуктова розробка, поза межами
+  "preparation" цього проходу (окрім P2-01, закритого як prep-doc fix).
+- **265 vs 266 рядків V2 workbook** — дрібна нев'язка між
+  `BMS_V2_MANIFEST_EXECUTION_LOG.md`/`OPEN_ISSUES.md` (265) і поточним
+  `workbook_v2_index.json` (266); зафіксовано в `proj_arc/README.md`, не
+  досліджено глибше.
 
-Порівняно повний вміст `codex HANDOFF.md` (7945 байт, останнє
-оновлення 2026-09-12 15:45) з цим документом. Список нижче — фактичні
-точки тертя, не спроба вирішити яка сторона права:
+### Активні файли для орієнтації нової сесії
 
-1. **"Broad green result" ≠ "V2 workbook протестовано".** `codex HANDOFF.md`,
-   розділ 3: *"Claude reported all suites passing... The audit found that
-   Claude's broad green result did not include a successful run against the
-   current V2 workbook."* Розділ "Unresolved contradictions" того ж файлу:
-   *"Claude reported all suites passing; current V2 workbook causes
-   `KeyError: 'BMS Parameters'` in the old pipeline. No-workbook suite
-   passes only by skipping it."* — Це прочитується як натяк, що мій
-   "EXIT=0, 0 FAIL" видавався за наскрізну перевірку V2 workbook. Я такого
-   явно не стверджував (мій `JK_BMS_WORKBOOK_PATH` завжди вказував на V1
-   workbook для `test/run_all.sh`/`pipeline.js`; V2 перевірявся окремим
-   інструментом `build_v2_manifest.py --check`) — але формулювання в моєму
-   попередньому підсумку цієї сесії дійсно не уточнювало, ЯКИЙ саме
-   workbook стояв за зеленим результатом, що могло створити це враження.
-   Уточнено вище в "Стан перевірки".
-2. **Ступінь завершеності freshness на Stage 5.** Мій запис вище: Stage 5
-   "підключений і до Diagnostics, і до Overview/Electrical". `codex
-   HANDOFF.md`, "Unresolved contradictions": *"Stage 5 claims UI-wide
-   freshness; current code leaves most non-register budgets null."* — Обидва
-   твердження одночасно правильні, але з різним акцентом: я підключив
-   freshness для ВСІХ реєстрових полів і для 2 явно прив'язаних похідних
-   (`total_voltage`, `current` — через нове поле `derived_from_register_key`
-   у схемі), і це живо перевірено в браузері. Але дійсно: з ~51 інших
-   non-register/обчислюваних сутностей (`power`, `state_of_charge`,
-   `wifi_signal`, тощо) більшість досі мають `freshnessBudgetS: null` —
-   свідомо, бо для них немає єдиного "справжнього" джерела-регістра
-   (наприклад `power = V × I` з двох різних регістрів). Я це задокументував
-   як "свідомо не охоплено" у `BMS_V2_MANIFEST_EXECUTION_LOG.md`, але не
-   повторив цей нюанс у стислому підсумку цієї сесії — з боку Codex це
-   читається як "твердження про Stage 5 перебільшене". Обидва описи
-   технічно точні; розбіжність — лише в акценті "що саме означає
-   'зроблено'" для Stage 5.
+1. `CLAUDE.md` — build/test команди, архітектурні конвенції, робочий
+   стиль (незмінний цим проходом).
+2. `OPEN_ISSUES.md` — реєстр ФУНКЦІОНАЛЬНИХ відкритих питань (P0-P2);
+   заголовок "НЕ ГОТОВО" стосується hardware/production readiness, не
+   preparation-стану репозиторію.
+3. `docs/adr/0001-protocol-catalog.md` — архітектурні рішення,
+   addenda по проходах (найновіший — integration note цього проходу).
+4. `proj_arc/README.md` — новий: що заархівовано і чому, canonical-версії.
+5. `codex *.md` (5 файлів у корені) — знімок паралельної Codex-сесії від
+   2026-09-12/13; кожен, що описував стан, тепер має коротку
+   "superseded"-примітку вгорі, вказуючи на поточний стан. `codex
+   DECISIONS.md`/`codex AGENTS.md` лишились без приміток — це записи
+   рішень/правил, а не знімки стану, досі релевантні.
 
-### Ризики / відкриті питання
+### Git-стан на кінець цього проходу
 
-- **Паралельна сесія працює над тим самим working tree — активний ризик
-  конфлікту ЗАРАЗ, не лише історичний факт.** Виявлено безпосередньо: інший
-  AI-агент ("Codex", судячи з назв файлів і змісту `codex HANDOFF.md`)
-  одночасно редагує цей самий репозиторій — видалив/перейменував мої
-  щойно-створені `AGENTS.md`/`DECISIONS.md`/`HANDOFF.md`/`PROJECT_STATE.md`/
-  `TROUBLESHOOTING.md` на варіанти з префіксом `codex `, і переніс вміст
-  моєї `proj_arc/` (плюс `OPEN_ISSUES.md`, який я explicitно вирішив
-  залишити активним) у власну теку `proj_archive docs/`. Дані не втрачені
-  (перевірено — вміст файлів ідентичний), але git-індекс зараз у
-  неузгодженому стані: 13 файлів застейджені як rename у `proj_arc/`, але
-  фізично видалені з диска (є під `proj_archive docs/` замість цього). **Я
-  свідомо НЕ чіпав це** — вирішувати, яку схему архівації лишити, має
-  користувач, не автоматичний merge двома агентами.
-
-  **Де саме перетин можливий** (файли, які редагували ОБИДВІ сесії за
-  однаковими цілями цього самого дня, 2026-09-12): протокольні артефакти
-  `protocol/evidence/sources.json`, `protocol/registers.canonical.json`,
-  `protocol/non_register_entities.canonical.json`,
-  `protocol/generated/bms_v1_1_manifest.json`/`bms_v1_1_gap_audit.json`,
-  `protocol/evidence/build_v2_manifest.py`; згенеровані `jk_bms.js`/
-  `register_catalog.json`; і сама документація верхнього рівня
-  (`.md`-файли в корені). Codex-сесія за власним `codex HANDOFF.md`
-  планує наступним кроком чіпати старий release pipeline
-  (`protocol/evidence/build_workbook_index.py`, `tools/protocol/pipeline.js`,
-  `test/run_all.sh`) — точно ті файли, workflow яких задокументовано в
-  `CLAUDE.md`.
-
-  **Що зробити перед продовженням роботи над спільними файлами:**
-  1. `git status --short` і `git diff` перед будь-якою правкою — переконатись,
-     що Codex не змінив той самий файл з часу цього запису.
-  2. Прочитати актуальний `codex PROJECT_STATE.md`/`codex HANDOFF.md`
-     заново (не покладатись на копію в цьому документі — вона може бути
-     застарілою вже до прочитання).
-  3. Не запускати `git checkout`/`reset`/`clean` без попереднього `git stash`
-     — робоче дерево може містити незбережені зміни ОБОХ сесій одночасно.
-  4. Не вирішувати одноосібно конфлікт `proj_arc/` vs `proj_archive docs/`
-     — питати користувача.
-- Тому: `OPEN_ISSUES.md` (P1-03 та інші пункти) зараз відсутній у корені —
-  шукати вміст у `proj_archive docs/OPEN_ISSUES.md`, якщо потрібен.
-- `docs/adr/0001-protocol-catalog.md` показаний як modified у git status,
-  але зміст цієї конкретної модифікації я в цій сесії не перевіряв (могла
-  бути внесена паралельною сесією).
-- Гілка `bms-v1.1-manifest-audit` — нова, HEAD той самий commit
-  (`93b4c1d`), що й на `fix/settings-diagnostics-dedup`; перехід гілки
-  відбувся МІЖ моїми turn'ами, не мною ініційований.
-
-### Стан перевірки
-
-- **Тести:** востаннє реально запускались (`test/run_all.sh`) ДО світчу
-  гілки й появи паралельної сесії — EXIT=0, 0 FAIL (822-рядковий лог,
-  `protocol/evidence/stage1_corrective_evidence/v2_manifest_baseline/run_all_stage5_self_audit_fixes.txt`).
-  **Важливе уточнення (щоб не читати це як "V2 workbook протестовано
-  наскрізь"):** `JK_BMS_WORKBOOK_PATH` для цього прогону вказував на
-  СТАРИЙ V1 workbook (`test/run_all.sh`/`pipeline.js build` завжди
-  запускались із ним) — це те, що реально читає старий release pipeline.
-  V2 workbook (`LiFePO4_BMS_Parameters_registers-V2_verified.xlsx`)
-  перевірявся ОКРЕМИМ, самостійним інструментом
-  (`protocol/evidence/build_v2_manifest.py --workbook <V2 path> --check`),
-  не через `test/run_all.sh`/`pipeline.js`. Я ніколи не запускав старий
-  pipeline проти V2 workbook — тож "EXIT=0, 0 FAIL" НЕ підтверджує і не
-  спростовує твердження про `KeyError: 'BMS Parameters'` (див. TBD-пункт
-  вище й "Розбіжності" нижче).
-  **НЕ перезапускались у цій сесії після світчу гілки/змін від Codex** —
-  синтаксис `jk_bms.js` підтверджено (`node -c`), але повний прогін
-  потрібен перед тим, як довіряти поточному стану.
-- **Білд:** проєкт без build-кроку (Node/Python stdlib, немає
-  package.json/бандлера) — N/A.
-- **Git:** гілка `bms-v1.1-manifest-audit`, останній commit `93b4c1d` ("Add
-  illustrated architecture overview"). Велике незакомічене дерево (67+
-  файлів) — нічого не закомічено й не запушено цієї сесії, як і раніше.
+Гілка `bms-v1.1-manifest-audit`; safety-checkpoint `checkpoint/pre-cleanup-2026-09-14`
+→ `c291106` — незмінний. Повний перелік нових комітів: `git log --oneline
+c291106..HEAD`. Нічого не запушено.

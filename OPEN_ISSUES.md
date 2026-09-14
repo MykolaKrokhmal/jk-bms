@@ -225,7 +225,7 @@ Digest auth реально захищає всі перевірені GET endpoi
 
 ## P2 — якість та експлуатація
 
-- **P2-01:** `docs/AUTH_AND_HISTORY.md` досі описує Basic auth/ESPHome 2026.6.5, тоді як production YAML і hardware використовують Digest/2026.8.2.
+- **P2-01: ЗАКРИТО 2026-09-14 (Фінальна підготовка, Phase 2B).** `docs/AUTH_AND_HISTORY.md`'s "What changed in batterylifepo4.yaml" section now explicitly distinguishes a **Historical note** (ESPHome 2026.6.5, no `type:` key, Basic auth implicitly) from **Current state** (ESPHome 2026.8.2 per `toolchain.lock.json`, `type: digest` explicit at `batterylifepo4.yaml:310-328`, with that block's own in-line comment quoted as the reasoning) — was: `docs/AUTH_AND_HISTORY.md` досі описує Basic auth/ESPHome 2026.6.5, тоді як production YAML і hardware використовують Digest/2026.8.2. Commit `ad2282d10dfabaf4fe54844ce53240b690370202` ("docs: align authentication history with current configuration").
 - **P2-02:** навігаційний accessibility label `Sections` не локалізований.
 - **P2-03:** firmware string `v3.0.0` жорстко заданий у JS, а не отриманий з build metadata.
 - **P2-04:** mDNS під час аудиту працював нестабільно; прямий IP був стабільний. Потрібен повторний тест з іншого клієнта/телефона перед висновком, що дефект саме у firmware.

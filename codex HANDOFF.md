@@ -1,5 +1,23 @@
 # Handoff to the next Codex session
 
+> **Update (2026-09-14/15, Claude — final preparation pass):** this
+> document's snapshot (HEAD `93b4c1d`, dirty tree, "old release pipeline
+> cannot read [the V2 workbook's] sheet/schema") is now historical, not
+> current. The V2 pipeline break this file names as the top-priority first
+> action (§4) was fixed (`protocol/evidence/build_workbook_v2_index.py`,
+> wired in additively alongside the V1 path — see `codex TROUBLESHOOTING.md`'s
+> updated "Current understanding" for the same problem, and
+> `docs/adr/0001-protocol-catalog.md`'s addenda after "ninth pass" for the
+> full sequence: the claim-matrix owner-override fix this file's own
+> "AGENTS.md file 1" concern led to, merged into `bms-v1.1-manifest-audit`;
+> the release pipeline made self-contained/fail-closed without a private
+> workbook; secret-scan and `capacity_remaining` fixes). Current state
+> lives in the root `HANDOFF.md`, not here — read that first. The dirty
+> tree this file describes has since been fully committed (see git log
+> `c291106..HEAD`), and the `proj_arc/` vs `proj_archive docs/` conflict
+> this file's history refers to elsewhere was resolved (consolidated into
+> `proj_arc/`, both root `HANDOFF.md` and `OPEN_ISSUES.md` kept active).
+
 ## 1. What is this project?
 
 JK BMS Web UI is an ESP32 + ESPHome application for reading and safely configuring a JK-PB BMS over Modbus RTU/RS485. `batterylifepo4.yaml` is the firmware configuration/backend; `jk_bms.js` and `jk_bms.css` are the embedded web UI; `demo/mock-server.js` runs the real frontend against a mock HTTP/SSE backend.
