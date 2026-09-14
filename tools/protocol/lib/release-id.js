@@ -20,9 +20,9 @@
  *   - PIPELINE_VERSION (kept in sync with pipeline.js's own
  *     fullManifest().pipeline_version)
  *
- * Embedded into: workbook_index.json, upstream_index.json,
- * implementation_index.json, claim_matrix.json (all four via
- * tools/protocol/pipeline.js, which post-processes the python/JS
+ * Embedded into: workbook_index.json, workbook_v2_index.json,
+ * upstream_index.json, implementation_index.json, claim_matrix.json (all
+ * five via tools/protocol/pipeline.js, which post-processes the python/JS
  * generators' output before publishing/comparing), register_catalog.json,
  * coverage_report.md, .generation-manifest.json, and jk_bms.js's generated
  * PROTOCOL_CATALOG block (all four via tools/protocol/generate.js), plus

@@ -117,8 +117,21 @@ def main():
     output = build()
     text = json.dumps(output, indent=2, ensure_ascii=False) + "\n"
     if args.check:
+        # release_generation_id is pipeline.js-owned metadata, stamped onto
+        # the committed artifact by a post-processing step this script never
+        # runs itself -- strip it before comparing so this standalone check
+        # verifies only the payload this script owns (see the identical note
+        # in build_workbook_v2_index.py's --check block).
         existing = open(args.output, encoding="utf-8").read() if os.path.exists(args.output) else None
-        if existing != text:
+        existing_payload = None
+        if existing is not None:
+            try:
+                parsed = json.loads(existing)
+                parsed.pop("release_generation_id", None)
+                existing_payload = json.dumps(parsed, indent=2, ensure_ascii=False) + "\n"
+            except (json.JSONDecodeError, AttributeError):
+                existing_payload = None
+        if existing_payload != text:
             print("UPSTREAM_INDEX_STALE", file=sys.stderr)
             return 1
         print(f"upstream-index PASS addresses={output['unique_addresses_referenced']}")

@@ -202,8 +202,27 @@ const output = {
 };
 const text = JSON.stringify(output, null, 2) + "\n";
 if (CHECK) {
+  // release_generation_id is pipeline.js-owned metadata (tools/protocol/
+  // lib/release-id.js), stamped onto the committed artifact by a
+  // post-processing step AFTER this script runs -- this script never
+  // computes or knows that id itself. Comparing raw bytes against a
+  // pipeline-stamped committed file would therefore always report drift,
+  // even with zero real payload change. Strip it before comparing so this
+  // standalone check verifies the payload this script actually owns;
+  // pipeline.js's own `check` mode separately, strictly compares the full
+  // stamped bytes (including release_generation_id) of its fresh temp
+  // build against the committed file, so metadata staleness is still
+  // caught -- just by the process that owns that metadata, not this one.
   const current = fs.existsSync(OUTPUT) ? fs.readFileSync(OUTPUT, "utf8") : null;
-  if (current !== text) { console.error("CLAIM_MATRIX_STALE"); process.exit(1); }
+  let currentPayload = null;
+  if (current !== null) {
+    try {
+      const parsed = JSON.parse(current);
+      delete parsed.release_generation_id;
+      currentPayload = JSON.stringify(parsed, null, 2) + "\n";
+    } catch (_) { currentPayload = null; }
+  }
+  if (currentPayload !== text) { console.error("CLAIM_MATRIX_STALE"); process.exit(1); }
   if (output.counts.policy_inconsistent) { console.error("CLAIM_POLICY_INCONSISTENT"); process.exit(1); }
   console.log(`claim-matrix PASS fields=${fields.length} write_ready=${output.counts.write_ready}`);
 } else {

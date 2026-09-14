@@ -15,15 +15,24 @@ const { computeReleaseGenerationId } = require("./lib/release-id");
 const ROOT = path.join(__dirname, "..", "..");
 const mode = process.argv[2];
 if (!new Set(["build", "check"]).has(mode)) {
-  console.error("USAGE: node tools/protocol/pipeline.js build|check --workbook /path/to/file.xlsx");
+  console.error("USAGE: node tools/protocol/pipeline.js build|check [--workbook /path/to/file.xlsx]");
   process.exit(2);
 }
 const workbookArg = process.argv.indexOf("--workbook");
 const workbook = workbookArg === -1 ? process.env.JK_BMS_WORKBOOK_PATH : process.argv[workbookArg + 1];
-if (!workbook) {
-  console.error("PIPELINE_WORKBOOK_REQUIRED: use --workbook or JK_BMS_WORKBOOK_PATH");
-  process.exit(2);
-}
+// Work 3 (final preparation pass): the V1 workbook is now OPTIONAL. The
+// repo-committed, SHA-256-verified V2 workbook (build_workbook_v2_index.py)
+// is sufficient evidence for a standard, self-contained check on any
+// checkout -- no personal absolute path required. When a V1 workbook IS
+// supplied (--workbook or JK_BMS_WORKBOOK_PATH), it is still used as an
+// additional revalidation layer over the legacy evidence index it
+// produces; when it is not, the committed
+// protocol/evidence/workbook_index.json is carried through completely
+// unchanged (never regenerated, never deleted, never blanked) and excluded
+// from this run's staleness/generation-id cross-checks, so a V1 index
+// nobody can regenerate without the private file can never mask an
+// unrelated catalog change elsewhere (see the `workbook ? ... :` branches
+// below).
 
 const sha = (data) => crypto.createHash("sha256").update(data).digest("hex");
 const hashFile = (p) => sha(fs.readFileSync(p));
@@ -133,7 +142,17 @@ try {
   const tempImplementation = path.join(tmp, "protocol/evidence/implementation_index.json");
   const tempClaims = path.join(tmp, "protocol/generated/claim_matrix.json");
 
-  run("python3", ["protocol/evidence/build_workbook_index.py", "--workbook", workbook, "--output", tempWorkbook]);
+  if (workbook) {
+    run("python3", ["protocol/evidence/build_workbook_index.py", "--workbook", workbook, "--output", tempWorkbook]);
+  } else {
+    const committedWorkbookIndex = path.join(ROOT, "protocol/evidence/workbook_index.json");
+    if (!fs.existsSync(committedWorkbookIndex)) throw new Error("PIPELINE_WORKBOOK_INDEX_MISSING_FOR_FALLBACK");
+    fs.mkdirSync(path.dirname(tempWorkbook), { recursive: true });
+    fs.copyFileSync(committedWorkbookIndex, tempWorkbook);
+    console.log("V1 workbook not supplied (--workbook / JK_BMS_WORKBOOK_PATH) -- legacy workbook_index.json " +
+      "carried through unchanged from the committed copy; excluded from this run's staleness/generation-id checks. " +
+      "This is optional additional revalidation, not part of the standard self-contained check (ADR tenth-pass addendum).");
+  }
   // The V2 workbook is a repo-committed evidence file (unlike the V1
   // workbook's external, never-hardcoded personal path) — the indexer
   // defaults to it on its own; no --workbook needed here.
@@ -149,15 +168,20 @@ try {
   // recomputes its own payload from scratch (no release_generation_id of
   // its own), so checking a stamped file here would always report drift.
   run(process.execPath, ["protocol/evidence/build_claim_matrix.js", "--root", tmp, "--output", tempClaims, "--check"]);
-  for (const p of [tempWorkbook, tempWorkbookV2, tempUpstream, tempImplementation, tempClaims]) stampReleaseGenerationId(p, releaseGenerationId);
+  const toStamp = [tempWorkbookV2, tempUpstream, tempImplementation, tempClaims];
+  if (workbook) toStamp.push(tempWorkbook);
+  for (const p of toStamp) stampReleaseGenerationId(p, releaseGenerationId);
 
   const generated = [
-    [tempWorkbook, path.join(ROOT, "protocol/evidence/workbook_index.json")],
     [tempWorkbookV2, path.join(ROOT, "protocol/evidence/workbook_v2_index.json")],
     [tempUpstream, path.join(ROOT, "protocol/evidence/upstream_index.json")],
     [tempImplementation, path.join(ROOT, "protocol/evidence/implementation_index.json")],
     [tempClaims, path.join(ROOT, "protocol/generated/claim_matrix.json")],
   ];
+  // workbook_index.json (V1) participates in staleness/publish only when a
+  // V1 workbook was actually supplied this run -- otherwise the committed
+  // copy is left exactly as it is (see the copy-through branch above).
+  if (workbook) generated.push([tempWorkbook, path.join(ROOT, "protocol/evidence/workbook_index.json")]);
   if (mode === "check") {
     const stale = generated.filter(([a, b]) => !fs.existsSync(b) || !fs.readFileSync(a).equals(fs.readFileSync(b)));
     if (stale.length) throw new Error(`PIPELINE_DERIVED_ARTIFACT_STALE:${stale.map(([, p]) => rel(p)).join(",")}`);
@@ -188,12 +212,17 @@ try {
     "protocol/generated/.generation-manifest.json": generationManifestDoc.release_generation_id,
     "protocol/generated/coverage_report.md": (coverageReportText.match(/Release generation id: `([0-9a-f]+)`/) || [])[1],
     "jk_bms.js (generated block)": jsBlockMatch ? jsBlockMatch[1] : undefined,
-    "protocol/evidence/workbook_index.json": JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/evidence/workbook_index.json"), "utf8")).release_generation_id,
     "protocol/evidence/workbook_v2_index.json": JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/evidence/workbook_v2_index.json"), "utf8")).release_generation_id,
     "protocol/evidence/upstream_index.json": JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/evidence/upstream_index.json"), "utf8")).release_generation_id,
     "protocol/evidence/implementation_index.json": JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/evidence/implementation_index.json"), "utf8")).release_generation_id,
     "protocol/generated/claim_matrix.json": JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/generated/claim_matrix.json"), "utf8")).release_generation_id,
   };
+  // Same optionality as above: workbook_index.json (V1) only has to agree
+  // on this run's release_generation_id when V1 was actually supplied.
+  if (workbook) {
+    idsToCompare["protocol/evidence/workbook_index.json"] =
+      JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/evidence/workbook_index.json"), "utf8")).release_generation_id;
+  }
   const mismatched = Object.entries(idsToCompare).filter(([, id]) => id !== releaseGenerationId);
   if (mismatched.length) {
     throw new Error(`RELEASE_GENERATION_ID_MISMATCH:expected=${releaseGenerationId}:` +

@@ -9,7 +9,9 @@
  * summary/exit-code policy.
  *
  * Exit codes: 0 ALL PASS, 1 FAILED (or TIMEOUT), 2 usage/config error
- * (missing workbook, bad --timeout-seconds), 3 PARTIAL PASS (something
+ * (a JK_BMS_WORKBOOK_PATH that's set but doesn't exist, bad
+ * --timeout-seconds -- a missing/unset workbook path is no longer an
+ * error, see validateWorkbookPath below), 3 PARTIAL PASS (something
  * was skipped — never reported as "All suites passed").
  *
  * SECURITY (Stage 1 corrective pass #2, P0-1): an earlier version of this
@@ -59,15 +61,19 @@ function parseForceSet(envValue) {
 
 /** Pure, directly unit-testable workbook validation: returns
  * { ok: true, path } or { ok: false, reasonCode, message }. `existsFn`
- * is injectable so tests don't need a real file on disk. */
+ * is injectable so tests don't need a real file on disk.
+ *
+ * Work 3 (final preparation pass): the V1 workbook is now OPTIONAL. The
+ * repo-committed, SHA-256-verified V2 workbook is sufficient evidence for
+ * a standard, self-contained release check on any checkout -- no personal
+ * absolute path required. When JK_BMS_WORKBOOK_PATH IS set, it's still
+ * used as an additional revalidation layer over the legacy V1 evidence
+ * index (see steps.js); a path that's set but doesn't exist is still a
+ * hard error (RELEASE_WORKBOOK_NOT_FOUND) -- a claimed-but-missing input
+ * must never be silently dropped, only a genuinely absent one is fine. */
 function validateWorkbookPath(workbookPath, existsFn = fs.existsSync) {
   if (!workbookPath) {
-    return {
-      ok: false, reasonCode: "RELEASE_WORKBOOK_REQUIRED",
-      message: "RELEASE_WORKBOOK_REQUIRED: set JK_BMS_WORKBOOK_PATH to the local\n" +
-        "LiFePO4_BMS_Parameters_registers.xlsx before running the release gate.\n" +
-        "(test/run_all.sh remains available for fast iteration without it.)",
-    };
+    return { ok: true, path: undefined };
   }
   if (!existsFn(workbookPath)) {
     return { ok: false, reasonCode: "RELEASE_WORKBOOK_NOT_FOUND", message: `RELEASE_WORKBOOK_NOT_FOUND: ${workbookPath}` };

@@ -55,10 +55,20 @@ function buildSteps({ repoRoot, buildDir, workbookPath, testPort }) {
 
     // The evidence pipeline itself — CHECK ONLY. Never `build` here (Work 4):
     // release verification must fail on a stale repository, not silently
-    // repair it and then report green.
+    // repair it and then report green. The V1 workbook is optional (Work 3
+    // of the final preparation pass): the repo-committed V2 workbook is
+    // sufficient for the standard, self-contained check; when
+    // JK_BMS_WORKBOOK_PATH is also set, it's passed through as an
+    // additional revalidation layer over the legacy V1 evidence index.
     {
-      name: "protocol catalog: single-pipeline orchestrator (check, with workbook)",
-      command: node, args: [p("tools/protocol/pipeline.js"), "check", "--workbook", workbookPath], cwd: repoRoot, env,
+      name: workbookPath
+        ? "protocol catalog: single-pipeline orchestrator (check, with workbook)"
+        : "protocol catalog: single-pipeline orchestrator (check, self-contained)",
+      command: node,
+      args: workbookPath
+        ? [p("tools/protocol/pipeline.js"), "check", "--workbook", workbookPath]
+        : [p("tools/protocol/pipeline.js"), "check"],
+      cwd: repoRoot, env,
     },
 
     { name: "protocol catalog: entity/wire-ID collision regression", command: node, args: [p("test/protocol_catalog/test_entity_id_collision.js")], cwd: repoRoot, env },

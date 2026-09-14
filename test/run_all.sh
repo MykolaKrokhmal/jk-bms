@@ -90,10 +90,18 @@ node test/protocol_catalog/test_blocked_write_surface.js
 
 echo
 echo "=== protocol catalog: single-pipeline orchestrator (tools/protocol/pipeline.js check) ==="
+# This is the critical release-evidence gate — it always runs, unconditionally,
+# and its exit code always gates this script's own exit code (set -e above),
+# never just a conditionally-printed step. The repo-committed, SHA-256-
+# verified V2 workbook is sufficient on any checkout — no personal file
+# needed. If JK_BMS_WORKBOOK_PATH is ALSO set (a personal file, never
+# committed to this repo), pipeline.js additionally revalidates against the
+# legacy V1 workbook as an extra, optional layer — never a precondition for
+# this step to run, and never able to make this step silently skip.
 if [ -n "${JK_BMS_WORKBOOK_PATH:-}" ]; then
   node tools/protocol/pipeline.js check --workbook "$JK_BMS_WORKBOOK_PATH"
 else
-  echo "NOT EXECUTED — set JK_BMS_WORKBOOK_PATH to the local LiFePO4_BMS_Parameters_registers.xlsx to run this step (the workbook is a personal file, never committed to this repo, so this check cannot run unconditionally in every environment)."
+  node tools/protocol/pipeline.js check
 fi
 
 echo
@@ -109,7 +117,7 @@ echo "=== protocol catalog: claim-matrix exact-set invariant ==="
 node test/protocol_catalog/test_claim_matrix_invariant.js
 
 echo
-echo "=== protocol catalog: mixed-generation artifact rejection (Part B needs JK_BMS_WORKBOOK_PATH) ==="
+echo "=== protocol catalog: mixed-generation artifact rejection (self-contained; extra pass if JK_BMS_WORKBOOK_PATH is set) ==="
 node test/protocol_catalog/test_mixed_generation_rejection.js
 
 echo

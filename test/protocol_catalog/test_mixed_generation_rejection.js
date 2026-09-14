@@ -9,8 +9,12 @@
 // implementation fingerprint, canonical file content, schema content)
 // changes the id when it changes.
 //
-// PART B (needs the real workbook — a genuine pipeline.js build/check
-// cycle really parses it; NOT_EXECUTED and exit 0, visibly, if unset):
+// PART B (Work 3, final preparation pass: runs unconditionally — pipeline.js
+// build/check no longer requires a workbook at all, so the self-contained
+// mode using only the repo-committed V2 workbook is sufficient to execute
+// this whole part; when JK_BMS_WORKBOOK_PATH is ALSO set, Part B additionally
+// re-runs with --workbook as optional extra coverage of the legacy V1
+// revalidation path, never required for this test to run and pass):
 // proves tools/protocol/pipeline.js check rejects ANY artifact whose
 // release_generation_id doesn't match the rest of the generation —
 // including a hand-tampered id on an otherwise-untouched file. Note on
@@ -123,10 +127,10 @@ function check(name, condition, detail = "") {
 // PART B — integration: pipeline.js check rejects a mixed generation.
 // =========================================================================
 const workbook = process.env.JK_BMS_WORKBOOK_PATH;
-if (!workbook || !fs.existsSync(workbook)) {
-  console.log(`NOT_EXECUTED (Part B): JK_BMS_WORKBOOK_PATH ${workbook ? "does not exist" : "not set"} — Part B needs a real pipeline build/check cycle.`);
-  console.log(`\n${checks} checks run, ${failures} failed. (Part B skipped, visibly, not counted as passed.)`);
-  process.exit(failures ? 1 : 0);
+const workbookAvailable = !!(workbook && fs.existsSync(workbook));
+if (!workbookAvailable) {
+  console.log(`INFO (Part B): JK_BMS_WORKBOOK_PATH ${workbook ? "does not exist" : "not set"} — running Part B self-contained ` +
+    `(no --workbook); this is the standard mode (Work 3), not a skip.`);
 }
 
 const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "jk-bms-mixed-generation-test-"));
@@ -138,10 +142,39 @@ function copyFile(relative) {
   fs.mkdirSync(path.dirname(dst), { recursive: true });
   fs.copyFileSync(path.join(SOURCE_ROOT, relative), dst);
 }
-function runPipeline(mode) {
-  return spawnSync(process.execPath, [path.join(sandbox, "tools", "protocol", "pipeline.js"), mode, "--workbook", workbook], {
-    cwd: sandbox, encoding: "utf8",
-  });
+function runPipeline(mode, useWorkbook) {
+  const args = [path.join(sandbox, "tools", "protocol", "pipeline.js"), mode];
+  if (useWorkbook) args.push("--workbook", workbook);
+  return spawnSync(process.execPath, args, { cwd: sandbox, encoding: "utf8" });
+}
+
+function runPartB(useWorkbook) {
+  const tag = useWorkbook ? "with --workbook" : "self-contained";
+  let r = runPipeline("build", useWorkbook);
+  check(`B1. sandbox baseline (${tag}): pipeline build succeeds`, r.status === 0, (r.stdout + r.stderr).trim().split("\n").slice(-3).join(" | "));
+  r = runPipeline("check", useWorkbook);
+  check(`B2. sandbox baseline (${tag}): pipeline check passes on a freshly built, consistent generation`, r.status === 0, (r.stdout + r.stderr).trim().split("\n").slice(-3).join(" | "));
+
+  for (const [label, relPath] of [["claim_matrix.json", "protocol/generated/claim_matrix.json"], ["register_catalog.json", "register_catalog.json"]]) {
+    const full = path.join(sandbox, relPath);
+    const original = fs.readFileSync(full, "utf8");
+    const doc = JSON.parse(original);
+    check(`B3. fixture sanity (${tag}, ${label}): carries a real release_generation_id`, /^[0-9a-f]{16}$/.test(doc.release_generation_id), doc.release_generation_id);
+    doc.release_generation_id = "deadbeefdeadbeef";
+    fs.writeFileSync(full, `${JSON.stringify(doc, null, 2)}\n`);
+
+    r = runPipeline("check", useWorkbook);
+    const output = `${r.stdout}${r.stderr}`;
+    check(`B4. mixed generation (${tag}, ${label}): pipeline check exits non-zero`, r.status !== 0, `status=${r.status}`);
+    check(`B5. mixed generation (${tag}, ${label}): rejected by a real, named mechanism (RELEASE_GENERATION_ID_MISMATCH, PIPELINE_DERIVED_ARTIFACT_STALE, or a generate.js DRIFT failure) mentioning the tampered file`,
+      (output.includes("RELEASE_GENERATION_ID_MISMATCH") || output.includes("PIPELINE_DERIVED_ARTIFACT_STALE") || output.includes("DRIFT") || output.includes("PIPELINE_COMMAND_FAILED"))
+        && output.includes(label),
+      output.trim().split("\n").slice(-4).join(" | "));
+
+    fs.writeFileSync(full, original);
+    r = runPipeline("check", useWorkbook);
+    check(`B6. restored (${tag}, ${label}): pipeline check passes again`, r.status === 0, (r.stdout + r.stderr).trim().split("\n").slice(-3).join(" | "));
+  }
 }
 
 try {
@@ -151,31 +184,8 @@ try {
     if (fs.statSync(full).isDirectory()) copyTree(entry); else copyFile(entry);
   }
 
-  let r = runPipeline("build");
-  check("B1. sandbox baseline: pipeline build succeeds", r.status === 0, (r.stdout + r.stderr).trim().split("\n").slice(-3).join(" | "));
-  r = runPipeline("check");
-  check("B2. sandbox baseline: pipeline check passes on a freshly built, consistent generation", r.status === 0, (r.stdout + r.stderr).trim().split("\n").slice(-3).join(" | "));
-
-  for (const [label, relPath] of [["claim_matrix.json", "protocol/generated/claim_matrix.json"], ["register_catalog.json", "register_catalog.json"]]) {
-    const full = path.join(sandbox, relPath);
-    const original = fs.readFileSync(full, "utf8");
-    const doc = JSON.parse(original);
-    check(`B3. fixture sanity (${label}): carries a real release_generation_id`, /^[0-9a-f]{16}$/.test(doc.release_generation_id), doc.release_generation_id);
-    doc.release_generation_id = "deadbeefdeadbeef";
-    fs.writeFileSync(full, `${JSON.stringify(doc, null, 2)}\n`);
-
-    r = runPipeline("check");
-    const output = `${r.stdout}${r.stderr}`;
-    check(`B4. mixed generation (${label}): pipeline check exits non-zero`, r.status !== 0, `status=${r.status}`);
-    check(`B5. mixed generation (${label}): rejected by a real, named mechanism (RELEASE_GENERATION_ID_MISMATCH, PIPELINE_DERIVED_ARTIFACT_STALE, or a generate.js DRIFT failure) mentioning the tampered file`,
-      (output.includes("RELEASE_GENERATION_ID_MISMATCH") || output.includes("PIPELINE_DERIVED_ARTIFACT_STALE") || output.includes("DRIFT") || output.includes("PIPELINE_COMMAND_FAILED"))
-        && output.includes(label),
-      output.trim().split("\n").slice(-4).join(" | "));
-
-    fs.writeFileSync(full, original);
-    r = runPipeline("check");
-    check(`B6. restored (${label}): pipeline check passes again`, r.status === 0, (r.stdout + r.stderr).trim().split("\n").slice(-3).join(" | "));
-  }
+  runPartB(false);
+  if (workbookAvailable) runPartB(true);
 } finally {
   fs.rmSync(sandbox, { recursive: true, force: true });
 }

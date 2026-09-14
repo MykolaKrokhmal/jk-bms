@@ -273,8 +273,21 @@ def main():
     new_text = json.dumps(output, indent=2, ensure_ascii=False, default=str) + "\n"
 
     if args.check:
+        # release_generation_id is pipeline.js-owned metadata, stamped onto
+        # the committed artifact by a post-processing step this script never
+        # runs itself -- strip it before comparing so this standalone check
+        # verifies only the payload this script owns (see the identical note
+        # in build_workbook_v2_index.py's --check block).
         old_text = open(args.output, encoding="utf-8").read() if os.path.exists(args.output) else None
-        if old_text != new_text:
+        old_payload = None
+        if old_text is not None:
+            try:
+                parsed = json.loads(old_text)
+                parsed.pop("release_generation_id", None)
+                old_payload = json.dumps(parsed, indent=2, ensure_ascii=False, default=str) + "\n"
+            except (json.JSONDecodeError, AttributeError):
+                old_payload = None
+        if old_payload != new_text:
             print(f"WORKBOOK_INDEX_STALE: {args.output}", file=sys.stderr)
             sys.exit(1)
         print(f"workbook-index PASS rows={output['total_rows']} addresses={output['unique_addresses']}")

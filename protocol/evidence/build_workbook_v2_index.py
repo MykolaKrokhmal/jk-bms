@@ -156,8 +156,26 @@ def main():
     new_text = json.dumps(output, indent=2, ensure_ascii=False, default=str) + "\n"
 
     if args.check:
+        # release_generation_id is pipeline.js-owned metadata (tools/protocol/
+        # lib/release-id.js), stamped onto the committed artifact by a
+        # post-processing step this script never runs itself -- comparing raw
+        # bytes against a pipeline-stamped committed file would always report
+        # drift, even with zero real payload change. Strip it before
+        # comparing so this standalone check verifies only the payload this
+        # script actually owns; pipeline.js's own check mode separately,
+        # strictly compares the full stamped bytes of its fresh temp build
+        # against the committed file, so metadata staleness is still caught
+        # -- just by the process that owns that metadata, not this one.
         old_text = open(args.output, encoding="utf-8").read() if os.path.exists(args.output) else None
-        if old_text != new_text:
+        old_payload = None
+        if old_text is not None:
+            try:
+                parsed = json.loads(old_text)
+                parsed.pop("release_generation_id", None)
+                old_payload = json.dumps(parsed, indent=2, ensure_ascii=False, default=str) + "\n"
+            except (json.JSONDecodeError, AttributeError):
+                old_payload = None
+        if old_payload != new_text:
             print(f"WORKBOOK_V2_INDEX_STALE: {args.output}", file=sys.stderr)
             sys.exit(1)
         print(f"workbook-v2-index PASS rows={output['total_rows']} addresses={output['unique_addresses']}")
