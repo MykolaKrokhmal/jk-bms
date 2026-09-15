@@ -278,23 +278,31 @@ esphome:
           };
           id(web_server_base_id)->add_handler(new ChargeHistoryHandler());
 
-          // Final-preparation-plan Stage 1, commit boundary 2 (§3.4):
-          // local scheduling hint only — this NEVER touches the Modbus
-          // bus and NEVER calls jk_write_tx. It is a same-origin POST
-          // handler on the already-authenticated web_server_base (every
-          // handler added through it is wrapped in AuthMiddlewareHandler
-          // whenever web_server: auth: credentials are set — see that
-          // section's own comment — exactly like HistoryHandler/
-          // ChargeHistoryHandler above). Body is
-          // application/x-www-form-urlencoded (`group=5` or
-          // `group=none`), not JSON: web_server_idf's own POST handler
+          // Final-preparation-plan Stage 1, commit boundary 2 (§3.4),
+          // corrected against the project's real pinned ESPHome target
+          // (2026.8.2, confirmed installable and compiled against this
+          // session's corrective pass — an earlier draft of this comment
+          // wrongly asserted only an older, unrelated release could be
+          // reached, and separately mischaracterized this version's own
+          // POST body handling; both fixed here): local scheduling hint
+          // only — this NEVER touches the Modbus bus and NEVER calls
+          // jk_write_tx. It is a same-origin POST handler on the
+          // already-authenticated web_server_base (every handler added
+          // through it is wrapped in AuthMiddlewareHandler whenever
+          // web_server: auth: credentials are set — see that section's
+          // own comment — exactly like HistoryHandler/ChargeHistoryHandler
+          // above). Body is application/x-www-form-urlencoded (`group=5`
+          // or `group=none`), not JSON: confirmed directly against the
+          // real ESPHome 2026.8.2 source
           // (esphome/components/web_server_idf/web_server_idf.cpp,
-          // request_post_handler) only parses that one content type —
-          // any other Content-Type falls back to being treated as a GET,
-          // silently discarding the body. Confirmed directly against the
-          // real ESPHome 2025.5.2 source this session (2026-09-15); the
-          // plan's own prose ("Body: {group: 1..12 | \"none\"}") is
-          // satisfied via this form encoding, not literal JSON.
+          // request_post_handler) that this is the simplest content type
+          // this handler can accept without implementing its own
+          // handleBody() override -- any OTHER Content-Type (JSON
+          // included) is still deliverable to a handler in this version,
+          // just via that separate, raw handleBody() path this handler
+          // does not implement, since form-urlencoded already satisfies
+          // the plan's own prose ("Body: {group: 1..12 | \"none\"}")
+          // without needing it.
           //
           // Last-write-wins, no per-client registry (deliberately simpler
           // than a per-client TTL table — see the plan's own §3.4
@@ -312,7 +320,8 @@ esphome:
            public:
             bool canHandle(AsyncWebServerRequest *request) const override {
               if (request->method() != HTTP_POST) return false;
-              return request->url() == "/settings/active-group";
+              char url_buf[AsyncWebServerRequest::URL_BUF_SIZE];
+              return request->url_to(url_buf) == "/settings/active-group";
             }
             void handleRequest(AsyncWebServerRequest *request) override {
               const std::string raw = request->arg("group");
