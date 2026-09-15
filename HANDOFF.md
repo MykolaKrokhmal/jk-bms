@@ -72,6 +72,21 @@
   має 266 фізичних рядків (`A1:O266`): 1 рядок заголовка + 265 рядків
   параметрів, що відповідає `parameter_count=265`; параметри охоплюють
   210 унікальних фізичних адрес. Розбіжності між 265 і 266 немає.
+- **ESPHome compile gate закрито 2026-09-15:** ізольований ESPHome
+  `2026.8.2` на Python `3.12.11` успішно виконав `config` і повний
+  `compile` поточного `batterylifepo4.yaml` з ESP-IDF `5.5.5`. RAM:
+  92 824/180 736 B (51.4%); Flash: 1 132 559/1 835 008 B (61.7%);
+  `config_hash=0x70df83bb`; OTA binary SHA-256:
+  `82b2acfc0d5cc7f6ad23184d4e8a9d4493633bb745b04a4939db3141231361ac`.
+  Усі 3 compiler warnings збігаються з попереднім baseline: 2
+  `-Wempty-body` у generated ESPHome `modbus_controller.cpp` і 1
+  `-Waddress` у `total_runtime` lambda; нових warnings немає. Pin
+  `08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1` незмінно записаний у YAML
+  та `toolchain.lock.json` як upstream evidence revision; поточний YAML
+  не має активного `external_components:` block і компілюється на
+  вбудованому ESPHome `modbus_controller`, тому runtime Git-resolve цього
+  pin під час build не відбувається. Build-cache і тимчасовий venv після
+  фіксації результатів видалено; пристрій не прошивався.
 - Повний перелік нових/оновлених regression-тестів і точні числа —
   у відповідних commit-повідомленнях (`git log c291106..HEAD`).
 
@@ -87,14 +102,6 @@
   побіжно під час фіксу `capacity_remaining`, явно НЕ виправлено (інший
   регістр, інший access class `rw` замість `r`, потребує окремої
   перевірки). Заведено окремим завданням (`spawn_task`, `task_4ad5bbbd`).
-- **ESPHome `config`/`compile` не виконано в цьому середовищі** — немає
-  локального esphome CLI, немає venv із закріпленим Python 3.9.6, Docker
-  daemon не запущений, PyYAML відсутній. Мережевих встановлень без
-  окремого дозволу не виконував. YAML-зміна (`capacity_remaining`'s
-  `value_type: S_DWORD`) підтверджена непрямо: `test/register_catalog/
-  validate.js` (звіряє кожен `address:` проти каталогу) і тим, що
-  `S_DWORD` — вже існуючий, робочий тип у цьому самому файлі (`charge_otp`,
-  0x104C).
 - **Функціональні P0/P1/P2-пункти з `OPEN_ISSUES.md` не чіпав** — це
   hardware-верифікація й майбутня продуктова розробка, поза межами
   "preparation" цього проходу (окрім P2-01, закритого як prep-doc fix).
