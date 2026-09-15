@@ -68,6 +68,10 @@
 - `node test/protocol_catalog/test_negative_fixtures.js` — 112/112.
 - `node test/protocol_catalog/test_secret_scan.js` — `secret-scan PASS`
   (без "known acceptable false positive").
+- **V2 workbook row accounting підтверджено:** аркуш `Реєстр параметрів`
+  має 266 фізичних рядків (`A1:O266`): 1 рядок заголовка + 265 рядків
+  параметрів, що відповідає `parameter_count=265`; параметри охоплюють
+  210 унікальних фізичних адрес. Розбіжності між 265 і 266 немає.
 - Повний перелік нових/оновлених regression-тестів і точні числа —
   у відповідних commit-повідомленнях (`git log c291106..HEAD`).
 
@@ -94,11 +98,6 @@
 - **Функціональні P0/P1/P2-пункти з `OPEN_ISSUES.md` не чіпав** — це
   hardware-верифікація й майбутня продуктова розробка, поза межами
   "preparation" цього проходу (окрім P2-01, закритого як prep-doc fix).
-- **265 vs 266 рядків V2 workbook** — дрібна нев'язка між
-  `BMS_V2_MANIFEST_EXECUTION_LOG.md`/`OPEN_ISSUES.md` (265) і поточним
-  `workbook_v2_index.json` (266); зафіксовано в `proj_arc/README.md`, не
-  досліджено глибше.
-
 ### Активні файли для орієнтації нової сесії
 
 1. `CLAUDE.md` — build/test команди, архітектурні конвенції, робочий

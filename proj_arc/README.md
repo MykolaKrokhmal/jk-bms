@@ -125,11 +125,11 @@ still recoverable from git history regardless of this index — this file
 exists to explain the *reasoning*, not as the only path back to old
 content.
 
-## Known open, unreconciled minor discrepancy (not resolved by this pass)
+## Reconciled V2 workbook row accounting
 
-`BMS_V2_MANIFEST_EXECUTION_LOG.md`/`OPEN_ISSUES.md` say the V2 workbook has
-265 rows; `v2_pipeline_bridge/README.md`'s later `build_workbook_v2_index.py
---check` run (and the current committed `workbook_v2_index.json`) says
-`rows=266`. Both agree on 210 unique base addresses either way. Not chased
-down further this pass — flagged here rather than silently left
-unreconciled in two places with no cross-reference between them.
+Verified directly against the `Реєстр параметрів` worksheet (`A1:O266`):
+the workbook has 266 physical worksheet rows, consisting of 1 header row
+plus 265 parameter rows. Therefore `parameter_count=265` in the manifest
+and `total_rows=266` in `workbook_v2_index.json` describe the same source
+without contradiction. The 265 parameters map to 210 unique physical base
+addresses.
