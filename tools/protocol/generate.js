@@ -194,6 +194,32 @@ function buildGenericTxAddress() {
   return entries;
 }
 
+// Final-preparation-plan Stage 1 corrective pass: ESPHome's real,
+// wire-level object_id is ALWAYS sanitize(snake_case(name)) — completely
+// independent of an entity's own `id:` — confirmed directly against
+// ESPHome source and a real compiled main.cpp this session. For most
+// fields the two coincide, but not always (the project's own
+// esphome_read_entity_id metadata records the REAL wire id per field,
+// which can genuinely differ from the field's own canonical `key` — e.g.
+// cell_resistance_1's real wire object_id is "cell_1_wire_resistance", not
+// "cell_resistance_1"). Every such divergence is a real alias jk_bms.js's
+// ingest path must recognize, or that field's live SSE updates never
+// reach the UI at all. Generated (not hand-typed) so it can never silently
+// drift out of sync with canonical.json the way three separate hand-typed
+// label/order tables already once did (see this project's own commit
+// history) — see test/protocol_catalog/test_entity_id_collision.js for
+// the 1:1-coverage/no-collision validator this table's own consumer
+// (jk_bms.js's registerEntity() loop) is checked against.
+function buildWireObjectIdAliases() {
+  const entries = [];
+  for (const { field: f } of allRegisterFields) {
+    if (f.esphome_read_entity_id && f.esphome_read_entity_id !== f.key) {
+      entries.push({ key: f.key, domain: f.esphome_domain, realId: f.esphome_read_entity_id });
+    }
+  }
+  return entries;
+}
+
 function buildBlockedWriteKeys() {
   // Declared rw but NOT effective rw — the frontend needs this list to
   // render a read-only reason (Крок G.7) instead of a misleading editable
@@ -439,6 +465,7 @@ function buildJsInjectionBlock() {
   const nonRegKeys = buildNonRegisterKeys();
   const blockedKeys = buildBlockedWriteKeys();
   const fieldMetaEntries = buildFieldMeta();
+  const wireAliases = buildWireObjectIdAliases();
   const fmtHex = (addr) => addr; // already "0xNNNN" string form in canonical source
   const txLines = txEntries.map(([k, addr]) => `      ${k}: ${fmtHex(addr)},`).join("\n");
   const nrLines = [];
@@ -462,6 +489,9 @@ function buildJsInjectionBlock() {
   };
   const fieldMetaLines = fieldMetaEntries
     .map(([k, m]) => `      ${k}: { unit: ${jsLiteral(m.unit)}, ukUnit: ${jsLiteral(m.ukUnit)}, enUnit: ${jsLiteral(m.enUnit)}, precision: ${jsLiteral(m.precision)}, min: ${jsLiteral(m.min)}, max: ${jsLiteral(m.max)}, step: ${jsLiteral(m.step)}, pollGroup: ${jsLiteral(m.pollGroup)}, freshnessBudgetS: ${jsLiteral(m.freshnessBudgetS)}, labelUk: ${jsLiteral(m.labelUk)}, labelEn: ${jsLiteral(m.labelEn)}, uiSection: ${jsLiteral(m.uiSection)}, uiOrder: ${jsLiteral(m.uiOrder)}, uiGroup: ${jsLiteral(m.uiGroup)}, editorKind: ${jsLiteral(m.editorKind)}, enumMap: ${jsEnumMapLiteral(m.enumMap)} },`)
+    .join("\n");
+  const wireAliasLines = wireAliases
+    .map((a) => `      [${jsLiteral(a.key)}, ${jsLiteral(a.domain)}, ${jsLiteral(a.realId)}],`)
     .join("\n");
   return [
     JS_BEGIN,
@@ -490,6 +520,18 @@ function buildJsInjectionBlock() {
     "    fieldMeta: Object.freeze({",
     fieldMetaLines,
     "    }),",
+    "    // Final-preparation-plan Stage 1 corrective pass: [key, domain, realWireObjectId]",
+    "    // triples for every field whose real, compiled ESPHome object_id (ALWAYS",
+    "    // sanitize(snake_case(name)), never the YAML `id:`) differs from its own",
+    "    // canonical key. jk_bms.js registers each of these as a wire-id alias",
+    "    // alongside its own hand-typed registerEntity() calls (harmlessly redundant",
+    "    // for entries already covered there) so the field's real SSE updates are",
+    "    // recognized. See buildWireObjectIdAliases()'s own comment for the full",
+    "    // reasoning and test/protocol_catalog/test_entity_id_collision.js for the",
+    "    // 1:1-coverage/no-collision validator.",
+    "    wireObjectIdAliases: Object.freeze([",
+    wireAliasLines,
+    "    ]),",
     "  });",
     JS_END,
   ].join("\n");

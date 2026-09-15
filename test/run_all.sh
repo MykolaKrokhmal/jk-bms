@@ -159,6 +159,10 @@ echo "=== protocol catalog: entity/wire-ID collision regression (Крок M) ===
 node test/protocol_catalog/test_entity_id_collision.js
 
 echo
+echo "=== protocol catalog: generated wire-object-id alias coverage/collision + resolution regression ==="
+node test/protocol_catalog/test_wire_object_id_aliases.js
+
+echo
 echo "=== protocol catalog: secret-leakage scan ==="
 node test/protocol_catalog/test_secret_scan.js
 
