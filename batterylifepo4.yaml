@@ -65,6 +65,17 @@ esphome:
   # below). Desktop-testable — see test/jk_write_tx/test_jk_write_tx_core.cpp.
   includes:
     - components/jk_write_tx/jk_write_tx_core.h
+    # Final-preparation-plan Stage 1, commit boundary 2 (§3.2/§3.5): pure,
+    # hardware-independent core for the generic block-read scheduler and
+    # its physical block cache. Same header-only, zero-I/O pattern as
+    # jk_write_tx_core.h above — desktop-testable, see
+    # test/jk_poll_scheduler/test_jk_poll_scheduler_core.cpp. Not yet
+    # driving any real Modbus reads from this file (see the active-group
+    # endpoint below and protocol/generated/read_plan.yaml's own module
+    # comment for why the full servicer wiring is Stage 1's third commit
+    # boundary, not this one) — only the HTTP endpoint below uses it this
+    # commit, to validate/store the group hint it accepts.
+    - components/jk_poll_scheduler/jk_poll_scheduler_core.h
   on_boot:
     priority: -100
     then:
@@ -255,6 +266,72 @@ esphome:
           };
           id(web_server_base_id)->add_handler(new ChargeHistoryHandler());
 
+          // Final-preparation-plan Stage 1, commit boundary 2 (§3.4):
+          // local scheduling hint only — this NEVER touches the Modbus
+          // bus and NEVER calls jk_write_tx. It is a same-origin POST
+          // handler on the already-authenticated web_server_base (every
+          // handler added through it is wrapped in AuthMiddlewareHandler
+          // whenever web_server: auth: credentials are set — see that
+          // section's own comment — exactly like HistoryHandler/
+          // ChargeHistoryHandler above). Body is
+          // application/x-www-form-urlencoded (`group=5` or
+          // `group=none`), not JSON: web_server_idf's own POST handler
+          // (esphome/components/web_server_idf/web_server_idf.cpp,
+          // request_post_handler) only parses that one content type —
+          // any other Content-Type falls back to being treated as a GET,
+          // silently discarding the body. Confirmed directly against the
+          // real ESPHome 2025.5.2 source this session (2026-09-15); the
+          // plan's own prose ("Body: {group: 1..12 | \"none\"}") is
+          // satisfied via this form encoding, not literal JSON.
+          //
+          // Last-write-wins, no per-client registry (deliberately simpler
+          // than a per-client TTL table — see the plan's own §3.4
+          // reasoning). g_active_group_hint is -1 for "no active group";
+          // g_active_group_hint_expires_ms is an ABSOLUTE millis()
+          // deadline, refreshed by every valid POST — any consumer reads
+          // it as "no hint" once millis() has passed that deadline (a
+          // 30s TTL, so a client that stops interacting, or a reboot,
+          // naturally reverts to no boost without needing its own timer).
+          // Nothing yet CONSUMES this hint (that's jk_poll_scheduler's
+          // own tier-2 priority, wired in Stage 1's third commit boundary
+          // alongside the blocks it would prioritize) — this commit only
+          // proves the endpoint itself validates and stores it correctly.
+          class ActiveGroupHandler : public AsyncWebHandler {
+           public:
+            bool canHandle(AsyncWebServerRequest *request) const override {
+              if (request->method() != HTTP_POST) return false;
+              return request->url() == "/settings/active-group";
+            }
+            void handleRequest(AsyncWebServerRequest *request) override {
+              const std::string raw = request->arg("group");
+              if (raw == "none") {
+                id(g_active_group_hint) = -1;
+                id(g_active_group_hint_expires_ms) = millis() + 30000U;
+                request->send(200, "application/json", "{\"ok\":true,\"group\":\"none\"}");
+                return;
+              }
+              // Strict-integer parse (no partial/garbage suffix accepted)
+              // -- a malformed value is a 400, never silently coerced to
+              // some default.
+              if (raw.empty()) {
+                request->send(400, "application/json", "{\"ok\":false,\"error\":\"missing group\"}");
+                return;
+              }
+              char *end = nullptr;
+              const long parsed = std::strtol(raw.c_str(), &end, 10);
+              if (end == raw.c_str() || *end != '\0' || parsed < 1 || parsed > 12) {
+                request->send(400, "application/json", "{\"ok\":false,\"error\":\"group must be 1-12 or 'none'\"}");
+                return;
+              }
+              id(g_active_group_hint) = int(parsed);
+              id(g_active_group_hint_expires_ms) = millis() + 30000U;
+              char body[48];
+              snprintf(body, sizeof(body), "{\"ok\":true,\"group\":%ld}", parsed);
+              request->send(200, "application/json", body);
+            }
+          };
+          id(web_server_base_id)->add_handler(new ActiveGroupHandler());
+
 esp32:
   board: esp32dev
   framework:
@@ -382,6 +459,19 @@ modbus_controller:
 # Critical-path cache: each Modbus response is decoded once; template entities
 # only publish already-computed scalar values.
 globals:
+  # Final-preparation-plan Stage 1, commit boundary 2 (§3.4): the active-
+  # settings-group scheduling hint, written only by ActiveGroupHandler
+  # above (esphome: on_boot:). -1 means no active group. Not yet read by
+  # anything (jk_poll_scheduler's tier-2 priority consumes this starting
+  # in Stage 1's third commit boundary).
+  - id: g_active_group_hint
+    type: int8_t
+    restore_value: false
+    initial_value: "-1"
+  - id: g_active_group_hint_expires_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
   - id: g_max_cell_v
     type: float
     restore_value: false

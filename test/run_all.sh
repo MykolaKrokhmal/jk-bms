@@ -65,6 +65,18 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_history" \
 "$BUILD_DIR/test_jk_history_format"
 
 echo
+echo "=== jk_poll_scheduler_core unit tests ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" \
+  "$REPO_ROOT/test/jk_poll_scheduler/test_jk_poll_scheduler_core.cpp" -o "$BUILD_DIR/test_jk_poll_scheduler_core"
+"$BUILD_DIR/test_jk_poll_scheduler_core"
+
+echo
+echo "=== read_plan_decode.h generated-table integration test ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT" \
+  "$REPO_ROOT/test/jk_poll_scheduler/test_read_plan_decode.cpp" -o "$BUILD_DIR/test_read_plan_decode"
+"$BUILD_DIR/test_read_plan_decode"
+
+echo
 echo "=== protocol catalog: schema + semantic + cross-file validator ==="
 node test/register_catalog/validate.js
 
@@ -79,6 +91,10 @@ node test/protocol_catalog/test_negative_fixtures.js
 echo
 echo "=== protocol catalog: generator determinism (--check) ==="
 node tools/protocol/generate.js --check
+
+echo
+echo "=== read plan: generator determinism (--check) ==="
+node tools/protocol/generate_read_plan.js --check
 
 echo
 echo "=== protocol catalog: generation atomicity + simulated-failure detection ==="
