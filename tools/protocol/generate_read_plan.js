@@ -194,6 +194,46 @@ const BESPOKE_EXCLUDED_KEYS = new Set([
   "reserved_0x12d2",
 ]);
 
+// canonical.json's esphome_read_entity_id is WRONG for this one field --
+// confirmed with real generated ESPHome C++ (set_object_id(...) inspected
+// directly in a real compiled main.cpp, 2026-09-15): ESPHome ALWAYS
+// derives an entity's real, wire-level object_id from its `name:` field
+// via sanitize(snake_case(name)), completely independent of `id:`
+// (confirmed against ESPHome's own esphome/cpp_helpers.py). The
+// total_runtime register's real entity has `id: total_runtime` but
+// `name: "total runtime in seconds"`, whose real object_id is
+// "total_runtime_in_seconds" -- NOT "total_runtime" as canonical.json
+// claims. jk_bms.js's own DIAGNOSTIC_ENTITY_LABELS/ORDER tables already
+// independently reference "total_runtime_in_seconds" (an earlier session
+// apparently already discovered and compensated for this in the frontend
+// without canonical.json ever being corrected to match) -- so the REAL,
+// currently-live key is what this generator must publish under, or this
+// field would go dark the instant it migrated.
+//
+// This same id-vs-name-derived-object_id class of bug was found MUCH more
+// broadly across the file during this verification (29 mismatches across
+// the whole tracked YAML, including a severe, unrelated, pre-existing one:
+// cell_resistance_1..16's real object_ids are "cell_1_wire_resistance"..
+// "cell_16_wire_resistance", not "cell_resistance_N" as jk_bms.js's own
+// cellResistanceKeys array expects -- meaning that headline diagnostic
+// feature has likely never displayed live data). That finding is entirely
+// outside this generator's own migration scope (cell_resistance_* stays
+// on its existing bespoke 1Hz reader, untouched) and is reported
+// separately, not silently fixed here.
+const ENTITY_ID_OVERRIDE = {
+  total_runtime: "total_runtime_in_seconds",
+  // canonical.json claims esphome_read_entity_id "setup_passcode" for this
+  // field -- but that id already belongs to a DIFFERENT, pre-existing
+  // `text` domain entity (the always-masked write-side display, which
+  // literally always publishes "****************" regardless of wire
+  // content -- see batterylifepo4.yaml's own `id: setup_passcode` entity).
+  // The real, distinct read entity for the raw decoded bytes has always
+  // been `setup_passcode_readback` (a separate text_sensor). Confirmed via
+  // a real `esphome config` ID-collision error this session (2026-09-15)
+  // when the two entities' generated ids collided.
+  setup_passcode: "setup_passcode_readback",
+};
+
 const DERIVED_BOOLEAN_OVERRIDE = {
   charging_active: { entityId: "charging_raw" },
   discharging_active: { entityId: "discharging_raw" },
@@ -274,7 +314,7 @@ for (const { field: f, register: r } of allRegisterFields) {
     );
   }
 
-  const entityId = override ? override.entityId : (f.esphome_read_entity_id || f.key);
+  const entityId = override ? override.entityId : (ENTITY_ID_OVERRIDE[f.key] || f.esphome_read_entity_id || f.key);
   const domain = override ? "sensor" : (READ_DOMAIN_OVERRIDE[f.key] || "sensor");
 
   let cadenceMs = CADENCE_OVERRIDE_MS[f.key];
@@ -397,7 +437,15 @@ function buildDecodeHeader() {
   lines.push("// exception tables, then regenerate.");
   lines.push("#pragma once");
   lines.push("");
-  lines.push('#include "components/jk_poll_scheduler/jk_poll_scheduler_core.h"');
+  // Bare filename, NOT the full components/jk_poll_scheduler/... path this
+  // repo uses everywhere else -- confirmed directly against a real
+  // `esphome compile`: ESPHome's `esphome: includes:` flattens every listed
+  // file into one shared build src/ directory (no subdirectory structure
+  // preserved), so a nested relative #include from within an included file
+  // fails to resolve there even though the same path is exactly correct
+  // for every OTHER purpose (this project's own g++ unit test compiles,
+  // -I flags, etc., which all still use the real repo-relative path).
+  lines.push('#include "jk_poll_scheduler_core.h"');
   lines.push("");
   lines.push("namespace jk_read_plan {");
   lines.push("");
@@ -423,8 +471,7 @@ function buildDecodeHeader() {
   let offset = 0;
   for (const b of blocks) {
     lines.push(
-      `    {${b.address}, ${b.payload_bytes}, ${b.cadence_ms}u, ${offset}, ${b.fields.length}},  ` +
-      `// register_count=${b.register_count}`
+      `    {${b.address}, ${b.register_count}, ${b.payload_bytes}, ${b.cadence_ms}u, ${offset}, ${b.fields.length}},`
     );
     offset += b.fields.length;
   }
@@ -471,10 +518,37 @@ function buildReadPlanYaml() {
     for (const f of list) {
       lines.push("  - platform: template");
       lines.push(`    id: ${f.entity_id}`);
-      lines.push(`    object_id: ${f.entity_id}`);
       if (f.internal) lines.push("    internal: true");
-      lines.push(`    name: "${cEscape(f.label_en || humanize(f.key))}"`);
-      lines.push("    update_interval: never");
+      // `name:` is deliberately humanize(entity_id) -- NOT canonical's own,
+      // nicer frontend_label_en -- and there is no `object_id:` override
+      // alongside it. Confirmed directly against real ESPHome source
+      // (esphome/cpp_helpers.py): an entity's real, wire-level object_id is
+      // ALWAYS sanitize(snake_case(name)), and an explicit `object_id:`
+      // config key does not exist to override it in the real, available
+      // ESPHome release this project's own compile gate could be verified
+      // against this session (2025.5.2) -- nor is its presence in this
+      // project's actual newer pinned target confirmed (this environment
+      // cannot reach that release to check). Deriving `name:` FROM
+      // entity_id, verified to round-trip exactly through
+      // sanitize(snake_case(...)) for all 90 generated fields, is the one
+      // mechanism guaranteed stable across ESPHome versions -- eliminating
+      // the entire class of bug this migration's own verification pass
+      // found live elsewhere in this file (id: silently diverging from the
+      // real name-derived object_id, e.g. cell_resistance_1 vs its real
+      // "cell_1_wire_resistance" -- see this generator's own
+      // ENTITY_ID_OVERRIDE comment). This project's OWN UI never reads this
+      // `name:` value (jk_bms.js displays PROTOCOL_CATALOG.fieldMeta's own
+      // labelEn/labelUk instead) -- only Home-Assistant-native-API/generic-
+      // ESPHome-dashboard cosmetics are affected by this less-polished name.
+      lines.push(`    name: "${cEscape(humanize(f.entity_id))}"`);
+      // binary_sensor.template has no update_interval concept at all (it is
+      // purely state-driven -- confirmed directly against real ESPHome
+      // config validation; matches this project's own existing hand-written
+      // binary_sensor templates, e.g. "charging"/"discharging"/"balancing"
+      // in batterylifepo4.yaml, none of which set it either). Every other
+      // domain here is polled externally by the scheduler, never by
+      // ESPHome's own component.update(), hence update_interval: never.
+      if (f.domain !== "binary_sensor") lines.push("    update_interval: never");
       if (f.unit) lines.push(`    unit_of_measurement: "${cEscape(f.unit)}"`);
       if (f.domain === "sensor" && typeof f.precision === "number") {
         lines.push(`    accuracy_decimals: ${f.precision}`);
@@ -488,7 +562,171 @@ function buildReadPlanYaml() {
   emit(bySection.binary_sensor);
   lines.push("text_sensor:");
   emit(bySection.text_sensor);
+  lines.push("");
+  lines.push(buildServicerGlobals());
+  lines.push("");
+  lines.push(buildServicerInterval());
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
+}
+
+// ---------------------------------------------------------------------------
+// Scheduler servicer: globals: (the physical block cache, parallel-array
+// storage -- see jk_write_tx_core.h's own module comment for why ESPHome
+// globals cannot hold a custom struct type directly) + interval: (the
+// tick that decides the next block via jk_poll_scheduler::pick_next_block,
+// issues the real Modbus command, and -- in its callback -- decodes and
+// publishes every field the completed block feeds, via a GENERATED
+// per-block dispatch: id() resolves entities at C++ compile time, so this
+// dispatch cannot be a runtime loop over field keys the way the decode
+// math itself is generic; only the decode MATH stays hand-written).
+// ---------------------------------------------------------------------------
+function buildServicerGlobals() {
+  const lines = [];
+  lines.push("globals:");
+  lines.push("  # Physical block cache (spec section 3.5) storage -- parallel arrays,");
+  lines.push("  # not a global of jk_poll_scheduler::BlockState, for the same reason");
+  lines.push("  # jk_write_tx's own slot storage is split (see batterylifepo4.yaml's");
+  lines.push("  # own \"Generic write transaction manager\" comment): ESPHome's globals");
+  lines.push("  # codegen instantiates every `globals:` entry before this package's own");
+  lines.push("  # `includes:`-provided types are #included.");
+  lines.push("  - id: g_rp_last_attempt_ms");
+  lines.push(`    type: uint32_t[${blocks.length}]`);
+  lines.push("  - id: g_rp_last_success_ms");
+  lines.push(`    type: uint32_t[${blocks.length}]`);
+  lines.push("  - id: g_rp_error_count");
+  lines.push(`    type: uint16_t[${blocks.length}]`);
+  lines.push("  - id: g_rp_timeout_count");
+  lines.push(`    type: uint16_t[${blocks.length}]`);
+  lines.push("  - id: g_rp_transport_state");
+  lines.push(`    type: uint8_t[${blocks.length}]`);
+  lines.push("  - id: g_rp_revision");
+  lines.push(`    type: uint32_t[${blocks.length}]`);
+  lines.push("  # -1 = no read currently outstanding; otherwise the block index whose");
+  lines.push("  # response the next completed create_read_command callback belongs to.");
+  lines.push("  # A callback for any OTHER index (a late/stale response arriving after");
+  lines.push("  # its own read already timed out and the scheduler moved on) still");
+  lines.push("  # decodes and publishes its own block's fields -- a late-but-correct");
+  lines.push("  # update is harmless and even beneficial -- but must NOT clear pending");
+  lines.push("  # state that now belongs to a DIFFERENT, currently in-flight read.");
+  lines.push("  - id: g_rp_pending_index");
+  lines.push("    type: int");
+  lines.push("    restore_value: false");
+  lines.push('    initial_value: "-1"');
+  lines.push("  - id: g_rp_pending_started_ms");
+  lines.push("    type: uint32_t");
+  lines.push("    restore_value: false");
+  lines.push('    initial_value: "0"');
+  return lines.join("\n");
+}
+
+const SERVICER_READ_TIMEOUT_MS = 3000;
+const SERVICER_TICK_INTERVAL = "200ms";
+
+function buildServicerInterval() {
+  const lines = [];
+  lines.push("interval:");
+  lines.push(`  - interval: ${SERVICER_TICK_INTERVAL}`);
+  lines.push("    startup_delay: 3s");
+  lines.push("    then:");
+  lines.push("      - lambda: |-");
+  const L = (s) => lines.push(s === "" ? "" : "          " + s);
+
+  L("const uint32_t now = millis();");
+  L("");
+  L("// A read is already outstanding -- only check it for timeout; never issue");
+  L("// a second one (single Modbus transaction in flight at a time).");
+  L("if (id(g_rp_pending_index) >= 0) {");
+  L("  if (now - id(g_rp_pending_started_ms) > " + SERVICER_READ_TIMEOUT_MS + "U) {");
+  L("    const int idx = id(g_rp_pending_index);");
+  L("    id(g_rp_timeout_count)[idx] = uint16_t(id(g_rp_timeout_count)[idx] + 1);");
+  L("    id(g_rp_transport_state)[idx] = jk_poll_scheduler::IDLE;");
+  L("    id(g_rp_pending_index) = -1;");
+  L('    ESP_LOGW("jk_poll_scheduler", "Read timeout for block %u (address 0x%04X)", unsigned(idx), unsigned(jk_read_plan::kBlocks[idx].address));');
+  L("  }");
+  L("  return;");
+  L("}");
+  L("");
+  L("// Tier 1: any write transaction in flight (jk_write_tx's 6 generic slots,");
+  L("// or the CellCount topology driver's own bespoke transaction/recovery-probe");
+  L("// state) suppresses every background read this tick.");
+  L("bool write_in_flight = id(g_cellcount_tx_pending) || id(g_topology_recovery_pending);");
+  L("if (!write_in_flight) {");
+  L("  for (uint8_t i = 0; i < 6; i++) {");
+  L("    if (id(g_wtx_in_use)[i] && jk_write_tx::is_pending(id(g_wtx_status)[i])) { write_in_flight = true; break; }");
+  L("  }");
+  L("}");
+  L("if (write_in_flight) return;");
+  L("");
+  L("// Tier 2: active-settings-group hint. Stage 1 has no real ui_group data yet");
+  L("// (populated in Stage 2) -- always -1 here is a documented, deliberate");
+  L("// no-op, not a missing feature; the endpoint and this consumption point");
+  L("// both already exist and are unit-tested, ready for Stage 2's data.");
+  L("const bool group_hint_active = id(g_active_group_hint) >= 0 && now < id(g_active_group_hint_expires_ms);");
+  L("(void) group_hint_active; // not yet consulted -- see comment above");
+  L("const int active_group_block_index = -1;");
+  L("");
+  L(`std::array<jk_poll_scheduler::BlockState, jk_read_plan::kBlockCount> states;`);
+  L("for (size_t i = 0; i < jk_read_plan::kBlockCount; i++) {");
+  L("  states[i].last_attempt_ms = id(g_rp_last_attempt_ms)[i];");
+  L("  states[i].last_success_ms = id(g_rp_last_success_ms)[i];");
+  L("  states[i].error_count = id(g_rp_error_count)[i];");
+  L("  states[i].timeout_count = id(g_rp_timeout_count)[i];");
+  L("  states[i].transport_state = id(g_rp_transport_state)[i];");
+  L("  states[i].revision = id(g_rp_revision)[i];");
+  L("}");
+  L("uint32_t cadence_ms[jk_read_plan::kBlockCount];");
+  L("for (size_t i = 0; i < jk_read_plan::kBlockCount; i++) cadence_ms[i] = jk_read_plan::kBlocks[i].cadence_ms;");
+  L("");
+  L("const int chosen = jk_poll_scheduler::pick_next_block(states, cadence_ms, false, active_group_block_index, now);");
+  L("if (chosen < 0) return;");
+  L("");
+  L("jk_poll_scheduler::mark_issued(states[chosen], now);");
+  L("id(g_rp_last_attempt_ms)[chosen] = states[chosen].last_attempt_ms;");
+  L("id(g_rp_transport_state)[chosen] = states[chosen].transport_state;");
+  L("id(g_rp_pending_index) = chosen;");
+  L("id(g_rp_pending_started_ms) = now;");
+  L("");
+  L("const auto &block = jk_read_plan::kBlocks[chosen];");
+  L("auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(");
+  L("    id(bms0), esphome::modbus::EntityType::HOLDING, block.address, block.register_count,");
+  L("    [chosen](auto, uint16_t, const auto &data) {");
+  L("      const uint8_t payload_bytes = jk_read_plan::kBlocks[chosen].payload_bytes;");
+  L("      if (data.size() < payload_bytes) {");
+  L('        ESP_LOGW("jk_poll_scheduler", "Short response for block %u (address 0x%04X): %u/%u bytes",');
+  L("                 unsigned(chosen), unsigned(jk_read_plan::kBlocks[chosen].address), unsigned(data.size()), unsigned(payload_bytes));");
+  L("        id(g_rp_error_count)[chosen] = uint16_t(id(g_rp_error_count)[chosen] + 1);");
+  L("        id(g_rp_transport_state)[chosen] = jk_poll_scheduler::IDLE;");
+  L("        if (id(g_rp_pending_index) == chosen) id(g_rp_pending_index) = -1;");
+  L("        return;");
+  L("      }");
+  L("      const uint8_t *raw = data.data();");
+  L("      switch (chosen) {");
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    L(`        case ${i}: {  // 0x${parseInt(b.address, 16).toString(16).toUpperCase().padStart(4, "0")}`);
+    for (let j = 0; j < b.fields.length; j++) {
+      const f = b.fields[j];
+      const fieldIndex = blocks.slice(0, i).reduce((n, bb) => n + bb.fields.length, 0) + j;
+      if (f.wire_type === "ASCII") {
+        L(`          { char buf[17]; jk_poll_scheduler::decode_ascii(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
+      } else if (f.wire_type === "BIT") {
+        L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_bool(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
+      } else {
+        L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_numeric(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
+      }
+    }
+    L("          break;");
+    L("        }");
+  }
+  L("        default: break;");
+  L("      }");
+  L("      id(g_rp_last_success_ms)[chosen] = millis();");
+  L("      id(g_rp_revision)[chosen] = id(g_rp_revision)[chosen] + 1;");
+  L("      id(g_rp_transport_state)[chosen] = jk_poll_scheduler::IDLE;");
+  L("      if (id(g_rp_pending_index) == chosen) id(g_rp_pending_index) = -1;");
+  L("    });");
+  L("id(bms0)->queue_command(std::move(command));");
+  return lines.join("\n");
 }
 
 // ---------------------------------------------------------------------------

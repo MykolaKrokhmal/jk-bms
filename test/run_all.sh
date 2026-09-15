@@ -72,7 +72,15 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" \
 
 echo
 echo "=== read_plan_decode.h generated-table integration test ==="
-g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT" \
+# Two -I roots: repo root (so #include "protocol/generated/read_plan_decode.h"
+# resolves the same way it does from batterylifepo4.yaml's own includes:) AND
+# the component dir (so THAT header's own bare #include "jk_poll_scheduler_core.h"
+# resolves too -- a bare filename, not the full components/... path, because
+# ESPHome's real `includes:` flattens every included file into one shared
+# build src/ directory with no subdirectory structure preserved; confirmed
+# directly against a real `esphome compile`, see generate_read_plan.js's own
+# comment on this).
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT" -I "$REPO_ROOT/components/jk_poll_scheduler" \
   "$REPO_ROOT/test/jk_poll_scheduler/test_read_plan_decode.cpp" -o "$BUILD_DIR/test_read_plan_decode"
 "$BUILD_DIR/test_read_plan_decode"
 

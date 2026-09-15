@@ -79,6 +79,15 @@ const FILES_TO_COPY = [
   "protocol/generated/coverage_report.md",
   "protocol/generated/.generation-manifest.json",
   "test/register_catalog/validate.js",
+  // Final-preparation-plan Stage 1, commit boundary 2/3: the read-plan
+  // generator and its own generated outputs -- fingerprint.js's accept
+  // step now transitively needs these present (see CLAUDE.md's own noted
+  // pattern: adding a new generated file almost always means updating
+  // this list too).
+  "tools/protocol/generate_read_plan.js",
+  "protocol/generated/read_plan.json",
+  "protocol/generated/read_plan.yaml",
+  "protocol/generated/read_plan_decode.h",
 ];
 
 try {

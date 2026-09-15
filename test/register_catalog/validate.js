@@ -43,7 +43,17 @@ const nonRegisterSchema = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol",
 const evidenceSources = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "evidence", "sources.json"), "utf8"));
 const evidenceSourcesSchema = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "schema", "evidence-sources.schema.json"), "utf8"));
 
-const yamlSrc = fs.readFileSync(path.join(ROOT, "batterylifepo4.yaml"), "utf8");
+// Final-preparation-plan Stage 1, commit boundary 3: register addresses for
+// the 83 blocks migrated onto the generated scheduler no longer appear as
+// `address:` properties in batterylifepo4.yaml itself -- they live in the
+// generated package it now !include's (protocol/generated/read_plan.yaml,
+// whose own servicer emits one `// 0xNNNN` comment per block) and in the
+// generated decode table (read_plan_decode.h's own kBlocks literals). yamlSrc
+// is the union of all three, so every check below still holds without
+// needing to know WHICH file a given address now lives in.
+const yamlSrc = fs.readFileSync(path.join(ROOT, "batterylifepo4.yaml"), "utf8")
+  + fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.yaml"), "utf8")
+  + fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan_decode.h"), "utf8");
 const jsSrc = fs.readFileSync(path.join(ROOT, "jk_bms.js"), "utf8");
 const mockSrc = fs.readFileSync(path.join(ROOT, "demo", "mock-server.js"), "utf8");
 const catalogSrc = fs.readFileSync(path.join(ROOT, "register_catalog.json"), "utf8");

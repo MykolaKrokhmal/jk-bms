@@ -72,13 +72,25 @@ check("18. the two new citations' source_fingerprint match sources.json's record
     return v2Citation.source_fingerprint === v2Source.fingerprint && pdfCitation.source_fingerprint === pdfSource.fingerprint;
   })());
 
-// --- firmware config: ESPHome value_type must be a SIGNED 32-bit type ------
-const yaml = fs.readFileSync(path.join(ROOT, "batterylifepo4.yaml"), "utf8");
-const registerBlockMatch = yaml.match(/address:\s*0x12A8[\s\S]{0,200}?value_type:\s*(\S+)/);
-check("19. batterylifepo4.yaml's 0x12A8 modbus_controller block sets value_type: S_DWORD (ESPHome's signed 32-bit big-endian type)",
-  !!registerBlockMatch && registerBlockMatch[1] === "S_DWORD", registerBlockMatch && registerBlockMatch[1]);
-check("20. batterylifepo4.yaml no longer declares this register U_DWORD (unsigned)",
-  !/address:\s*0x12A8[\s\S]{0,200}?value_type:\s*U_DWORD/.test(yaml));
+// --- firmware config: the generated decode table must carry a SIGNED
+// 32-bit type -- Final-preparation-plan Stage 1, commit boundary 3: this
+// register migrated off batterylifepo4.yaml's own declarative
+// `value_type:` (that property no longer exists there for this register
+// at all, per the migration's own module comment) onto
+// protocol/generated/read_plan_decode.h's generated FieldDecode table,
+// which is now the real firmware-facing source of signedness for this
+// field's decode. Checked as generated TEXT (not just canonical.json,
+// already covered by checks 1-2 above) so this regression guard still
+// catches a genuine generator bug that canonical.json alone wouldn't
+// reveal (e.g. the generator silently dropping is_signed when emitting
+// the C++ literal).
+const decodeHeader = fs.readFileSync(path.join(ROOT, "protocol/generated/read_plan_decode.h"), "utf8");
+const fieldEntryMatch = decodeHeader.match(/\{"capacity_remaining",[^}]*\}/);
+check("19. read_plan_decode.h's capacity_remaining FieldDecode entry is signed (true) with WireType::S32",
+  !!fieldEntryMatch && /,\s*true\s*,/.test(fieldEntryMatch[0]) && /WireType::S32/.test(fieldEntryMatch[0]),
+  fieldEntryMatch && fieldEntryMatch[0]);
+check("20. read_plan_decode.h's capacity_remaining FieldDecode entry is not WireType::U32 (unsigned)",
+  !!fieldEntryMatch && !/WireType::U32/.test(fieldEntryMatch[0]));
 
 // --- generated artifact agreement -------------------------------------------
 const generatedCatalog = JSON.parse(fs.readFileSync(path.join(ROOT, "register_catalog.json"), "utf8"));

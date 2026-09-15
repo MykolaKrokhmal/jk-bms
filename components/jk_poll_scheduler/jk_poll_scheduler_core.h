@@ -191,6 +191,7 @@ inline void decode_ascii(const uint8_t *data, uint8_t payload_bytes, char *out, 
 // wasted fixed capacity.
 struct Block {
   uint16_t address;
+  uint8_t register_count;  // the wire request's actual register_count (see module comment on why this is NOT payload_bytes/2)
   uint8_t payload_bytes;  // exact byte length of this block's read response
   uint32_t cadence_ms;    // 0 = on-demand only, never auto-issued by pick_next_block()
   uint16_t fields_offset;
