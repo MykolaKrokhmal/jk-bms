@@ -125,7 +125,17 @@ async function main() {
   // read-only) and not a superset (stale metadata could not otherwise
   // turn a still-blocked field into a live editor, since
   // writableDefinitionForEntry only ever consults these two tables).
-  const settingDefsMatch = [...js.matchAll(/settingDef\(\s*"([a-z0-9_]+)"/g)].map((m) => m[1]);
+  // Final-preparation-plan Stage 1, commit boundary 1: SETTING_DEFS is now
+  // built as `SETTING_KEYS.map(settingDef)` rather than 18 literal
+  // `settingDef("key", "endpoint")` call sites, so the previous regex
+  // (which matched that literal call shape) would now silently match
+  // nothing — parse the SETTING_KEYS array itself instead, which still
+  // exists specifically so this exact-coverage check keeps working.
+  const settingDefsMatch = (() => {
+    const m = js.match(/const SETTING_KEYS = Object\.freeze\(\[([\s\S]*?)\n {2}\]\);/);
+    if (!m) throw new Error("SETTING_KEYS array not found in jk_bms.js in the expected shape");
+    return [...m[1].matchAll(/"([a-z0-9_]+)"/g)].map((k) => k[1]);
+  })();
   // Third critical audit (2026-09-10): the previous version of this regex
   // required a "\n  });" closer, which an EMPTY `Object.freeze({});` (all
   // on one line, as CONTROL_DEFS now is with balancing reverted too)

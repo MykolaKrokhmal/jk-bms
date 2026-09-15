@@ -68,6 +68,7 @@
           "frontend_label_en": "Smart sleep voltage",
           "ui_section": "settings",
           "ui_order": 10,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -92,7 +93,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -163,7 +164,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -258,6 +259,7 @@
           "frontend_label_en": "Cell under-voltage protection (UVP)",
           "ui_section": "settings",
           "ui_order": 20,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -282,7 +284,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -347,7 +349,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -442,6 +444,7 @@
           "frontend_label_en": "Cell under-voltage protection recovery (UVPR)",
           "ui_section": "settings",
           "ui_order": 30,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -466,7 +469,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -537,7 +540,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -632,6 +635,7 @@
           "frontend_label_en": "Cell over-voltage protection (OVP)",
           "ui_section": "settings",
           "ui_order": 40,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -656,7 +660,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -721,7 +725,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -816,6 +820,7 @@
           "frontend_label_en": "Cell over-voltage protection recovery (OVPR)",
           "ui_section": "settings",
           "ui_order": 50,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -840,7 +845,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -911,7 +916,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1006,6 +1011,7 @@
           "frontend_label_en": "Balance start delta",
           "ui_section": "settings",
           "ui_order": 60,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -1030,7 +1036,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1101,7 +1107,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1196,6 +1202,7 @@
           "frontend_label_en": "100% SOC voltage",
           "ui_section": "settings",
           "ui_order": 70,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -1220,7 +1227,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1291,7 +1298,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1386,6 +1393,7 @@
           "frontend_label_en": "0% SOC voltage",
           "ui_section": "settings",
           "ui_order": 80,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -1410,7 +1418,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1481,7 +1489,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1576,6 +1584,7 @@
           "frontend_label_en": "Cell request charge voltage (RCV)",
           "ui_section": "settings",
           "ui_order": 90,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -1600,7 +1609,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1671,7 +1680,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1766,6 +1775,7 @@
           "frontend_label_en": "Cell request float voltage (RFV)",
           "ui_section": "settings",
           "ui_order": 100,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -1790,7 +1800,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1861,7 +1871,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1956,6 +1966,7 @@
           "frontend_label_en": "System power-off voltage",
           "ui_section": "settings",
           "ui_order": 110,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -1980,7 +1991,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2045,7 +2056,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2140,6 +2151,7 @@
           "frontend_label_en": "Continued charge current",
           "ui_section": "settings",
           "ui_order": 120,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -2164,7 +2176,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2229,7 +2241,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2324,6 +2336,7 @@
           "frontend_label_en": "Charge OCP delay",
           "ui_section": "settings",
           "ui_order": 130,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -2348,7 +2361,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2413,7 +2426,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2508,6 +2521,7 @@
           "frontend_label_en": "Charge OCP recovery time",
           "ui_section": "settings",
           "ui_order": 140,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -2532,7 +2546,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2603,7 +2617,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2698,6 +2712,7 @@
           "frontend_label_en": "Continued discharge current",
           "ui_section": "settings",
           "ui_order": 150,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -2722,7 +2737,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2787,7 +2802,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2882,6 +2897,7 @@
           "frontend_label_en": "Discharge OCP delay",
           "ui_section": "settings",
           "ui_order": 160,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -2906,7 +2922,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2971,7 +2987,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3066,6 +3082,7 @@
           "frontend_label_en": "Discharge OCP recovery time",
           "ui_section": "settings",
           "ui_order": 170,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -3090,7 +3107,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3161,7 +3178,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3256,6 +3273,7 @@
           "frontend_label_en": "Short-circuit protection recovery time",
           "ui_section": "settings",
           "ui_order": 180,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -3280,7 +3298,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3351,7 +3369,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3446,6 +3464,7 @@
           "frontend_label_en": "Max balance current",
           "ui_section": "settings",
           "ui_order": 190,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -3470,7 +3489,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3541,7 +3560,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3636,6 +3655,7 @@
           "frontend_label_en": "Charge over-temperature protection",
           "ui_section": "settings",
           "ui_order": 200,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -3660,7 +3680,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3725,7 +3745,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3820,6 +3840,7 @@
           "frontend_label_en": "Charge OTP recovery",
           "ui_section": "settings",
           "ui_order": 210,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -3844,7 +3865,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3915,7 +3936,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4010,6 +4031,7 @@
           "frontend_label_en": "Discharge over-temperature protection",
           "ui_section": "settings",
           "ui_order": 220,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -4034,7 +4056,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4099,7 +4121,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4194,6 +4216,7 @@
           "frontend_label_en": "Discharge OTP recovery",
           "ui_section": "settings",
           "ui_order": 230,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -4218,7 +4241,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4289,7 +4312,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4384,6 +4407,7 @@
           "frontend_label_en": "Charge under-temperature protection",
           "ui_section": "settings",
           "ui_order": 240,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -4408,7 +4432,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4473,7 +4497,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4568,6 +4592,7 @@
           "frontend_label_en": "Charge UTP recovery",
           "ui_section": "settings",
           "ui_order": 250,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -4592,7 +4617,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4663,7 +4688,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4758,6 +4783,7 @@
           "frontend_label_en": "MOSFET over-temperature protection",
           "ui_section": "settings",
           "ui_order": 260,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -4782,7 +4808,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4847,7 +4873,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4942,6 +4968,7 @@
           "frontend_label_en": "MOSFET OTP recovery",
           "ui_section": "settings",
           "ui_order": 270,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -4966,7 +4993,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5037,7 +5064,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5132,6 +5159,7 @@
           "frontend_label_en": "Cell count",
           "ui_section": "settings",
           "ui_order": 15,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -5156,7 +5184,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5235,7 +5263,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5330,6 +5358,7 @@
           "frontend_label_en": "Charge enabled",
           "ui_section": "settings",
           "ui_order": 400,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": {
@@ -5357,7 +5386,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5422,7 +5451,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5517,6 +5546,7 @@
           "frontend_label_en": "Discharge enabled",
           "ui_section": "settings",
           "ui_order": 410,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": {
@@ -5544,7 +5574,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5609,7 +5639,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5704,6 +5734,7 @@
           "frontend_label_en": "Balancing enabled",
           "ui_section": "settings",
           "ui_order": 420,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": {
@@ -5731,7 +5762,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5796,7 +5827,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5891,6 +5922,7 @@
           "frontend_label_en": "Rated battery capacity",
           "ui_section": "settings",
           "ui_order": 290,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -5915,7 +5947,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5986,7 +6018,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6081,6 +6113,7 @@
           "frontend_label_en": "Short-circuit protection delay",
           "ui_section": "settings",
           "ui_order": 300,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -6105,7 +6138,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6170,7 +6203,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6265,6 +6298,7 @@
           "frontend_label_en": "Balance start voltage",
           "ui_section": "settings",
           "ui_order": 310,
+          "ui_group": null,
           "editor_kind": "number",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -6289,7 +6323,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6360,7 +6394,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6455,6 +6489,7 @@
           "frontend_label_en": "Float/support mode",
           "ui_section": "diagnostics",
           "ui_order": 1300,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -6479,7 +6514,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6544,7 +6579,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6641,6 +6676,7 @@
           "frontend_label_en": "Heating activation temperature",
           "ui_section": "settings",
           "ui_order": 500,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -6665,7 +6701,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6726,6 +6762,7 @@
           "frontend_label_en": "Heating deactivation temperature",
           "ui_section": "settings",
           "ui_order": 510,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -6750,7 +6787,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6798,7 +6835,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6876,6 +6913,7 @@
           "frontend_label_en": "Cell voltage 01",
           "ui_section": "cells",
           "ui_order": 1001,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -6900,7 +6938,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7007,7 +7045,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7102,6 +7140,7 @@
           "frontend_label_en": "Cell voltage 02",
           "ui_section": "cells",
           "ui_order": 1002,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -7126,7 +7165,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7205,7 +7244,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7300,6 +7339,7 @@
           "frontend_label_en": "Cell voltage 03",
           "ui_section": "cells",
           "ui_order": 1003,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -7324,7 +7364,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7403,7 +7443,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7498,6 +7538,7 @@
           "frontend_label_en": "Cell voltage 04",
           "ui_section": "cells",
           "ui_order": 1004,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -7522,7 +7563,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7601,7 +7642,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7696,6 +7737,7 @@
           "frontend_label_en": "Cell voltage 05",
           "ui_section": "cells",
           "ui_order": 1005,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -7720,7 +7762,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7799,7 +7841,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7894,6 +7936,7 @@
           "frontend_label_en": "Cell voltage 06",
           "ui_section": "cells",
           "ui_order": 1006,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -7918,7 +7961,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7997,7 +8040,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8092,6 +8135,7 @@
           "frontend_label_en": "Cell voltage 07",
           "ui_section": "cells",
           "ui_order": 1007,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -8116,7 +8160,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8195,7 +8239,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8290,6 +8334,7 @@
           "frontend_label_en": "Cell voltage 08",
           "ui_section": "cells",
           "ui_order": 1008,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -8314,7 +8359,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8393,7 +8438,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8488,6 +8533,7 @@
           "frontend_label_en": "Cell voltage 09",
           "ui_section": "cells",
           "ui_order": 1009,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -8512,7 +8558,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8591,7 +8637,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8686,6 +8732,7 @@
           "frontend_label_en": "Cell voltage 10",
           "ui_section": "cells",
           "ui_order": 1010,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -8710,7 +8757,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8789,7 +8836,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8884,6 +8931,7 @@
           "frontend_label_en": "Cell voltage 11",
           "ui_section": "cells",
           "ui_order": 1011,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -8908,7 +8956,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8987,7 +9035,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9082,6 +9130,7 @@
           "frontend_label_en": "Cell voltage 12",
           "ui_section": "cells",
           "ui_order": 1012,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -9106,7 +9155,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9185,7 +9234,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9280,6 +9329,7 @@
           "frontend_label_en": "Cell voltage 13",
           "ui_section": "cells",
           "ui_order": 1013,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -9304,7 +9354,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9383,7 +9433,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9478,6 +9528,7 @@
           "frontend_label_en": "Cell voltage 14",
           "ui_section": "cells",
           "ui_order": 1014,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -9502,7 +9553,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9581,7 +9632,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9676,6 +9727,7 @@
           "frontend_label_en": "Cell voltage 15",
           "ui_section": "cells",
           "ui_order": 1015,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -9700,7 +9752,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9779,7 +9831,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9874,6 +9926,7 @@
           "frontend_label_en": "Cell voltage 16",
           "ui_section": "cells",
           "ui_order": 1016,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -9898,7 +9951,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9977,7 +10030,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10072,6 +10125,7 @@
           "frontend_label_en": "Connected cell mask",
           "ui_section": "diagnostics",
           "ui_order": 1100,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -10096,7 +10150,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10175,7 +10229,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10270,6 +10324,7 @@
           "frontend_label_en": "Average cell voltage",
           "ui_section": "cells",
           "ui_order": 1120,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -10294,7 +10349,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10373,7 +10428,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10468,6 +10523,7 @@
           "frontend_label_en": "Delta cell voltage",
           "ui_section": "cells",
           "ui_order": 1130,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -10492,7 +10548,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10571,7 +10627,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10668,6 +10724,7 @@
           "frontend_label_en": "Max voltage cell index (native register)",
           "ui_section": "none",
           "ui_order": 0,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -10730,6 +10787,7 @@
           "frontend_label_en": "Min voltage cell index (native register)",
           "ui_section": "none",
           "ui_order": 0,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -10834,6 +10892,7 @@
           "frontend_label_en": "Cell wire resistance 01",
           "ui_section": "cells",
           "ui_order": 1201,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -10858,7 +10917,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10923,7 +10982,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11018,6 +11077,7 @@
           "frontend_label_en": "Cell wire resistance 02",
           "ui_section": "cells",
           "ui_order": 1202,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -11042,7 +11102,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11107,7 +11167,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11202,6 +11262,7 @@
           "frontend_label_en": "Cell wire resistance 03",
           "ui_section": "cells",
           "ui_order": 1203,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -11226,7 +11287,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11291,7 +11352,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11386,6 +11447,7 @@
           "frontend_label_en": "Cell wire resistance 04",
           "ui_section": "cells",
           "ui_order": 1204,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -11410,7 +11472,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11475,7 +11537,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11570,6 +11632,7 @@
           "frontend_label_en": "Cell wire resistance 05",
           "ui_section": "cells",
           "ui_order": 1205,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -11594,7 +11657,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11659,7 +11722,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11754,6 +11817,7 @@
           "frontend_label_en": "Cell wire resistance 06",
           "ui_section": "cells",
           "ui_order": 1206,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -11778,7 +11842,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11843,7 +11907,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11938,6 +12002,7 @@
           "frontend_label_en": "Cell wire resistance 07",
           "ui_section": "cells",
           "ui_order": 1207,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -11962,7 +12027,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12027,7 +12092,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12122,6 +12187,7 @@
           "frontend_label_en": "Cell wire resistance 08",
           "ui_section": "cells",
           "ui_order": 1208,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -12146,7 +12212,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12211,7 +12277,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12306,6 +12372,7 @@
           "frontend_label_en": "Cell wire resistance 09",
           "ui_section": "cells",
           "ui_order": 1209,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -12330,7 +12397,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12395,7 +12462,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12490,6 +12557,7 @@
           "frontend_label_en": "Cell wire resistance 10",
           "ui_section": "cells",
           "ui_order": 1210,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -12514,7 +12582,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12579,7 +12647,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12674,6 +12742,7 @@
           "frontend_label_en": "Cell wire resistance 11",
           "ui_section": "cells",
           "ui_order": 1211,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -12698,7 +12767,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12763,7 +12832,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12858,6 +12927,7 @@
           "frontend_label_en": "Cell wire resistance 12",
           "ui_section": "cells",
           "ui_order": 1212,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -12882,7 +12952,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12947,7 +13017,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13042,6 +13112,7 @@
           "frontend_label_en": "Cell wire resistance 13",
           "ui_section": "cells",
           "ui_order": 1213,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -13066,7 +13137,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13131,7 +13202,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13226,6 +13297,7 @@
           "frontend_label_en": "Cell wire resistance 14",
           "ui_section": "cells",
           "ui_order": 1214,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -13250,7 +13322,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13315,7 +13387,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13410,6 +13482,7 @@
           "frontend_label_en": "Cell wire resistance 15",
           "ui_section": "cells",
           "ui_order": 1215,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -13434,7 +13507,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13499,7 +13572,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13594,6 +13667,7 @@
           "frontend_label_en": "Cell wire resistance 16",
           "ui_section": "cells",
           "ui_order": 1216,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -13618,7 +13692,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13683,7 +13757,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13778,6 +13852,7 @@
           "frontend_label_en": "MOSFET temperature",
           "ui_section": "cells",
           "ui_order": 1310,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -13802,7 +13877,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13867,7 +13942,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13962,6 +14037,7 @@
           "frontend_label_en": "Cell wire resistance status mask (native register)",
           "ui_section": "none",
           "ui_order": 0,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -14066,6 +14142,7 @@
           "frontend_label_en": "Battery voltage (native register)",
           "ui_section": "diagnostics",
           "ui_order": 1320,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -14090,7 +14167,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14169,7 +14246,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14264,6 +14341,7 @@
           "frontend_label_en": "Native BMS power",
           "ui_section": "diagnostics",
           "ui_order": 1330,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -14288,7 +14366,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14353,7 +14431,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14448,6 +14526,7 @@
           "frontend_label_en": "Current (native register)",
           "ui_section": "diagnostics",
           "ui_order": 1340,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -14472,7 +14551,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14551,7 +14630,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14646,6 +14725,7 @@
           "frontend_label_en": "Temperature 1",
           "ui_section": "diagnostics",
           "ui_order": 1350,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -14670,7 +14750,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14765,7 +14845,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14860,6 +14940,7 @@
           "frontend_label_en": "Temperature 2",
           "ui_section": "diagnostics",
           "ui_order": 1360,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -14884,7 +14965,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14949,7 +15030,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15044,6 +15125,7 @@
           "frontend_label_en": "Alarms bitmask",
           "ui_section": "diagnostics",
           "ui_order": 1370,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -15068,7 +15150,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15133,7 +15215,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15228,6 +15310,7 @@
           "frontend_label_en": "Balance current",
           "ui_section": "cells",
           "ui_order": 1380,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -15252,7 +15335,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15316,7 +15399,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15398,6 +15481,7 @@
           "frontend_label_en": "Balancing active",
           "ui_section": "diagnostics",
           "ui_order": 1390,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": {
@@ -15426,7 +15510,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15518,6 +15602,7 @@
           "frontend_label_en": "State of charge (SOC)",
           "ui_section": "overview",
           "ui_order": 1400,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -15542,7 +15627,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15621,7 +15706,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15716,6 +15801,7 @@
           "frontend_label_en": "Capacity remaining",
           "ui_section": "overview",
           "ui_order": 1410,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -15740,7 +15826,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15848,7 +15934,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15943,6 +16029,7 @@
           "frontend_label_en": "Full charge capacity",
           "ui_section": "diagnostics",
           "ui_order": 1420,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -15967,7 +16054,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16060,7 +16147,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16155,6 +16242,7 @@
           "frontend_label_en": "Charging cycles",
           "ui_section": "diagnostics",
           "ui_order": 1430,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -16179,7 +16267,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16272,7 +16360,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16367,6 +16455,7 @@
           "frontend_label_en": "Total charging cycle capacity",
           "ui_section": "diagnostics",
           "ui_order": 1440,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -16391,7 +16480,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16456,7 +16545,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16553,6 +16642,7 @@
           "frontend_label_en": "State of health (SOH)",
           "ui_section": "overview",
           "ui_order": 1450,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -16577,7 +16667,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16669,6 +16759,7 @@
           "frontend_label_en": "Precharge status",
           "ui_section": "diagnostics",
           "ui_order": 1460,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -16693,7 +16784,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16758,7 +16849,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16853,6 +16944,7 @@
           "frontend_label_en": "Custom alarm 1",
           "ui_section": "diagnostics",
           "ui_order": 1470,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -16877,7 +16969,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16942,7 +17034,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17037,6 +17129,7 @@
           "frontend_label_en": "Runtime",
           "ui_section": "diagnostics",
           "ui_order": 1480,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -17061,7 +17154,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17126,7 +17219,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17223,6 +17316,7 @@
           "frontend_label_en": "Charging active",
           "ui_section": "overview",
           "ui_order": 1490,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -17247,7 +17341,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17325,6 +17419,7 @@
           "frontend_label_en": "Discharging active",
           "ui_section": "overview",
           "ui_order": 1500,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -17349,7 +17444,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17414,7 +17509,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17509,6 +17604,7 @@
           "frontend_label_en": "Custom alarm 2",
           "ui_section": "diagnostics",
           "ui_order": 1510,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -17533,7 +17629,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17598,7 +17694,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17693,6 +17789,7 @@
           "frontend_label_en": "Discharge OCP recovery remaining",
           "ui_section": "diagnostics",
           "ui_order": 1520,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -17717,7 +17814,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17782,7 +17879,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17877,6 +17974,7 @@
           "frontend_label_en": "Discharge SCP recovery remaining",
           "ui_section": "diagnostics",
           "ui_order": 1530,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -17901,7 +17999,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17966,7 +18064,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18061,6 +18159,7 @@
           "frontend_label_en": "Charge OCP recovery remaining",
           "ui_section": "diagnostics",
           "ui_order": 1540,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -18085,7 +18184,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18150,7 +18249,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18245,6 +18344,7 @@
           "frontend_label_en": "Charge SCP recovery remaining",
           "ui_section": "diagnostics",
           "ui_order": 1550,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -18269,7 +18369,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18334,7 +18434,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18429,6 +18529,7 @@
           "frontend_label_en": "UVP recovery remaining",
           "ui_section": "diagnostics",
           "ui_order": 1560,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -18453,7 +18554,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18518,7 +18619,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18613,6 +18714,7 @@
           "frontend_label_en": "OVP recovery remaining",
           "ui_section": "diagnostics",
           "ui_order": 1570,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -18637,7 +18739,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18702,7 +18804,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18797,6 +18899,7 @@
           "frontend_label_en": "Absent-sensor mask / heating status",
           "ui_section": "diagnostics",
           "ui_order": 1580,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -18821,7 +18924,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18886,7 +18989,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18981,6 +19084,7 @@
           "frontend_label_en": "Reserved (0x12D2)",
           "ui_section": "none",
           "ui_order": 0,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -19085,6 +19189,7 @@
           "frontend_label_en": "Emergency timer",
           "ui_section": "diagnostics",
           "ui_order": 1590,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -19109,7 +19214,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19174,7 +19279,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19269,6 +19374,7 @@
           "frontend_label_en": "Battery current correction",
           "ui_section": "diagnostics",
           "ui_order": 1600,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -19293,7 +19399,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19358,7 +19464,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19453,6 +19559,7 @@
           "frontend_label_en": "Charge current measurement voltage",
           "ui_section": "diagnostics",
           "ui_order": 1610,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -19477,7 +19584,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19542,7 +19649,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19637,6 +19744,7 @@
           "frontend_label_en": "Discharge current measurement voltage",
           "ui_section": "diagnostics",
           "ui_order": 1620,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -19661,7 +19769,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19726,7 +19834,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19821,6 +19929,7 @@
           "frontend_label_en": "Battery voltage correction",
           "ui_section": "diagnostics",
           "ui_order": 1630,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -19845,7 +19954,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19910,7 +20019,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20005,6 +20114,7 @@
           "frontend_label_en": "Alternate battery voltage",
           "ui_section": "diagnostics",
           "ui_order": 1640,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -20029,7 +20139,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20094,7 +20204,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20189,6 +20299,7 @@
           "frontend_label_en": "Heating current",
           "ui_section": "diagnostics",
           "ui_order": 1650,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -20213,7 +20324,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20263,7 +20374,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20343,6 +20454,7 @@
           "frontend_label_en": "BMS system ticks",
           "ui_section": "diagnostics",
           "ui_order": 1660,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -20367,7 +20479,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20432,7 +20544,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20527,6 +20639,7 @@
           "frontend_label_en": "Temperature 3",
           "ui_section": "diagnostics",
           "ui_order": 1670,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -20551,7 +20664,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20601,7 +20714,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20681,6 +20794,7 @@
           "frontend_label_en": "Temperature 4",
           "ui_section": "diagnostics",
           "ui_order": 1680,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -20705,7 +20819,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20770,7 +20884,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20865,6 +20979,7 @@
           "frontend_label_en": "Temperature 5",
           "ui_section": "diagnostics",
           "ui_order": 1690,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -20889,7 +21004,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20954,7 +21069,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21049,6 +21164,7 @@
           "frontend_label_en": "BMS model",
           "ui_section": "diagnostics",
           "ui_order": 700,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -21073,7 +21189,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21149,7 +21265,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21227,6 +21343,7 @@
           "frontend_label_en": "Setup passcode",
           "ui_section": "settings",
           "ui_order": 900,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -21251,7 +21368,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21316,7 +21433,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21413,6 +21530,7 @@
           "frontend_label_en": "LCD/buzzer trigger source",
           "ui_section": "settings",
           "ui_order": 540,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": {
             "depends_on_field": null,
@@ -21441,7 +21559,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21502,6 +21620,7 @@
           "frontend_label_en": "Dry contact 1 trigger source",
           "ui_section": "settings",
           "ui_order": 550,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": {
             "depends_on_field": null,
@@ -21530,7 +21649,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21578,7 +21697,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21658,6 +21777,7 @@
           "frontend_label_en": "Dry contact 2 trigger source",
           "ui_section": "settings",
           "ui_order": 560,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": {
             "depends_on_field": null,
@@ -21686,7 +21806,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21747,6 +21867,7 @@
           "frontend_label_en": "UART protocol library version",
           "ui_section": "diagnostics",
           "ui_order": 570,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -21771,7 +21892,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21819,7 +21940,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21897,6 +22018,7 @@
           "frontend_label_en": "Dry contact 1 trigger value",
           "ui_section": "settings",
           "ui_order": 600,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": {
             "depends_on_field": "dry_contact_1_trigger_source",
@@ -21925,7 +22047,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21973,7 +22095,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -22051,6 +22173,7 @@
           "frontend_label_en": "Dry contact 1 recovery value",
           "ui_section": "settings",
           "ui_order": 610,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": {
             "depends_on_field": "dry_contact_1_trigger_source",
@@ -22079,7 +22202,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22127,7 +22250,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -22205,6 +22328,7 @@
           "frontend_label_en": "Dry contact 2 trigger value",
           "ui_section": "settings",
           "ui_order": 620,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": {
             "depends_on_field": "dry_contact_2_trigger_source",
@@ -22233,7 +22357,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22281,7 +22405,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -22359,6 +22483,7 @@
           "frontend_label_en": "Dry contact 2 recovery value",
           "ui_section": "settings",
           "ui_order": 630,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": {
             "depends_on_field": "dry_contact_2_trigger_source",
@@ -22387,7 +22512,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22435,7 +22560,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -22515,6 +22640,7 @@
           "frontend_label_en": "RCV time",
           "ui_section": "settings",
           "ui_order": 520,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -22539,7 +22665,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22617,6 +22743,7 @@
           "frontend_label_en": "RFV time",
           "ui_section": "settings",
           "ui_order": 530,
+          "ui_group": null,
           "editor_kind": "readonly",
           "dynamic_dependency": null,
           "enum_map": null,
@@ -22641,7 +22768,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+              "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22706,7 +22833,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:62afabca28531077211537376cb9ec4788ef9ea9fafba6cc35e0b75d8a2283ed",
+          "source_fingerprint": "sha256:47850cc41b83ea3ab5e7c919fbefa0c62b5723a8daffbb7e0e9c660cf28c0d3a",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"

@@ -240,6 +240,22 @@ function buildFieldMeta() {
       step: f.step ?? null,
       pollGroup: r.poll_group ?? null,
       freshnessBudgetS: r.freshness_budget_s ?? null,
+      // Final-preparation-plan Stage 1: the fields below already existed in
+      // protocol/registers.canonical.json but never reached the browser —
+      // jk_bms.js rendered Settings from 3 separate, generator-disconnected
+      // hand-typed arrays instead (SETTING_DEFS/DIAGNOSTIC_ENTITY_ORDER/
+      // DIAGNOSTIC_ENTITY_LABELS), which already caused one real drift bug
+      // (discharge_ocpr_left/discharge_scpr_left misspelled in 3 of 4 of
+      // them). This is the single generated source those hand arrays are
+      // being retired in favor of — see jk_bms.js's own comment at the
+      // fieldMeta consumption site.
+      labelUk: f.frontend_label_uk ?? null,
+      labelEn: f.frontend_label_en ?? null,
+      uiSection: f.ui_section ?? null,
+      uiOrder: f.ui_order ?? null,
+      uiGroup: f.ui_group ?? null,
+      editorKind: f.editor_kind ?? null,
+      enumMap: f.enum_map ?? null,
     }]);
   }
   // Self-audit (2026-09-11): the first version of this function covered
@@ -280,6 +296,21 @@ function buildFieldMeta() {
       step: null,
       pollGroup: derivedFreshness.pollGroup,
       freshnessBudgetS: derivedFreshness.freshnessBudgetS,
+      // non_register_entities.canonical.json already carries labels (its
+      // own schema has frontend_label_uk/en) — piped through for the same
+      // reason register fields' labels are, so nothing needs a second,
+      // hand-typed label table. It has no ui_section/ui_order/ui_group/
+      // editor_kind/enum_map concept of its own (a different, simpler
+      // "category" field instead) — those stay null here, matching how
+      // DIAGNOSTIC_ENTITY_LABELS/ORDER's replacement is scoped to
+      // register-backed rows only (isBmsRegisterEntry in jk_bms.js).
+      labelUk: e.frontend_label_uk ?? null,
+      labelEn: e.frontend_label_en ?? null,
+      uiSection: null,
+      uiOrder: null,
+      uiGroup: null,
+      editorKind: null,
+      enumMap: null,
     }]);
   }
   return entries;
@@ -347,29 +378,6 @@ function buildCppHeader() {
   lines.push("} // namespace jk_protocol_catalog");
   lines.push("");
   return lines.join("\n");
-}
-
-// ---------------------------------------------------------------------------
-// 4. Frontend catalog projection (standalone inspectable copy of exactly
-//    what gets injected into jk_bms.js, plus label/order/unit/editor data
-//    the frontend does not yet consume — kept for Stage 11's use and for
-//    drift-detection tooling).
-// ---------------------------------------------------------------------------
-function buildFrontendCatalog() {
-  const settingsRows = allRegisterFields
-    .filter(({ field: f }) => f.ui_section === "settings")
-    .sort((a, b) => a.field.ui_order - b.field.ui_order)
-    .map(({ field: f }) => ({
-      key: f.key, label_uk: f.frontend_label_uk, label_en: f.frontend_label_en,
-      unit_uk: f.uk_display_unit, unit_en: f.en_display_unit, editor: f.editor_kind,
-      ui_order: f.ui_order, effective_access: f.effective_access,
-    }));
-  return {
-    "$comment": HEADER,
-    genericTxAddress: Object.fromEntries(buildGenericTxAddress()),
-    nonRegisterKeys: buildNonRegisterKeys(),
-    settingsRows,
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -442,8 +450,18 @@ function buildJsInjectionBlock() {
     .map((b) => `      ${b.key}: "${jsStringEscape(b.reason)}",`)
     .join("\n");
   const jsLiteral = (v) => (v === null || v === undefined ? "null" : typeof v === "string" ? `"${jsStringEscape(v)}"` : String(v));
+  // enum_map is the one non-scalar fieldMeta value (an object, e.g.
+  // {"0":"Off","1":"On"}) — jsLiteral only handles null/string/number, so
+  // it gets its own small object-literal serializer, keys sorted for
+  // deterministic output (this project's generate.js --check drift
+  // detection depends on byte-identical regeneration).
+  const jsEnumMapLiteral = (m) => {
+    if (m === null || m === undefined) return "null";
+    const keys = Object.keys(m).sort();
+    return `Object.freeze({ ${keys.map((k) => `"${jsStringEscape(k)}": "${jsStringEscape(m[k])}"`).join(", ")} })`;
+  };
   const fieldMetaLines = fieldMetaEntries
-    .map(([k, m]) => `      ${k}: { unit: ${jsLiteral(m.unit)}, ukUnit: ${jsLiteral(m.ukUnit)}, enUnit: ${jsLiteral(m.enUnit)}, precision: ${jsLiteral(m.precision)}, min: ${jsLiteral(m.min)}, max: ${jsLiteral(m.max)}, step: ${jsLiteral(m.step)}, pollGroup: ${jsLiteral(m.pollGroup)}, freshnessBudgetS: ${jsLiteral(m.freshnessBudgetS)} },`)
+    .map(([k, m]) => `      ${k}: { unit: ${jsLiteral(m.unit)}, ukUnit: ${jsLiteral(m.ukUnit)}, enUnit: ${jsLiteral(m.enUnit)}, precision: ${jsLiteral(m.precision)}, min: ${jsLiteral(m.min)}, max: ${jsLiteral(m.max)}, step: ${jsLiteral(m.step)}, pollGroup: ${jsLiteral(m.pollGroup)}, freshnessBudgetS: ${jsLiteral(m.freshnessBudgetS)}, labelUk: ${jsLiteral(m.labelUk)}, labelEn: ${jsLiteral(m.labelEn)}, uiSection: ${jsLiteral(m.uiSection)}, uiOrder: ${jsLiteral(m.uiOrder)}, uiGroup: ${jsLiteral(m.uiGroup)}, editorKind: ${jsLiteral(m.editorKind)}, enumMap: ${jsEnumMapLiteral(m.enumMap)} },`)
     .join("\n");
   return [
     JS_BEGIN,

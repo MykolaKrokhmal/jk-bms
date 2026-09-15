@@ -64,6 +64,7 @@ function baseField(overrides = {}) {
     write_safety_class: "normal", esphome_domain: "number", esphome_read_entity_id: "example_field",
     esphome_write_entity_id: null, backend_key: "example_field",
     frontend_label_uk: "Приклад", frontend_label_en: "Example", ui_section: "settings", ui_order: 10,
+    ui_group: null,
     editor_kind: "readonly", dynamic_dependency: null, enum_map: null, unknown_code_policy: null,
     evidence: [implementationEvidence, hardwareEvidence],
     verification_status: "corroborated_with_limitations", exclusion_reason: "TEST_WRITE_BLOCKED", implementation_status: "implemented",

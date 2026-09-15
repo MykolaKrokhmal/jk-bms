@@ -54,10 +54,10 @@
           "word_order": { "type": "string", "enum": ["single_word", "high_word_first", "sequential_bytes"] },
           "read_function": { "type": ["string", "null"], "enum": ["read_holding_registers_fc03", null] },
           "write_function": { "type": ["string", "null"], "enum": ["write_multiple_registers_fc16", null] },
-          "declared_access": { "type": "string", "enum": ["r", "rw"] },
+          "declared_access": { "type": "string", "enum": ["r", "rw", "w"] },
           "poll_group": {
             "type": "string",
-            "enum": ["cell_block_1s", "config_slow_300s", "telemetry_15s", "on_demand_passcode", "on_demand_topology"]
+            "enum": ["cell_block_1s", "config_slow_300s", "telemetry_15s", "on_demand_passcode", "on_demand_topology", "on_demand_service"]
           },
           "freshness_budget_s": { "type": "number", "minimum": 0 },
           "atomicity_group": { "type": "string" },
@@ -72,7 +72,7 @@
                 "decimal_precision", "minimum", "maximum", "step", "reserved_values", "nullable",
                 "packed_siblings", "overlap_rule", "access", "effective_access", "write_safety_class",
                 "esphome_domain", "esphome_read_entity_id", "esphome_write_entity_id", "backend_key",
-                "frontend_label_uk", "frontend_label_en", "ui_section", "ui_order", "editor_kind",
+                "frontend_label_uk", "frontend_label_en", "ui_section", "ui_order", "ui_group", "editor_kind",
                 "dynamic_dependency", "enum_map", "unknown_code_policy", "evidence", "verification_status", "exclusion_reason",
                 "implementation_status"
               ],
@@ -99,8 +99,8 @@
                 "nullable": { "type": "boolean" },
                 "packed_siblings": { "type": "array", "items": { "type": "string" } },
                 "overlap_rule": { "type": ["string", "null"] },
-                "access": { "type": "string", "enum": ["r", "rw"] },
-                "effective_access": { "type": "string", "enum": ["r", "rw", "unsupported"] },
+                "access": { "type": "string", "enum": ["r", "rw", "w"] },
+                "effective_access": { "type": "string", "enum": ["r", "rw", "unsupported", "w"] },
                 "write_safety_class": {
                   "type": "string",
                   "enum": ["normal", "disruptive", "topology", "credential", "unsupported", "n/a"]
@@ -119,6 +119,11 @@
                   "enum": ["settings", "diagnostics", "cells", "overview", "electrical", "state", "none"]
                 },
                 "ui_order": { "type": "integer" },
+                "ui_group": {
+                  "type": ["integer", "null"],
+                  "minimum": 1,
+                  "maximum": 12
+                },
                 "editor_kind": {
                   "type": "string",
                   "enum": ["readonly", "number", "toggle", "enum_select", "text", "password", "unsupported"]
