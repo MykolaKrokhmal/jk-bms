@@ -88,6 +88,11 @@ const FILES_TO_COPY = [
   "protocol/generated/read_plan.json",
   "protocol/generated/read_plan.yaml",
   "protocol/generated/read_plan_decode.h",
+  // Stage 1 corrective pass (§4): the protocol-blockers registry --
+  // validate.js's own schema-validation of it transitively runs as part
+  // of fingerprint.js's accept step's broader validation pass.
+  "protocol/schema/protocol-blockers.schema.json",
+  "protocol/evidence/protocol_blockers.json",
 ];
 
 try {

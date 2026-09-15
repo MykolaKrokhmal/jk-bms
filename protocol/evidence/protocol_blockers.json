@@ -1,0 +1,16 @@
+{
+  "$schema": "../schema/protocol-blockers.schema.json",
+  "schema_version": 1,
+  "blockers": [
+    {
+      "parameter_id": "rcv_time,rfv_time",
+      "address": "0x1504",
+      "issue": "The generic-read-plan generator (tools/protocol/generate_read_plan.js) derives every block's wire register_count from a uniform rule (2x the canonical word_count, matching the JK protocol's documented declared-address gap convention — confirmed against 76 of 78 non-ASCII real entities this session). This ONE address is the one place that uniform rule disagrees with the real, hardware-tested pre-migration YAML: the real entries requested register_count=1 for each of rcv_time/rfv_time, while the uniform rule gives register_count=2 for the single merged block covering both. register_count=2 is used in the generated read plan (consistent with every other single_word register in the same memory region; Modbus over-reading is ordinarily harmless), but this specific address has no direct hardware confirmation that register_count=2 behaves identically to the previously-verified register_count=1 on the real JK-PB device (vs. erroring, timing out, or returning a differently-shaped response).",
+      "evidence_needed": "A real-hardware, read-only FC03 request at 0x1504 with register_count=2, confirming: (a) the device returns a normal, 2-byte or 4-byte response (not an exception/error frame), and (b) the decoded rcv_time/rfv_time values match what register_count=1 x2 (two separate reads) independently reports. No write of any kind is needed to resolve this — read-only on both sides of the comparison.",
+      "owner": "hardware-verification-session",
+      "closure_criterion": "Either (a) register_count=2 confirmed to decode identically to the previously-verified register_count=1 behavior on real hardware, closing this blocker with the generated read plan unchanged, or (b) register_count=2 is confirmed wrong/unsafe, in which case generate_read_plan.js's CADENCE_OVERRIDE_MS-style exception-table pattern gets a new WIRE_REGISTER_COUNT_OVERRIDE entry for this one address (register_count=1), documented with the hardware evidence that justified it, and the read plan is regenerated.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    }
+  ]
+}

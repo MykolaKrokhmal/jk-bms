@@ -71,6 +71,12 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" \
 "$BUILD_DIR/test_jk_poll_scheduler_core"
 
 echo
+echo "=== electrical_metrics_scan golden-vector decode tests ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" \
+  "$REPO_ROOT/test/jk_poll_scheduler/test_electrical_metrics_decode.cpp" -o "$BUILD_DIR/test_electrical_metrics_decode"
+"$BUILD_DIR/test_electrical_metrics_decode"
+
+echo
 echo "=== read_plan_decode.h generated-table integration test ==="
 # Two -I roots: repo root (so #include "protocol/generated/read_plan_decode.h"
 # resolves the same way it does from batterylifepo4.yaml's own includes:) AND

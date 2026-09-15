@@ -177,6 +177,57 @@ inline void decode_ascii(const uint8_t *data, uint8_t payload_bytes, char *out, 
   out[n] = '\0';
 }
 
+// ---------------------------------------------------------------------
+// One hand-authored, non-generic custom decoder: electrical_metrics_scan
+// (0x1290 -- BatVol/BatWatt/BatCurrent, migrated from the pre-Stage-1
+// modbus_controller lambda). Ported VERBATIM (Final-preparation-plan
+// Stage 1 corrective pass): the generic FieldDecode pipeline cannot
+// express "read two non-adjacent sub-ranges of one 12-byte block and
+// compute a product," so this stays its own real, unit-tested function
+// (test/jk_poll_scheduler/test_electrical_metrics_decode.cpp) rather than
+// an untestable string embedded in the generator. `raw` must point at
+// this block's own 12-byte payload (byte 0 = start of THIS block's
+// response, matching every other decode function in this header -- see
+// read_be()'s own comment for why byte_offset is otherwise unused).
+// Byte range 4-7 (BatWatt) is deliberately never read: every power metric
+// is derived from voltage x current instead, exactly as the original
+// comment explains (avoids a stale cross-sensor dependency and BatWatt's
+// own rounding).
+// ---------------------------------------------------------------------
+
+struct ElectricalMetrics {
+  float total_voltage_v;
+  float current_a;
+  float power_w;
+  float charging_power_w;
+  float discharging_power_w;
+};
+
+// SIGN CONVENTION (audited from this exact register -- ported verbatim
+// from the pre-migration modbus_controller lambda, never re-derived):
+// BatCurrent (0x1298, INT32) is read with no sign inversion -- POSITIVE
+// current = charging (into the pack), NEGATIVE = discharging (out of the
+// pack). charging_power is power>0, discharging_power is -power when
+// power<0; every other current/power consumer in this project follows
+// this same rule (see this project's own SIGN CONVENTION comment,
+// preserved in git history at the pre-migration modbus_controller lambda).
+inline ElectricalMetrics decode_electrical_metrics(const uint8_t *raw) {
+  const uint32_t voltage_mv =
+      (uint32_t(raw[0]) << 24) | (uint32_t(raw[1]) << 16) |
+      (uint32_t(raw[2]) << 8) | uint32_t(raw[3]);
+  const int32_t current_ma = int32_t(
+      (uint32_t(raw[8]) << 24) | (uint32_t(raw[9]) << 16) |
+      (uint32_t(raw[10]) << 8) | uint32_t(raw[11]));
+
+  ElectricalMetrics m;
+  m.total_voltage_v = voltage_mv * 0.001f;
+  m.current_a = current_ma * 0.001f;
+  m.power_w = m.total_voltage_v * m.current_a;
+  m.charging_power_w = m.power_w > 0.0f ? m.power_w : 0.0f;
+  m.discharging_power_w = m.power_w < 0.0f ? -m.power_w : 0.0f;
+  return m;
+}
+
 // One physical Modbus read command (one register, per Stage 1's
 // deliberately conservative "one block per canonical register" clustering
 // choice -- see generate_read_plan.js's own module comment for why: it

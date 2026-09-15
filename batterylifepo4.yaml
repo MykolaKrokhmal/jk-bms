@@ -2112,71 +2112,21 @@ sensor:
     accuracy_decimals: 3
 
 
-  # 0x1290 BatVol UINT32 mV, 0x1294 BatWatt UINT32 mW,
-  # 0x1298 BatCurrent INT32 mA. One gapless 12-byte response guarantees that
-  # voltage/current/power are from the same Modbus frame.
-  - platform: modbus_controller
-    id: electrical_metrics_scan
-    internal: true
-    modbus_controller_id: bms0
-    address: 0x1290
-    register_type: holding
-    register_count: 12  # JK gap hack: double the real six-register span.
-    response_size: 12   # Real response is three adjacent DWORD values.
-    accuracy_decimals: 3
-    lambda: |-
-      // ESPHome can merge this item with the preceding 0x128A range. Always
-      // decode relative to this item's byte offset inside the merged response.
-      const size_t base = item->offset;
-      if (data.size() < base + 12) {
-        id(g_total_voltage_v) = NAN;
-        id(g_current_a) = NAN;
-        id(g_power_w) = NAN;
-        id(g_charging_power_w) = NAN;
-        id(g_discharging_power_w) = NAN;
-        return NAN;
-      }
-
-      const uint32_t voltage_mv =
-          (uint32_t(data[base]) << 24) | (uint32_t(data[base + 1]) << 16) |
-          (uint32_t(data[base + 2]) << 8) | uint32_t(data[base + 3]);
-      const int32_t current_ma = int32_t(
-          (uint32_t(data[base + 8]) << 24) | (uint32_t(data[base + 9]) << 16) |
-          (uint32_t(data[base + 10]) << 8) | uint32_t(data[base + 11]));
-
-      id(g_total_voltage_v) = voltage_mv * 0.001f;
-      id(g_current_a) = current_ma * 0.001f;
-      id(g_last_current_sample_ms) = millis(); // a genuinely fresh decode just landed — see battery_state's fresh-sample confirmation
-      // ============================================================
-      // SIGN CONVENTION (audited from this exact register, not assumed):
-      // BatCurrent (0x1298, INT32) is read here with no sign inversion —
-      // POSITIVE current = charging (current flowing INTO the pack),
-      // NEGATIVE current = discharging (current flowing OUT of the pack).
-      // Confirmed by this file's own next two lines, which have always
-      // gated on this sign: charging_power is power>0, discharging_power
-      // is -power when power<0. Every other current/power consumer (the
-      // frontend's raw current/power readouts, demo/mock-server.js's
-      // "charging"/"discharging" scenarios) follows this same rule — the
-      // frontend never re-derives charge/discharge state from this sign
-      // itself (it uses the separate `charging`/`discharging` booleans),
-      // so there is no second sign-convention to keep in sync.
-      // ============================================================
-      // Derive every power metric from the same voltage/current sample. This
-      // removes the stale cross-sensor dependency and ignores BatWatt rounding.
-      id(g_power_w) = id(g_total_voltage_v) * id(g_current_a); // P = V x I, same sign as current
-      id(g_charging_power_w) = id(g_power_w) > 0.0f ? id(g_power_w) : 0.0f;
-      id(g_discharging_power_w) = id(g_power_w) < 0.0f ? -id(g_power_w) : 0.0f;
-      return id(g_power_w);
-    on_value:
-      then:
-        - component.update: total_voltage
-        - component.update: current
-        - component.update: power
-        - component.update: charging_power
-        - component.update: discharging_power
-        - component.update: charging_current
-        - component.update: discharging_current
-
+  # 0x1290 BatVol UINT32 mV, 0x1294 BatWatt UINT32 mW (never decoded --
+  # every power metric is derived from voltage x current instead, see
+  # below), 0x1298 BatCurrent INT32 mA. Migrated off this file's own
+  # modbus_controller auto-poll onto the scheduler (Final-preparation-plan
+  # Stage 1 corrective pass) -- the audited voltage/current/power/sign-
+  # convention computation itself is unchanged, ported VERBATIM into
+  # components/jk_poll_scheduler/jk_poll_scheduler_core.h's own
+  # decode_electrical_metrics() (hand-written, unit-tested against golden
+  # byte vectors -- see test/jk_poll_scheduler/test_electrical_metrics_decode.cpp),
+  # dispatched from protocol/generated/read_plan.yaml's own scheduler
+  # servicer (see that generated file's own comment for the exact
+  # generated call site). This file no longer declares a physical read
+  # for it at all -- only the 7 downstream, purely-computed display
+  # entities below remain (updated via ->update() from that servicer,
+  # exactly matching what the removed on_value: automation used to do).
   - platform: template
     id: total_voltage
     name: "total voltage"

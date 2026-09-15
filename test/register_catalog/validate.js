@@ -51,7 +51,8 @@ const evidenceSourcesSchema = JSON.parse(fs.readFileSync(path.join(ROOT, "protoc
 // generated decode table (read_plan_decode.h's own kBlocks literals). yamlSrc
 // is the union of all three, so every check below still holds without
 // needing to know WHICH file a given address now lives in.
-const yamlSrc = fs.readFileSync(path.join(ROOT, "batterylifepo4.yaml"), "utf8")
+const batterylifepo4Src = fs.readFileSync(path.join(ROOT, "batterylifepo4.yaml"), "utf8");
+const yamlSrc = batterylifepo4Src
   + fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.yaml"), "utf8")
   + fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan_decode.h"), "utf8");
 const jsSrc = fs.readFileSync(path.join(ROOT, "jk_bms.js"), "utf8");
@@ -298,6 +299,50 @@ const catalogAddresses = new Set(registerDoc.registers.map((r) => r.address.toUp
 const uncoveredYamlAddresses = Array.from(yamlAddresses).filter((a) => !catalogAddresses.has(a));
 check("every `address: 0xNNNN` modbus_controller declaration in batterylifepo4.yaml has a catalog register",
   uncoveredYamlAddresses.length === 0, uncoveredYamlAddresses.join(", "));
+
+// ===========================================================================
+// 10. Stage 1's own hard exit gate (Final-preparation-plan, corrective
+//     pass): zero `platform: modbus_controller` READ entities remain in
+//     the tracked YAML -- the scheduler (protocol/generated/read_plan.yaml,
+//     !include'd) is the SOLE owner of every physical Modbus read.
+//     electrical_metrics_scan (0x1290) was the last remaining one; it
+//     migrated onto a hand-written custom decoder (jk_poll_scheduler_core.h's
+//     decode_electrical_metrics(), see its own golden-vector tests) in this
+//     corrective pass. Matches only a real list-item declaration (leading
+//     "  - platform: modbus_controller"), never a comment mentioning the
+//     string in prose (e.g. a historical "Converted from platform:
+//     modbus_controller..." note elsewhere in this file, which is not an
+//     active declaration and must not trip this gate).
+// ===========================================================================
+const modbusControllerDeclarations = (batterylifepo4Src.match(/^\s*-\s*platform:\s*modbus_controller\s*$/gm) || []).length;
+check("zero-legacy-polling gate: batterylifepo4.yaml declares no `platform: modbus_controller` read entities",
+  modbusControllerDeclarations === 0, `found ${modbusControllerDeclarations}`);
+
+// ===========================================================================
+// 11. protocol_blockers.json: schema-valid, and the one open 0x1504 entry
+//     stays consistent with the generated read plan's actual register_count
+//     for that address (Final-preparation-plan Stage 1 corrective pass §4:
+//     "не вгадуй 0x1504... зафіксуй її як конкретний Stage 1 hardware
+//     blocker" — this is the automated guard that a future regeneration
+//     can't silently change the register_count out from under the blocker's
+//     own recorded evidence_needed/closure_criterion without this failing).
+// ===========================================================================
+{
+  const blockersSchema = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "schema", "protocol-blockers.schema.json"), "utf8"));
+  const blockersDoc = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "evidence", "protocol_blockers.json"), "utf8"));
+  const blockerSchemaErrors = mini.validate(blockersSchema, blockersDoc);
+  check("protocol_blockers.json is schema-valid", blockerSchemaErrors.length === 0,
+    blockerSchemaErrors.map((e) => `${e.path} ${e.message}`).join(" | "));
+
+  const rcvBlocker = blockersDoc.blockers.find((b) => b.address === "0x1504" && b.status === "open");
+  check("the open 0x1504 (rcv_time/rfv_time) hardware blocker is present", !!rcvBlocker);
+
+  const readPlan = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.json"), "utf8"));
+  const block1504 = readPlan.blocks.find((b) => b.address === "0x1504");
+  check("0x1504 block exists in the generated read plan", !!block1504);
+  check("0x1504's generated register_count (2) still matches what the open blocker's own text describes -- a future regen changing this must update the blocker too",
+    !!block1504 && block1504.register_count === 2, block1504 && `register_count=${block1504.register_count}`);
+}
 
 console.log(`\n${checks} checks run, ${failures} failed.`);
 process.exit(failures ? 1 : 0);

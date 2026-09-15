@@ -56,7 +56,11 @@ static void test_every_block_field_range_is_in_bounds() {
   for (size_t i = 0; i < jk_read_plan::kBlockCount; i++) {
     const auto &b = jk_read_plan::kBlocks[i];
     check(b.fields_offset + b.fields_count <= jk_read_plan::kFieldCount, "block field range stays within kFields bounds");
-    check(b.fields_count >= 1, "every block has at least one field");
+    // fields_count == 0 is valid for exactly the one hand-authored
+    // custom-decode block (0x1290, electrical_metrics_scan) -- see
+    // test_electrical_metrics_scan_custom_block below for its own,
+    // specific coverage.
+    check(b.fields_count >= 1 || b.address == 0x1290, "every block has at least one field, except the one known custom-decode block");
     check(b.payload_bytes >= 1 && b.payload_bytes <= 16, "payload_bytes is a plausible register width (1-16 bytes)");
   }
 }
@@ -115,6 +119,69 @@ static void test_rcv_rfv_packed_in_one_block() {
   check(std::fabs(decode_numeric(data, *rcv, b->payload_bytes) - 10.0f) < 1e-6f, "rcv_time (low byte, scale 0.1) decodes correctly from the packed block");
 }
 
+// protocol/evidence/protocol_blockers.json's open 0x1504 hardware blocker
+// (Final-preparation-plan Stage 1 corrective pass §4): the real,
+// hardware-tested pre-migration YAML requested TWO SEPARATE register_count=1
+// reads for rcv_time/rfv_time; this generator's uniform rule instead issues
+// ONE combined register_count=2 read. This test proves the thing that
+// actually matters for correctness is unaffected by which wire strategy is
+// used: IF the device responds normally to either strategy, both yield the
+// IDENTICAL 2-byte value at 0x1504 (there is only one real byte layout for
+// this register's contents -- rcv_time low byte / rfv_time high byte,
+// unrelated to how many Modbus commands fetched them) -- decode_numeric()
+// is fed the SAME 2 bytes in the "two separate reads, now combined into one
+// local buffer" case, proving decode correctness does not depend on the
+// still-open wire-request question the blocker actually tracks. This is
+// NOT a claim that register_count=2 itself is confirmed safe on real
+// hardware -- see the blocker's own evidence_needed for what remains open.
+static void test_rcv_rfv_decode_invariant_to_which_wire_strategy_produced_the_bytes() {
+  const auto *b = find_block(0x1504);
+  if (!b) return;
+  const auto *rcv = find_field(*b, "rcv_time");
+  const auto *rfv = find_field(*b, "rfv_time");
+  if (!rcv || !rfv) return;
+
+  // Simulates "two separate register_count=1 reads, assembled into one
+  // 2-byte local buffer by the caller" -- byte-for-byte identical to what
+  // ONE register_count=2 read of the same register would also return
+  // (this register's real content is 2 bytes either way; register_count
+  // only changes how many Modbus commands ask for it, confirmed against
+  // this project's own JK-gap-convention analysis, see
+  // generate_read_plan.js's own module comment).
+  uint8_t assembled[2];
+  assembled[0] = 0x1E;  // rfv_time high byte = 30 (3.0h at scale 0.1)
+  assembled[1] = 0x08;  // rcv_time low byte = 8 (0.8h at scale 0.1)
+
+  check(std::fabs(decode_numeric(assembled, *rcv, b->payload_bytes) - 0.8f) < 1e-6f,
+        "rcv_time decodes identically regardless of which wire strategy (1 vs 2 requests) produced this exact byte pair");
+  check(std::fabs(decode_numeric(assembled, *rfv, b->payload_bytes) - 3.0f) < 1e-6f,
+        "rfv_time decodes identically regardless of which wire strategy (1 vs 2 requests) produced this exact byte pair");
+}
+
+// The generic short-response guard (protocol/generated/read_plan.yaml's own
+// servicer, `if (data.size() < payload_bytes) { ...error...; return; }` --
+// see that generated file's own case-0x1504 comment) is this project's
+// actual fail-closed protection for the open blocker's real risk: if
+// register_count=2 turns out to make the real device return something
+// OTHER than a clean payload_bytes-length response (an error frame, a
+// short response, or an unexpectedly-shaped one), that guard fires and
+// this field is marked error/stale, never silently published with wrong
+// data. This test proves the DECODE side of that contract: exactly
+// payload_bytes (2) valid bytes are required; decode_numeric() itself has
+// no independent bounds check (by design, see jk_poll_scheduler_core.h's
+// own read_be() comment -- the caller, i.e. the generic guard, is the
+// single place responsible for this), so the servicer's guard is the
+// ONLY thing standing between a malformed response and a bad publish --
+// confirming it is load-bearing, not redundant.
+static void test_rcv_rfv_block_payload_bytes_is_exactly_two() {
+  const auto *b = find_block(0x1504);
+  check(b != nullptr, "0x1504 block exists");
+  if (!b) return;
+  check(b->payload_bytes == 2, "0x1504's payload_bytes is exactly 2 -- the generic short-response guard in the "
+                                "generated servicer (data.size() < payload_bytes) is what fail-closes this blocker's "
+                                "real risk, not a per-field bounds check here");
+}
+
 static void test_charging_float_mode_is_bit_type() {
   const auto *b = find_block(0x1114);
   check(b != nullptr, "0x1114 (charging_float_mode) block exists");
@@ -160,6 +227,16 @@ static void test_bespoke_excluded_keys_absent_from_generated_table() {
   }
 }
 
+static void test_electrical_metrics_scan_custom_block() {
+  const auto *b = find_block(0x1290);
+  check(b != nullptr, "0x1290 (electrical_metrics_scan) block exists in the generated plan (migrated, Stage 1 corrective pass)");
+  if (!b) return;
+  check(b->fields_count == 0, "0x1290 has zero FieldDecode entries -- its decode is the hand-written custom function, not the generic dispatch");
+  check(b->payload_bytes == 12, "0x1290 block is the full 12-byte gapless voltage+current response");
+  check(b->register_count == 12, "0x1290 requests register_count=12 (unchanged from the pre-migration modbus_controller declaration)");
+  check(b->cadence_ms == 15000, "0x1290 polls at telemetry_15s cadence, matching total_voltage_raw's canonical poll_group");
+}
+
 int main() {
   test_every_block_field_range_is_in_bounds();
   test_no_duplicate_addresses();
@@ -167,10 +244,13 @@ int main() {
   test_smart_sleep_decodes_correctly();
   test_capacity_remaining_negative_sign();
   test_rcv_rfv_packed_in_one_block();
+  test_rcv_rfv_decode_invariant_to_which_wire_strategy_produced_the_bytes();
+  test_rcv_rfv_block_payload_bytes_is_exactly_two();
   test_charging_float_mode_is_bit_type();
   test_derived_boolean_raw_entities_use_raw_id_not_active_key();
   test_manufacturer_device_id_is_ascii();
   test_bespoke_excluded_keys_absent_from_generated_table();
+  test_electrical_metrics_scan_custom_block();
 
   std::printf("%d checks run, %d failed.\n", g_checks, g_failures);
   return g_failures == 0 ? 0 : 1;

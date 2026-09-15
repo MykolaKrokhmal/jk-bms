@@ -47,16 +47,28 @@
  *       exit criterion cares about, and replacing an already-audited,
  *       already-hardware-verified reader with a generated one is not this
  *       stage's job.
- *     - total_voltage_raw, current_raw (electrical_metrics_scan, 0x1290/
- *       0x1298): a hand-audited voltage/current/power/sign-convention
- *       computation that drives 7 downstream sensors via component.update
- *       — see batterylifepo4.yaml's own SIGN CONVENTION comment at that
- *       lambda. Too safety-relevant to replace mechanically without
- *       hardware to re-verify the sign convention against.
- *   native_bms_power (0x1294) is NOT excluded — despite modbus_controller
+ *   native_bms_power (0x1294) was never excluded — despite modbus_controller
  *   merging it with the preceding electrical_metrics_scan range as a bus
- *   optimization today, it has no lambda of its own (plain filters:
- *   multiply) and decodes independently of that cluster.
+ *   optimization pre-migration, it has no lambda of its own (plain filters:
+ *   multiply) and decodes independently of that cluster; it migrated as an
+ *   ordinary field in commit boundary 3.
+ *
+ *   CUSTOM-DECODE BLOCK (CUSTOM_DECODE_BLOCKS, below) — total_voltage_raw
+ *   and current_raw (0x1290/0x1298) are NOT ordinary per-field entries: the
+ *   pre-migration modbus_controller lambda read them TOGETHER in one
+ *   gapless 12-byte response (0x1290 BatVol + 0x1294 BatWatt [decoded
+ *   nowhere, deliberately skipped, see below] + 0x1298 BatCurrent) so
+ *   voltage and current are GUARANTEED to be from the same physical Modbus
+ *   frame — P = V x I would be wrong if they could come from two different
+ *   samples. This is a hand-audited sign-convention computation (BatCurrent
+ *   read with no sign inversion: positive = charging, negative =
+ *   discharging) that fans out atomically to 7 downstream sensors. Ported
+ *   here VERBATIM (same byte offsets, same sign convention, same globals,
+ *   same fan-out — see CUSTOM_DECODE_BLOCKS' own code string) rather than
+ *   through the generic per-field FieldDecode pipeline, which cannot
+ *   express "read two non-adjacent sub-ranges of one block and compute a
+ *   product with a global side effect." Golden-vector tests for this exact
+ *   code live in test/jk_poll_scheduler/test_electrical_metrics_decode.cpp.
  *
  *   NOT REAL ENTITIES TODAY (also in BESPOKE_EXCLUDED_KEYS, for a
  *   different reason) — canonical.json models these fields but no
@@ -187,12 +199,65 @@ for (const reg of registerDoc.registers) {
 const BESPOKE_EXCLUDED_KEYS = new Set([
   ...Array.from({ length: 16 }, (_, i) => `cell_voltage_${i + 1}`),
   ...Array.from({ length: 16 }, (_, i) => `cell_resistance_${i + 1}`),
-  "total_voltage_raw",
-  "current_raw",
   "max_voltage_cell_index_native",
   "min_voltage_cell_index_native",
   "reserved_0x12d2",
+  // total_voltage_raw/current_raw (0x1290/0x1298) are NOT ordinary
+  // per-field entries -- excluded from the generic pipeline, but NOT
+  // "bespoke/untouched": they're covered by CUSTOM_DECODE_BLOCKS below,
+  // which migrates them onto the scheduler with hand-ported, audited
+  // decode logic instead of the generic FieldDecode path. See this file's
+  // own module comment.
+  "total_voltage_raw",
+  "current_raw",
 ]);
+
+// One hand-authored, verbatim-ported custom decoder -- see this file's own
+// module comment's "CUSTOM-DECODE BLOCK" section for the full reasoning.
+// Every byte offset, the sign convention, and the 7-entity fan-out are
+// copied EXACTLY from the pre-migration modbus_controller lambda (git
+// history: batterylifepo4.yaml before this change, address 0x1290) --
+// this table exists so that verbatim C++ can be reviewed/diffed as data,
+// not regenerated from canonical.json's per-field model, which cannot
+// express this block's cross-field computation at all.
+const CUSTOM_DECODE_BLOCKS = [
+  {
+    address: "0x1290",
+    registerCount: 12, // JK gap hack: double the real six-register (3-DWORD) span -- unchanged from the original.
+    payloadBytes: 12, // real, gapless response: 3 adjacent DWORDs (BatVol, BatWatt [unused here], BatCurrent).
+    cadenceMs: 15000, // telemetry_15s, matching total_voltage_raw's own canonical poll_group.
+    coversKeys: ["total_voltage_raw", "current_raw"],
+    // `raw` is the block's own payload_bytes-length buffer (byte 0 = start
+    // of THIS block's response, never a merge offset -- see
+    // jk_poll_scheduler_core.h's own read_be() comment for why byte_offset
+    // is otherwise unused in this project's real data). Bytes 4-7 (BatWatt)
+    // are deliberately never read here, exactly as the original comment
+    // says -- every power metric is derived from voltage x current instead,
+    // to avoid a stale cross-sensor dependency and BatWatt's own rounding.
+    // The actual decode MATH lives in jk_poll_scheduler_core.h's own
+    // decode_electrical_metrics() -- a real, hand-written, unit-tested
+    // function (test/jk_poll_scheduler/test_electrical_metrics_decode.cpp),
+    // not a string here. This generated glue only marshals its result into
+    // the existing globals and triggers the same 7-entity atomic fan-out
+    // the pre-migration on_value: automation did.
+    decodeCode: [
+      "const jk_poll_scheduler::ElectricalMetrics m = jk_poll_scheduler::decode_electrical_metrics(raw);",
+      "id(g_total_voltage_v) = m.total_voltage_v;",
+      "id(g_current_a) = m.current_a;",
+      "id(g_power_w) = m.power_w;",
+      "id(g_charging_power_w) = m.charging_power_w;",
+      "id(g_discharging_power_w) = m.discharging_power_w;",
+      "id(g_last_current_sample_ms) = millis();",
+      "id(total_voltage)->update();",
+      "id(current)->update();",
+      "id(power)->update();",
+      "id(charging_power)->update();",
+      "id(discharging_power)->update();",
+      "id(charging_current)->update();",
+      "id(discharging_current)->update();",
+    ].join("\n"),
+  },
+];
 
 // canonical.json's esphome_read_entity_id is WRONG for this one field --
 // confirmed with real generated ESPHome C++ (set_object_id(...) inspected
@@ -399,6 +464,22 @@ const blocks = [...blocksByAddress.values()]
       })),
     };
   });
+
+// Merge in the hand-authored custom-decode blocks (no FieldDecode entries
+// -- fields: [] -- their decode dispatch is the verbatim decodeCode string
+// instead of the generic per-field switch; see buildServicerInterval()).
+for (const cb of CUSTOM_DECODE_BLOCKS) {
+  blocks.push({
+    address: cb.address,
+    register_count: cb.registerCount,
+    payload_bytes: cb.payloadBytes,
+    cadence_ms: cb.cadenceMs,
+    fields: [],
+    custom_decode: cb.decodeCode,
+    covers_keys: cb.coversKeys,
+  });
+}
+blocks.sort((a, b) => parseInt(a.address, 16) - parseInt(b.address, 16));
 
 // ---------------------------------------------------------------------------
 // 1. read_plan.json — audit/validation projection.
@@ -704,15 +785,24 @@ function buildServicerInterval() {
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
     L(`        case ${i}: {  // 0x${parseInt(b.address, 16).toString(16).toUpperCase().padStart(4, "0")}`);
-    for (let j = 0; j < b.fields.length; j++) {
-      const f = b.fields[j];
-      const fieldIndex = blocks.slice(0, i).reduce((n, bb) => n + bb.fields.length, 0) + j;
-      if (f.wire_type === "ASCII") {
-        L(`          { char buf[17]; jk_poll_scheduler::decode_ascii(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
-      } else if (f.wire_type === "BIT") {
-        L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_bool(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
-      } else {
-        L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_numeric(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
+    if (b.custom_decode) {
+      // Hand-authored, verbatim-ported decode (see CUSTOM_DECODE_BLOCKS'
+      // own comment) -- not a generic per-field dispatch, because this
+      // block computes a cross-field product with a global side effect
+      // and fans out to entities that don't correspond 1:1 with any single
+      // decoded field.
+      for (const codeLine of b.custom_decode.split("\n")) L("          " + codeLine);
+    } else {
+      for (let j = 0; j < b.fields.length; j++) {
+        const f = b.fields[j];
+        const fieldIndex = blocks.slice(0, i).reduce((n, bb) => n + bb.fields.length, 0) + j;
+        if (f.wire_type === "ASCII") {
+          L(`          { char buf[17]; jk_poll_scheduler::decode_ascii(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
+        } else if (f.wire_type === "BIT") {
+          L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_bool(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
+        } else {
+          L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_numeric(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
+        }
       }
     }
     L("          break;");
