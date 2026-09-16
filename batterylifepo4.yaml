@@ -334,7 +334,30 @@ esphome:
               const uint32_t now = millis();
               const uint32_t last = id(g_active_group_last_request_ms);
               if (last != 0 && now - last < 100U) {
-                request->send(429, "application/json", "{\"ok\":false,\"error\":\"rate limited\"}");
+                // Real hardware acceptance retest (post-dd2a4b6) found this
+                // request->send(429, ...) actually delivered on the wire as
+                // HTTP 500, confirmed 2/2 -- traced to ESPHome's own bundled
+                // web_server_idf.cpp: AsyncWebServerRequest::init_response_()
+                // only has explicit cases for {200,204,400,401,404,409,422}
+                // and silently falls through to HTTPD_500 for any other
+                // code, 429 included (its own comment: "default to 500 for
+                // unknown codes") -- confirmed directly against the real
+                // ESPHome 2026.8.2 package source, not assumed. ESP-IDF
+                // 5.5.5's esp_http_server.h has no HTTPD_429 macro either,
+                // but httpd_resp_set_status() accepts any literal status
+                // string -- exactly how this same vendor file's own
+                // AsyncWebServerRequest::redirect() already sends "302
+                // Found" (also uncovered by that switch) by calling
+                // httpd_resp_set_status()/httpd_resp_send() directly on the
+                // request's public `operator httpd_req_t*()` conversion,
+                // bypassing send()'s fixed-code path. Mirrored here rather
+                // than patching the vendor file or adding a case to its
+                // switch.
+                const char *body = "{\"ok\":false,\"error\":\"rate limited\"}";
+                httpd_resp_set_status(*request, "429 Too Many Requests");
+                httpd_resp_set_type(*request, "application/json");
+                httpd_resp_set_hdr(*request, "Accept-Ranges", "none");
+                httpd_resp_send(*request, body, HTTPD_RESP_USE_STRLEN);
                 return;
               }
               id(g_active_group_last_request_ms) = now;

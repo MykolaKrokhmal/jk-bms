@@ -1,7 +1,7 @@
 {
   "$comment": "GENERATED claim-level evidence matrix. Absence of a confirmed required claim is fail-closed.",
   "catalog_version": "1.1.0",
-  "source_manifest_sha256": "7d655d003b1356e177f945623a4955ac05e033c90bb923133bcec8f507a6b7c9",
+  "source_manifest_sha256": "af4a866e51418f22e707c9acc68c92bc6a2ee5e7d9fb926bafd54a587fa0635c",
   "required_write_claims": [
     "address",
     "register_width",
@@ -41,10 +41,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "address",
             "normalized_value": "0x1000",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -88,10 +88,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -99,10 +99,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -110,10 +110,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -121,10 +121,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -132,10 +132,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -143,10 +143,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -154,14 +154,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -169,10 +169,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -180,10 +180,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -200,10 +200,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -211,10 +211,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -222,10 +222,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "canonical_unit",
             "normalized_value": "V",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -242,10 +242,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -280,14 +280,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 6,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -295,7 +295,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2801-2814",
+            "locator": "batterylifepo4.yaml:2824-2837",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -303,7 +303,7 @@
               "write_entity_id": "set_smart_sleep",
               "backend_key": "smart_sleep"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -683,10 +683,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "address",
             "normalized_value": "0x1008",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -730,10 +730,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -741,10 +741,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -752,10 +752,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -763,10 +763,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -774,10 +774,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -785,10 +785,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -796,14 +796,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -811,10 +811,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -822,10 +822,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -842,10 +842,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -853,10 +853,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -864,10 +864,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "canonical_unit",
             "normalized_value": "V",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -884,10 +884,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -922,14 +922,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 6,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -937,7 +937,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2832-2845",
+            "locator": "batterylifepo4.yaml:2855-2868",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -945,7 +945,7 @@
               "write_entity_id": "set_cell_uvpr",
               "backend_key": "cell_uvpr"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -1325,10 +1325,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "address",
             "normalized_value": "0x1010",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -1372,10 +1372,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1383,10 +1383,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1394,10 +1394,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1405,10 +1405,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1416,10 +1416,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1427,10 +1427,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1438,14 +1438,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1453,10 +1453,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1464,10 +1464,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -1484,10 +1484,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1495,10 +1495,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1506,10 +1506,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "canonical_unit",
             "normalized_value": "V",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -1526,10 +1526,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -1564,14 +1564,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 6,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1579,7 +1579,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2863-2876",
+            "locator": "batterylifepo4.yaml:2886-2899",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -1587,7 +1587,7 @@
               "write_entity_id": "set_cell_ovpr",
               "backend_key": "cell_ovpr"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -1763,10 +1763,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "address",
             "normalized_value": "0x1014",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -1810,10 +1810,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1821,10 +1821,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1832,10 +1832,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1843,10 +1843,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1854,10 +1854,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1865,10 +1865,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1876,14 +1876,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1891,10 +1891,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1902,10 +1902,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -1922,10 +1922,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1933,10 +1933,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -1944,10 +1944,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "canonical_unit",
             "normalized_value": "V",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -1964,10 +1964,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2002,14 +2002,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 1,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2017,7 +2017,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2877-2890",
+            "locator": "batterylifepo4.yaml:2900-2913",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -2025,7 +2025,7 @@
               "write_entity_id": "set_start_balance_trigger",
               "backend_key": "start_balance_trigger"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2201,10 +2201,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "address",
             "normalized_value": "0x1018",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2248,10 +2248,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2259,10 +2259,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2270,10 +2270,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2281,10 +2281,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2292,10 +2292,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2303,10 +2303,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2314,14 +2314,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2329,10 +2329,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2340,10 +2340,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2360,10 +2360,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2371,10 +2371,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2382,10 +2382,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "canonical_unit",
             "normalized_value": "V",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2402,10 +2402,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2440,14 +2440,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 6,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2455,7 +2455,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2891-2904",
+            "locator": "batterylifepo4.yaml:2914-2927",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -2463,7 +2463,7 @@
               "write_entity_id": "set_soc_100",
               "backend_key": "soc_100"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2639,10 +2639,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "address",
             "normalized_value": "0x101C",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2686,10 +2686,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2697,10 +2697,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2708,10 +2708,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2719,10 +2719,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2730,10 +2730,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2741,10 +2741,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2752,14 +2752,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2767,10 +2767,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2778,10 +2778,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2798,10 +2798,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2809,10 +2809,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2820,10 +2820,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "canonical_unit",
             "normalized_value": "V",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2840,10 +2840,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -2878,14 +2878,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 6,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -2893,7 +2893,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2905-2918",
+            "locator": "batterylifepo4.yaml:2928-2941",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -2901,7 +2901,7 @@
               "write_entity_id": "set_soc_0",
               "backend_key": "soc_0"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -3077,10 +3077,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "address",
             "normalized_value": "0x1020",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -3124,10 +3124,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3135,10 +3135,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3146,10 +3146,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3157,10 +3157,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3168,10 +3168,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3179,10 +3179,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3190,14 +3190,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3205,10 +3205,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3216,10 +3216,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -3236,10 +3236,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3247,10 +3247,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3258,10 +3258,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "canonical_unit",
             "normalized_value": "V",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -3278,10 +3278,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -3316,14 +3316,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 6,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3331,7 +3331,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2919-2932",
+            "locator": "batterylifepo4.yaml:2942-2955",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -3339,7 +3339,7 @@
               "write_entity_id": "set_cell_rcv",
               "backend_key": "cell_rcv"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -3515,10 +3515,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "address",
             "normalized_value": "0x1024",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -3562,10 +3562,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3573,10 +3573,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3584,10 +3584,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3595,10 +3595,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3606,10 +3606,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3617,10 +3617,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3628,14 +3628,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3643,10 +3643,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3654,10 +3654,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -3674,10 +3674,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3685,10 +3685,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3696,10 +3696,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "canonical_unit",
             "normalized_value": "V",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -3716,10 +3716,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -3754,14 +3754,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 6,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -3769,7 +3769,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2933-2946",
+            "locator": "batterylifepo4.yaml:2956-2969",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -3777,7 +3777,7 @@
               "write_entity_id": "set_cell_rfv",
               "backend_key": "cell_rfv"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -4565,10 +4565,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "address",
             "normalized_value": "0x1034",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -4612,10 +4612,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4623,10 +4623,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4634,10 +4634,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4645,10 +4645,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4656,10 +4656,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4667,10 +4667,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4678,14 +4678,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4693,10 +4693,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4704,10 +4704,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -4724,10 +4724,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "scale",
             "normalized_value": 1,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4735,10 +4735,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4746,10 +4746,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "canonical_unit",
             "normalized_value": "s",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -4766,10 +4766,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -4804,14 +4804,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 2147483647,
               "step": 1
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -4819,7 +4819,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:2998-3011",
+            "locator": "batterylifepo4.yaml:3021-3034",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -4827,7 +4827,7 @@
               "write_entity_id": "set_charge_ocpr_time",
               "backend_key": "charge_ocpr_time"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -5411,10 +5411,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "address",
             "normalized_value": "0x1040",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -5458,10 +5458,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5469,10 +5469,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5480,10 +5480,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5491,10 +5491,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5502,10 +5502,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5513,10 +5513,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5524,14 +5524,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5539,10 +5539,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5550,10 +5550,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -5570,10 +5570,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "scale",
             "normalized_value": 1,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5581,10 +5581,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5592,10 +5592,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "canonical_unit",
             "normalized_value": "s",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -5612,10 +5612,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -5650,14 +5650,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 2147483647,
               "step": 1
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5665,7 +5665,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3046-3059",
+            "locator": "batterylifepo4.yaml:3069-3082",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -5673,7 +5673,7 @@
               "write_entity_id": "set_discharge_ocpr_time",
               "backend_key": "discharge_ocpr_time"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -5849,10 +5849,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "address",
             "normalized_value": "0x1044",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -5896,10 +5896,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5907,10 +5907,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5918,10 +5918,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5929,10 +5929,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5940,10 +5940,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5951,10 +5951,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5962,14 +5962,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5977,10 +5977,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -5988,10 +5988,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -6008,10 +6008,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "scale",
             "normalized_value": 1,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6019,10 +6019,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6030,10 +6030,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "canonical_unit",
             "normalized_value": "s",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -6050,10 +6050,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -6088,14 +6088,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 2147483647,
               "step": 1
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6103,7 +6103,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3060-3073",
+            "locator": "batterylifepo4.yaml:3083-3096",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -6111,7 +6111,7 @@
               "write_entity_id": "set_scpr_time",
               "backend_key": "scpr_time"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -6287,10 +6287,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "address",
             "normalized_value": "0x1048",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -6334,10 +6334,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6345,10 +6345,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6356,10 +6356,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6367,10 +6367,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6378,10 +6378,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6389,10 +6389,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6400,14 +6400,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6415,10 +6415,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6426,10 +6426,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -6446,10 +6446,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6457,10 +6457,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6468,10 +6468,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "canonical_unit",
             "normalized_value": "A",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -6488,10 +6488,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -6526,14 +6526,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 20,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6541,7 +6541,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3074-3087",
+            "locator": "batterylifepo4.yaml:3097-3110",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -6549,7 +6549,7 @@
               "write_entity_id": "set_max_balance_current",
               "backend_key": "max_balance_current"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -6929,10 +6929,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "address",
             "normalized_value": "0x1050",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -6976,10 +6976,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6987,10 +6987,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -6998,10 +6998,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7009,10 +7009,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7020,10 +7020,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7031,10 +7031,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7042,14 +7042,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7057,10 +7057,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7068,10 +7068,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -7088,10 +7088,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "scale",
             "normalized_value": 0.1,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7099,10 +7099,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7110,10 +7110,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "canonical_unit",
             "normalized_value": "°C",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -7130,10 +7130,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -7168,14 +7168,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": -100,
               "maximum": 200,
               "step": 0.1
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7183,7 +7183,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3105-3118",
+            "locator": "batterylifepo4.yaml:3128-3141",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -7191,7 +7191,7 @@
               "write_entity_id": "set_charge_otpr",
               "backend_key": "charge_otpr"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -7571,10 +7571,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "address",
             "normalized_value": "0x1058",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -7618,10 +7618,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7629,10 +7629,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7640,10 +7640,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7651,10 +7651,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7662,10 +7662,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7673,10 +7673,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7684,14 +7684,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7699,10 +7699,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7710,10 +7710,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -7730,10 +7730,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "scale",
             "normalized_value": 0.1,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7741,10 +7741,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7752,10 +7752,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "canonical_unit",
             "normalized_value": "°C",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -7772,10 +7772,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -7810,14 +7810,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": -100,
               "maximum": 200,
               "step": 0.1
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -7825,7 +7825,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3136-3149",
+            "locator": "batterylifepo4.yaml:3159-3172",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -7833,7 +7833,7 @@
               "write_entity_id": "set_discharge_otpr",
               "backend_key": "discharge_otpr"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -8213,10 +8213,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "address",
             "normalized_value": "0x1060",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -8260,10 +8260,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8271,10 +8271,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8282,10 +8282,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8293,10 +8293,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8304,10 +8304,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8315,10 +8315,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8326,14 +8326,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8341,10 +8341,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8352,10 +8352,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -8372,10 +8372,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "scale",
             "normalized_value": 0.1,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8383,10 +8383,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8394,10 +8394,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "canonical_unit",
             "normalized_value": "°C",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -8414,10 +8414,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -8452,14 +8452,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": -100,
               "maximum": 200,
               "step": 0.1
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8467,7 +8467,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3167-3180",
+            "locator": "batterylifepo4.yaml:3190-3203",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -8475,7 +8475,7 @@
               "write_entity_id": "set_charge_utpr",
               "backend_key": "charge_utpr"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -8855,10 +8855,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "address",
             "normalized_value": "0x1068",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -8902,10 +8902,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8913,10 +8913,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8924,10 +8924,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8935,10 +8935,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8946,10 +8946,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8957,10 +8957,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8968,14 +8968,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8983,10 +8983,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -8994,10 +8994,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -9014,10 +9014,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "scale",
             "normalized_value": 0.1,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -9025,10 +9025,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -9036,10 +9036,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "canonical_unit",
             "normalized_value": "°C",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -9056,10 +9056,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -9094,14 +9094,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": -100,
               "maximum": 200,
               "step": 0.1
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -9109,7 +9109,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3198-3211",
+            "locator": "batterylifepo4.yaml:3221-3234",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -9117,7 +9117,7 @@
               "write_entity_id": "set_mos_otpr",
               "backend_key": "mos_otpr"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -9971,10 +9971,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "address",
             "normalized_value": "0x107C",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -10018,10 +10018,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10029,10 +10029,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10040,10 +10040,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10051,10 +10051,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10062,10 +10062,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10073,10 +10073,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10084,14 +10084,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10099,10 +10099,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10110,10 +10110,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -10130,10 +10130,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10141,10 +10141,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10152,10 +10152,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "canonical_unit",
             "normalized_value": "Ah",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -10172,10 +10172,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -10210,14 +10210,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 1,
               "maximum": 2000,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10225,7 +10225,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3212-3225",
+            "locator": "batterylifepo4.yaml:3235-3248",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -10233,7 +10233,7 @@
               "write_entity_id": "set_battery_capacity",
               "backend_key": "battery_capacity"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -10613,10 +10613,10 @@
         "address": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "address",
             "normalized_value": "0x1084",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -10660,10 +10660,10 @@
         "register_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "register_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10671,10 +10671,10 @@
         "word_count": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "word_count",
             "normalized_value": 2,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10682,10 +10682,10 @@
         "payload_byte_length": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "payload_byte_length",
             "normalized_value": 4,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10693,10 +10693,10 @@
         "byte_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "byte_order",
             "normalized_value": "big_endian",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10704,10 +10704,10 @@
         "word_order": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "word_order",
             "normalized_value": "high_word_first",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10715,10 +10715,10 @@
         "field_width": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "field_width",
             "normalized_value": 32,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10726,14 +10726,14 @@
         "mask_shift_byte_offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "mask_shift_byte_offset",
             "normalized_value": {
               "mask": "0xFFFFFFFF",
               "shift": 0,
               "byte_offset": 0
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10741,10 +10741,10 @@
         "signedness": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "signedness",
             "normalized_value": "unsigned",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10752,10 +10752,10 @@
         "wire_type": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "wire_type",
             "normalized_value": "U32",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -10772,10 +10772,10 @@
         "scale": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "scale",
             "normalized_value": 0.001,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10783,10 +10783,10 @@
         "offset": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "offset",
             "normalized_value": 0,
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10794,10 +10794,10 @@
         "canonical_unit": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "canonical_unit",
             "normalized_value": "V",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -10814,10 +10814,10 @@
         "declared_access": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "declared_access",
             "normalized_value": "rw",
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -10852,14 +10852,14 @@
         "minimum_maximum_step": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "minimum_maximum_step",
             "normalized_value": {
               "minimum": 0,
               "maximum": 6,
               "step": 0.001
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           }
@@ -10867,7 +10867,7 @@
         "implementation_entity_mapping": [
           {
             "source_id": "project_implementation",
-            "locator": "batterylifepo4.yaml:3243-3256",
+            "locator": "batterylifepo4.yaml:3266-3279",
             "claim_type": "implementation_entity_mapping",
             "normalized_value": {
               "domain": "number",
@@ -10875,7 +10875,7 @@
               "write_entity_id": "set_start_balance",
               "backend_key": "start_balance"
             },
-            "fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
+            "fingerprint": "sha256:7cecd84cf2a369ab86b99cfef62319d330b2dd706e11a6e806c366441d1a3a66",
             "provenance_status": "known",
             "derivation_group": "syssi_implementation_family"
           },
@@ -29431,5 +29431,5 @@
       "policy_consistent": true
     }
   ],
-  "release_generation_id": "2cb783719f228be3"
+  "release_generation_id": "bb1a003fc41a2560"
 }

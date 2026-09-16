@@ -171,6 +171,10 @@ echo "=== protocol catalog: secret-leakage scan ==="
 node test/protocol_catalog/test_secret_scan.js
 
 echo
+echo "=== protocol catalog: active-group rate-limit HTTP response regression ==="
+node test/protocol_catalog/test_active_group_rate_limit_response.js
+
+echo
 echo "=== JS syntax checks ==="
 node --check jk_bms.js
 node --check demo/mock-server.js
