@@ -34,6 +34,7 @@ const manifest = loadJson("protocol/generated/bms_v1_1_manifest.json");
 const locators = loadJson("protocol/generated/pdf_locators.json");
 const mapping = loadJson("protocol/settings_ui.mapping.json");
 const blockers = loadJson("protocol/evidence/protocol_blockers.json");
+const canonical = loadJson("protocol/registers.canonical.json");
 
 let checks = 0;
 let failures = 0;
@@ -64,33 +65,61 @@ check("exactly 4 parameters are classified reserved (3 newly authored + Reserved
 check("exactly 1 parameter is classified derived/calculated (not a hardware register)",
   calculatedIds.size === 1, [...calculatedIds].join(","));
 
+// Stage 3 (typed-petting-puzzle plan) batch 1 introduced a THIRD terminal
+// state beyond Stage 2's original resolved/blocked dichotomy:
+// manually-implemented-with-hand-verified-evidence. PCLModuleSta,
+// UART1MPRTOLNbr and UART2MPRTOLNbr were never resolved by the mechanical
+// PDF-locator matcher (a backward-only lookback that cannot resolve a
+// packed sibling whose own mnemonic line precedes the shared offset-marker
+// line -- a matcher limitation, not a protocol contradiction), but their
+// byte layout WAS resolved this session by direct manual review of the raw
+// pdftotext extraction, with the same dual-source evidence rigor as every
+// other imported field, and they are now real, implemented canonical
+// fields (pcl_module_sta, uart1_mprtol_nbr, uart2_mprtol_nbr). Their
+// blockers were correspondingly closed (status "closed", not "open"), so
+// they legitimately fall out of BOTH the "resolved locator" and "open
+// blocker" buckets -- a 3rd bucket accounts for them honestly instead of
+// mis-flagging closed, implemented work as "uncovered".
+const canonicalKeysForEvidence = new Set(canonical.registers.flatMap((r) => r.fields).map((f) => f.key));
+const MANUALLY_RESOLVED_ID_TO_KEY = {
+  PCLModuleSta: "pcl_module_sta",
+  UART1MPRTOLNbr: "uart1_mprtol_nbr",
+  UART2MPRTOLNbr: "uart2_mprtol_nbr",
+};
+
 const uncategorized = [];
 let resolvedCount = 0;
 let blockedCount = 0;
+let manuallyResolvedCount = 0;
 for (const p of manifest.parameters) {
   if (reservedIds.has(p.id) || calculatedIds.has(p.id)) continue; // handled by their own dedicated checks above
   const loc = locatorById.get(p.id);
   const hasResolvedPdf = Boolean(loc && loc.pdf_locator);
   const hasBlocker = blockedIds.has(p.id);
+  const manualKey = MANUALLY_RESOLVED_ID_TO_KEY[p.id];
+  const hasManualImplementation = Boolean(manualKey && canonicalKeysForEvidence.has(manualKey));
   if (hasResolvedPdf) resolvedCount += 1;
   else if (hasBlocker) blockedCount += 1;
+  else if (hasManualImplementation) manuallyResolvedCount += 1;
   else uncategorized.push(p.id);
 }
-check("every non-reserved, non-calculated parameter (260 of 265) is either PDF-resolved or covered by an open blocker -- never silently uncovered",
+check("every non-reserved, non-calculated parameter (260 of 265) is either PDF-resolved, covered by an open blocker, or manually-resolved-and-implemented -- never silently uncovered",
   uncategorized.length === 0, `uncategorized=${uncategorized.length}: ${uncategorized.slice(0, 10).join(",")}${uncategorized.length > 10 ? "..." : ""}`);
-check("resolved + blocked accounts for all 260 non-reserved/non-calculated parameters",
-  resolvedCount + blockedCount === 260, `resolved=${resolvedCount} blocked=${blockedCount} total=${resolvedCount + blockedCount}`);
+check("resolved + blocked + manually-resolved accounts for all 260 non-reserved/non-calculated parameters",
+  resolvedCount + blockedCount + manuallyResolvedCount === 260,
+  `resolved=${resolvedCount} blocked=${blockedCount} manually-resolved=${manuallyResolvedCount} total=${resolvedCount + blockedCount + manuallyResolvedCount}`);
+check("exactly 3 parameters are in the manually-resolved-and-implemented bucket (Stage 3 batch 1's blocker closures)",
+  manuallyResolvedCount === 3, `actual=${manuallyResolvedCount}`);
 
 // The 3 newly-authored reserved rows must each have a REAL canonical.json
 // entry (not just a manifest classification) -- cross-checked against the
 // actual tracked catalog, not just this test's own bookkeeping.
-const canonical = loadJson("protocol/registers.canonical.json");
-const canonicalKeys = new Set(canonical.registers.flatMap((r) => r.fields).map((f) => f.key));
+const canonicalKeys = canonicalKeysForEvidence;
 for (const key of ["rvd_12ee_h", "rvd_130c_l", "rvd_1506_l"]) {
   check(`newly-authored reserved field "${key}" exists in registers.canonical.json`, canonicalKeys.has(key));
 }
-check("registers.canonical.json is at exactly 122 registers / 130 fields (Stage 2 exit criterion)",
-  canonical.registers.length === 122 && canonical.registers.flatMap((r) => r.fields).length === 130,
+check("registers.canonical.json is at least 122 registers / 130 fields (Stage 2 exit criterion, monotonic floor -- Stage 3 batch 1, typed-petting-puzzle plan, grew this to 135 registers / 148 fields by importing 18 independently-verified parameters; a later stage may grow it further, but it must never shrink below the Stage 2 floor)",
+  canonical.registers.length >= 122 && canonical.registers.flatMap((r) => r.fields).length >= 130,
   `registers=${canonical.registers.length} fields=${canonical.registers.flatMap((r) => r.fields).length}`);
 
 // mapping.json's own evidence_status field must agree with this test's

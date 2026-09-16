@@ -6471,6 +6471,270 @@
       "payload_bytes": 4
     },
     {
+      "register_id": "reg_0x1108_dev_addr",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x1108",
+      "address_space": "holding_register",
+      "register_width_bits": 32,
+      "word_count": 2,
+      "byte_order": "big_endian",
+      "word_order": "high_word_first",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": "write_multiple_registers_fc16",
+      "declared_access": "rw",
+      "poll_group": "config_slow_300s",
+      "freshness_budget_s": 320,
+      "atomicity_group": "reg_0x1108_dev_addr",
+      "fields": [
+        {
+          "key": "dev_addr",
+          "parent_register_id": "reg_0x1108_dev_addr",
+          "field_width_bits": 32,
+          "byte_offset": 0,
+          "mask": "0xFFFFFFFF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U32",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "rw",
+          "effective_access": "r",
+          "write_safety_class": "disruptive",
+          "esphome_domain": "number",
+          "esphome_read_entity_id": "dev_addr",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": "dev_addr",
+          "frontend_label_uk": "Адреса пристрою Modbus",
+          "frontend_label_en": "Modbus device address",
+          "ui_section": "settings",
+          "ui_order": 709,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": {
+            "depends_on_field": null,
+            "rule": "Stage 3 (typed-petting-puzzle plan) deliberately does not write-enable this field even though its evidence is independently corroborated (workbook V2 + official PDF) -- write-enablement is Stage 4's own risk-tiered scope (write_safety_class triage, real packed read-modify-write, hardware-in-the-loop verification), a distinct decision from evidence sufficiency.",
+            "resolved": false
+          },
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 19: name 'DevAddr'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:DevAddr",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x0108, UINT32, 4 bytes, RW (设备地址DevAddr, unit H)",
+              "locator_id": "official_jk_documentation:DevAddr",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": "WRITE_BLOCKED_MISSING_REQUIRED_CLAIMS",
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 19",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row19",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x0108, UINT32, 4 bytes, RW, 设备地址DevAddr, H",
+          "locator_id": "official_jk_documentation:row19",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "RS485 slave address (1..247 per the manifest description). Changing it breaks the current session (manifest audit_note); a generic RW write is explicitly documented as insufficient. Not write-enabled this stage -- any future write path needs bespoke reconnect handling, not the generic write-transaction manager.",
+      "payload_bytes": 4
+    },
+    {
+      "register_id": "reg_0x110C_tim_prodischarge",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x110C",
+      "address_space": "holding_register",
+      "register_width_bits": 32,
+      "word_count": 2,
+      "byte_order": "big_endian",
+      "word_order": "high_word_first",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": "write_multiple_registers_fc16",
+      "declared_access": "rw",
+      "poll_group": "config_slow_300s",
+      "freshness_budget_s": 320,
+      "atomicity_group": "reg_0x110C_tim_prodischarge",
+      "fields": [
+        {
+          "key": "tim_prodischarge",
+          "parent_register_id": "reg_0x110C_tim_prodischarge",
+          "field_width_bits": 32,
+          "byte_offset": 0,
+          "mask": "0xFFFFFFFF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U32",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "s",
+          "uk_display_unit": "с",
+          "en_display_unit": "s",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "rw",
+          "effective_access": "r",
+          "write_safety_class": "disruptive",
+          "esphome_domain": "number",
+          "esphome_read_entity_id": "tim_prodischarge",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": "tim_prodischarge",
+          "frontend_label_uk": "Тривалість передзаряду перед розрядом",
+          "frontend_label_en": "Pre-discharge precharge duration",
+          "ui_section": "settings",
+          "ui_order": 707,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": {
+            "depends_on_field": null,
+            "rule": "Stage 3 (typed-petting-puzzle plan) deliberately does not write-enable this field even though its evidence is independently corroborated (workbook V2 + official PDF) -- write-enablement is Stage 4's own risk-tiered scope (write_safety_class triage, real packed read-modify-write, hardware-in-the-loop verification), a distinct decision from evidence sufficiency.",
+            "resolved": false
+          },
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 20: name 'TIMProdischarge'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:TIMProdischarge",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x010C, UINT32, 4 bytes, RW (放电预充时间TIMProdischarge, unit S)",
+              "locator_id": "official_jk_documentation:TIMProdischarge",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": "WRITE_BLOCKED_MISSING_REQUIRED_CLAIMS",
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 20",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row20",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x010C, UINT32, 4 bytes, RW, 放电预充时间TIMProdischarge, S",
+          "locator_id": "official_jk_documentation:row20",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "Discharge pre-charge timing, seconds. Not write-enabled this stage (Stage 3 imports read-only; write-enablement is Stage 4's risk-tiered scope).",
+      "payload_bytes": 4
+    },
+    {
       "register_id": "reg_0x1114_charging_float_mode",
       "protocol_family": "JK_PB_MODBUS_RTU",
       "model_scope": [
@@ -20606,6 +20870,81 @@
           "exclusion_reason": "intentionally_not_exposed: both the V2 workbook and the official PDF label this byte 'Reserved'/'RVD' with no further meaning documented -- there is no field to decode. Cataloged only so this address's full 16 bits are not silently unaccounted for (Stage 2, typed-petting-puzzle plan).",
           "implementation_status": "intentionally_not_exposed",
           "unknown_code_policy": null
+        },
+        {
+          "key": "charger_plugged",
+          "parent_register_id": "reg_0x12EE_reserved_high",
+          "field_width_bits": 8,
+          "byte_offset": 1,
+          "mask": "0x00FF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U8",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "r",
+          "write_safety_class": "n/a",
+          "esphome_domain": "sensor",
+          "esphome_read_entity_id": "charger_plugged",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Стан підключення зарядного пристрою",
+          "frontend_label_en": "Charger plugged state",
+          "ui_section": "settings",
+          "ui_order": 716,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 257: name 'ChargerPlugged'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:ChargerPlugged",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x00EE, low byte of the packed register whose high byte is rvd_12ee_h (保留RVD); R (充电器状态ChargerPlugged, 1: plugged / 0: not plugged)",
+              "locator_id": "official_jk_documentation:ChargerPlugged",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": null,
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
         }
       ],
       "evidence": [
@@ -21355,6 +21694,262 @@
       "payload_bytes": 2
     },
     {
+      "register_id": "reg_0x1300_rtc_ticks",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x1300",
+      "address_space": "holding_register",
+      "register_width_bits": 32,
+      "word_count": 2,
+      "byte_order": "big_endian",
+      "word_order": "high_word_first",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": null,
+      "declared_access": "r",
+      "poll_group": "telemetry_15s",
+      "freshness_budget_s": 30,
+      "atomicity_group": "reg_0x1300_rtc_ticks",
+      "fields": [
+        {
+          "key": "rtc_ticks",
+          "parent_register_id": "reg_0x1300_rtc_ticks",
+          "field_width_bits": 32,
+          "byte_offset": 0,
+          "mask": "0xFFFFFFFF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U32",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "s",
+          "uk_display_unit": "с",
+          "en_display_unit": "s",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "r",
+          "write_safety_class": "n/a",
+          "esphome_domain": "sensor",
+          "esphome_read_entity_id": "rtc_ticks",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Лічильник RTC (з 2020-01-01)",
+          "frontend_label_en": "RTC tick counter (since 2020-01-01)",
+          "ui_section": "settings",
+          "ui_order": 705,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 9: name 'RTCTicks'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:RTCTicks",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x0100, UINT32, 4 bytes, R (RTC计数器RTCTicks, 自2020-1-1开始计时)",
+              "locator_id": "official_jk_documentation:RTCTicks",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": null,
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 9",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row9",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x0100, UINT32, 4 bytes, R, RTC计数器RTCTicks, 自2020-1-1开始计时",
+          "locator_id": "official_jk_documentation:row9",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "RTC tick counter, seconds elapsed since 2020-01-01 per the document's own note, read-only.",
+      "payload_bytes": 4
+    },
+    {
+      "register_id": "reg_0x1308_time_enter_sleep",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x1308",
+      "address_space": "holding_register",
+      "register_width_bits": 32,
+      "word_count": 2,
+      "byte_order": "big_endian",
+      "word_order": "high_word_first",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": null,
+      "declared_access": "r",
+      "poll_group": "telemetry_15s",
+      "freshness_budget_s": 30,
+      "atomicity_group": "reg_0x1308_time_enter_sleep",
+      "fields": [
+        {
+          "key": "time_enter_sleep",
+          "parent_register_id": "reg_0x1308_time_enter_sleep",
+          "field_width_bits": 32,
+          "byte_offset": 0,
+          "mask": "0xFFFFFFFF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U32",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "s",
+          "uk_display_unit": "с",
+          "en_display_unit": "s",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "r",
+          "write_safety_class": "n/a",
+          "esphome_domain": "sensor",
+          "esphome_read_entity_id": "time_enter_sleep",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Час до входу в сон",
+          "frontend_label_en": "Time until sleep entry",
+          "ui_section": "settings",
+          "ui_order": 706,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 16: name 'TimeEnterSleep'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:TimeEnterSleep",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x0108, UINT32, 4 bytes, R (进入休眠时间TimeEnterSleep, unit S)",
+              "locator_id": "official_jk_documentation:TimeEnterSleep",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": null,
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 16",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row16",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x0108, UINT32, 4 bytes, R, 进入休眠时间TimeEnterSleep, S",
+          "locator_id": "official_jk_documentation:row16",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "Time-until-sleep counter, seconds, read-only.",
+      "payload_bytes": 4
+    },
+    {
       "register_id": "reg_0x130C_reserved_low",
       "protocol_family": "JK_PB_MODBUS_RTU",
       "model_scope": [
@@ -21447,6 +22042,81 @@
           "verification_status": "single_source",
           "exclusion_reason": "intentionally_not_exposed: both the V2 workbook and the official PDF label this byte 'Reserved'/'RVD' with no further meaning documented -- there is no field to decode. Cataloged only so this address's full 16 bits are not silently unaccounted for (Stage 2, typed-petting-puzzle plan).",
           "implementation_status": "intentionally_not_exposed",
+          "unknown_code_policy": null
+        },
+        {
+          "key": "pcl_module_sta",
+          "parent_register_id": "reg_0x130C_reserved_low",
+          "field_width_bits": 8,
+          "byte_offset": 0,
+          "mask": "0xFF00",
+          "shift": 8,
+          "signedness": "unsigned",
+          "wire_type": "U8",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "r",
+          "write_safety_class": "n/a",
+          "esphome_domain": "sensor",
+          "esphome_read_entity_id": "pcl_module_sta",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Стан модуля обмеження паралельного струму",
+          "frontend_label_en": "Parallel-current-limiting module state",
+          "ui_section": "settings",
+          "ui_order": 717,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 258: name 'PCLModuleSta'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:PCLModuleSta",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x010C, high byte of the packed register whose low byte is rvd_130c_l (保留RVD); R (并联限流模块状态PCLModuleSta, 1: on / 0: off)",
+              "locator_id": "official_jk_documentation:PCLModuleSta",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": null,
+          "implementation_status": "implemented",
           "unknown_code_policy": null
         }
       ],
@@ -21663,6 +22333,518 @@
       "payload_bytes": 16
     },
     {
+      "register_id": "reg_0x1410_hardware_version",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x1410",
+      "address_space": "holding_register",
+      "register_width_bits": 64,
+      "word_count": 4,
+      "byte_order": "big_endian",
+      "word_order": "sequential_bytes",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": null,
+      "declared_access": "r",
+      "poll_group": "telemetry_15s",
+      "freshness_budget_s": 30,
+      "atomicity_group": "reg_0x1410_hardware_version",
+      "fields": [
+        {
+          "key": "hardware_version",
+          "parent_register_id": "reg_0x1410_hardware_version",
+          "field_width_bits": 64,
+          "byte_offset": 0,
+          "mask": null,
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "ASCII",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "r",
+          "write_safety_class": "n/a",
+          "esphome_domain": "text_sensor",
+          "esphome_read_entity_id": "hardware_version",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Апаратна версія BMS",
+          "frontend_label_en": "Hardware version",
+          "ui_section": "settings",
+          "ui_order": 701,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 3: name 'HardwareVersion'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:HardwareVersion",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x0010, ASCII, 8 bytes, R (硬件版本号HardwareVersion)",
+              "locator_id": "official_jk_documentation:HardwareVersion",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": null,
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 3",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row3",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x0010, ASCII, 8 bytes, R, 硬件版本号HardwareVersion",
+          "locator_id": "official_jk_documentation:row3",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "ASCII version string, read-only, same family as the already-implemented device_model (0x1400).",
+      "payload_bytes": 8
+    },
+    {
+      "register_id": "reg_0x1418_software_version",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x1418",
+      "address_space": "holding_register",
+      "register_width_bits": 64,
+      "word_count": 4,
+      "byte_order": "big_endian",
+      "word_order": "sequential_bytes",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": null,
+      "declared_access": "r",
+      "poll_group": "telemetry_15s",
+      "freshness_budget_s": 30,
+      "atomicity_group": "reg_0x1418_software_version",
+      "fields": [
+        {
+          "key": "software_version",
+          "parent_register_id": "reg_0x1418_software_version",
+          "field_width_bits": 64,
+          "byte_offset": 0,
+          "mask": null,
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "ASCII",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "r",
+          "write_safety_class": "n/a",
+          "esphome_domain": "text_sensor",
+          "esphome_read_entity_id": "software_version",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Програмна версія BMS",
+          "frontend_label_en": "Software version",
+          "ui_section": "settings",
+          "ui_order": 702,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 4: name 'SoftwareVersion'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:SoftwareVersion",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x0018, ASCII, 8 bytes, R (软件版本号SoftwareVersion)",
+              "locator_id": "official_jk_documentation:SoftwareVersion",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": null,
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 4",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row4",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x0018, ASCII, 8 bytes, R, 软件版本号SoftwareVersion",
+          "locator_id": "official_jk_documentation:row4",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "ASCII version string, read-only, same family as the already-implemented device_model (0x1400).",
+      "payload_bytes": 8
+    },
+    {
+      "register_id": "reg_0x1420_odd_run_time",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x1420",
+      "address_space": "holding_register",
+      "register_width_bits": 32,
+      "word_count": 2,
+      "byte_order": "big_endian",
+      "word_order": "high_word_first",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": null,
+      "declared_access": "r",
+      "poll_group": "telemetry_15s",
+      "freshness_budget_s": 30,
+      "atomicity_group": "reg_0x1420_odd_run_time",
+      "fields": [
+        {
+          "key": "odd_run_time",
+          "parent_register_id": "reg_0x1420_odd_run_time",
+          "field_width_bits": 32,
+          "byte_offset": 0,
+          "mask": "0xFFFFFFFF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U32",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "s",
+          "uk_display_unit": "с",
+          "en_display_unit": "s",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "r",
+          "write_safety_class": "n/a",
+          "esphome_domain": "sensor",
+          "esphome_read_entity_id": "odd_run_time",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Сумарний час роботи",
+          "frontend_label_en": "Cumulative run time",
+          "ui_section": "settings",
+          "ui_order": 703,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 5: name 'ODDRunTime'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:ODDRunTime",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x0020, UINT32, 4 bytes, R (累计运行时间ODDRunTime, unit S)",
+              "locator_id": "official_jk_documentation:ODDRunTime",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": null,
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 5",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row5",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x0020, UINT32, 4 bytes, R, 累计运行时间ODDRunTime, S",
+          "locator_id": "official_jk_documentation:row5",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "Cumulative device run-time counter, seconds, read-only.",
+      "payload_bytes": 4
+    },
+    {
+      "register_id": "reg_0x1424_pwr_on_times",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x1424",
+      "address_space": "holding_register",
+      "register_width_bits": 32,
+      "word_count": 2,
+      "byte_order": "big_endian",
+      "word_order": "high_word_first",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": null,
+      "declared_access": "r",
+      "poll_group": "telemetry_15s",
+      "freshness_budget_s": 30,
+      "atomicity_group": "reg_0x1424_pwr_on_times",
+      "fields": [
+        {
+          "key": "pwr_on_times",
+          "parent_register_id": "reg_0x1424_pwr_on_times",
+          "field_width_bits": 32,
+          "byte_offset": 0,
+          "mask": "0xFFFFFFFF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U32",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "r",
+          "write_safety_class": "n/a",
+          "esphome_domain": "sensor",
+          "esphome_read_entity_id": "pwr_on_times",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Кількість вмикань живлення",
+          "frontend_label_en": "Power-on count",
+          "ui_section": "settings",
+          "ui_order": 704,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 6: name 'PWROnTimes'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:PWROnTimes",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x0024, UINT32, 4 bytes, R (上电次数PWROnTimes, unit 次/times)",
+              "locator_id": "official_jk_documentation:PWROnTimes",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": null,
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 6",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row6",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x0024, UINT32, 4 bytes, R, 上电次数PWROnTimes, 次",
+          "locator_id": "official_jk_documentation:row6",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "Power-on cycle counter, dimensionless count, read-only.",
+      "payload_bytes": 4
+    },
+    {
       "register_id": "reg_0x1470_setup_passcode",
       "protocol_family": "JK_PB_MODBUS_RTU",
       "model_scope": [
@@ -21847,6 +23029,424 @@
       "verification_status": "implementation_only_unverified",
       "safety_notes": "Value never round-trips to the client (read lambda always returns a fixed mask) — see docs/adr/0001-protocol-catalog.md's Stage-2+ note on P0-06/credential handling, unchanged by Stage 1.",
       "payload_bytes": 16
+    },
+    {
+      "register_id": "reg_0x14B2_uart1_can_protocol_select",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x14B2",
+      "address_space": "holding_register",
+      "register_width_bits": 16,
+      "word_count": 1,
+      "byte_order": "big_endian",
+      "word_order": "single_word",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": "write_multiple_registers_fc16",
+      "declared_access": "rw",
+      "poll_group": "config_slow_300s",
+      "freshness_budget_s": 320,
+      "atomicity_group": "reg_0x14B2_uart1_can_protocol_select",
+      "fields": [
+        {
+          "key": "uart1_mprtol_nbr",
+          "parent_register_id": "reg_0x14B2_uart1_can_protocol_select",
+          "field_width_bits": 8,
+          "byte_offset": 0,
+          "mask": "0xFF00",
+          "shift": 8,
+          "signedness": "unsigned",
+          "wire_type": "U8",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "rw",
+          "effective_access": "r",
+          "write_safety_class": "disruptive",
+          "esphome_domain": "number",
+          "esphome_read_entity_id": "uart1_mprtol_nbr",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": "uart1_mprtol_nbr",
+          "frontend_label_uk": "Тип протоколу UART1",
+          "frontend_label_en": "UART1 protocol type",
+          "ui_section": "settings",
+          "ui_order": 712,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": {
+            "depends_on_field": null,
+            "rule": "Stage 3 (typed-petting-puzzle plan) deliberately does not write-enable this field even though its evidence is independently corroborated (workbook V2 + official PDF) -- write-enablement is Stage 4's own risk-tiered scope (write_safety_class triage, real packed read-modify-write, hardware-in-the-loop verification), a distinct decision from evidence sufficiency.",
+            "resolved": false
+          },
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 261: name 'UART1MPRTOLNbr'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:UART1MPRTOLNbr",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x00B2 (high byte of a packed 2-UINT8 register), RW (串口1协议UART1MPRTOLNbr) -- preceding line before the 0x00B2/178/2 offset marker",
+              "locator_id": "official_jk_documentation:UART1MPRTOLNbr",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": "WRITE_BLOCKED_MISSING_REQUIRED_CLAIMS",
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        },
+        {
+          "key": "can_mprtol_nbr",
+          "parent_register_id": "reg_0x14B2_uart1_can_protocol_select",
+          "field_width_bits": 8,
+          "byte_offset": 1,
+          "mask": "0x00FF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U8",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "rw",
+          "effective_access": "r",
+          "write_safety_class": "disruptive",
+          "esphome_domain": "number",
+          "esphome_read_entity_id": "can_mprtol_nbr",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": "can_mprtol_nbr",
+          "frontend_label_uk": "Тип протоколу CAN",
+          "frontend_label_en": "CAN protocol type",
+          "ui_section": "settings",
+          "ui_order": 713,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": {
+            "depends_on_field": null,
+            "rule": "Stage 3 (typed-petting-puzzle plan) deliberately does not write-enable this field even though its evidence is independently corroborated (workbook V2 + official PDF) -- write-enablement is Stage 4's own risk-tiered scope (write_safety_class triage, real packed read-modify-write, hardware-in-the-loop verification), a distinct decision from evidence sufficiency.",
+            "resolved": false
+          },
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 262: name 'CANMPRTOLNbr'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:CANMPRTOLNbr",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x00B2 (low byte of a packed 2-UINT8 register), RW (CAN协议CANMPRTOLNbr) -- following line after the 0x00B2/178/2 offset marker",
+              "locator_id": "official_jk_documentation:CANMPRTOLNbr",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": "WRITE_BLOCKED_MISSING_REQUIRED_CLAIMS",
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 261",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row261",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x00B2, 2xUINT8 packed, RW (高: 串口1协议UART1MPRTOLNbr / 低: CAN协议CANMPRTOLNbr) -- byte order resolved by manual review, same ordering rule already used for 0x12EE/0x130C/0x1506",
+          "locator_id": "official_jk_documentation:row261",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "Packed pair: UART1 protocol selector (high byte) + CAN protocol selector (low byte). Manifest audit_note requires atomic read-modify-write on any future write path (Stage 4 scope). Not write-enabled this stage. Closes the open protocol_blockers.json entries for UART1MPRTOLNbr and (implicitly) confirms CANMPRTOLNbr's own already-resolved locator.",
+      "payload_bytes": 2
+    },
+    {
+      "register_id": "reg_0x14D4_uart2_protocol_select_enable0",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x14D4",
+      "address_space": "holding_register",
+      "register_width_bits": 16,
+      "word_count": 1,
+      "byte_order": "big_endian",
+      "word_order": "single_word",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": "write_multiple_registers_fc16",
+      "declared_access": "rw",
+      "poll_group": "config_slow_300s",
+      "freshness_budget_s": 320,
+      "atomicity_group": "reg_0x14D4_uart2_protocol_select_enable0",
+      "fields": [
+        {
+          "key": "uart2_mprtol_nbr",
+          "parent_register_id": "reg_0x14D4_uart2_protocol_select_enable0",
+          "field_width_bits": 8,
+          "byte_offset": 0,
+          "mask": "0xFF00",
+          "shift": 8,
+          "signedness": "unsigned",
+          "wire_type": "U8",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "rw",
+          "effective_access": "r",
+          "write_safety_class": "disruptive",
+          "esphome_domain": "number",
+          "esphome_read_entity_id": "uart2_mprtol_nbr",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": "uart2_mprtol_nbr",
+          "frontend_label_uk": "Тип протоколу UART2",
+          "frontend_label_en": "UART2 protocol type",
+          "ui_section": "settings",
+          "ui_order": 714,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": {
+            "depends_on_field": null,
+            "rule": "Stage 3 (typed-petting-puzzle plan) deliberately does not write-enable this field even though its evidence is independently corroborated (workbook V2 + official PDF) -- write-enablement is Stage 4's own risk-tiered scope (write_safety_class triage, real packed read-modify-write, hardware-in-the-loop verification), a distinct decision from evidence sufficiency.",
+            "resolved": false
+          },
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 265: name 'UART2MPRTOLNbr'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:UART2MPRTOLNbr",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x00D4 (high byte of a packed register), RW (串口2协议UART2MPRTOLNbr) -- preceding line before the 0x00D4/212/2 offset marker",
+              "locator_id": "official_jk_documentation:UART2MPRTOLNbr",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": "WRITE_BLOCKED_MISSING_REQUIRED_CLAIMS",
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        },
+        {
+          "key": "uart2_mprtol_enable_0",
+          "parent_register_id": "reg_0x14D4_uart2_protocol_select_enable0",
+          "field_width_bits": 8,
+          "byte_offset": 1,
+          "mask": "0x00FF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U8",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "r",
+          "write_safety_class": "n/a",
+          "esphome_domain": "sensor",
+          "esphome_read_entity_id": "uart2_mprtol_enable_0",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "UART2, протокол 0, стан увімкнення",
+          "frontend_label_en": "UART2 protocol slot 0 enable state",
+          "ui_section": "settings",
+          "ui_order": 715,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 266: name 'UART2MPRTOLEnable[0]'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:UART2MPRTOLEnable[0]",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x00D4 (low byte of a packed register), R (串口2协议控制UART2MPRTOLEnable[0]) -- following line after the 0x00D4/212/2 offset marker",
+              "locator_id": "official_jk_documentation:UART2MPRTOLEnable[0]",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": null,
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 265",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row265",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x00D4, 2xUINT8 packed, mixed RW/R (高: 串口2协议UART2MPRTOLNbr RW / 低: 串口2协议控制UART2MPRTOLEnable[0] R) -- byte order resolved by manual review, same ordering rule already used for 0x12EE/0x130C/0x1506",
+          "locator_id": "official_jk_documentation:row265",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "Packed pair, MIXED per-byte access within one register: UART2 protocol selector (high byte, RW) + protocol-slot-0 enable flag (low byte, R-only). Manifest audit_note requires atomic RMW on any future write path (Stage 4 scope). UART2MPRTOLNbr not write-enabled this stage. Closes the open protocol_blockers.json entry for UART2MPRTOLNbr.",
+      "payload_bytes": 2
     },
     {
       "register_id": "reg_0x14E4_lcd_dry1_sources",
@@ -22341,6 +23941,270 @@
       "verification_status": "implementation_only_unverified",
       "safety_notes": "Confirms the Stage-1 baseline hypothesis: the low byte is a READ-ONLY protocol/library version marker, not a second dry-contact field. The workbook independently labels this exact byte 'Версія бібліотеки UART-протоколу' with access R.",
       "payload_bytes": 2
+    },
+    {
+      "register_id": "reg_0x14E8_lcd_buzzer_trigger_val",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x14E8",
+      "address_space": "holding_register",
+      "register_width_bits": 32,
+      "word_count": 2,
+      "byte_order": "big_endian",
+      "word_order": "high_word_first",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": "write_multiple_registers_fc16",
+      "declared_access": "rw",
+      "poll_group": "config_slow_300s",
+      "freshness_budget_s": 320,
+      "atomicity_group": "reg_0x14E8_lcd_buzzer_trigger_val",
+      "fields": [
+        {
+          "key": "lcd_buzzer_trigger_val",
+          "parent_register_id": "reg_0x14E8_lcd_buzzer_trigger_val",
+          "field_width_bits": 32,
+          "byte_offset": 0,
+          "mask": "0xFFFFFFFF",
+          "shift": 0,
+          "signedness": "signed",
+          "wire_type": "S32",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "rw",
+          "effective_access": "r",
+          "write_safety_class": "normal",
+          "esphome_domain": "number",
+          "esphome_read_entity_id": "lcd_buzzer_trigger_val",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": "lcd_buzzer_trigger_val",
+          "frontend_label_uk": "Поріг спрацювання LCD-зумера",
+          "frontend_label_en": "LCD/buzzer trigger threshold",
+          "ui_section": "settings",
+          "ui_order": 710,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": {
+            "depends_on_field": null,
+            "rule": "Stage 3 (typed-petting-puzzle plan) deliberately does not write-enable this field even though its evidence is independently corroborated (workbook V2 + official PDF) -- write-enablement is Stage 4's own risk-tiered scope (write_safety_class triage, real packed read-modify-write, hardware-in-the-loop verification), a distinct decision from evidence sufficiency.",
+            "resolved": false
+          },
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 141: name 'LCDBuzzerTriggerVal'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:LCDBuzzerTriggerVal",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x00E8, INT32, 4 bytes, RW (LCD蜂鸣器触发值LCDBuzzerTriggerVal)",
+              "locator_id": "official_jk_documentation:LCDBuzzerTriggerVal",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": "WRITE_BLOCKED_MISSING_REQUIRED_CLAIMS",
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 141",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row141",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x00E8, INT32, 4 bytes, RW, LCD蜂鸣器触发值LCDBuzzerTriggerVal",
+          "locator_id": "official_jk_documentation:row141",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "Buzzer trigger threshold value. Not write-enabled this stage.",
+      "payload_bytes": 4
+    },
+    {
+      "register_id": "reg_0x14EC_lcd_buzzer_release_val",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x14EC",
+      "address_space": "holding_register",
+      "register_width_bits": 32,
+      "word_count": 2,
+      "byte_order": "big_endian",
+      "word_order": "high_word_first",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": "write_multiple_registers_fc16",
+      "declared_access": "rw",
+      "poll_group": "config_slow_300s",
+      "freshness_budget_s": 320,
+      "atomicity_group": "reg_0x14EC_lcd_buzzer_release_val",
+      "fields": [
+        {
+          "key": "lcd_buzzer_release_val",
+          "parent_register_id": "reg_0x14EC_lcd_buzzer_release_val",
+          "field_width_bits": 32,
+          "byte_offset": 0,
+          "mask": "0xFFFFFFFF",
+          "shift": 0,
+          "signedness": "signed",
+          "wire_type": "S32",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "rw",
+          "effective_access": "r",
+          "write_safety_class": "normal",
+          "esphome_domain": "number",
+          "esphome_read_entity_id": "lcd_buzzer_release_val",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": "lcd_buzzer_release_val",
+          "frontend_label_uk": "Поріг вимкнення LCD-зумера",
+          "frontend_label_en": "LCD/buzzer release threshold",
+          "ui_section": "settings",
+          "ui_order": 711,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": {
+            "depends_on_field": null,
+            "rule": "Stage 3 (typed-petting-puzzle plan) deliberately does not write-enable this field even though its evidence is independently corroborated (workbook V2 + official PDF) -- write-enablement is Stage 4's own risk-tiered scope (write_safety_class triage, real packed read-modify-write, hardware-in-the-loop verification), a distinct decision from evidence sufficiency.",
+            "resolved": false
+          },
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 142: name 'LCDBuzzerReleaseVal'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:LCDBuzzerReleaseVal",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x00EC, INT32, 4 bytes, RW (LCD蜂鸣器恢复值LCDBuzzerReleaseVal)",
+              "locator_id": "official_jk_documentation:LCDBuzzerReleaseVal",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": "WRITE_BLOCKED_MISSING_REQUIRED_CLAIMS",
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 142",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row142",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x00EC, INT32, 4 bytes, RW, LCD蜂鸣器恢复值LCDBuzzerReleaseVal",
+          "locator_id": "official_jk_documentation:row142",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "Buzzer release threshold value. Not write-enabled this stage.",
+      "payload_bytes": 4
     },
     {
       "register_id": "reg_0x14F0_dry_contact_1_trigger_value",
@@ -22967,6 +24831,138 @@
       "payload_bytes": 4
     },
     {
+      "register_id": "reg_0x1500_data_stored_period",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x1500",
+      "address_space": "holding_register",
+      "register_width_bits": 32,
+      "word_count": 2,
+      "byte_order": "big_endian",
+      "word_order": "high_word_first",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": "write_multiple_registers_fc16",
+      "declared_access": "rw",
+      "poll_group": "config_slow_300s",
+      "freshness_budget_s": 320,
+      "atomicity_group": "reg_0x1500_data_stored_period",
+      "fields": [
+        {
+          "key": "data_stored_period",
+          "parent_register_id": "reg_0x1500_data_stored_period",
+          "field_width_bits": 32,
+          "byte_offset": 0,
+          "mask": "0xFFFFFFFF",
+          "shift": 0,
+          "signedness": "signed",
+          "wire_type": "S32",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "s",
+          "uk_display_unit": "с",
+          "en_display_unit": "s",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "rw",
+          "effective_access": "r",
+          "write_safety_class": "normal",
+          "esphome_domain": "number",
+          "esphome_read_entity_id": "data_stored_period",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": "data_stored_period",
+          "frontend_label_uk": "Період запису у Flash",
+          "frontend_label_en": "Flash log-write interval",
+          "ui_section": "settings",
+          "ui_order": 708,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": {
+            "depends_on_field": null,
+            "rule": "Stage 3 (typed-petting-puzzle plan) deliberately does not write-enable this field even though its evidence is independently corroborated (workbook V2 + official PDF) -- write-enablement is Stage 4's own risk-tiered scope (write_safety_class triage, real packed read-modify-write, hardware-in-the-loop verification), a distinct decision from evidence sufficiency.",
+            "resolved": false
+          },
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 35: name 'DataStoredPeriod'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:DataStoredPeriod",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x0100, INT32, 4 bytes, RW (数据存储周期DataStoredPeriod)",
+              "locator_id": "official_jk_documentation:DataStoredPeriod",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": "WRITE_BLOCKED_MISSING_REQUIRED_CLAIMS",
+          "implementation_status": "implemented",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 35",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:row35",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x0100, INT32, 4 bytes, RW, 数据存储周期DataStoredPeriod",
+          "locator_id": "official_jk_documentation:row35",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "Periodic flash-write interval. Not write-enabled this stage.",
+      "payload_bytes": 4
+    },
+    {
       "register_id": "reg_0x1504_rcv_rfv_time",
       "protocol_family": "JK_PB_MODBUS_RTU",
       "model_scope": [
@@ -23351,6 +25347,81 @@
           "verification_status": "single_source",
           "exclusion_reason": "intentionally_not_exposed: both the V2 workbook and the official PDF label this byte 'Reserved'/'RVD' with no further meaning documented -- there is no field to decode. Cataloged only so this address's full 16 bits are not silently unaccounted for (Stage 2, typed-petting-puzzle plan).",
           "implementation_status": "intentionally_not_exposed",
+          "unknown_code_policy": null
+        },
+        {
+          "key": "can_mptl_ver",
+          "parent_register_id": "reg_0x1506_reserved_low",
+          "field_width_bits": 8,
+          "byte_offset": 0,
+          "mask": "0xFF00",
+          "shift": 8,
+          "signedness": "unsigned",
+          "wire_type": "U8",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "r",
+          "write_safety_class": "n/a",
+          "esphome_domain": "sensor",
+          "esphome_read_entity_id": "can_mptl_ver",
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Версія протоколу CAN",
+          "frontend_label_en": "CAN protocol library version",
+          "ui_section": "settings",
+          "ui_order": 718,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 259: name 'CANMPTLVer'",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:CANMPTLVer",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "offset 0x0106, high byte of the packed register whose low byte is rvd_1506_l (保留RVD); R (CAN协议库版本CANMPTLVer)",
+              "locator_id": "official_jk_documentation:CANMPTLVer",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "confirmed",
+          "exclusion_reason": null,
+          "implementation_status": "implemented",
           "unknown_code_policy": null
         }
       ],

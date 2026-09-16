@@ -95,9 +95,9 @@ check("1. physical register count: canonical registers.length matches claim_matr
   r.physicalRegisters === r.claimCounts.physical_registers, `canonical=${r.physicalRegisters} claim=${r.claimCounts.physical_registers}`);
 check("2. logical field count: canonical field count matches claim_matrix.counts.logical_fields",
   r.logicalFields === r.claimCounts.logical_fields, `canonical=${r.logicalFields} claim=${r.claimCounts.logical_fields}`);
-check("3. declared RW count is 46 (documented baseline — a change here must be a reviewed, deliberate catalog edit)", r.declaredRw === 46, `actual=${r.declaredRw}`);
+check("3. declared RW count is 54 (documented baseline -- Stage 3 batch 1, typed-petting-puzzle plan, added 8 new RW-declared fields: dev_addr, tim_prodischarge, data_stored_period, lcd_buzzer_trigger_val, lcd_buzzer_release_val, uart1_mprtol_nbr, can_mprtol_nbr, uart2_mprtol_nbr, all landing effective_access:'r' via a dynamic_dependency escape hatch, not write-enabled; a further change here must again be a reviewed, deliberate catalog edit)", r.declaredRw === 54, `actual=${r.declaredRw}`);
 check("4. effective RW count is 18 (documented baseline)", r.effectiveRw === 18, `actual=${r.effectiveRw}`);
-check("5. effective R count is 108 (documented baseline)", r.effectiveR === 108, `actual=${r.effectiveR}`);
+check("5. effective R count is 126 (documented baseline -- Stage 3 batch 1 added 18 new implemented, effective_access:'r' fields; see check 3's comment)", r.effectiveR === 126, `actual=${r.effectiveR}`);
 check("6. unsupported count is 4 (documented baseline -- Stage 2 typed-petting-puzzle plan added 3 new intentionally_not_exposed reserved half-registers, 0x12EE/0x130C/0x1506, alongside the pre-existing reserved_0x12d2; a further change here must again be a reviewed, deliberate catalog edit)",
   r.unsupported === 4, `actual=${r.unsupported}`);
 check("6b. declared_r + declared_rw == logical field count", r.declaredR + r.declaredRw === r.logicalFields);

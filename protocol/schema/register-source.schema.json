@@ -47,7 +47,7 @@
           "model_scope": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
           "address": { "type": "string", "pattern": "^0x[0-9A-F]{4}$" },
           "address_space": { "type": "string", "enum": ["holding_register"] },
-          "register_width_bits": { "type": "integer", "enum": [16, 32, 128] },
+          "register_width_bits": { "type": "integer", "enum": [16, 32, 64, 128] },
           "word_count": { "type": "integer", "minimum": 1, "maximum": 8 },
           "payload_bytes": { "type": "integer", "minimum": 2, "maximum": 16 },
           "byte_order": { "type": "string", "enum": ["big_endian"] },
@@ -80,7 +80,7 @@
               "properties": {
                 "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
                 "parent_register_id": { "type": "string" },
-                "field_width_bits": { "type": "integer", "enum": [1, 8, 16, 32, 128] },
+                "field_width_bits": { "type": "integer", "enum": [1, 8, 16, 32, 64, 128] },
                 "byte_offset": { "type": ["integer", "null"], "minimum": 0, "maximum": 15 },
                 "mask": { "type": ["string", "null"], "pattern": "^0x[0-9A-F]+$" },
                 "shift": { "type": ["integer", "null"], "minimum": 0, "maximum": 31 },

@@ -149,8 +149,10 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 (typed-petting-puzzle plan): manual review of the raw pdftotext -layout extraction (BMS_RS485_Modbus_V1.1.pdf) resolved the byte offset directly -- the mechanical matcher's backward-only lookback cannot resolve a packed sibling whose own mnemonic line appears BEFORE the shared offset-marker line, which is exactly this parameter's case. Not a protocol contradiction, a matcher limitation. Field imported into registers.canonical.json accordingly.",
+      "closed_date": "2026-09-16"
     },
     {
       "parameter_id": "UART1MPRTOLNbr",
@@ -159,8 +161,10 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 (typed-petting-puzzle plan): manual review of the raw pdftotext -layout extraction (BMS_RS485_Modbus_V1.1.pdf) resolved the byte offset directly -- the mechanical matcher's backward-only lookback cannot resolve a packed sibling whose own mnemonic line appears BEFORE the shared offset-marker line, which is exactly this parameter's case. Not a protocol contradiction, a matcher limitation. Field imported into registers.canonical.json accordingly.",
+      "closed_date": "2026-09-16"
     },
     {
       "parameter_id": "UART2MPRTOLNbr",
@@ -169,8 +173,10 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 (typed-petting-puzzle plan): manual review of the raw pdftotext -layout extraction (BMS_RS485_Modbus_V1.1.pdf) resolved the byte offset directly -- the mechanical matcher's backward-only lookback cannot resolve a packed sibling whose own mnemonic line appears BEFORE the shared offset-marker line, which is exactly this parameter's case. Not a protocol contradiction, a matcher limitation. Field imported into registers.canonical.json accordingly.",
+      "closed_date": "2026-09-16"
     },
     {
       "parameter_id": "LCDBuzzerTrigger",

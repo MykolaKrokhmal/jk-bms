@@ -1,15 +1,15 @@
 {
   "$comment": "GENERATED -- Stage 3 (typed-petting-puzzle plan) preflight deliverable: exact address-based status of every one of the 265 manifest parameters against the CURRENT registers.canonical.json and CURRENT open protocol_blockers.json entries. NOT a mechanical manifest-count-vs-canonical-count comparison -- packed fields, aliases, and derived entities have a different structure between the two catalogs. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_stage3_status_map.js. Because this reads the CURRENT canonical/blocker state (which Stage 3 itself will change), this file's own committed content reflects one snapshot in the stage's history -- re-run this generator (and its own --check) after each canonical/blocker change within Stage 3, exactly like every other generator in this pipeline.",
   "manifest_source_sha256": "23b07669074e51b20cc1e915f202c1dd2b14f911e0da641a2091a44dc14a3ba7",
-  "canonical_source_sha256": "75b5254aa233a9d571c733de9240ceef1df2aae871536d28ee068b420786de76",
-  "blockers_source_sha256": "b75b3356c47461a37a2114e1318ededc236c75dfe415d12148e3df61f9ed0f53",
+  "canonical_source_sha256": "566836be08666192b150e15525cf00f8d6508d61691157ae8b0c48f05364ba79",
+  "blockers_source_sha256": "8ccffc8405786afd2e256487beb4e7c4ec88901b1ce80c64f55f42b7801178ef",
   "parameter_count": 265,
   "counts": {
-    "implemented_read": 96,
-    "missing": 87,
-    "blocked": 57,
+    "implemented_read": 114,
+    "blocked": 54,
     "catalog_only": 2,
     "implemented_write_confirmed": 18,
+    "missing": 72,
     "derived_not_a_register": 1,
     "reserved": 4
   },
@@ -27,32 +27,32 @@
       "base_address": "0x1410",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "SoftwareVersion",
       "base_address": "0x1418",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "ODDRunTime",
       "base_address": "0x1420",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "PWROnTimes",
       "base_address": "0x1424",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "RunTime",
@@ -75,8 +75,8 @@
       "base_address": "0x1300",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "Charge",
@@ -115,24 +115,24 @@
       "base_address": "0x12EE",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "canonical register exists at this address, but only for an unrelated/reserved sibling field -- this parameter's own data is not yet modeled"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "PCLModuleSta",
       "base_address": "0x130C",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "TimeEnterSleep",
       "base_address": "0x1308",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "SOCCapRemain",
@@ -899,8 +899,8 @@
       "base_address": "0x110C",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "TMPBatDcOT",
@@ -1083,16 +1083,16 @@
       "base_address": "0x1500",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "DevAddr",
       "base_address": "0x1108",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "UARTMPTLVer",
@@ -1131,16 +1131,16 @@
       "base_address": "0x14E8",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "LCDBuzzerReleaseVal",
       "base_address": "0x14EC",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "DRY1TriggerVal",
@@ -2083,24 +2083,24 @@
       "base_address": "0x1506",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "canonical register exists at this address, but only for an unrelated/reserved sibling field -- this parameter's own data is not yet modeled"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "UART1MPRTOLNbr",
       "base_address": "0x14B2",
       "access": "RW",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CANMPRTOLNbr",
       "base_address": "0x14B2",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "UART1MPRTOLEnable",
@@ -2123,16 +2123,16 @@
       "base_address": "0x14D4",
       "access": "RW",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "UART2MPRTOLEnable[0]",
       "base_address": "0x14D4",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     }
   ]
 }
