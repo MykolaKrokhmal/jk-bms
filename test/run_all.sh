@@ -117,6 +117,10 @@ node tools/protocol/authoring/build_pdf_locators.js --check
 node tools/protocol/authoring/build_settings_ui_mapping.js --check
 
 echo
+echo "=== Stage 3: exact status-map generator determinism (--check) ==="
+node tools/protocol/authoring/build_stage3_status_map.js --check
+
+echo
 echo "=== protocol catalog: generation atomicity + simulated-failure detection ==="
 node test/protocol_catalog/test_generation_atomicity.js
 

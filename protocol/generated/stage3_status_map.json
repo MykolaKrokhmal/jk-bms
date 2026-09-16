@@ -1,0 +1,2138 @@
+{
+  "$comment": "GENERATED -- Stage 3 (typed-petting-puzzle plan) preflight deliverable: exact address-based status of every one of the 265 manifest parameters against the CURRENT registers.canonical.json and CURRENT open protocol_blockers.json entries. NOT a mechanical manifest-count-vs-canonical-count comparison -- packed fields, aliases, and derived entities have a different structure between the two catalogs. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_stage3_status_map.js. Because this reads the CURRENT canonical/blocker state (which Stage 3 itself will change), this file's own committed content reflects one snapshot in the stage's history -- re-run this generator (and its own --check) after each canonical/blocker change within Stage 3, exactly like every other generator in this pipeline.",
+  "manifest_source_sha256": "23b07669074e51b20cc1e915f202c1dd2b14f911e0da641a2091a44dc14a3ba7",
+  "canonical_source_sha256": "75b5254aa233a9d571c733de9240ceef1df2aae871536d28ee068b420786de76",
+  "blockers_source_sha256": "b75b3356c47461a37a2114e1318ededc236c75dfe415d12148e3df61f9ed0f53",
+  "parameter_count": 265,
+  "counts": {
+    "implemented_read": 96,
+    "missing": 87,
+    "blocked": 57,
+    "catalog_only": 2,
+    "implemented_write_confirmed": 18,
+    "derived_not_a_register": 1,
+    "reserved": 4
+  },
+  "parameters": [
+    {
+      "id": "ManufacturerDeviceID",
+      "base_address": "0x1400",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "HardwareVersion",
+      "base_address": "0x1410",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "SoftwareVersion",
+      "base_address": "0x1418",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "ODDRunTime",
+      "base_address": "0x1420",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "PWROnTimes",
+      "base_address": "0x1424",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "RunTime",
+      "base_address": "0x12BC",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "SysRunTicks",
+      "base_address": "0x12F0",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "RTCTicks",
+      "base_address": "0x1300",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "Charge",
+      "base_address": "0x12C0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "Discharge",
+      "base_address": "0x12C0",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "Precharge",
+      "base_address": "0x12B8",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "Heating",
+      "base_address": "0x12D0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "ChargerPlugged",
+      "base_address": "0x12EE",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "canonical register exists at this address, but only for an unrelated/reserved sibling field -- this parameter's own data is not yet modeled"
+    },
+    {
+      "id": "PCLModuleSta",
+      "base_address": "0x130C",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "TimeEnterSleep",
+      "base_address": "0x1308",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "SOCCapRemain",
+      "base_address": "0x12A8",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "SOCFullChargeCap",
+      "base_address": "0x12AC",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "SOCCycleCap",
+      "base_address": "0x12B4",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "SOCCycleCount",
+      "base_address": "0x12B0",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "SOCSOH",
+      "base_address": "0x12B8",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "SOCStateOfcharge",
+      "base_address": "0x12A6",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "BatVol",
+      "base_address": "0x1290",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "BatVol__dup2",
+      "base_address": "0x12E4",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "BatCurrent",
+      "base_address": "0x1298",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "BatWatt",
+      "base_address": "0x1294",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVolAve",
+      "base_address": "0x1244",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVdifMax",
+      "base_address": "0x1246",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "BalanSta",
+      "base_address": "0x12A6",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "BalanCurrent",
+      "base_address": "0x12A4",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TempMos",
+      "base_address": "0x128A",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TempBat 1",
+      "base_address": "0x129C",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TempBat 2",
+      "base_address": "0x129E",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TempBat 3",
+      "base_address": "0x12F8",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TempBat 4",
+      "base_address": "0x12FA",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TempBat 5",
+      "base_address": "0x12FC",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "HeatCurrent",
+      "base_address": "0x12E6",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "Alarm Mask",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "CellWireResSta",
+      "base_address": "0x128C",
+      "access": "R",
+      "classification": "official",
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
+    },
+    {
+      "id": "TempSensorAbsent",
+      "base_address": "0x12D0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "UserAlarm",
+      "base_address": "0x12BA",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "UserAlarm2",
+      "base_address": "0x12C2",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "AlarmWireRes",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmMosOTP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmCellQuantity",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmCurSensorErr",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmCellOVP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmBatOVP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmChOCP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmChSCP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmChOTP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmChUTP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmCPUAuxCommuErr",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmCellUVP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmBatUVP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "AlarmDchOCP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmDchSCP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmDchOTP",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmChargeMOS",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "AlarmDischargeMOS",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "GPSDisconneted",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "ModifyPWDInTime",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "DischargeOnFailed",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "BatteryOverTempAlarm",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "TemperatureSensorAnomaly",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "PCLModuleAnomaly",
+      "base_address": "0x12A0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "MOSTempSensorPresent",
+      "base_address": "0x12D0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "BATTempSensor1Present",
+      "base_address": "0x12D0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "BATTempSensor2Present",
+      "base_address": "0x12D0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "BATTempSensor3Present",
+      "base_address": "0x12D0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "BATTempSensor4Present",
+      "base_address": "0x12D0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "BATTempSensor5Present",
+      "base_address": "0x12D0",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "TimeDcOCPR",
+      "base_address": "0x12C4",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TimeDcSCPR",
+      "base_address": "0x12C6",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TimeCOCPR",
+      "base_address": "0x12C8",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TimeCSCPR",
+      "base_address": "0x12CA",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TimeUVPR",
+      "base_address": "0x12CC",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TimeOVPR",
+      "base_address": "0x12CE",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TimeEmergency",
+      "base_address": "0x12D4",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellSta",
+      "base_address": "0x1240",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellCount",
+      "base_address": "0x106C",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CapBatCell",
+      "base_address": "0x107C",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "MaxVolCellNbr",
+      "base_address": "0x1248",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "MinVolCellNbr",
+      "base_address": "0x1248",
+      "access": "R",
+      "classification": "official",
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
+    },
+    {
+      "id": "BatChargeEN",
+      "base_address": "0x1070",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "BatDisChargeEN",
+      "base_address": "0x1074",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "ChargingFloatMode",
+      "base_address": "0x1114",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "BalanEN",
+      "base_address": "0x1078",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "VolCellOV",
+      "base_address": "0x100C",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "VolCellRCV",
+      "base_address": "0x1020",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "VolSOC100%",
+      "base_address": "0x1018",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "VolCellOVPR",
+      "base_address": "0x1010",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "VolCellRFV",
+      "base_address": "0x1024",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "VolSmartSleep",
+      "base_address": "0x1000",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "VolCellUV",
+      "base_address": "0x1004",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "VolCellUVPR",
+      "base_address": "0x1008",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "VolSOC0%",
+      "base_address": "0x101C",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "VolSysPwrOff",
+      "base_address": "0x1028",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "RCVTime",
+      "base_address": "0x1504",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "RFVTime",
+      "base_address": "0x1504",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "VolBalanTrig",
+      "base_address": "0x1014",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "VolStartBalan",
+      "base_address": "0x1084",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "CurBalanMax",
+      "base_address": "0x1048",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "CurBatCOC",
+      "base_address": "0x102C",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TIMBatCOCPDly",
+      "base_address": "0x1030",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TIMBatCOCPRDly",
+      "base_address": "0x1034",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "CurBatDcOC",
+      "base_address": "0x1038",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TIMBatDcOCPDly",
+      "base_address": "0x103C",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TIMBatDcOCPRDly",
+      "base_address": "0x1040",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "SCPDelay",
+      "base_address": "0x1080",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TIMBatSCPRDly",
+      "base_address": "0x1044",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "TIMProdischarge",
+      "base_address": "0x110C",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "TMPBatDcOT",
+      "base_address": "0x1054",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TMPBatDcOTPR",
+      "base_address": "0x1058",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "TMPBatCOT",
+      "base_address": "0x104C",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TMPBatCOTPR",
+      "base_address": "0x1050",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "TMPBatCUT",
+      "base_address": "0x105C",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TMPBatCUTPR",
+      "base_address": "0x1060",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "TMPMosOT",
+      "base_address": "0x1064",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "TMPMosOTPR",
+      "base_address": "0x1068",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented, effective_access=rw"
+    },
+    {
+      "id": "HeatStartTemp",
+      "base_address": "0x111C",
+      "access": "RW",
+      "classification": "vendor",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "HeatStopTemp",
+      "base_address": "0x111C",
+      "access": "RW",
+      "classification": "vendor",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "HeatEN",
+      "base_address": "0x1114",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "Disable temp-sensor",
+      "base_address": "0x1114",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "GPS Heartbeat",
+      "base_address": "0x1114",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "Port Switch",
+      "base_address": "0x1114",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "LCD Always On",
+      "base_address": "0x1114",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "Special Charger",
+      "base_address": "0x1114",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "SmartSleep",
+      "base_address": "0x1114",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "DisablePCLModule",
+      "base_address": "0x1114",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "TimedStoredData",
+      "base_address": "0x1114",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "TIMSmartSleep",
+      "base_address": "0x1118",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "DataDomainEnable0",
+      "base_address": "0x1118",
+      "access": "R",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "PWD_Config",
+      "base_address": "0x1470",
+      "access": "RW",
+      "classification": "vendor",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "DataStoredPeriod",
+      "base_address": "0x1500",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "DevAddr",
+      "base_address": "0x1108",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "UARTMPTLVer",
+      "base_address": "0x14E6",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "LCDBuzzerTrigger",
+      "base_address": "0x14E4",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "DRY1Trigger",
+      "base_address": "0x14E4",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "DRY2Trigger",
+      "base_address": "0x14E6",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "LCDBuzzerTriggerVal",
+      "base_address": "0x14E8",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "LCDBuzzerReleaseVal",
+      "base_address": "0x14EC",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "DRY1TriggerVal",
+      "base_address": "0x14F0",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "DRY1ReleaseVal",
+      "base_address": "0x14F4",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "DRY2TriggerVal",
+      "base_address": "0x14F8",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "DRY2ReleaseVal",
+      "base_address": "0x14FC",
+      "access": "RW",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol0",
+      "base_address": "0x1200",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol1",
+      "base_address": "0x1202",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol2",
+      "base_address": "0x1204",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol3",
+      "base_address": "0x1206",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol4",
+      "base_address": "0x1208",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol5",
+      "base_address": "0x120A",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol6",
+      "base_address": "0x120C",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol7",
+      "base_address": "0x120E",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol8",
+      "base_address": "0x1210",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol9",
+      "base_address": "0x1212",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol10",
+      "base_address": "0x1214",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol11",
+      "base_address": "0x1216",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol12",
+      "base_address": "0x1218",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol13",
+      "base_address": "0x121A",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol14",
+      "base_address": "0x121C",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol15",
+      "base_address": "0x121E",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellVol16",
+      "base_address": "0x1220",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol17",
+      "base_address": "0x1222",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol18",
+      "base_address": "0x1224",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol19",
+      "base_address": "0x1226",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol20",
+      "base_address": "0x1228",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol21",
+      "base_address": "0x122A",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol22",
+      "base_address": "0x122C",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol23",
+      "base_address": "0x122E",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol24",
+      "base_address": "0x1230",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol25",
+      "base_address": "0x1232",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol26",
+      "base_address": "0x1234",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol27",
+      "base_address": "0x1236",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol28",
+      "base_address": "0x1238",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol29",
+      "base_address": "0x123A",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol30",
+      "base_address": "0x123C",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellVol31",
+      "base_address": "0x123E",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes0",
+      "base_address": "0x124A",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes1",
+      "base_address": "0x124C",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes2",
+      "base_address": "0x124E",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes3",
+      "base_address": "0x1250",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes4",
+      "base_address": "0x1252",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes5",
+      "base_address": "0x1254",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes6",
+      "base_address": "0x1256",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes7",
+      "base_address": "0x1258",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes8",
+      "base_address": "0x125A",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes9",
+      "base_address": "0x125C",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes10",
+      "base_address": "0x125E",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes11",
+      "base_address": "0x1260",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes12",
+      "base_address": "0x1262",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes13",
+      "base_address": "0x1264",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes14",
+      "base_address": "0x1266",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes15",
+      "base_address": "0x1268",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "CellWireRes16",
+      "base_address": "0x126A",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes17",
+      "base_address": "0x126C",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes18",
+      "base_address": "0x126E",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes19",
+      "base_address": "0x1270",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes20",
+      "base_address": "0x1272",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes21",
+      "base_address": "0x1274",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes22",
+      "base_address": "0x1276",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes23",
+      "base_address": "0x1278",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes24",
+      "base_address": "0x127A",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes25",
+      "base_address": "0x127C",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes26",
+      "base_address": "0x127E",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes27",
+      "base_address": "0x1280",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes28",
+      "base_address": "0x1282",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes29",
+      "base_address": "0x1284",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes30",
+      "base_address": "0x1286",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellWireRes31",
+      "base_address": "0x1288",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes0",
+      "base_address": "0x1088",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes1",
+      "base_address": "0x108C",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes2",
+      "base_address": "0x1090",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes3",
+      "base_address": "0x1094",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes4",
+      "base_address": "0x1098",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes5",
+      "base_address": "0x109C",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes6",
+      "base_address": "0x10A0",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes7",
+      "base_address": "0x10A4",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes8",
+      "base_address": "0x10A8",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes9",
+      "base_address": "0x10AC",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes10",
+      "base_address": "0x10B0",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes11",
+      "base_address": "0x10B4",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes12",
+      "base_address": "0x10B8",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes13",
+      "base_address": "0x10BC",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes14",
+      "base_address": "0x10C0",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes15",
+      "base_address": "0x10C4",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes16",
+      "base_address": "0x10C8",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes17",
+      "base_address": "0x10CC",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes18",
+      "base_address": "0x10D0",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes19",
+      "base_address": "0x10D4",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes20",
+      "base_address": "0x10D8",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes21",
+      "base_address": "0x10DC",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes22",
+      "base_address": "0x10E0",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes23",
+      "base_address": "0x10E4",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes24",
+      "base_address": "0x10E8",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes25",
+      "base_address": "0x10EC",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes26",
+      "base_address": "0x10F0",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes27",
+      "base_address": "0x10F4",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes28",
+      "base_address": "0x10F8",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes29",
+      "base_address": "0x10FC",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes30",
+      "base_address": "0x1100",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CellConWireRes31",
+      "base_address": "0x1104",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "BatDisCurCorrect",
+      "base_address": "0x12D6",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "VolChargCur",
+      "base_address": "0x12D8",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "VolDischargCur",
+      "base_address": "0x12DA",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "BatVolCorrect",
+      "base_address": "0x12DC",
+      "access": "R",
+      "classification": "official",
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
+    },
+    {
+      "id": "VoltageCalibration",
+      "base_address": "0x1600",
+      "access": "W",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "Shutdown",
+      "base_address": "0x1604",
+      "access": "W",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "CurrentCalibration",
+      "base_address": "0x1606",
+      "access": "W",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "LI-ION",
+      "base_address": "0x160A",
+      "access": "W",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "LIFEPO4",
+      "base_address": "0x160C",
+      "access": "W",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "LTO",
+      "base_address": "0x160E",
+      "access": "W",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "Emergency",
+      "base_address": "0x1610",
+      "access": "W",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "Timecalibration",
+      "base_address": "0x1612",
+      "access": "W",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "ESPHome_Power",
+      "base_address": null,
+      "access": "Розрахункове",
+      "classification": "derived",
+      "status": "derived_not_a_register",
+      "note": "manifest classification=derived (not a hardware register)"
+    },
+    {
+      "id": "Reserved_12D2",
+      "base_address": "0x12D2",
+      "access": "R",
+      "classification": "reserved",
+      "status": "reserved",
+      "note": "manifest classification=reserved"
+    },
+    {
+      "id": "RVD_12EE_H",
+      "base_address": "0x12EE",
+      "access": "R",
+      "classification": "reserved",
+      "status": "reserved",
+      "note": "manifest classification=reserved"
+    },
+    {
+      "id": "RVD_130C_L",
+      "base_address": "0x130C",
+      "access": "R",
+      "classification": "reserved",
+      "status": "reserved",
+      "note": "manifest classification=reserved"
+    },
+    {
+      "id": "RVD_1506_L",
+      "base_address": "0x1506",
+      "access": "R",
+      "classification": "reserved",
+      "status": "reserved",
+      "note": "manifest classification=reserved"
+    },
+    {
+      "id": "CANMPTLVer",
+      "base_address": "0x1506",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "canonical register exists at this address, but only for an unrelated/reserved sibling field -- this parameter's own data is not yet modeled"
+    },
+    {
+      "id": "UART1MPRTOLNbr",
+      "base_address": "0x14B2",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "CANMPRTOLNbr",
+      "base_address": "0x14B2",
+      "access": "RW",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "UART1MPRTOLEnable",
+      "base_address": "0x14B4",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "UARTMPRTOLEnable[0-15]",
+      "base_address": "0x14C4",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    },
+    {
+      "id": "UART2MPRTOLNbr",
+      "base_address": "0x14D4",
+      "access": "RW",
+      "classification": "official",
+      "status": "blocked",
+      "note": "named in an open protocol_blockers.json entry"
+    },
+    {
+      "id": "UART2MPRTOLEnable[0]",
+      "base_address": "0x14D4",
+      "access": "R",
+      "classification": "official",
+      "status": "missing",
+      "note": "no canonical register at this address; PDF locator resolved"
+    }
+  ]
+}
