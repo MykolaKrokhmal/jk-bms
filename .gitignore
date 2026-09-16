@@ -1,4 +1,5 @@
 secrets.yaml
+/compile.local.env
 *.backup
 CLAUDE.local.md
 .esphome/
