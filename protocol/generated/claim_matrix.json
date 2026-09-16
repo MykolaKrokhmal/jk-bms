@@ -26,10 +26,10 @@
     "safety_class"
   ],
   "counts": {
-    "physical_registers": 119,
-    "logical_fields": 127,
+    "physical_registers": 122,
+    "logical_fields": 130,
     "write_ready": 0,
-    "write_blocked": 127,
+    "write_blocked": 130,
     "policy_inconsistent": 0
   },
   "fields": [
@@ -26984,6 +26984,94 @@
       "policy_consistent": true
     },
     {
+      "key": "rvd_12ee_h",
+      "register_id": "reg_0x12EE_reserved_high",
+      "address": "0x12EE",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A14:O14",
+            "claim_type": "address",
+            "normalized_value": "0x12EE",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A257:O257",
+            "claim_type": "address",
+            "normalized_value": "0x12EE",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A14:O14",
+            "claim_type": "declared_access",
+            "normalized_value": "r",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A257:O257",
+            "claim_type": "declared_access",
+            "normalized_value": "r",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 2
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 2
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "address",
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "unsupported",
+      "stored_effective_access": "unsupported",
+      "policy_consistent": true
+    },
+    {
       "key": "bms_system_ticks",
       "register_id": "reg_0x12F0_bms_system_ticks",
       "address": "0x12F0",
@@ -27591,6 +27679,94 @@
       "owner_authorized": false,
       "derived_effective_access": "r",
       "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "rvd_130c_l",
+      "register_id": "reg_0x130C_reserved_low",
+      "address": "0x130C",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A15:O15",
+            "claim_type": "address",
+            "normalized_value": "0x130C",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A258:O258",
+            "claim_type": "address",
+            "normalized_value": "0x130C",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A15:O15",
+            "claim_type": "declared_access",
+            "normalized_value": "r",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A258:O258",
+            "claim_type": "declared_access",
+            "normalized_value": "r",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 2
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 2
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "address",
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "unsupported",
+      "stored_effective_access": "unsupported",
       "policy_consistent": true
     },
     {
@@ -29429,7 +29605,95 @@
       "derived_effective_access": "r",
       "stored_effective_access": "r",
       "policy_consistent": true
+    },
+    {
+      "key": "rvd_1506_l",
+      "register_id": "reg_0x1506_reserved_low",
+      "address": "0x1506",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A259:O259",
+            "claim_type": "address",
+            "normalized_value": "0x1506",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A260:O260",
+            "claim_type": "address",
+            "normalized_value": "0x1506",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A259:O259",
+            "claim_type": "declared_access",
+            "normalized_value": "r",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A260:O260",
+            "claim_type": "declared_access",
+            "normalized_value": "r",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 2
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 2
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "address",
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "unsupported",
+      "stored_effective_access": "unsupported",
+      "policy_consistent": true
     }
   ],
-  "release_generation_id": "8a40bc76cf5e20da"
+  "release_generation_id": "63be6237a071b39c"
 }

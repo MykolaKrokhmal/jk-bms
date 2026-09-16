@@ -20513,6 +20513,134 @@
       "payload_bytes": 2
     },
     {
+      "register_id": "reg_0x12EE_reserved_high",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x12EE",
+      "address_space": "holding_register",
+      "register_width_bits": 16,
+      "word_count": 1,
+      "byte_order": "big_endian",
+      "word_order": "single_word",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": null,
+      "declared_access": "r",
+      "poll_group": "telemetry_15s",
+      "freshness_budget_s": 30,
+      "atomicity_group": "reg_0x12EE_reserved_high",
+      "fields": [
+        {
+          "key": "rvd_12ee_h",
+          "parent_register_id": "reg_0x12EE_reserved_high",
+          "field_width_bits": 8,
+          "byte_offset": 0,
+          "mask": "0xFF00",
+          "shift": 8,
+          "signedness": "unsigned",
+          "wire_type": "U8",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "unsupported",
+          "write_safety_class": "n/a",
+          "esphome_domain": null,
+          "esphome_read_entity_id": null,
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Зарезервовано (0x12EE, старший байт)",
+          "frontend_label_en": "Reserved (0x12EE, high byte)",
+          "ui_section": "none",
+          "ui_order": 0,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 257: name 'Зарезервовано' (name_prog matching this field's key), access R, classification reserved",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:rvd_12ee_h",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "row containing '保留RVD' immediately after 充电器状态ChargerPlugged, offset 0x00EE (low byte = ChargerPlugged, high byte = this reserved field)",
+              "locator_id": "official_jk_documentation:rvd_12ee_h",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "single_source",
+          "exclusion_reason": "intentionally_not_exposed: both the V2 workbook and the official PDF label this byte 'Reserved'/'RVD' with no further meaning documented -- there is no field to decode. Cataloged only so this address's full 16 bits are not silently unaccounted for (Stage 2, typed-petting-puzzle plan).",
+          "implementation_status": "intentionally_not_exposed",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 257",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:reg_0x12EE_reserved_high",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x00EE, 2×UINT8 (低: 充电器状态ChargerPlugged 1：插入;0：未插入 / 高: 保留RVD)",
+          "locator_id": "official_jk_documentation:reg_0x12EE_reserved_high",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "intentionally_not_exposed: both the V2 workbook and the official PDF label this byte 'Reserved'. Not read by this project (no batterylifepo4.yaml entity exists for the sibling non-reserved byte at this address yet either -- see the corresponding open Stage 2 PDF-locator/gap-audit item for that byte, Stage 3's own scope to import). Kept in the catalog so this address's reserved half is not silently unaccounted for, per Stage 2 (typed-petting-puzzle plan) 3-reserved-row deliverable.",
+      "payload_bytes": 2
+    },
+    {
       "register_id": "reg_0x12F0_bms_system_ticks",
       "protocol_family": "JK_PB_MODBUS_RTU",
       "model_scope": [
@@ -21224,6 +21352,134 @@
       ],
       "verification_status": "implementation_only_unverified",
       "safety_notes": "ESPHome id 'jkbms_bat_temp4' for the FIFTH temperature sensor is a pre-existing naming artifact in batterylifepo4.yaml, unrelated to Stage 1 — recorded as evidence, not renamed (renaming a live ESPHome entity id is an out-of-scope breaking change per spec section 11).",
+      "payload_bytes": 2
+    },
+    {
+      "register_id": "reg_0x130C_reserved_low",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x130C",
+      "address_space": "holding_register",
+      "register_width_bits": 16,
+      "word_count": 1,
+      "byte_order": "big_endian",
+      "word_order": "single_word",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": null,
+      "declared_access": "r",
+      "poll_group": "telemetry_15s",
+      "freshness_budget_s": 30,
+      "atomicity_group": "reg_0x130C_reserved_low",
+      "fields": [
+        {
+          "key": "rvd_130c_l",
+          "parent_register_id": "reg_0x130C_reserved_low",
+          "field_width_bits": 8,
+          "byte_offset": 1,
+          "mask": "0x00FF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U8",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "unsupported",
+          "write_safety_class": "n/a",
+          "esphome_domain": null,
+          "esphome_read_entity_id": null,
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Зарезервовано (0x130C, молодший байт)",
+          "frontend_label_en": "Reserved (0x130C, low byte)",
+          "ui_section": "none",
+          "ui_order": 0,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 258: name 'Зарезервовано' (name_prog matching this field's key), access R, classification reserved",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:rvd_130c_l",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "row containing '保留RVD' immediately after 并联限流模块状态PCLModuleSta, offset 0x010C (high byte = PCLModuleSta, low byte = this reserved field)",
+              "locator_id": "official_jk_documentation:rvd_130c_l",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "single_source",
+          "exclusion_reason": "intentionally_not_exposed: both the V2 workbook and the official PDF label this byte 'Reserved'/'RVD' with no further meaning documented -- there is no field to decode. Cataloged only so this address's full 16 bits are not silently unaccounted for (Stage 2, typed-petting-puzzle plan).",
+          "implementation_status": "intentionally_not_exposed",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 258",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:reg_0x130C_reserved_low",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x010C, 2×UINT8 (高: 并联限流模块状态PCLModuleSta 1：打开;0：关闭 / 低: 保留RVD)",
+          "locator_id": "official_jk_documentation:reg_0x130C_reserved_low",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "intentionally_not_exposed: both the V2 workbook and the official PDF label this byte 'Reserved'. Not read by this project (no batterylifepo4.yaml entity exists for the sibling non-reserved byte at this address yet either -- see the corresponding open Stage 2 PDF-locator/gap-audit item for that byte, Stage 3's own scope to import). Kept in the catalog so this address's reserved half is not silently unaccounted for, per Stage 2 (typed-petting-puzzle plan) 3-reserved-row deliverable.",
       "payload_bytes": 2
     },
     {
@@ -23000,6 +23256,134 @@
       ],
       "verification_status": "implementation_only_unverified",
       "safety_notes": "Fixes the register_catalog.json unit drift found in the Stage-1 baseline audit (catalog said 's', runtime/UI and the upstream reference both say '0.1 H' = hours).",
+      "payload_bytes": 2
+    },
+    {
+      "register_id": "reg_0x1506_reserved_low",
+      "protocol_family": "JK_PB_MODBUS_RTU",
+      "model_scope": [
+        "JK-PB2A16S15P (deployed unit)",
+        "JK-PB 16S-family (unconfirmed beyond deployed unit)"
+      ],
+      "address": "0x1506",
+      "address_space": "holding_register",
+      "register_width_bits": 16,
+      "word_count": 1,
+      "byte_order": "big_endian",
+      "word_order": "single_word",
+      "read_function": "read_holding_registers_fc03",
+      "write_function": null,
+      "declared_access": "r",
+      "poll_group": "telemetry_15s",
+      "freshness_budget_s": 30,
+      "atomicity_group": "reg_0x1506_reserved_low",
+      "fields": [
+        {
+          "key": "rvd_1506_l",
+          "parent_register_id": "reg_0x1506_reserved_low",
+          "field_width_bits": 8,
+          "byte_offset": 1,
+          "mask": "0x00FF",
+          "shift": 0,
+          "signedness": "unsigned",
+          "wire_type": "U8",
+          "scale": 1,
+          "offset": 0,
+          "canonical_unit": "",
+          "uk_display_unit": "",
+          "en_display_unit": "",
+          "decimal_precision": 0,
+          "minimum": null,
+          "maximum": null,
+          "step": null,
+          "reserved_values": [],
+          "nullable": true,
+          "packed_siblings": [],
+          "overlap_rule": null,
+          "access": "r",
+          "effective_access": "unsupported",
+          "write_safety_class": "n/a",
+          "esphome_domain": null,
+          "esphome_read_entity_id": null,
+          "esphome_configured_name": null,
+          "esphome_write_entity_id": null,
+          "backend_key": null,
+          "frontend_label_uk": "Зарезервовано (0x1506, молодший байт)",
+          "frontend_label_en": "Reserved (0x1506, low byte)",
+          "ui_section": "none",
+          "ui_order": 0,
+          "ui_group": null,
+          "editor_kind": "readonly",
+          "dynamic_dependency": null,
+          "enum_map": null,
+          "evidence": [
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "'Реєстр параметрів' sheet, row 259: name 'Зарезервовано' (name_prog matching this field's key), access R, classification reserved",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:rvd_1506_l",
+              "claim_types": [
+                "address",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
+              "source_id": "official_jk_documentation",
+              "locator": "row containing '保留RVD' immediately after CAN协议库版本CANMPTLVer, offset 0x0106 (high byte = CANMPTLVer, low byte = this reserved field)",
+              "locator_id": "official_jk_documentation:rvd_1506_l",
+              "claim_types": [
+                "address",
+                "field_width",
+                "signedness",
+                "wire_type",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "medium",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            }
+          ],
+          "verification_status": "single_source",
+          "exclusion_reason": "intentionally_not_exposed: both the V2 workbook and the official PDF label this byte 'Reserved'/'RVD' with no further meaning documented -- there is no field to decode. Cataloged only so this address's full 16 bits are not silently unaccounted for (Stage 2, typed-petting-puzzle plan).",
+          "implementation_status": "intentionally_not_exposed",
+          "unknown_code_policy": null
+        }
+      ],
+      "evidence": [
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "'Реєстр параметрів' sheet, row 259",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:reg_0x1506_reserved_low",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "table row: offset 0x0106, 2×UINT8 (高: CAN协议库版本CANMPTLVer / 低: 保留RVD)",
+          "locator_id": "official_jk_documentation:reg_0x1506_reserved_low",
+          "claim_types": [
+            "address",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "medium",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        }
+      ],
+      "verification_status": "single_source",
+      "safety_notes": "intentionally_not_exposed: both the V2 workbook and the official PDF label this byte 'Reserved'. Not read by this project (no batterylifepo4.yaml entity exists for the sibling non-reserved byte at this address yet either -- see the corresponding open Stage 2 PDF-locator/gap-audit item for that byte, Stage 3's own scope to import). Kept in the catalog so this address's reserved half is not silently unaccounted for, per Stage 2 (typed-petting-puzzle plan) 3-reserved-row deliverable.",
       "payload_bytes": 2
     }
   ],

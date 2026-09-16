@@ -202,6 +202,17 @@ const BESPOKE_EXCLUDED_KEYS = new Set([
   "max_voltage_cell_index_native",
   "min_voltage_cell_index_native",
   "reserved_0x12d2",
+  // Stage 2 (typed-petting-puzzle plan): the 3 newly-authored reserved
+  // half-registers (0x12EE high byte, 0x130C low byte, 0x1506 low byte)
+  // -- same reasoning as reserved_0x12d2 immediately above: effective_access
+  // "unsupported", no esphome_domain, no real entity wired to them today.
+  // Their non-reserved sibling byte at the same address isn't in the
+  // canonical catalog yet either (Stage 3's own scope to import), so
+  // generating a new scheduler read for just the reserved half now would
+  // be new bus traffic serving nothing.
+  "rvd_12ee_h",
+  "rvd_130c_l",
+  "rvd_1506_l",
   // total_voltage_raw/current_raw (0x1290/0x1298) are NOT ordinary
   // per-field entries -- excluded from the generic pipeline, but NOT
   // "bespoke/untouched": they're covered by CUSTOM_DECODE_BLOCKS below,

@@ -98,7 +98,8 @@ check("2. logical field count: canonical field count matches claim_matrix.counts
 check("3. declared RW count is 46 (documented baseline — a change here must be a reviewed, deliberate catalog edit)", r.declaredRw === 46, `actual=${r.declaredRw}`);
 check("4. effective RW count is 18 (documented baseline)", r.effectiveRw === 18, `actual=${r.effectiveRw}`);
 check("5. effective R count is 108 (documented baseline)", r.effectiveR === 108, `actual=${r.effectiveR}`);
-check("6. unsupported count is 1 (documented baseline)", r.unsupported === 1, `actual=${r.unsupported}`);
+check("6. unsupported count is 4 (documented baseline -- Stage 2 typed-petting-puzzle plan added 3 new intentionally_not_exposed reserved half-registers, 0x12EE/0x130C/0x1506, alongside the pre-existing reserved_0x12d2; a further change here must again be a reviewed, deliberate catalog edit)",
+  r.unsupported === 4, `actual=${r.unsupported}`);
 check("6b. declared_r + declared_rw == logical field count", r.declaredR + r.declaredRw === r.logicalFields);
 check("6c. effective_rw + effective_r + unsupported == logical field count", r.effectiveRw + r.effectiveR + r.unsupported === r.logicalFields);
 check("7. claim_matrix.counts.write_ready is 0 (no field is independently protocol-verified yet)", r.claimCounts.write_ready === 0, `actual=${r.claimCounts.write_ready}`);
