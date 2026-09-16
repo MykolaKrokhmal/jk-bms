@@ -1,0 +1,3224 @@
+{
+  "$comment": "GENERATED -- mechanical pdftotext extraction + deterministic address+mnemonic match against BMS_RS485_Modbus_V1.1.pdf. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_pdf_locators.js.",
+  "pdf_source_sha256": "b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+  "manifest_source_sha256": "23b07669074e51b20cc1e915f202c1dd2b14f911e0da641a2091a44dc14a3ba7",
+  "generated_at_tool": "tools/protocol/authoring/build_pdf_locators.js",
+  "non_reserved_parameter_count": 261,
+  "resolved_count": 205,
+  "unresolved_count": 56,
+  "locators": [
+    {
+      "id": "ManufacturerDeviceID",
+      "base_address": "0x1400",
+      "name_prog": "ManufacturerDeviceID",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x0000",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0000     0 ASCII    16   R    厂商型号ManufacturerDeviceID",
+      "additional_occurrences": []
+    },
+    {
+      "id": "HardwareVersion",
+      "base_address": "0x1410",
+      "name_prog": "HardwareVersion",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x0010",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0010    16 ASCII    8    R    硬件版本号HardwareVersion",
+      "additional_occurrences": []
+    },
+    {
+      "id": "SoftwareVersion",
+      "base_address": "0x1418",
+      "name_prog": "SoftwareVersion",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x0018",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0018    24 ASCII    8    R    软件版本号SoftwareVersion",
+      "additional_occurrences": []
+    },
+    {
+      "id": "ODDRunTime",
+      "base_address": "0x1420",
+      "name_prog": "ODDRunTime",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x0020",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0020    32 UINT32    4   R    累计运行时间ODDRunTime                  S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "PWROnTimes",
+      "base_address": "0x1424",
+      "name_prog": "PWROnTimes",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x0024",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0024    36 UINT32    4   R    上电次数PWROnTimes                    次",
+      "additional_occurrences": []
+    },
+    {
+      "id": "RunTime",
+      "base_address": "0x12BC",
+      "name_prog": "RunTime",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00BC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00BC   188 UINT32    4   R   运行时间RunTime                          S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "SysRunTicks",
+      "base_address": "0x12F0",
+      "name_prog": "SysRunTicks",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00F0",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00F0   240 UINT32   4    R    系统节拍SysRunTicks                  0.1S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "RTCTicks",
+      "base_address": "0x1300",
+      "name_prog": "RTCTicks",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0100",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0100   256 UINT32   4    R    RTC计数器RTCTicks                           自2020-1-1开始计时",
+      "additional_occurrences": []
+    },
+    {
+      "id": "Charge",
+      "base_address": "0x12C0",
+      "name_prog": "Charge",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00C0 (block 0x1200) and mnemonic \"Charge\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "Discharge",
+      "base_address": "0x12C0",
+      "name_prog": "Discharge",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1200",
+        "offset": "0x00C0",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "UINT8         R   放电状态Discharge                             1：打开 ; 0：关闭",
+      "additional_occurrences": []
+    },
+    {
+      "id": "Precharge",
+      "base_address": "0x12B8",
+      "name_prog": "Precharge",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1200",
+        "offset": "0x00B8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "UINT8         R   预充状态Precharge                             1：打开 ; 0：关闭",
+      "additional_occurrences": []
+    },
+    {
+      "id": "Heating",
+      "base_address": "0x12D0",
+      "name_prog": "Heating",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00D0 (block 0x1200) and mnemonic \"Heating\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "ChargerPlugged",
+      "base_address": "0x12EE",
+      "name_prog": "ChargerPlugged",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1200",
+        "offset": "0x00EE",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "UINT8         R    充电器状态ChargerPlugged                      1：插入 ; 0：未插入",
+      "additional_occurrences": []
+    },
+    {
+      "id": "PCLModuleSta",
+      "base_address": "0x130C",
+      "name_prog": "PCLModuleSta",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x010C (block 0x1200) and mnemonic \"PCLModuleSta\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "TimeEnterSleep",
+      "base_address": "0x1308",
+      "name_prog": "TimeEnterSleep",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0108",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0108   264 UINT32   4    R    进入休眠时间TimeEnterSleep              S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "SOCCapRemain",
+      "base_address": "0x12A8",
+      "name_prog": "SOCCapRemain",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00A8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00A8   168 INT32     4   R   剩余容量SOCCapRemain                    mAH",
+      "additional_occurrences": []
+    },
+    {
+      "id": "SOCFullChargeCap",
+      "base_address": "0x12AC",
+      "name_prog": "SOCFullChargeCap",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00AC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00AC   172 UINT32    4   R   电池实际容量SOCFullChargeCap              mAH",
+      "additional_occurrences": []
+    },
+    {
+      "id": "SOCCycleCap",
+      "base_address": "0x12B4",
+      "name_prog": "SOCCycleCap",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00B4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00B4   180 UINT32    4   R   循环总容量SOCCycleCap                    mAH",
+      "additional_occurrences": []
+    },
+    {
+      "id": "SOCCycleCount",
+      "base_address": "0x12B0",
+      "name_prog": "SOCCycleCount",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00B0",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00B0   176 UINT32    4   R   循环次数SOCCycleCount                    次",
+      "additional_occurrences": []
+    },
+    {
+      "id": "SOCSOH",
+      "base_address": "0x12B8",
+      "name_prog": "SOCSOH",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00B8 (block 0x1200) and mnemonic \"SOCSOH\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "SOCStateOfcharge",
+      "base_address": "0x12A6",
+      "name_prog": "SOCStateOfcharge",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1200",
+        "offset": "0x00A6",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "UINT8         R   剩余电量SOCStateOfcharge",
+      "additional_occurrences": []
+    },
+    {
+      "id": "BatVol",
+      "base_address": "0x1290",
+      "name_prog": "BatVol",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0090",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0090   144 UINT32     4   R   电池总电压BatVol                       mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "BatVol__dup2",
+      "base_address": "0x12E4",
+      "name_prog": "BatVol",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00E4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00E4   228 UINT16   2    R    电池电压BatVol                       0.01V",
+      "additional_occurrences": []
+    },
+    {
+      "id": "BatCurrent",
+      "base_address": "0x1298",
+      "name_prog": "BatCurrent",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0098",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0098   152 INT32      4   R   电池电流BatCurrent                    mA",
+      "additional_occurrences": []
+    },
+    {
+      "id": "BatWatt",
+      "base_address": "0x1294",
+      "name_prog": "BatWatt",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0094",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x1200   0x0094   148 UINT32     4   R   电池功率BatWatt                       mW",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVolAve",
+      "base_address": "0x1244",
+      "name_prog": "CellVolAve",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0044",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0044   68  UINT16   2   R   单体平均电压CellVolAve                mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVdifMax",
+      "base_address": "0x1246",
+      "name_prog": "CellVdifMax",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0046",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0046   70  UINT16   2   R   最大压差CellVdifMax                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "BalanSta",
+      "base_address": "0x12A6",
+      "name_prog": "BalanSta",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A6 (block 0x1200) and mnemonic \"BalanSta\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "BalanCurrent",
+      "base_address": "0x12A4",
+      "name_prog": "BalanCurrent",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00A4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00A4   164 INT16     2   R   均衡电流BalanCurrent                    mA",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TempMos",
+      "base_address": "0x128A",
+      "name_prog": "TempMos",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x008A",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x008A   138 INT16      2   R   功率板温度TempMos                     0.1℃",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TempBat 1",
+      "base_address": "0x129C",
+      "name_prog": "TempBat 1",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x009C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x009C   156 INT16      2   R   电池温度TempBat 1                    0.1℃",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TempBat 2",
+      "base_address": "0x129E",
+      "name_prog": "TempBat 2",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x009E",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x009E   158 INT16      2   R   电池温度TempBat 2                    0.1℃",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TempBat 3",
+      "base_address": "0x12F8",
+      "name_prog": "TempBat 3",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00F8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00F8   248 INT16    2    R    电池温度TempBat 3                    0.1℃",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TempBat 4",
+      "base_address": "0x12FA",
+      "name_prog": "TempBat 4",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00FA",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00FA   250 INT16    2    R    电池温度TempBat 4                    0.1℃",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TempBat 5",
+      "base_address": "0x12FC",
+      "name_prog": "TempBat 5",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00FC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00FC   252 INT16    2    R    电池温度TempBat 5                    0.1℃",
+      "additional_occurrences": []
+    },
+    {
+      "id": "HeatCurrent",
+      "base_address": "0x12E6",
+      "name_prog": "HeatCurrent",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00E6",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00E6   230 INT16    2    R    加热电流HeatCurrent                   mA",
+      "additional_occurrences": []
+    },
+    {
+      "id": "Alarm Mask",
+      "base_address": "0x12A0",
+      "name_prog": "Alarm Mask",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"Alarm Mask\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "CellWireResSta",
+      "base_address": "0x128C",
+      "name_prog": "CellWireResSta",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x008C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x008C   140 UINT32     4   R   均衡线电阻状态CellWireResSta                   BIT[n]为1表示该均衡线报警",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TempSensorAbsent",
+      "base_address": "0x12D0",
+      "name_prog": "TempSensorAbsent",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00D0 (block 0x1200) and mnemonic \"TempSensorAbsent\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "UserAlarm",
+      "base_address": "0x12BA",
+      "name_prog": "UserAlarm",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00BA",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00BA   186 UINT16    2   R   用户层报警UserAlarm",
+      "additional_occurrences": []
+    },
+    {
+      "id": "UserAlarm2",
+      "base_address": "0x12C2",
+      "name_prog": "UserAlarm2",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00C2",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00C2   194 UINT16    2   R   用户层报警2UserAlarm2",
+      "additional_occurrences": []
+    },
+    {
+      "id": "AlarmWireRes",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmWireRes",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmWireRes\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmMosOTP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmMosOTP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmMosOTP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmCellQuantity",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmCellQuantity",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmCellQuantity\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmCurSensorErr",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmCurSensorErr",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmCurSensorErr\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmCellOVP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmCellOVP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmCellOVP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmBatOVP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmBatOVP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmBatOVP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmChOCP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmChOCP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmChOCP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmChSCP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmChSCP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmChSCP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmChOTP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmChOTP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmChOTP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmChUTP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmChUTP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmChUTP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmCPUAuxCommuErr",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmCPUAuxCommuErr",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmCPUAuxCommuErr\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmCellUVP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmCellUVP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmCellUVP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmBatUVP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmBatUVP",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1200",
+        "offset": "0x00A0",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "电池欠压保护AlarmBatUVP                       1：故障 ; 0：正常        BIT12",
+      "additional_occurrences": []
+    },
+    {
+      "id": "AlarmDchOCP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmDchOCP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmDchOCP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmDchSCP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmDchSCP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmDchSCP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmDchOTP",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmDchOTP",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmDchOTP\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmChargeMOS",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmChargeMOS",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmChargeMOS\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "AlarmDischargeMOS",
+      "base_address": "0x12A0",
+      "name_prog": "AlarmDischargeMOS",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"AlarmDischargeMOS\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "GPSDisconneted",
+      "base_address": "0x12A0",
+      "name_prog": "GPSDisconneted",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"GPSDisconneted\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "ModifyPWDInTime",
+      "base_address": "0x12A0",
+      "name_prog": "ModifyPWDInTime",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"ModifyPWDInTime\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "DischargeOnFailed",
+      "base_address": "0x12A0",
+      "name_prog": "DischargeOnFailed",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"DischargeOnFailed\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "BatteryOverTempAlarm",
+      "base_address": "0x12A0",
+      "name_prog": "BatteryOverTempAlarm",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"BatteryOverTempAlarm\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "TemperatureSensorAnomaly",
+      "base_address": "0x12A0",
+      "name_prog": "TemperatureSensorAnomaly",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"TemperatureSensorAnomaly\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "PCLModuleAnomaly",
+      "base_address": "0x12A0",
+      "name_prog": "PCLModuleAnomaly",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00A0 (block 0x1200) and mnemonic \"PCLModuleAnomaly\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "MOSTempSensorPresent",
+      "base_address": "0x12D0",
+      "name_prog": "MOSTempSensorPresent",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00D0 (block 0x1200) and mnemonic \"MOSTempSensorPresent\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "BATTempSensor1Present",
+      "base_address": "0x12D0",
+      "name_prog": "BATTempSensor1Present",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00D0 (block 0x1200) and mnemonic \"BATTempSensor1Present\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "BATTempSensor2Present",
+      "base_address": "0x12D0",
+      "name_prog": "BATTempSensor2Present",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00D0 (block 0x1200) and mnemonic \"BATTempSensor2Present\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "BATTempSensor3Present",
+      "base_address": "0x12D0",
+      "name_prog": "BATTempSensor3Present",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00D0 (block 0x1200) and mnemonic \"BATTempSensor3Present\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "BATTempSensor4Present",
+      "base_address": "0x12D0",
+      "name_prog": "BATTempSensor4Present",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00D0 (block 0x1200) and mnemonic \"BATTempSensor4Present\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "BATTempSensor5Present",
+      "base_address": "0x12D0",
+      "name_prog": "BATTempSensor5Present",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00D0 (block 0x1200) and mnemonic \"BATTempSensor5Present\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "TimeDcOCPR",
+      "base_address": "0x12C4",
+      "name_prog": "TimeDcOCPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00C4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00C4   196 UINT16    2   R   放电过流保护解除时间TimeDcOCPR                 S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TimeDcSCPR",
+      "base_address": "0x12C6",
+      "name_prog": "TimeDcSCPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00C6",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00C6   198 UINT16    2   R   放电短路保护解除时间TimeDcSCPR                 S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TimeCOCPR",
+      "base_address": "0x12C8",
+      "name_prog": "TimeCOCPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00C8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00C8   200 UINT16    2   R   充电过流保护解除时间TimeCOCPR                  S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TimeCSCPR",
+      "base_address": "0x12CA",
+      "name_prog": "TimeCSCPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00CA",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00CA   202 UINT16    2   R   充电短路保护解除时间TimeCSCPR                  S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TimeUVPR",
+      "base_address": "0x12CC",
+      "name_prog": "TimeUVPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00CC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00CC   204 UINT16    2   R   单体欠压保护解除时间TimeUVPR                   S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TimeOVPR",
+      "base_address": "0x12CE",
+      "name_prog": "TimeOVPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00CE",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00CE   206 UINT16    2   R   单体过压保护解除时间TimeOVPR                   S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TimeEmergency",
+      "base_address": "0x12D4",
+      "name_prog": "TimeEmergency",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00D4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00D4   212 UINT16   2    R    应急开关时间TimeEmergency               S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellSta",
+      "base_address": "0x1240",
+      "name_prog": "CellSta",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0040",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0040   64  UINT32   4   R   电池状态CellSta                          BIT[n]为1表示该电池存在",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellCount",
+      "base_address": "0x106C",
+      "name_prog": "CellCount",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x006C",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x006C  108 UINT32   4 RW 单体数量CellCount                    串",
+      "additional_occurrences": [
+        "0x1000 0x006C     UINT32  4    单体数量CellCount                 15      01 10 10 6C 00 02 04 00 00 00 0F 78 16   01 10 10 6C 00 02 85 15"
+      ]
+    },
+    {
+      "id": "CapBatCell",
+      "base_address": "0x107C",
+      "name_prog": "CapBatCell",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x007C",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x007C   124 UINT32   4   RW   电池设计容量CapBatCell                 mAH",
+      "additional_occurrences": [
+        "0x1000   0x007C UINT32     4   电池设计容量CapBatCell                 50    01 10 10 7C 00 02 04 00 00 C3 50 69 D2   01 10 10 7C 00 02 84 D0"
+      ]
+    },
+    {
+      "id": "MaxVolCellNbr",
+      "base_address": "0x1248",
+      "name_prog": "MaxVolCellNbr",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0048 (block 0x1200) and mnemonic \"MaxVolCellNbr\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "MinVolCellNbr",
+      "base_address": "0x1248",
+      "name_prog": "MinVolCellNbr",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1200",
+        "offset": "0x0048",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "UINT8        R   最小电压单体编号MinVolCellNbr",
+      "additional_occurrences": []
+    },
+    {
+      "id": "BatChargeEN",
+      "base_address": "0x1070",
+      "name_prog": "BatChargeEN",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0070",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0070  112 UINT32   4 RW 充电开关BatChargeEN                       1：打开 ; 0：关闭",
+      "additional_occurrences": [
+        "0x1000   0x0070   UINT32   4   充电开关BatChargeEN"
+      ]
+    },
+    {
+      "id": "BatDisChargeEN",
+      "base_address": "0x1074",
+      "name_prog": "BatDisChargeEN",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0074",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0074  116 UINT32   4 RW 放电开关BatDisChargeEN                    1：打开 ; 0：关闭",
+      "additional_occurrences": [
+        "0x1000   0x0074   UINT32   4   放电开关BatDisChargeEN"
+      ]
+    },
+    {
+      "id": "ChargingFloatMode",
+      "base_address": "0x1114",
+      "name_prog": "ChargingFloatMode",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0114 (block 0x1000) and mnemonic \"ChargingFloatMode\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "BalanEN",
+      "base_address": "0x1078",
+      "name_prog": "BalanEN",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0078",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0078  120 UINT32   4 RW 均衡开关BalanEN                           1：打开 ; 0：关闭",
+      "additional_occurrences": [
+        "0x1000   0x0078   UINT32   4   均衡开关BalanEN"
+      ]
+    },
+    {
+      "id": "VolCellOV",
+      "base_address": "0x100C",
+      "name_prog": "VolCellOV",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x000C",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x000C   12 UINT32   4 RW 单体过充保护VolCellOV                 mV",
+      "additional_occurrences": [
+        "0x1000 0x000C     UINT32  4    单体过充保护VolCellOV               4.3     01 10 10 0C 00 02 04 00 00 10 CC 33 AF   01 10 10 0C 00 02 85 0B"
+      ]
+    },
+    {
+      "id": "VolCellRCV",
+      "base_address": "0x1020",
+      "name_prog": "VolCellRCV",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0020",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0020   32 UINT32   4 RW 推荐充电电压VolCellRCV                mV",
+      "additional_occurrences": [
+        "0x1000 0x0020     UINT32  4    推荐充电电压VolCellRCV              4.2     01 10 10 20 00 02 04 00 00 10 68 30 59   01 10 10 20 00 02 44 C2"
+      ]
+    },
+    {
+      "id": "VolSOC100%",
+      "base_address": "0x1018",
+      "name_prog": "VolSOC100%",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0018",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0018   24 UINT32   4 RW SOC-100%电压VolSOC100%            mV",
+      "additional_occurrences": [
+        "0x1000 0x0018     UINT32  4    SOC-100%电压VolSOC100%          4.17    01 10 10 18 00 02 04 00 00 10 4A B2 F2   01 10 10 18 00 02 C5 0F"
+      ]
+    },
+    {
+      "id": "VolCellOVPR",
+      "base_address": "0x1010",
+      "name_prog": "VolCellOVPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0010",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0010   16 UINT32   4 RW 单体过充保护恢复电压VolCellOVPR           mV",
+      "additional_occurrences": [
+        "0x1000 0x0010     UINT32  4    单体过充保护恢复电压VolCellOVPR         4.16    01 10 10 10 00 02 04 00 00 10 40 33 53   01 10 10 10 00 02 44 CD"
+      ]
+    },
+    {
+      "id": "VolCellRFV",
+      "base_address": "0x1024",
+      "name_prog": "VolCellRFV",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0024",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0024   36 UINT32   4 RW 浮充电压VolCellRFV                  mV",
+      "additional_occurrences": [
+        "0x1000 0x0024     UINT32  4    浮充电压VolCellRFV                4.16    01 10 10 24 00 02 04 00 00 10 40 31 B4   01 10 10 24 00 02 05 03"
+      ]
+    },
+    {
+      "id": "VolSmartSleep",
+      "base_address": "0x1000",
+      "name_prog": "VolSmartSleep",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0000",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0000    0 UINT32   4 RW 进入休眠电压VolSmartSleep             mV",
+      "additional_occurrences": [
+        "0x1000 0x0000     UINT32  4    进入休眠电压VolSmartSleep           3.54    01 10 10 00 00 02 04 00 00 0D D4 3A A0   01 10 10 00 00 02 45 08"
+      ]
+    },
+    {
+      "id": "VolCellUV",
+      "base_address": "0x1004",
+      "name_prog": "VolCellUV",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0004",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0004    4 UINT32   4 RW 单体欠压保护VolCellUV                 mV",
+      "additional_occurrences": [
+        "0x1000 0x0004     UINT32  4    单体欠压保护VolCellUV               2.83    01 10 10 04 00 02 04 00 00 0B 0E B9 68   01 10 10 04 00 02 04 C9"
+      ]
+    },
+    {
+      "id": "VolCellUVPR",
+      "base_address": "0x1008",
+      "name_prog": "VolCellUVPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0008",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0008    8 UINT32   4 RW 单体欠压保护恢复VolCellUVPR             mV",
+      "additional_occurrences": [
+        "0x1000 0x0008     UINT32  4    单体欠压保护恢复VolCellUVPR           2.86    01 10 10 08 00 02 04 00 00 0B 2C 39 24   01 10 10 08 00 02 C4 CA"
+      ]
+    },
+    {
+      "id": "VolSOC0%",
+      "base_address": "0x101C",
+      "name_prog": "VolSOC0%",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x001C",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x001C   28 UINT32   4 RW SOC-0%电压VolSOC0%                mV",
+      "additional_occurrences": [
+        "0x1000 0x001C     UINT32  4    SOC-0%电压VolSOC0%              2.85    01 10 10 1C 00 02 04 00 00 0B 22 B8 1F   01 10 10 1C 00 02 84 CE"
+      ]
+    },
+    {
+      "id": "VolSysPwrOff",
+      "base_address": "0x1028",
+      "name_prog": "VolSysPwrOff",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0028",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0028   40 UINT32   4 RW 自动关机电压VolSysPwrOff              mV",
+      "additional_occurrences": [
+        "0x1000 0x0028     UINT32  4    自动关机电压VolSysPwrOff            2.7     01 10 10 28 00 02 04 00 00 0A 8C 3A D4   01 10 10 28 00 02 C5 00"
+      ]
+    },
+    {
+      "id": "RCVTime",
+      "base_address": "0x1504",
+      "name_prog": "RCVTime",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x0104",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0104   260 UINT8     2   RW 充电时间RCVTime",
+      "additional_occurrences": []
+    },
+    {
+      "id": "RFVTime",
+      "base_address": "0x1504",
+      "name_prog": "RFVTime",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1400",
+        "offset": "0x0104",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "浮充时间RFVTime                      0.1H",
+      "additional_occurrences": []
+    },
+    {
+      "id": "VolBalanTrig",
+      "base_address": "0x1014",
+      "name_prog": "VolBalanTrig",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0014",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0014   20 UINT32   4 RW 触发均衡压差VolBalanTrig              mV",
+      "additional_occurrences": [
+        "0x1000 0x0014     UINT32  4    触发均衡压差VolBalanTrig            0.003   01 10 10 14 00 02 04 00 00 00 03 7E 91   01 10 10 14 00 02 05 0C"
+      ]
+    },
+    {
+      "id": "VolStartBalan",
+      "base_address": "0x1084",
+      "name_prog": "VolStartBalan",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0084",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0084   132 UINT32   4   RW   均衡起始电压VolStartBalan              mV",
+      "additional_occurrences": [
+        "0x1000   0x0084 UINT32     4   均衡起始电压VolStartBalan              3.1   01 10 10 84 00 02 04 00 00 0C 1C 33 35   01 10 10 84 00 02 05 21"
+      ]
+    },
+    {
+      "id": "CurBalanMax",
+      "base_address": "0x1048",
+      "name_prog": "CurBalanMax",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0048",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0048   72 UINT32   4 RW 最大均衡电流CurBalanMax               mA",
+      "additional_occurrences": [
+        "0x1000 0x0048     UINT32  4    最大均衡电流CurBalanMax             1       01 10 10 48 00 02 04 00 00 03 E8 3B 47   01 10 10 48 00 02 C5 1E"
+      ]
+    },
+    {
+      "id": "CurBatCOC",
+      "base_address": "0x102C",
+      "name_prog": "CurBatCOC",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x002C",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x002C   44 UINT32   4 RW 持续充电电流CurBatCOC                 mA",
+      "additional_occurrences": [
+        "0x1000 0x002C     UINT32  4    持续充电电流CurBatCOC               30      01 10 10 2C 00 02 04 00 00 75 30 1A A6   01 10 10 2C 00 02 84 C1"
+      ]
+    },
+    {
+      "id": "TIMBatCOCPDly",
+      "base_address": "0x1030",
+      "name_prog": "TIMBatCOCPDly",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0030",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0030   48 UINT32   4 RW 充电过流保护延迟TIMBatCOCPDly            S",
+      "additional_occurrences": [
+        "0x1000 0x0030     UINT32  4    充电过流保护延迟TIMBatCOCPDly         10      01 10 10 30 00 02 04 00 00 00 0A BD 7C   01 10 10 30 00 02 45 07"
+      ]
+    },
+    {
+      "id": "TIMBatCOCPRDly",
+      "base_address": "0x1034",
+      "name_prog": "TIMBatCOCPRDly",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0034",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0034   52 UINT32   4 RW 充电过流保护解除TIMBatCOCPRDly           S",
+      "additional_occurrences": [
+        "0x1000 0x0034     UINT32  4    充电过流保护解除TIMBatCOCPRDly        40      01 10 10 34 00 02 04 00 00 00 28 3C 96   01 10 10 34 00 02 04 C6"
+      ]
+    },
+    {
+      "id": "CurBatDcOC",
+      "base_address": "0x1038",
+      "name_prog": "CurBatDcOC",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0038",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0038   56 UINT32   4 RW 持续放电电流CurBatDcOC                mA",
+      "additional_occurrences": [
+        "0x1000 0x0038     UINT32  4    持续放电电流CurBatDcOC              149     01 10 10 38 00 02 04 00 02 46 08 AE BB   01 10 10 38 00 02 C4 C5"
+      ]
+    },
+    {
+      "id": "TIMBatDcOCPDly",
+      "base_address": "0x103C",
+      "name_prog": "TIMBatDcOCPDly",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x003C",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x003C   60 UINT32   4 RW 放电过流保护延迟TIMBatDcOCPDly           S",
+      "additional_occurrences": [
+        "0x1000 0x003C     UINT32  4    放电过流保护延迟TIMBatDcOCPDly        30      01 10 10 3C 00 02 04 00 00 00 1E BD 26   01 10 10 3C 00 02 85 04"
+      ]
+    },
+    {
+      "id": "TIMBatDcOCPRDly",
+      "base_address": "0x1040",
+      "name_prog": "TIMBatDcOCPRDly",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0040",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0040   64 UINT32   4 RW 放电过流保护解除TIMBatDcOCPRDly          S",
+      "additional_occurrences": [
+        "0x1000 0x0040     UINT32  4    放电过流保护解除TIMBatDcOCPRDly       40      01 10 10 40 00 02 04 00 00 00 28 3A 41   01 10 10 40 00 02 44 DC"
+      ]
+    },
+    {
+      "id": "SCPDelay",
+      "base_address": "0x1080",
+      "name_prog": "SCPDelay",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0080",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0080   128 UINT32   4   RW   短路保护延迟SCPDelay                    us",
+      "additional_occurrences": [
+        "0x1000   0x0080 UINT32     4   短路保护延迟SCPDelay                   140   01 10 10 80 00 02 04 00 00 00 8C 37 AA   01 10 10 80 00 02 44 E0"
+      ]
+    },
+    {
+      "id": "TIMBatSCPRDly",
+      "base_address": "0x1044",
+      "name_prog": "TIMBatSCPRDly",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0044",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0044   68 UINT32   4 RW 短路保护解除TIMBatSCPRDly              S",
+      "additional_occurrences": [
+        "0x1000 0x0044     UINT32  4    短路保护解除TIMBatSCPRDly           6       01 10 10 44 00 02 04 00 00 00 06 BB AE   01 10 10 44 00 02 05 1D"
+      ]
+    },
+    {
+      "id": "TIMProdischarge",
+      "base_address": "0x110C",
+      "name_prog": "TIMProdischarge",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x010C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x010C   268 UINT32     4   RW   放电预充时间TIMProdischarge            S",
+      "additional_occurrences": []
+    },
+    {
+      "id": "TMPBatDcOT",
+      "base_address": "0x1054",
+      "name_prog": "TMPBatDcOT",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0054",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0054   84 INT32    4 RW 放电过温保护TMPBatDcOT               0.1℃",
+      "additional_occurrences": [
+        "0x1000 0x0054     INT32   4    放电过温保护TMPBatDcOT              75      01 10 10 54 00 02 04 00 00 02 EE BB 8C   01 10 10 54 00 02 04 D8"
+      ]
+    },
+    {
+      "id": "TMPBatDcOTPR",
+      "base_address": "0x1058",
+      "name_prog": "TMPBatDcOTPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0058",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0058   88 INT32    4 RW 放电过温恢复TMPBatDcOTPR             0.1℃",
+      "additional_occurrences": [
+        "0x1000 0x0058     INT32   4    放电过温恢复TMPBatDcOTPR            65      01 10 10 58 00 02 04 00 00 02 8A BA 32   01 10 10 58 00 02 C4 DB"
+      ]
+    },
+    {
+      "id": "TMPBatCOT",
+      "base_address": "0x104C",
+      "name_prog": "TMPBatCOT",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x004C",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x004C   76 INT32    4 RW 充电过温保护TMPBatCOT                0.1℃",
+      "additional_occurrences": [
+        "0x1000 0x004C     INT32   4    充电过温保护TMPBatCOT               75      01 10 10 4C 00 02 04 00 00 02 EE BB 26   01 10 10 4C 00 02 84 DF"
+      ]
+    },
+    {
+      "id": "TMPBatCOTPR",
+      "base_address": "0x1050",
+      "name_prog": "TMPBatCOTPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0050",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0050   80 INT32    4 RW 充电过温恢复TMPBatCOTPR              0.1℃",
+      "additional_occurrences": [
+        "0x1000 0x0050     INT32   4    充电过温恢复TMPBatCOTPR             65      01 10 10 50 00 02 04 00 00 02 8A BB 94   01 10 10 50 00 02 45 19"
+      ]
+    },
+    {
+      "id": "TMPBatCUT",
+      "base_address": "0x105C",
+      "name_prog": "TMPBatCUT",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x005C",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x005C   92 INT32    4 RW 充电低温保护TMPBatCUT                0.1℃",
+      "additional_occurrences": [
+        "0x1000 0x005C     INT32   4    充电低温保护TMPBatCUT               -25     01 10 10 5C 00 02 04 FF FF FF 06 FA D0   01 10 10 5C 00 02 85 1A"
+      ]
+    },
+    {
+      "id": "TMPBatCUTPR",
+      "base_address": "0x1060",
+      "name_prog": "TMPBatCUTPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0060",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0060   96 INT32    4 RW 充电低温恢复TMPBatCUTPR              0.1℃",
+      "additional_occurrences": [
+        "0x1000 0x0060     INT32   4    充电低温恢复TMPBatCUTPR             -15     01 10 10 60 00 02 04 FF FF FF 6A F9 BC   01 10 10 60 00 02 45 16"
+      ]
+    },
+    {
+      "id": "TMPMosOT",
+      "base_address": "0x1064",
+      "name_prog": "TMPMosOT",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0064",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0064  100 INT32    4 RW MOS过温保护TMPMosOT                0.1℃",
+      "additional_occurrences": [
+        "0x1000 0x0064     INT32   4    MOS过温保护TMPMosOT               105     01 10 10 64 00 02 04 00 00 04 1A BA BF   01 10 10 64 00 02 04 D7"
+      ]
+    },
+    {
+      "id": "TMPMosOTPR",
+      "base_address": "0x1068",
+      "name_prog": "TMPMosOTPR",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0068",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0068  104 INT32    4 RW MOS过温保护恢复TMPMosOTPR            0.1℃",
+      "additional_occurrences": [
+        "0x1000 0x0068     INT32   4    MOS过温保护恢复TMPMosOTPR           90      01 10 10 68 00 02 04 00 00 03 84 39 72   01 10 10 68 00 02 C4 D4"
+      ]
+    },
+    {
+      "id": "HeatStartTemp",
+      "base_address": "0x111C",
+      "name_prog": "HeatStartTemp",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x011C (block 0x1000) and mnemonic \"HeatStartTemp\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "HeatStopTemp",
+      "base_address": "0x111C",
+      "name_prog": "HeatStopTemp",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x011C (block 0x1000) and mnemonic \"HeatStopTemp\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "HeatEN",
+      "base_address": "0x1114",
+      "name_prog": "HeatEN",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0114 (block 0x1000) and mnemonic \"HeatEN\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "Disable temp-sensor",
+      "base_address": "0x1114",
+      "name_prog": "Disable temp-sensor",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0114 (block 0x1000) and mnemonic \"Disable temp-sensor\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "GPS Heartbeat",
+      "base_address": "0x1114",
+      "name_prog": "GPS Heartbeat",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0114 (block 0x1000) and mnemonic \"GPS Heartbeat\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "Port Switch",
+      "base_address": "0x1114",
+      "name_prog": "Port Switch",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0114 (block 0x1000) and mnemonic \"Port Switch\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "LCD Always On",
+      "base_address": "0x1114",
+      "name_prog": "LCD Always On",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0114 (block 0x1000) and mnemonic \"LCD Always On\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "Special Charger",
+      "base_address": "0x1114",
+      "name_prog": "Special Charger",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0114",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0114   276 UINT16     2        专用充电器识别Special Charger",
+      "additional_occurrences": []
+    },
+    {
+      "id": "SmartSleep",
+      "base_address": "0x1114",
+      "name_prog": "SmartSleep",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0114 (block 0x1000) and mnemonic \"SmartSleep\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "DisablePCLModule",
+      "base_address": "0x1114",
+      "name_prog": "DisablePCLModule",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0114 (block 0x1000) and mnemonic \"DisablePCLModule\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "TimedStoredData",
+      "base_address": "0x1114",
+      "name_prog": "TimedStoredData",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0114 (block 0x1000) and mnemonic \"TimedStoredData\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "TIMSmartSleep",
+      "base_address": "0x1118",
+      "name_prog": "TIMSmartSleep",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0118 (block 0x1000) and mnemonic \"TIMSmartSleep\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "DataDomainEnable0",
+      "base_address": "0x1118",
+      "name_prog": "DataDomainEnable0",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0118 (block 0x1000) and mnemonic \"DataDomainEnable0\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "PWD_Config",
+      "base_address": "0x1470",
+      "name_prog": "PWD_Config",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x0070 (block 0x1400) and mnemonic \"PWD_Config\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "DataStoredPeriod",
+      "base_address": "0x1500",
+      "name_prog": "DataStoredPeriod",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x0100",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0100   256 INT32     4   RW 数据存储周期DataStoredPeriod",
+      "additional_occurrences": []
+    },
+    {
+      "id": "DevAddr",
+      "base_address": "0x1108",
+      "name_prog": "DevAddr",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0108",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0108   264 UINT32     4   RW   设备地址DevAddr                      H",
+      "additional_occurrences": []
+    },
+    {
+      "id": "UARTMPTLVer",
+      "base_address": "0x14E6",
+      "name_prog": "UARTMPTLVer",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1400",
+        "offset": "0x00E6",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "UINT8         R    UART协议库版本UARTMPTLVer",
+      "additional_occurrences": []
+    },
+    {
+      "id": "LCDBuzzerTrigger",
+      "base_address": "0x14E4",
+      "name_prog": "LCDBuzzerTrigger",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00E4 (block 0x1400) and mnemonic \"LCDBuzzerTrigger\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "DRY1Trigger",
+      "base_address": "0x14E4",
+      "name_prog": "DRY1Trigger",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1400",
+        "offset": "0x00E4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "UINT8              干节点1触发源DRY1Trigger",
+      "additional_occurrences": []
+    },
+    {
+      "id": "DRY2Trigger",
+      "base_address": "0x14E6",
+      "name_prog": "DRY2Trigger",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00E6 (block 0x1400) and mnemonic \"DRY2Trigger\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "LCDBuzzerTriggerVal",
+      "base_address": "0x14E8",
+      "name_prog": "LCDBuzzerTriggerVal",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x00E8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00E8   232 INT32    4    RW   LCD蜂鸣器触发值LCDBuzzerTriggerVal",
+      "additional_occurrences": []
+    },
+    {
+      "id": "LCDBuzzerReleaseVal",
+      "base_address": "0x14EC",
+      "name_prog": "LCDBuzzerReleaseVal",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x00EC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00EC   236 INT32     4   RW LCD蜂鸣器恢复值LCDBuzzerReleaseVal",
+      "additional_occurrences": []
+    },
+    {
+      "id": "DRY1TriggerVal",
+      "base_address": "0x14F0",
+      "name_prog": "DRY1TriggerVal",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x00F0",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00F0   240 INT32     4   RW 干节点1触发值DRY1TriggerVal",
+      "additional_occurrences": []
+    },
+    {
+      "id": "DRY1ReleaseVal",
+      "base_address": "0x14F4",
+      "name_prog": "DRY1ReleaseVal",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x00F4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00F4   244 INT32     4   RW 干节点1触发值DRY1ReleaseVal",
+      "additional_occurrences": []
+    },
+    {
+      "id": "DRY2TriggerVal",
+      "base_address": "0x14F8",
+      "name_prog": "DRY2TriggerVal",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x00F8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00F8   248 INT32     4   RW 干节点2触发值DRY2TriggerVal",
+      "additional_occurrences": []
+    },
+    {
+      "id": "DRY2ReleaseVal",
+      "base_address": "0x14FC",
+      "name_prog": "DRY2ReleaseVal",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x00FC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00FC   252 INT32     4   RW 干节点2恢复值DRY2ReleaseVal",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol0",
+      "base_address": "0x1200",
+      "name_prog": "CellVol0",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0000",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0000    0    UINT16   2   R    单体电压0CellVol0                    mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol1",
+      "base_address": "0x1202",
+      "name_prog": "CellVol1",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0002",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0002    2    UINT16   2   R    单体电压1CellVol1                    mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol2",
+      "base_address": "0x1204",
+      "name_prog": "CellVol2",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0004",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0004    4    UINT16   2   R    单体电压2CellVol2                    mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol3",
+      "base_address": "0x1206",
+      "name_prog": "CellVol3",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0006",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0006    6    UINT16   2   R    单体电压3CellVol3                    mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol4",
+      "base_address": "0x1208",
+      "name_prog": "CellVol4",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0008",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0008    8    UINT16   2   R    单体电压4CellVol4                    mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol5",
+      "base_address": "0x120A",
+      "name_prog": "CellVol5",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x000A",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x000A   10    UINT16   2   R    单体电压5CellVol5                    mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol6",
+      "base_address": "0x120C",
+      "name_prog": "CellVol6",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x000C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x000C   12    UINT16   2   R    单体电压6CellVol6                    mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol7",
+      "base_address": "0x120E",
+      "name_prog": "CellVol7",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x000E",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x000E   14    UINT16   2   R    单体电压7CellVol7                    mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol8",
+      "base_address": "0x1210",
+      "name_prog": "CellVol8",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0010",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0010   16    UINT16   2   R    单体电压8CellVol8                    mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol9",
+      "base_address": "0x1212",
+      "name_prog": "CellVol9",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0012",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0012   18    UINT16   2   R    单体电压9CellVol9                    mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol10",
+      "base_address": "0x1214",
+      "name_prog": "CellVol10",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0014",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0014   20    UINT16   2   R    单体电压10CellVol10                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol11",
+      "base_address": "0x1216",
+      "name_prog": "CellVol11",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0016",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0016   22    UINT16   2   R    单体电压11CellVol11                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol12",
+      "base_address": "0x1218",
+      "name_prog": "CellVol12",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0018",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0018   24    UINT16   2   R    单体电压12CellVol12                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol13",
+      "base_address": "0x121A",
+      "name_prog": "CellVol13",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x001A",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x001A   26    UINT16   2   R    单体电压13CellVol13                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol14",
+      "base_address": "0x121C",
+      "name_prog": "CellVol14",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x001C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x001C   28    UINT16   2   R    单体电压14CellVol14                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol15",
+      "base_address": "0x121E",
+      "name_prog": "CellVol15",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x001E",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x001E   30    UINT16   2   R    单体电压15CellVol15                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol16",
+      "base_address": "0x1220",
+      "name_prog": "CellVol16",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0020",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0020   32    UINT16   2   R    单体电压16CellVol16                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol17",
+      "base_address": "0x1222",
+      "name_prog": "CellVol17",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0022",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0022   34    UINT16   2   R    单体电压17CellVol17                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol18",
+      "base_address": "0x1224",
+      "name_prog": "CellVol18",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0024",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0024   36    UINT16   2   R    单体电压18CellVol18                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol19",
+      "base_address": "0x1226",
+      "name_prog": "CellVol19",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0026",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0026   38    UINT16   2   R    单体电压19CellVol19                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol20",
+      "base_address": "0x1228",
+      "name_prog": "CellVol20",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0028",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0028   40    UINT16   2   R    单体电压20CellVol20                  mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol21",
+      "base_address": "0x122A",
+      "name_prog": "CellVol21",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x002A",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x002A   42  UINT16   2   R   单体电压21CellVol21                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol22",
+      "base_address": "0x122C",
+      "name_prog": "CellVol22",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x002C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x002C   44  UINT16   2   R   单体电压22CellVol22                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol23",
+      "base_address": "0x122E",
+      "name_prog": "CellVol23",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x002E",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x002E   46  UINT16   2   R   单体电压23CellVol23                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol24",
+      "base_address": "0x1230",
+      "name_prog": "CellVol24",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0030",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0030   48  UINT16   2   R   单体电压24CellVol24                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol25",
+      "base_address": "0x1232",
+      "name_prog": "CellVol25",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0032",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0032   50  UINT16   2   R   单体电压25CellVol25                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol26",
+      "base_address": "0x1234",
+      "name_prog": "CellVol26",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0034",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0034   52  UINT16   2   R   单体电压26CellVol26                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol27",
+      "base_address": "0x1236",
+      "name_prog": "CellVol27",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0036",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0036   54  UINT16   2   R   单体电压27CellVol27                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol28",
+      "base_address": "0x1238",
+      "name_prog": "CellVol28",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0038",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0038   56  UINT16   2   R   单体电压28CellVol28                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol29",
+      "base_address": "0x123A",
+      "name_prog": "CellVol29",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x003A",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x003A   58  UINT16   2   R   单体电压29CellVol29                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol30",
+      "base_address": "0x123C",
+      "name_prog": "CellVol30",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x003C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x003C   60  UINT16   2   R   单体电压30CellVol30                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellVol31",
+      "base_address": "0x123E",
+      "name_prog": "CellVol31",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x003E",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x003E   62  UINT16   2   R   单体电压31CellVol31                 mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes0",
+      "base_address": "0x124A",
+      "name_prog": "CellWireRes0",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x004A",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x004A    74 UINT16   2   R   均衡线电阻0CellWireRes0              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes1",
+      "base_address": "0x124C",
+      "name_prog": "CellWireRes1",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x004C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x004C    76 UINT16   2   R   均衡线电阻1CellWireRes1              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes2",
+      "base_address": "0x124E",
+      "name_prog": "CellWireRes2",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x004E",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x004E    78 UINT16   2   R   均衡线电阻2CellWireRes2              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes3",
+      "base_address": "0x1250",
+      "name_prog": "CellWireRes3",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0050",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0050    80 UINT16   2   R   均衡线电阻3CellWireRes3              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes4",
+      "base_address": "0x1252",
+      "name_prog": "CellWireRes4",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0052",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0052    82 UINT16   2   R   均衡线电阻4CellWireRes4              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes5",
+      "base_address": "0x1254",
+      "name_prog": "CellWireRes5",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0054",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0054    84 UINT16   2   R   均衡线电阻5CellWireRes5              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes6",
+      "base_address": "0x1256",
+      "name_prog": "CellWireRes6",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0056",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0056    86 UINT16   2   R   均衡线电阻6CellWireRes6              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes7",
+      "base_address": "0x1258",
+      "name_prog": "CellWireRes7",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0058",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0058    88 UINT16   2   R   均衡线电阻7CellWireRes7              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes8",
+      "base_address": "0x125A",
+      "name_prog": "CellWireRes8",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x005A",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x005A    90 UINT16   2   R   均衡线电阻8CellWireRes8              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes9",
+      "base_address": "0x125C",
+      "name_prog": "CellWireRes9",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x005C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x005C    92 UINT16   2   R   均衡线电阻9CellWireRes9              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes10",
+      "base_address": "0x125E",
+      "name_prog": "CellWireRes10",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x005E",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x005E    94 UINT16   2   R   均衡线电阻10CellWireRes10            mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes11",
+      "base_address": "0x1260",
+      "name_prog": "CellWireRes11",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0060",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0060    96 UINT16   2   R   均衡线电阻11CellWireRes11            mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes12",
+      "base_address": "0x1262",
+      "name_prog": "CellWireRes12",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0062",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0062    98 UINT16   2   R   均衡线电阻12CellWireRes12            mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes13",
+      "base_address": "0x1264",
+      "name_prog": "CellWireRes13",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0064",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0064   100 UINT16   2   R   均衡线电阻13CellWireRes13            mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes14",
+      "base_address": "0x1266",
+      "name_prog": "CellWireRes14",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0066",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0066   102 UINT16   2   R   均衡线电阻14CellWireRes14            mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes15",
+      "base_address": "0x1268",
+      "name_prog": "CellWireRes15",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0068",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0068   104 UINT16   2   R   均衡线电阻15CellWireRes15            mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes16",
+      "base_address": "0x126A",
+      "name_prog": "CellWireRes16",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x006A",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x006A   106 UINT16   2   R   均衡线电阻16CellWireRes16            mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes17",
+      "base_address": "0x126C",
+      "name_prog": "CellWireRes17",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x006C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x006C   108 UINT16   2   R   均衡线电阻17CellWireRes17            mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes18",
+      "base_address": "0x126E",
+      "name_prog": "CellWireRes18",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x006E",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x006E   110 UINT16   2   R   均衡线电阻18CellWireRes18            mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes19",
+      "base_address": "0x1270",
+      "name_prog": "CellWireRes19",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0070",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0070   112 UINT16     2   R   均衡线电阻19CellWireRes19              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes20",
+      "base_address": "0x1272",
+      "name_prog": "CellWireRes20",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0072",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0072   114 UINT16     2   R   均衡线电阻20CellWireRes20              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes21",
+      "base_address": "0x1274",
+      "name_prog": "CellWireRes21",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0074",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0074   116 UINT16     2   R   均衡线电阻21CellWireRes21              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes22",
+      "base_address": "0x1276",
+      "name_prog": "CellWireRes22",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0076",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0076   118 UINT16     2   R   均衡线电阻22CellWireRes22              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes23",
+      "base_address": "0x1278",
+      "name_prog": "CellWireRes23",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0078",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0078   120 UINT16     2   R   均衡线电阻23CellWireRes23              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes24",
+      "base_address": "0x127A",
+      "name_prog": "CellWireRes24",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x007A",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x007A   122 UINT16     2   R   均衡线电阻24CellWireRes24              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes25",
+      "base_address": "0x127C",
+      "name_prog": "CellWireRes25",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x007C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x007C   124 UINT16     2   R   均衡线电阻25CellWireRes25              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes26",
+      "base_address": "0x127E",
+      "name_prog": "CellWireRes26",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x007E",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x007E   126 UINT16     2   R   均衡线电阻26CellWireRes26              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes27",
+      "base_address": "0x1280",
+      "name_prog": "CellWireRes27",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0080",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0080   128 UINT16     2   R   均衡线电阻27CellWireRes27              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes28",
+      "base_address": "0x1282",
+      "name_prog": "CellWireRes28",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0082",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0082   130 UINT16     2   R   均衡线电阻28CellWireRes28              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes29",
+      "base_address": "0x1284",
+      "name_prog": "CellWireRes29",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0084",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0084   132 UINT16     2   R   均衡线电阻29CellWireRes29              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes30",
+      "base_address": "0x1286",
+      "name_prog": "CellWireRes30",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0086",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0086   134 UINT16     2   R   均衡线电阻30CellWireRes30              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellWireRes31",
+      "base_address": "0x1288",
+      "name_prog": "CellWireRes31",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x0088",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0088   136 UINT16     2   R   均衡线电阻31CellWireRes31              mΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes0",
+      "base_address": "0x1088",
+      "name_prog": "CellConWireRes0",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0088",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0088   136 UINT32   4   RW   连接线内阻0CellConWireRes0             uΩ",
+      "additional_occurrences": [
+        "0x1000   0x0088 UINT32     4   连接线内阻0CellConWireRes0            0.1   01 10 10 88 00 02 04 00 00 00 64 36 42   01 10 10 88 00 02 C5 22"
+      ]
+    },
+    {
+      "id": "CellConWireRes1",
+      "base_address": "0x108C",
+      "name_prog": "CellConWireRes1",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x008C",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x008C   140 UINT32   4   RW   连接线内阻1CellConWireRes1             uΩ",
+      "additional_occurrences": [
+        "0x1000   0x008C UINT32     4   连接线内阻1CellConWireRes1            0.1   01 10 10 8C 00 02 04 00 00 00 64 37 B1   01 10 10 8C 00 02 84 E3"
+      ]
+    },
+    {
+      "id": "CellConWireRes2",
+      "base_address": "0x1090",
+      "name_prog": "CellConWireRes2",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0090",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0090   144 UINT32   4   RW   连接线内阻2CellConWireRes2             uΩ",
+      "additional_occurrences": [
+        "0x1000   0x0090 UINT32     4   连接线内阻2CellConWireRes2            0.1   01 10 10 90 00 02 04 00 00 00 64 36 E8   01 10 10 90 00 02 45 25"
+      ]
+    },
+    {
+      "id": "CellConWireRes3",
+      "base_address": "0x1094",
+      "name_prog": "CellConWireRes3",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0094",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0094   148 UINT32   4   RW   连接线内阻3CellConWireRes3             uΩ",
+      "additional_occurrences": [
+        "0x1000   0x0094 UINT32     4   连接线内阻3CellConWireRes3            0.1   01 10 10 94 00 02 04 00 00 00 64 37 1B   01 10 10 94 00 02 04 E4"
+      ]
+    },
+    {
+      "id": "CellConWireRes4",
+      "base_address": "0x1098",
+      "name_prog": "CellConWireRes4",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0098",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x0098   152 UINT32   4   RW   连接线内阻4CellConWireRes4             uΩ",
+      "additional_occurrences": [
+        "0x1000   0x0098 UINT32     4   连接线内阻4CellConWireRes4            0.1   01 10 10 98 00 02 04 00 00 00 64 37 4E   01 10 10 98 00 02 C4 E7"
+      ]
+    },
+    {
+      "id": "CellConWireRes5",
+      "base_address": "0x109C",
+      "name_prog": "CellConWireRes5",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x009C",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x009C   156 UINT32   4   RW   连接线内阻5CellConWireRes5             uΩ",
+      "additional_occurrences": [
+        "0x1000   0x009C UINT32     4   连接线内阻5CellConWireRes5            0.1   01 10 10 9C 00 02 04 00 00 00 64 36 BD   01 10 10 9C 00 02 85 26"
+      ]
+    },
+    {
+      "id": "CellConWireRes6",
+      "base_address": "0x10A0",
+      "name_prog": "CellConWireRes6",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00A0",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x00A0   160 UINT32   4   RW   连接线内阻6CellConWireRes6             uΩ",
+      "additional_occurrences": [
+        "0x1000   0x00A0 UINT32     4   连接线内阻6CellConWireRes6            0.1   01 10 10 A0 00 02 04 00 00 00 64 35 FC   01 10 10 A0 00 02 45 2A"
+      ]
+    },
+    {
+      "id": "CellConWireRes7",
+      "base_address": "0x10A4",
+      "name_prog": "CellConWireRes7",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00A4",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x00A4   164 UINT32   4   RW   连接线内阻7CellConWireRes7             uΩ",
+      "additional_occurrences": [
+        "0x1000   0x00A4 UINT32     4   连接线内阻7CellConWireRes7            0.1   01 10 10 A4 00 02 04 00 00 00 64 34 0F   01 10 10 A4 00 02 04 EB"
+      ]
+    },
+    {
+      "id": "CellConWireRes8",
+      "base_address": "0x10A8",
+      "name_prog": "CellConWireRes8",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00A8",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x00A8   168 UINT32   4   RW   连接线内阻8CellConWireRes8             uΩ",
+      "additional_occurrences": [
+        "0x1000   0x00A8 UINT32     4   连接线内阻8CellConWireRes8            0.1   01 10 10 A8 00 02 04 00 00 00 64 34 5A   01 10 10 A8 00 02 C4 E8"
+      ]
+    },
+    {
+      "id": "CellConWireRes9",
+      "base_address": "0x10AC",
+      "name_prog": "CellConWireRes9",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00AC",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x00AC   172 UINT32   4   RW   连接线内阻9CellConWireRes9             uΩ",
+      "additional_occurrences": [
+        "0x1000   0x00AC UINT32     4   连接线内阻9CellConWireRes9            0.1   01 10 10 AC 00 02 04 00 00 00 64 35 A9   01 10 10 AC 00 02 85 29"
+      ]
+    },
+    {
+      "id": "CellConWireRes10",
+      "base_address": "0x10B0",
+      "name_prog": "CellConWireRes10",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00B0",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x00B0   176 UINT32   4   RW   连接线内阻10CellConWireRes10           uΩ",
+      "additional_occurrences": [
+        "0x1000   0x00B0 UINT32     4   连接线内阻10CellConWireRes10          0.1   01 10 10 B0 00 02 04 00 00 00 64 34 F0   01 10 10 B0 00 02 44 EF"
+      ]
+    },
+    {
+      "id": "CellConWireRes11",
+      "base_address": "0x10B4",
+      "name_prog": "CellConWireRes11",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00B4",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x00B4   180 UINT32   4   RW   连接线内阻11CellConWireRes11           uΩ",
+      "additional_occurrences": [
+        "0x1000   0x00B4 UINT32     4   连接线内阻11CellConWireRes11          0.1   01 10 10 B4 00 02 04 00 00 00 64 35 03   01 10 10 B4 00 02 05 2E"
+      ]
+    },
+    {
+      "id": "CellConWireRes12",
+      "base_address": "0x10B8",
+      "name_prog": "CellConWireRes12",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00B8",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x00B8   184 UINT32   4   RW   连接线内阻12CellConWireRes12           uΩ",
+      "additional_occurrences": [
+        "0x1000   0x00B8 UINT32     4   连接线内阻12CellConWireRes12          0.1   01 10 10 B8 00 02 04 00 00 00 64 35 56   01 10 10 B8 00 02 C5 2D"
+      ]
+    },
+    {
+      "id": "CellConWireRes13",
+      "base_address": "0x10BC",
+      "name_prog": "CellConWireRes13",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00BC",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x00BC   188 UINT32   4   RW   连接线内阻13CellConWireRes13           uΩ",
+      "additional_occurrences": [
+        "0x1000   0x00BC UINT32     4   连接线内阻13CellConWireRes13          0.1   01 10 10 BC 00 02 04 00 00 00 64 34 A5   01 10 10 BC 00 02 84 EC"
+      ]
+    },
+    {
+      "id": "CellConWireRes14",
+      "base_address": "0x10C0",
+      "name_prog": "CellConWireRes14",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00C0",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x00C0   192 UINT32   4   RW   连接线内阻14CellConWireRes14           uΩ",
+      "additional_occurrences": [
+        "0x1000   0x00C0 UINT32     4   连接线内阻14CellConWireRes14          0.1   01 10 10 C0 00 02 04 00 00 00 64 33 D4   01 10 10 C0 00 02 45 34"
+      ]
+    },
+    {
+      "id": "CellConWireRes15",
+      "base_address": "0x10C4",
+      "name_prog": "CellConWireRes15",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00C4",
+        "distinct_line_text_count": 2
+      },
+      "pdf_row_text": "0x00C4   196 UINT32   4   RW   连接线内阻15CellConWireRes15           uΩ",
+      "additional_occurrences": [
+        "0x1000   0x00C4 UINT32     4   连接线内阻15CellConWireRes15          0.1   01 10 10 C4 00 02 04 00 00 00 64 32 27   01 10 10 C4 00 02 04 F5"
+      ]
+    },
+    {
+      "id": "CellConWireRes16",
+      "base_address": "0x10C8",
+      "name_prog": "CellConWireRes16",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00C8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00C8   200 UINT32   4   RW   连接线内阻16CellConWireRes16           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes17",
+      "base_address": "0x10CC",
+      "name_prog": "CellConWireRes17",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00CC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00CC   204 UINT32   4   RW   连接线内阻17CellConWireRes17           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes18",
+      "base_address": "0x10D0",
+      "name_prog": "CellConWireRes18",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00D0",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00D0   208 UINT32   4   RW   连接线内阻18CellConWireRes18           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes19",
+      "base_address": "0x10D4",
+      "name_prog": "CellConWireRes19",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00D4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00D4   212 UINT32   4   RW   连接线内阻19CellConWireRes19           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes20",
+      "base_address": "0x10D8",
+      "name_prog": "CellConWireRes20",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00D8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00D8   216 UINT32   4   RW   连接线内阻20CellConWireRes20           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes21",
+      "base_address": "0x10DC",
+      "name_prog": "CellConWireRes21",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00DC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00DC   220 UINT32   4   RW   连接线内阻21CellConWireRes21           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes22",
+      "base_address": "0x10E0",
+      "name_prog": "CellConWireRes22",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00E0",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00E0   224 UINT32   4   RW   连接线内阻22CellConWireRes22           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes23",
+      "base_address": "0x10E4",
+      "name_prog": "CellConWireRes23",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00E4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00E4   228 UINT32   4   RW   连接线内阻23CellConWireRes23           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes24",
+      "base_address": "0x10E8",
+      "name_prog": "CellConWireRes24",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00E8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00E8   232 UINT32   4   RW   连接线内阻24CellConWireRes24           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes25",
+      "base_address": "0x10EC",
+      "name_prog": "CellConWireRes25",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00EC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00EC   236 UINT32   4   RW   连接线内阻25CellConWireRes25           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes26",
+      "base_address": "0x10F0",
+      "name_prog": "CellConWireRes26",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00F0",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00F0   240 UINT32   4   RW   连接线内阻26CellConWireRes26           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes27",
+      "base_address": "0x10F4",
+      "name_prog": "CellConWireRes27",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00F4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00F4   244 UINT32   4   RW   连接线内阻27CellConWireRes27           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes28",
+      "base_address": "0x10F8",
+      "name_prog": "CellConWireRes28",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00F8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00F8   248 UINT32   4   RW   连接线内阻28CellConWireRes28           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes29",
+      "base_address": "0x10FC",
+      "name_prog": "CellConWireRes29",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x00FC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00FC   252 UINT32   4   RW   连接线内阻29CellConWireRes29           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes30",
+      "base_address": "0x1100",
+      "name_prog": "CellConWireRes30",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0100",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0100   256 UINT32   4   RW   连接线内阻30CellConWireRes30           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CellConWireRes31",
+      "base_address": "0x1104",
+      "name_prog": "CellConWireRes31",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1000",
+        "offset": "0x0104",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0104   260 UINT32   4   RW   连接线内阻31CellConWireRes31           uΩ",
+      "additional_occurrences": []
+    },
+    {
+      "id": "BatDisCurCorrect",
+      "base_address": "0x12D6",
+      "name_prog": "BatDisCurCorrect",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00D6",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00D6   214 UINT16   2    R    放电电流修正因子BatDisCurCorrect",
+      "additional_occurrences": []
+    },
+    {
+      "id": "VolChargCur",
+      "base_address": "0x12D8",
+      "name_prog": "VolChargCur",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00D8",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00D8   216 UINT16   2    R    充电电流传感器电压VolChargCur             mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "VolDischargCur",
+      "base_address": "0x12DA",
+      "name_prog": "VolDischargCur",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00DA",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00DA   218 UINT16   2    R    放电电流传感器电压VolDischargCur          mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "BatVolCorrect",
+      "base_address": "0x12DC",
+      "name_prog": "BatVolCorrect",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1200",
+        "offset": "0x00DC",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00DC   220 FLOAT    4    R    电池电压修正因子BatVolCorrect",
+      "additional_occurrences": []
+    },
+    {
+      "id": "VoltageCalibration",
+      "base_address": "0x1600",
+      "name_prog": "VoltageCalibration",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1600",
+        "offset": "0x0000",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0000    0   UINT16   4   W  电压校准VoltageCalibration           mV",
+      "additional_occurrences": []
+    },
+    {
+      "id": "Shutdown",
+      "base_address": "0x1604",
+      "name_prog": "Shutdown",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1600",
+        "offset": "0x0004",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0004   4    UINT16   2   W  保护板关机Shutdown",
+      "additional_occurrences": []
+    },
+    {
+      "id": "CurrentCalibration",
+      "base_address": "0x1606",
+      "name_prog": "CurrentCalibration",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1600",
+        "offset": "0x0006",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0006    6   UINT16   4   W  电流校准CurrentCalibration           mA",
+      "additional_occurrences": []
+    },
+    {
+      "id": "LI-ION",
+      "base_address": "0x160A",
+      "name_prog": "LI-ION",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1600",
+        "offset": "0x000A",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x000A   10   UINT16   2   W  一键三元LI-ION",
+      "additional_occurrences": []
+    },
+    {
+      "id": "LIFEPO4",
+      "base_address": "0x160C",
+      "name_prog": "LIFEPO4",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1600",
+        "offset": "0x000C",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x1600   0x000C   12   UINT16   2   W  一键铁锂LIFEPO4",
+      "additional_occurrences": []
+    },
+    {
+      "id": "LTO",
+      "base_address": "0x160E",
+      "name_prog": "LTO",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1600",
+        "offset": "0x000E",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x000E   14   UINT16   2   W  一键钛酸锂LTO",
+      "additional_occurrences": []
+    },
+    {
+      "id": "Emergency",
+      "base_address": "0x1610",
+      "name_prog": "Emergency",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1600",
+        "offset": "0x0010",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0010   16   UINT16   2   W  应急启动Emergency",
+      "additional_occurrences": []
+    },
+    {
+      "id": "Timecalibration",
+      "base_address": "0x1612",
+      "name_prog": "Timecalibration",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1600",
+        "offset": "0x0012",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0012   18   UINT32   4   W  对时Timecalibration",
+      "additional_occurrences": []
+    },
+    {
+      "id": "ESPHome_Power",
+      "base_address": "—",
+      "name_prog": "ESPHome_Power",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "manifest address did not parse (address.parse_error) -- cannot even attempt a match"
+    },
+    {
+      "id": "CANMPTLVer",
+      "base_address": "0x1506",
+      "name_prog": "CANMPTLVer",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x0106",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x0106   262 UINT8     2   R  CAN协议库版本CANMPTLVer",
+      "additional_occurrences": []
+    },
+    {
+      "id": "UART1MPRTOLNbr",
+      "base_address": "0x14B2",
+      "name_prog": "UART1MPRTOLNbr",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00B2 (block 0x1400) and mnemonic \"UART1MPRTOLNbr\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "CANMPRTOLNbr",
+      "base_address": "0x14B2",
+      "name_prog": "CANMPRTOLNbr",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1400",
+        "offset": "0x00B2",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "UINT8         RW   CAN协议CANMPRTOLNbr",
+      "additional_occurrences": []
+    },
+    {
+      "id": "UART1MPRTOLEnable",
+      "base_address": "0x14B4",
+      "name_prog": "UART1MPRTOLEnable",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x00B4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00B4   180 UINT8    16   R    串口1协议控制UART1MPRTOLEnable",
+      "additional_occurrences": []
+    },
+    {
+      "id": "UARTMPRTOLEnable[0-15]",
+      "base_address": "0x14C4",
+      "name_prog": "UARTMPRTOLEnable[0-15]",
+      "pdf_locator": {
+        "match_kind": "same_line",
+        "block_base": "0x1400",
+        "offset": "0x00C4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "0x00C4   196 UINT8    16   R    CAN协议控制UARTMPRTOLEnable[0-15]",
+      "additional_occurrences": []
+    },
+    {
+      "id": "UART2MPRTOLNbr",
+      "base_address": "0x14D4",
+      "name_prog": "UART2MPRTOLNbr",
+      "pdf_locator": null,
+      "pdf_row_text": null,
+      "evidence_needed": "no PDF table line found containing both offset 0x00D4 (block 0x1400) and mnemonic \"UART2MPRTOLNbr\" verbatim, nor nearby as a packed sibling"
+    },
+    {
+      "id": "UART2MPRTOLEnable[0]",
+      "base_address": "0x14D4",
+      "name_prog": "UART2MPRTOLEnable[0]",
+      "pdf_locator": {
+        "match_kind": "nearby_offset_packed_sibling",
+        "block_base": "0x1400",
+        "offset": "0x00D4",
+        "distinct_line_text_count": 1
+      },
+      "pdf_row_text": "UINT8         R    串口2协议控制UART2MPRTOLEnable[0]",
+      "additional_occurrences": []
+    }
+  ]
+}

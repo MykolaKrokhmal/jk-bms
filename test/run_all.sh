@@ -111,6 +111,12 @@ echo "=== read plan: generator determinism (--check) ==="
 node tools/protocol/generate_read_plan.js --check
 
 echo
+echo "=== Stage 2: V1.1 manifest / PDF-locator / settings-UI-mapping generator determinism (--check) ==="
+python3 protocol/evidence/build_v2_manifest.py --workbook protocol/evidence/LiFePO4_BMS_Parameters_registers-V2_verified.xlsx --check
+node tools/protocol/authoring/build_pdf_locators.js --check
+node tools/protocol/authoring/build_settings_ui_mapping.js --check
+
+echo
 echo "=== protocol catalog: generation atomicity + simulated-failure detection ==="
 node test/protocol_catalog/test_generation_atomicity.js
 
@@ -177,6 +183,14 @@ node test/protocol_catalog/test_active_group_rate_limit_response.js
 echo
 echo "=== protocol catalog: Діагностика software-variables scroll-reset regression ==="
 node test/protocol_catalog/test_diagnostic_software_variables_scroll.js
+
+echo
+echo "=== Stage 2: settings UI mapping completeness (265/265) ==="
+node test/protocol_catalog/test_stage2_mapping_completeness.js
+
+echo
+echo "=== Stage 2: PDF/workbook evidence-pair completeness ==="
+node test/protocol_catalog/test_stage2_evidence_completeness.js
 
 echo
 echo "=== JS syntax checks ==="

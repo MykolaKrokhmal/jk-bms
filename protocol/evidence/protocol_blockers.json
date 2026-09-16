@@ -11,6 +11,186 @@
       "closure_criterion": "Either (a) register_count=2 confirmed to decode identically to the previously-verified register_count=1 behavior on real hardware, closing this blocker with the generated read plan unchanged, or (b) register_count=2 is confirmed wrong/unsafe, in which case generate_read_plan.js's CADENCE_OVERRIDE_MS-style exception-table pattern gets a new WIRE_REGISTER_COUNT_OVERRIDE entry for this one address (register_count=1), documented with the hardware evidence that justified it, and the read plan is regenerated.",
       "status": "open",
       "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "TemperatureSensorAnomaly,PCLModuleAnomaly",
+      "address": "0x12A0",
+      "issue": "V1.1 workbook names both status bits (temperature-sensor anomaly, PCL-module anomaly) within the 0x12A0 32-bit alarm/status bitmask but does not state which bit number either one occupies -- a genuine gap in the source data itself, confirmed by direct inspection of the workbook row (bit_number_missing), not a transcription error downstream.",
+      "evidence_needed": "A real-hardware, read-only FC03 request at 0x12A0 with a known, independently-confirmed anomaly condition triggered (or absent), comparing the raw 32-bit value against every OTHER already-bit-confirmed alarm in the same register to isolate which of the remaining unassigned bit positions correspond to these two flags.",
+      "owner": "hardware-verification-session",
+      "closure_criterion": "Both bit positions confirmed against real hardware (or against the manufacturer directly), or the fields are permanently classified unsupported with that reasoning recorded.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "VoltageCalibration",
+      "address": "0x1600",
+      "issue": "Official PDF (BMS_RS485_Modbus_V1.1.pdf) types this W command UINT16 but separately declares Length=4 bytes for it -- an internal inconsistency in the primary source document itself (independently corroborated, not a parsing error on this project's side; see protocol/evidence/sources.json's official_jk_documentation entry).",
+      "evidence_needed": "Either an official errata/clarification from the manufacturer, or a controlled protocol-capture experiment on a lab-safe device observing the real payload bytes this command actually expects, per the plan's own Stage 5 bounded evidence-resolution process (§ W-command evidence resolution). No write attempted until then.",
+      "owner": "stage5-write-evidence-resolution",
+      "closure_criterion": "The real wire payload width (2 vs 4 bytes) is confirmed by one of the two methods above and the canonical field's wire_type/word_count is authored to match; until then this command is not implemented.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "CurrentCalibration",
+      "address": "0x1606",
+      "issue": "Same UINT16-vs-Length=4 inconsistency in the official PDF as VoltageCalibration (0x1600) -- an independent instance of the same primary-source defect at a different address, not a copy/paste of one blocker onto two fields.",
+      "evidence_needed": "Same as VoltageCalibration (0x1600): official clarification or a controlled protocol-capture experiment.",
+      "owner": "stage5-write-evidence-resolution",
+      "closure_criterion": "Same as VoltageCalibration (0x1600), resolved independently for this address.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "HeatStartTemp,HeatStopTemp",
+      "address": "0x111C",
+      "issue": "Confirmed absent from the official PDF's own register table (protocol/evidence/sources.json's official_jk_documentation entry already independently established this: '0x111C and 0x1470 ... fall in undocumented gaps in this document's own table'). Only the V2 workbook documents these two fields; the primary source has no corroborating row at all -- not a PDF-locator matching failure, a genuine single-source-only gap.",
+      "evidence_needed": "A second independent source (official manufacturer clarification, or a controlled protocol-capture experiment against a real device) confirming these two addresses/fields before they can be marked dual-evidenced.",
+      "owner": "hardware-verification-session",
+      "closure_criterion": "Either a corroborating official-source citation is found, or a real-device read-only capture at 0x111C confirms the field, or the fields stay workbook-only-evidenced by explicit, permanent policy decision.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "PWD_Config",
+      "address": "0x1470",
+      "issue": "Confirmed absent from the official PDF's own register table (same sources.json note as 0x111C above) -- workbook-only evidence, not a PDF-locator matching failure.",
+      "evidence_needed": "Same as 0x111C: a second independent source before dual-evidence status is reached.",
+      "owner": "hardware-verification-session",
+      "closure_criterion": "Same as 0x111C, resolved independently for this address.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "Alarm Mask,AlarmBatOVP,AlarmCPUAuxCommuErr,AlarmCellOVP,AlarmCellQuantity,AlarmCellUVP,AlarmChOCP,AlarmChOTP,AlarmChSCP,AlarmChUTP,AlarmChargeMOS,AlarmCurSensorErr,AlarmDchOCP,AlarmDchOTP,AlarmDchSCP,AlarmDischargeMOS,AlarmMosOTP,AlarmWireRes,BatteryOverTempAlarm,DischargeOnFailed,GPSDisconneted,ModifyPWDInTime",
+      "address": "0x12A0",
+      "issue": "The 0x12A0 32-bit alarm/status bitmask's individual bit rows (this entry: 22 of them) print their shared register offset only once, on a row several lines above a long run of per-bit description lines -- confirmed by direct inspection. tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher intentionally does not search past another mnemonic-bearing line while looking backward for a shared offset (to stay conservative and avoid a wrong cross-group match), so this large a sibling group exceeds its lookback window. Not a data-availability gap -- the PDF genuinely documents these bits, just not in a layout this conservative matcher resolves.",
+      "evidence_needed": "Either a widened, still-conservative matcher pass scoped specifically to this one register's bit-list layout, or a one-time manual page-level verification against the PDF for this specific register.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "ChargingFloatMode,Disable temp-sensor,DisablePCLModule,GPS Heartbeat,HeatEN,LCD Always On,Port Switch,SmartSleep,TimedStoredData",
+      "address": "0x1114",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 9 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "DataDomainEnable0,TIMSmartSleep",
+      "address": "0x1118",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 2 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "MaxVolCellNbr",
+      "address": "0x1248",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 1 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "BalanSta",
+      "address": "0x12A6",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 1 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "SOCSOH",
+      "address": "0x12B8",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 1 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "Charge",
+      "address": "0x12C0",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 1 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "BATTempSensor1Present,BATTempSensor2Present,BATTempSensor3Present,BATTempSensor4Present,BATTempSensor5Present,Heating,MOSTempSensorPresent,TempSensorAbsent",
+      "address": "0x12D0",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 8 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "PCLModuleSta",
+      "address": "0x130C",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 1 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "UART1MPRTOLNbr",
+      "address": "0x14B2",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 1 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "UART2MPRTOLNbr",
+      "address": "0x14D4",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 1 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "LCDBuzzerTrigger",
+      "address": "0x14E4",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 1 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
+    },
+    {
+      "parameter_id": "DRY2Trigger",
+      "address": "0x14E6",
+      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 1 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
+      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
+      "owner": "stage2-pdf-locator-followup",
+      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "open",
+      "opened_date": "2026-09-16"
     }
   ]
 }
