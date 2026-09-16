@@ -269,6 +269,86 @@ static void test_pick_next_block_active_group_cannot_preempt_write_in_flight() {
   check_eq(idx, NO_BLOCK, "the active-group hint cannot override a write in flight (tier-1 always wins)");
 }
 
+// ---------------------------------------------------------------------
+// resolve_active_group_block_index (Stage 1 hardware acceptance corrective
+// pass -- real active-group scheduler consumption, replacing the previously
+// hardcoded active_group_block_index=-1). Blocks constructed with only the
+// fields these tests exercise -- ui_group is the ONLY one resolve_active_group_
+// block_index reads.
+// ---------------------------------------------------------------------
+
+static Block make_block(int8_t ui_group) {
+  Block b{};
+  b.ui_group = ui_group;
+  return b;
+}
+
+static void test_resolve_active_group_finds_matching_block() {
+  Block blocks[3] = {make_block(-1), make_block(5), make_block(-1)};
+  const int idx = resolve_active_group_block_index(blocks, /*hint_group=*/5, /*hint_active=*/true);
+  check_eq(idx, 1, "resolves to the block whose ui_group matches the hinted group");
+}
+
+static void test_resolve_active_group_no_match_returns_no_block() {
+  Block blocks[3] = {make_block(-1), make_block(3), make_block(-1)};
+  const int idx = resolve_active_group_block_index(blocks, /*hint_group=*/5, /*hint_active=*/true);
+  check_eq(idx, NO_BLOCK, "no block carries the hinted group -- resolves to NO_BLOCK, never a guess");
+}
+
+static void test_resolve_active_group_inactive_hint_returns_no_block_even_with_a_match() {
+  Block blocks[1] = {make_block(5)};
+  const int idx = resolve_active_group_block_index(blocks, /*hint_group=*/5, /*hint_active=*/false);
+  check_eq(idx, NO_BLOCK, "an expired/absent hint (hint_active=false) never resolves, even if some block would match");
+}
+
+static void test_resolve_active_group_rejects_out_of_range_group() {
+  Block blocks[1] = {make_block(0)};
+  check_eq(resolve_active_group_block_index(blocks, /*hint_group=*/0, /*hint_active=*/true), NO_BLOCK,
+    "group 0 is out of the valid 1-12 range -- never resolves, even if a block's (default-initialized) ui_group is 0");
+  Block blocks2[1] = {make_block(13)};
+  check_eq(resolve_active_group_block_index(blocks2, /*hint_group=*/13, /*hint_active=*/true), NO_BLOCK,
+    "group 13 is out of the valid 1-12 range -- never resolves");
+}
+
+static void test_resolve_active_group_matches_todays_real_data_all_unset() {
+  // The real, generated jk_read_plan::kBlocks table has ui_group=-1 for
+  // every block today (per-field ui_group population is Stage 2's own
+  // deliverable -- see generate_read_plan.js's aggregateUiGroup() comment).
+  // This is the guaranteed-no-op-against-production-data case, proven here
+  // rather than just asserted in a comment.
+  Block blocks[4] = {make_block(-1), make_block(-1), make_block(-1), make_block(-1)};
+  for (int g = 1; g <= 12; g++) {
+    check_eq(resolve_active_group_block_index(blocks, g, true), NO_BLOCK,
+      "against today's real all-unset block data, every valid group hint still resolves to NO_BLOCK");
+  }
+}
+
+// End-to-end: resolve_active_group_block_index's output, fed straight into
+// pick_next_block, actually changes which block is chosen -- proves the two
+// real functions compose correctly together, not just individually.
+static void test_active_group_end_to_end_boosts_the_hinted_block_once_due() {
+  Block blocks[2] = {make_block(-1), make_block(7)};
+  std::array<BlockState, 2> states{};
+  states[0].last_attempt_ms = 5000;
+  states[0].last_success_ms = 5000;  // most overdue by cadence alone -- would normally win
+  states[1].last_attempt_ms = 9500;
+  states[1].last_success_ms = 9500;  // less overdue, but carries the hinted group and is due
+  uint32_t cadence[2] = {1000, 1000};
+
+  const int resolved = resolve_active_group_block_index(blocks, /*hint_group=*/7, /*hint_active=*/true);
+  check_eq(resolved, 1, "end-to-end: resolve finds block 1 (ui_group 7)");
+  const int chosen = pick_next_block(states, cadence, /*write_in_flight=*/false, resolved, 10600);
+  check_eq(chosen, 1, "end-to-end: pick_next_block then prefers block 1 over the more-overdue block 0");
+
+  // No starvation: the SAME two blocks, one tick later, with no hint at all
+  // (or the hint now pointing elsewhere) -- block 0 still gets its turn on
+  // cadence, proving the boost never permanently locks other blocks out.
+  states[1].last_attempt_ms = 10600;  // block 1 was just issued
+  states[1].last_success_ms = 10600;
+  const int chosen_next = pick_next_block(states, cadence, /*write_in_flight=*/false, NO_BLOCK, 11700);
+  check_eq(chosen_next, 0, "no starvation: with the boost gone, the other block is still picked on its own cadence");
+}
+
 int main() {
   test_decode_u32_full_register_with_scale();
   test_decode_s32_capacity_remaining_negative_wire_sign();
@@ -297,6 +377,13 @@ int main() {
   test_pick_next_block_active_group_wins_when_due();
   test_pick_next_block_active_group_cannot_preempt_when_not_due();
   test_pick_next_block_active_group_cannot_preempt_write_in_flight();
+
+  test_resolve_active_group_finds_matching_block();
+  test_resolve_active_group_no_match_returns_no_block();
+  test_resolve_active_group_inactive_hint_returns_no_block_even_with_a_match();
+  test_resolve_active_group_rejects_out_of_range_group();
+  test_resolve_active_group_matches_todays_real_data_all_unset();
+  test_active_group_end_to_end_boosts_the_hinted_block_once_due();
 
   std::printf("%d checks run, %d failed.\n", g_checks, g_failures);
   return g_failures == 0 ? 0 : 1;

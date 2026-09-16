@@ -434,6 +434,20 @@ function wireRegisterCount(register) {
   return isAscii ? register.word_count : register.word_count * 2;
 }
 
+// A block's ui_group (Stage 1 hardware acceptance corrective pass, active-
+// group scheduler consumption) is the ONE non-null ui_group every field it
+// covers agrees on -- never guessed or defaulted when fields disagree or
+// none carry one yet (registers.canonical.json's own ui_group population is
+// Stage 2's deliverable; as of this pass every field's ui_group is still
+// null, so every block's aggregated ui_group is null/-1 too -- a real,
+// honest reflection of that dependency, not a placeholder pretending
+// otherwise). null here becomes -1 (jk_poll_scheduler::Block's own "no
+// group" sentinel, matching active_group_block_index's) at emission time.
+function aggregateUiGroup(uiGroups) {
+  const distinct = new Set(uiGroups.filter((g) => g !== null && g !== undefined));
+  return distinct.size === 1 ? [...distinct][0] : null;
+}
+
 const blocks = [...blocksByAddress.values()]
   .sort((a, b) => parseInt(a.register.address, 16) - parseInt(b.register.address, 16))
   .map((b) => {
@@ -443,6 +457,7 @@ const blocks = [...blocksByAddress.values()]
       register_count: registerCount,
       payload_bytes: b.register.payload_bytes,
       cadence_ms: b.cadenceMs,
+      ui_group: aggregateUiGroup(b.fields.map((pf) => pf.field.ui_group)),
       fields: b.fields.map((pf) => ({
         key: pf.field.key,
         entity_id: pf.entityId,
@@ -468,12 +483,14 @@ const blocks = [...blocksByAddress.values()]
 // Merge in the hand-authored custom-decode blocks (no FieldDecode entries
 // -- fields: [] -- their decode dispatch is the verbatim decodeCode string
 // instead of the generic per-field switch; see buildServicerInterval()).
+const fieldByKey = new Map(allRegisterFields.map(({ field: f }) => [f.key, f]));
 for (const cb of CUSTOM_DECODE_BLOCKS) {
   blocks.push({
     address: cb.address,
     register_count: cb.registerCount,
     payload_bytes: cb.payloadBytes,
     cadence_ms: cb.cadenceMs,
+    ui_group: aggregateUiGroup(cb.coversKeys.map((k) => (fieldByKey.get(k) || {}).ui_group ?? null)),
     fields: [],
     custom_decode: cb.decodeCode,
     covers_keys: cb.coversKeys,
@@ -552,7 +569,7 @@ function buildDecodeHeader() {
   let offset = 0;
   for (const b of blocks) {
     lines.push(
-      `    {${b.address}, ${b.register_count}, ${b.payload_bytes}, ${b.cadence_ms}u, ${offset}, ${b.fields.length}},`
+      `    {${b.address}, ${b.register_count}, ${b.payload_bytes}, ${b.cadence_ms}u, ${offset}, ${b.fields.length}, ${b.ui_group === null ? -1 : b.ui_group}},`
     );
     offset += b.fields.length;
   }
@@ -738,13 +755,18 @@ function buildServicerInterval() {
   L("}");
   L("if (write_in_flight) return;");
   L("");
-  L("// Tier 2: active-settings-group hint. Stage 1 has no real ui_group data yet");
-  L("// (populated in Stage 2) -- always -1 here is a documented, deliberate");
-  L("// no-op, not a missing feature; the endpoint and this consumption point");
-  L("// both already exist and are unit-tested, ready for Stage 2's data.");
+  L("// Tier 2: active-settings-group hint. Real consumption (Stage 1 hardware");
+  L("// acceptance corrective pass) -- resolve_active_group_block_index() scans");
+  L("// jk_read_plan::kBlocks for one whose generated ui_group matches the");
+  L("// browser's hint; see that function's own comment in");
+  L("// jk_poll_scheduler_core.h. Every real block's ui_group is -1 today (per-");
+  L("// field ui_group population is Stage 2's own deliverable, not yet done),");
+  L("// so this always resolves to NO_BLOCK against production data -- real,");
+  L("// wired, and unit-tested, but a documented no-op until Stage 2 supplies");
+  L("// ui_group data, not a missing feature.");
   L("const bool group_hint_active = id(g_active_group_hint) >= 0 && now < id(g_active_group_hint_expires_ms);");
-  L("(void) group_hint_active; // not yet consulted -- see comment above");
-  L("const int active_group_block_index = -1;");
+  L("const int active_group_block_index = jk_poll_scheduler::resolve_active_group_block_index(");
+  L("    jk_read_plan::kBlocks, id(g_active_group_hint), group_hint_active);");
   L("");
   L(`std::array<jk_poll_scheduler::BlockState, jk_read_plan::kBlockCount> states;`);
   L("for (size_t i = 0; i < jk_read_plan::kBlockCount; i++) {");

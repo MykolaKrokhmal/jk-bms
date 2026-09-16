@@ -247,6 +247,16 @@ struct Block {
   uint32_t cadence_ms;    // 0 = on-demand only, never auto-issued by pick_next_block()
   uint16_t fields_offset;
   uint16_t fields_count;
+  // The one Settings UI group (1-12) every field this block covers agrees
+  // on; -1 if none do, or if they disagree -- never guessed. Populated from
+  // registers.canonical.json's own per-field ui_group via
+  // generate_read_plan.js's aggregateUiGroup(); see
+  // resolve_active_group_block_index()'s own comment for how this is
+  // consumed. As of Stage 1 (ui_group population is Stage 2's own
+  // deliverable), every real block's ui_group is -1 -- see this project's
+  // Stage 1 hardware acceptance corrective pass report for that documented
+  // dependency.
+  int8_t ui_group;
 };
 
 // ---------------------------------------------------------------------
@@ -321,7 +331,33 @@ constexpr int NO_BLOCK = -1;
 // non-due block is never issued early just because it's the active
 // group's) -- exactly the plan's "structurally cannot preempt tier-1, and
 // cannot invent a read the scheduler wasn't already going to perform"
-// guarantee.
+// guarantee. Computed by resolve_active_group_block_index() below, not by
+// the caller re-deriving it -- see that function's own comment.
+
+// Stage 1 hardware acceptance corrective pass: maps a browser-reported
+// Settings group hint (1-12, or "no hint active") to the one block index
+// pick_next_block's tier-2 should prefer. Pure and separately unit-tested
+// from pick_next_block itself (which already had its own tier-2 tests
+// before this function existed -- this only fixes what fed it, which used
+// to be hardcoded to -1). Returns NO_BLOCK when hint_active is false, when
+// hint_group is out of the valid 1-12 range, or when no block's ui_group
+// matches it (this project's real data: EVERY block's ui_group is -1 as of
+// Stage 1, since per-field ui_group population is Stage 2's own
+// deliverable -- this function is real and tested, not a stub, but is
+// currently a guaranteed no-op against production data until Stage 2 fills
+// that in; see the caller's own comment in generate_read_plan.js). Returns
+// the FIRST matching block's index if more than one block somehow shares a
+// ui_group (never expected in practice -- ui_group is meant to identify a
+// single settings section -- but a stable, deterministic choice beats an
+// unspecified one either way).
+template <size_t N>
+int resolve_active_group_block_index(const Block (&blocks)[N], int hint_group, bool hint_active) {
+  if (!hint_active || hint_group < 1 || hint_group > 12) return NO_BLOCK;
+  for (size_t i = 0; i < N; i++) {
+    if (blocks[i].ui_group == hint_group) return int(i);
+  }
+  return NO_BLOCK;
+}
 //
 // Elapsed-time math uses subtraction-then-compare throughout (`now_ms -
 // last_attempt_ms`), never `last_attempt_ms + cadence_ms` then compared

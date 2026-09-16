@@ -324,6 +324,20 @@ esphome:
               return request->url_to(url_buf) == "/settings/active-group";
             }
             void handleRequest(AsyncWebServerRequest *request) override {
+              // Stage 1 hardware acceptance corrective pass: a minimum
+              // interval between accepted requests -- well under the
+              // plan's own 250ms browser-side debounce (§3.4), so normal
+              // debounced traffic is never rejected, but a misbehaving or
+              // scripted client cannot flood this handler at high
+              // frequency. Checked before parsing, so a rejected request
+              // never mutates g_active_group_hint either way.
+              const uint32_t now = millis();
+              const uint32_t last = id(g_active_group_last_request_ms);
+              if (last != 0 && now - last < 100U) {
+                request->send(429, "application/json", "{\"ok\":false,\"error\":\"rate limited\"}");
+                return;
+              }
+              id(g_active_group_last_request_ms) = now;
               const std::string raw = request->arg("group");
               if (raw == "none") {
                 id(g_active_group_hint) = -1;
@@ -482,14 +496,24 @@ modbus_controller:
 globals:
   # Final-preparation-plan Stage 1, commit boundary 2 (§3.4): the active-
   # settings-group scheduling hint, written only by ActiveGroupHandler
-  # above (esphome: on_boot:). -1 means no active group. Not yet read by
-  # anything (jk_poll_scheduler's tier-2 priority consumes this starting
-  # in Stage 1's third commit boundary).
+  # above (esphome: on_boot:). -1 means no active group. Consumed by
+  # jk_poll_scheduler's tier-2 priority via resolve_active_group_block_index()
+  # (Stage 1 hardware acceptance corrective pass) -- real block ui_group
+  # data doesn't exist yet (Stage 2's own deliverable), so this currently
+  # resolves to no-op against production reads; see that function's own
+  # comment in components/jk_poll_scheduler/jk_poll_scheduler_core.h.
   - id: g_active_group_hint
     type: int8_t
     restore_value: false
     initial_value: "-1"
   - id: g_active_group_hint_expires_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # Stage 1 hardware acceptance corrective pass: minimum-interval rate limit
+  # for ActiveGroupHandler (below) -- 0 means "no request processed yet",
+  # so the very first request is never itself rate-limited.
+  - id: g_active_group_last_request_ms
     type: uint32_t
     restore_value: false
     initial_value: "0"
