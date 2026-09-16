@@ -579,18 +579,6 @@ sensor:
     accuracy_decimals: 0
 
   - platform: template
-    id: hardware_version
-    name: "hardware version"
-    update_interval: never
-    accuracy_decimals: 0
-
-  - platform: template
-    id: software_version
-    name: "software version"
-    update_interval: never
-    accuracy_decimals: 0
-
-  - platform: template
     id: odd_run_time
     name: "odd run time"
     update_interval: never
@@ -727,6 +715,16 @@ text_sensor:
   - platform: template
     id: manufacturer_device_id
     name: "manufacturer device id"
+    update_interval: never
+
+  - platform: template
+    id: hardware_version
+    name: "hardware version"
+    update_interval: never
+
+  - platform: template
+    id: software_version
+    name: "software version"
     update_interval: never
 
   - platform: template

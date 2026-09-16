@@ -2158,7 +2158,7 @@
         {
           "key": "hardware_version",
           "entity_id": "hardware_version",
-          "domain": "sensor",
+          "domain": "text_sensor",
           "byte_offset": 0,
           "mask": "0x0",
           "shift": 0,
@@ -2183,7 +2183,7 @@
         {
           "key": "software_version",
           "entity_id": "software_version",
-          "domain": "sensor",
+          "domain": "text_sensor",
           "byte_offset": 0,
           "mask": "0x0",
           "shift": 0,

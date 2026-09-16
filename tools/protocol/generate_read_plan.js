@@ -323,6 +323,17 @@ const READ_DOMAIN_OVERRIDE = {
   charging_float_mode: "binary_sensor",
   device_model: "text_sensor",
   setup_passcode: "text_sensor",
+  // Stage 3 batch 1 (typed-petting-puzzle plan): two more ASCII-wire-type
+  // fields, same reasoning as device_model/setup_passcode above -- without
+  // an entry here they'd default to "sensor" (a float-publishing entity)
+  // and fail to compile against decode_ascii's std::string output (caught
+  // by a real `esphome compile` on real hardware after this file's first
+  // version shipped without these two entries; see the ASCII-domain-
+  // coverage self-check below, added so the next such field is caught by
+  // `generate_read_plan.js --check` instead of requiring another real
+  // compile).
+  hardware_version: "text_sensor",
+  software_version: "text_sensor",
 };
 
 // Fields whose canonical poll_group implies a cadence this generator has
@@ -392,6 +403,23 @@ for (const { field: f, register: r } of allRegisterFields) {
 
   const entityId = override ? override.entityId : (ENTITY_ID_OVERRIDE[f.key] || f.esphome_read_entity_id || f.key);
   const domain = override ? "sensor" : (READ_DOMAIN_OVERRIDE[f.key] || "sensor");
+
+  // ASCII decode always publishes a std::string (decode_ascii's own
+  // signature), which only compiles against a text_sensor's
+  // publish_state(std::string) -- never sensor's publish_state(float).
+  // A missing READ_DOMAIN_OVERRIDE entry for a new ASCII field silently
+  // defaults to "sensor" here and fails only at real `esphome compile`
+  // time (confirmed the hard way: hardware_version/software_version were
+  // shipped without an override entry in Stage 3 batch 1 and broke a real
+  // compile). Catch it here instead, at generation time.
+  if (f.wire_type === "ASCII" && domain !== "text_sensor") {
+    throw new Error(
+      `READ_PLAN_ASCII_WRONG_DOMAIN: field "${f.key}" has wire_type ASCII but resolved read domain "${domain}" ` +
+      `(expected "text_sensor") -- decode_ascii() always produces a std::string, which will not compile against ` +
+      `a non-text_sensor platform's publish_state(float). Add an entry for "${f.key}": "text_sensor" to ` +
+      `READ_DOMAIN_OVERRIDE before regenerating.`
+    );
+  }
 
   let cadenceMs = CADENCE_OVERRIDE_MS[f.key];
   if (cadenceMs === undefined) cadenceMs = override && override.cadenceMs !== undefined ? override.cadenceMs : undefined;
