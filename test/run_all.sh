@@ -163,6 +163,10 @@ echo "=== protocol catalog: generated wire-object-id alias coverage/collision + 
 node test/protocol_catalog/test_wire_object_id_aliases.js
 
 echo
+echo "=== protocol catalog: numeric register-editor input pattern validity regression ==="
+node test/protocol_catalog/test_input_pattern_validity.js
+
+echo
 echo "=== protocol catalog: secret-leakage scan ==="
 node test/protocol_catalog/test_secret_scan.js
 

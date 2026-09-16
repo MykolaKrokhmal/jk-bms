@@ -71,7 +71,7 @@
                 "wire_type", "scale", "offset", "canonical_unit", "uk_display_unit", "en_display_unit",
                 "decimal_precision", "minimum", "maximum", "step", "reserved_values", "nullable",
                 "packed_siblings", "overlap_rule", "access", "effective_access", "write_safety_class",
-                "esphome_domain", "esphome_read_entity_id", "esphome_write_entity_id", "backend_key",
+                "esphome_domain", "esphome_read_entity_id", "esphome_configured_name", "esphome_write_entity_id", "backend_key",
                 "frontend_label_uk", "frontend_label_en", "ui_section", "ui_order", "ui_group", "editor_kind",
                 "dynamic_dependency", "enum_map", "unknown_code_policy", "evidence", "verification_status", "exclusion_reason",
                 "implementation_status"
@@ -110,6 +110,7 @@
                   "enum": ["sensor", "binary_sensor", "text_sensor", "number", "select", "text", null]
                 },
                 "esphome_read_entity_id": { "type": ["string", "null"] },
+                "esphome_configured_name": { "type": ["string", "null"] },
                 "esphome_write_entity_id": { "type": ["string", "null"] },
                 "backend_key": { "type": ["string", "null"] },
                 "frontend_label_uk": { "type": "string", "minLength": 1 },

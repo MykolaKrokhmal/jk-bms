@@ -62,6 +62,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "smart_sleep",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_smart_sleep",
           "backend_key": "smart_sleep",
           "frontend_label_uk": "Напруга розумного сну",
@@ -93,7 +94,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -164,7 +165,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -253,6 +254,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "cell_uvp",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "cell_uvp",
           "frontend_label_uk": "Захист комірки від низької напруги (UVP)",
@@ -284,7 +286,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -349,7 +351,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -438,6 +440,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "cell_uvpr",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_cell_uvpr",
           "backend_key": "cell_uvpr",
           "frontend_label_uk": "Відновлення після глибокого розряду (UVPR)",
@@ -469,7 +472,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -540,7 +543,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -629,6 +632,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "cell_ovp",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "cell_ovp",
           "frontend_label_uk": "Захист комірки від перенапруги (OVP)",
@@ -660,7 +664,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -725,7 +729,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -814,6 +818,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "cell_ovpr",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_cell_ovpr",
           "backend_key": "cell_ovpr",
           "frontend_label_uk": "Відновлення після перенапруги (OVPR)",
@@ -845,7 +850,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -916,7 +921,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1005,6 +1010,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "start_balance_trigger",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_start_balance_trigger",
           "backend_key": "start_balance_trigger",
           "frontend_label_uk": "Дельта запуску балансування",
@@ -1036,7 +1042,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1107,7 +1113,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1196,6 +1202,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "soc_100",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_soc_100",
           "backend_key": "soc_100",
           "frontend_label_uk": "Напруга 100% заряду",
@@ -1227,7 +1234,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1298,7 +1305,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1387,6 +1394,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "soc_0",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_soc_0",
           "backend_key": "soc_0",
           "frontend_label_uk": "Напруга 0% заряду",
@@ -1418,7 +1426,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1489,7 +1497,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1578,6 +1586,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "cell_rcv",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_cell_rcv",
           "backend_key": "cell_rcv",
           "frontend_label_uk": "Цільова напруга заряду (RCV)",
@@ -1609,7 +1618,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1680,7 +1689,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1769,6 +1778,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "cell_rfv",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_cell_rfv",
           "backend_key": "cell_rfv",
           "frontend_label_uk": "Цільова напруга підтримки (RFV)",
@@ -1800,7 +1810,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1871,7 +1881,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1960,6 +1970,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "system_power_off",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "system_power_off",
           "frontend_label_uk": "Аварійний поріг вимкнення (UVP)",
@@ -1991,7 +2002,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2056,7 +2067,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2145,6 +2156,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "continued_charge_current",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "continued_charge_current",
           "frontend_label_uk": "Тривалий струм заряду",
@@ -2176,7 +2188,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2241,7 +2253,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2330,6 +2342,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "charge_ocp_delay",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "charge_ocp_delay",
           "frontend_label_uk": "Затримка захисту струму заряду",
@@ -2361,7 +2374,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2426,7 +2439,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2515,6 +2528,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "charge_ocpr_time",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_charge_ocpr_time",
           "backend_key": "charge_ocpr_time",
           "frontend_label_uk": "Відновлення захисту струму заряду",
@@ -2546,7 +2560,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2617,7 +2631,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2706,6 +2720,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "continued_discharge_current",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "continued_discharge_current",
           "frontend_label_uk": "Тривалий струм розряду",
@@ -2737,7 +2752,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2802,7 +2817,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2891,6 +2906,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "discharge_ocp_delay",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "discharge_ocp_delay",
           "frontend_label_uk": "Затримка захисту струму розряду",
@@ -2922,7 +2938,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2987,7 +3003,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3076,6 +3092,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "discharge_ocpr_time",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_discharge_ocpr_time",
           "backend_key": "discharge_ocpr_time",
           "frontend_label_uk": "Відновлення захисту струму розряду",
@@ -3107,7 +3124,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3178,7 +3195,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3267,6 +3284,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "scpr_time",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_scpr_time",
           "backend_key": "scpr_time",
           "frontend_label_uk": "Відновлення після короткого замикання",
@@ -3298,7 +3316,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3369,7 +3387,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3458,6 +3476,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "max_balance_current",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_max_balance_current",
           "backend_key": "max_balance_current",
           "frontend_label_uk": "Макс. струм балансування",
@@ -3489,7 +3508,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3560,7 +3579,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3649,6 +3668,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "charge_otp",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "charge_otp",
           "frontend_label_uk": "Перегрів під час заряду",
@@ -3680,7 +3700,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3745,7 +3765,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3834,6 +3854,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "charge_otpr",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_charge_otpr",
           "backend_key": "charge_otpr",
           "frontend_label_uk": "Відновлення температури заряду",
@@ -3865,7 +3886,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3936,7 +3957,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4025,6 +4046,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "discharge_otp",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "discharge_otp",
           "frontend_label_uk": "Перегрів під час розряду",
@@ -4056,7 +4078,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4121,7 +4143,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4210,6 +4232,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "discharge_otpr",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_discharge_otpr",
           "backend_key": "discharge_otpr",
           "frontend_label_uk": "Відновлення температури розряду",
@@ -4241,7 +4264,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4312,7 +4335,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4401,6 +4424,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "charge_utp",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "charge_utp",
           "frontend_label_uk": "Низька температура заряду",
@@ -4432,7 +4456,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4497,7 +4521,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4586,6 +4610,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "charge_utpr",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_charge_utpr",
           "backend_key": "charge_utpr",
           "frontend_label_uk": "Відновлення низької температури заряду",
@@ -4617,7 +4642,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4688,7 +4713,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4777,6 +4802,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "mos_otp",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "mos_otp",
           "frontend_label_uk": "Перегрів MOSFET",
@@ -4808,7 +4834,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4873,7 +4899,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4962,6 +4988,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "mos_otpr",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_mos_otpr",
           "backend_key": "mos_otpr",
           "frontend_label_uk": "Відновлення температури MOSFET",
@@ -4993,7 +5020,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5064,7 +5091,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5153,6 +5180,7 @@
           "write_safety_class": "topology",
           "esphome_domain": "number",
           "esphome_read_entity_id": "cell_count",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "cell_count",
           "frontend_label_uk": "Кількість комірок",
@@ -5184,7 +5212,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5263,7 +5291,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5352,6 +5380,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "binary_sensor",
           "esphome_read_entity_id": "charging_allowed",
+          "esphome_configured_name": "charging allowed",
           "esphome_write_entity_id": null,
           "backend_key": "charging",
           "frontend_label_uk": "Заряд дозволено",
@@ -5386,7 +5415,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5451,7 +5480,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5540,6 +5569,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "binary_sensor",
           "esphome_read_entity_id": "discharging_allowed",
+          "esphome_configured_name": "discharging allowed",
           "esphome_write_entity_id": null,
           "backend_key": "discharging",
           "frontend_label_uk": "Розряд дозволено",
@@ -5574,7 +5604,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5639,7 +5669,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5728,6 +5758,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "binary_sensor",
           "esphome_read_entity_id": "balancing_allowed",
+          "esphome_configured_name": "balancing allowed",
           "esphome_write_entity_id": null,
           "backend_key": "balancing",
           "frontend_label_uk": "Балансування дозволено",
@@ -5762,7 +5793,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5827,7 +5858,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5916,6 +5947,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "battery_capacity",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_battery_capacity",
           "backend_key": "battery_capacity",
           "frontend_label_uk": "Номінальна ємність",
@@ -5947,7 +5979,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6018,7 +6050,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6107,6 +6139,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "scp_delay",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "scp_delay",
           "frontend_label_uk": "Затримка короткого замикання",
@@ -6138,7 +6171,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6203,7 +6236,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6292,6 +6325,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "start_balance",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": "set_start_balance",
           "backend_key": "start_balance",
           "frontend_label_uk": "Напруга запуску балансування",
@@ -6323,7 +6357,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6394,7 +6428,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6483,6 +6517,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "binary_sensor",
           "esphome_read_entity_id": "charging_float_mode",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Режим підтримки",
@@ -6514,7 +6549,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6579,7 +6614,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6670,6 +6705,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "heating_activation_temperature",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "heating_activation_temperature",
           "frontend_label_uk": "Температура ввімкнення підігріву",
@@ -6701,7 +6737,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6756,6 +6792,7 @@
           "write_safety_class": "disruptive",
           "esphome_domain": "number",
           "esphome_read_entity_id": "heating_deactivation_temperature",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "heating_deactivation_temperature",
           "frontend_label_uk": "Температура вимкнення підігріву",
@@ -6787,7 +6824,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6835,7 +6872,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6907,6 +6944,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_1",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 01",
@@ -6938,7 +6976,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7045,7 +7083,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7134,6 +7172,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_2",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 02",
@@ -7165,7 +7204,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7244,7 +7283,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7333,6 +7372,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_3",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 03",
@@ -7364,7 +7404,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7443,7 +7483,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7532,6 +7572,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_4",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 04",
@@ -7563,7 +7604,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7642,7 +7683,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7731,6 +7772,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_5",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 05",
@@ -7762,7 +7804,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7841,7 +7883,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7930,6 +7972,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_6",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 06",
@@ -7961,7 +8004,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8040,7 +8083,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8129,6 +8172,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_7",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 07",
@@ -8160,7 +8204,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8239,7 +8283,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8328,6 +8372,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_8",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 08",
@@ -8359,7 +8404,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8438,7 +8483,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8527,6 +8572,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_9",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 09",
@@ -8558,7 +8604,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8637,7 +8683,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8726,6 +8772,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_10",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 10",
@@ -8757,7 +8804,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8836,7 +8883,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8925,6 +8972,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_11",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 11",
@@ -8956,7 +9004,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9035,7 +9083,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9124,6 +9172,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_12",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 12",
@@ -9155,7 +9204,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9234,7 +9283,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9323,6 +9372,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_13",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 13",
@@ -9354,7 +9404,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9433,7 +9483,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9522,6 +9572,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_14",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 14",
@@ -9553,7 +9604,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9632,7 +9683,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9721,6 +9772,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_15",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 15",
@@ -9752,7 +9804,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9831,7 +9883,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9920,6 +9972,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_voltage_16",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга комірки 16",
@@ -9951,7 +10004,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10030,7 +10083,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10119,6 +10172,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_connected_mask",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Маска підключених комірок",
@@ -10150,7 +10204,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10229,7 +10283,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10318,6 +10372,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": null,
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Середня напруга комірки",
@@ -10349,7 +10404,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10428,7 +10483,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10517,6 +10572,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": null,
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Різниця напруг комірок",
@@ -10548,7 +10604,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10627,7 +10683,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10718,6 +10774,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": null,
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Номер комірки з макс. напругою (нативний регістр)",
@@ -10781,6 +10838,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": null,
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Номер комірки з мін. напругою (нативний регістр)",
@@ -10886,6 +10944,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_1_wire_resistance",
+          "esphome_configured_name": "cell 1 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 01",
@@ -10917,7 +10976,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10982,7 +11041,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11071,6 +11130,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_2_wire_resistance",
+          "esphome_configured_name": "cell 2 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 02",
@@ -11102,7 +11162,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11167,7 +11227,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11256,6 +11316,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_3_wire_resistance",
+          "esphome_configured_name": "cell 3 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 03",
@@ -11287,7 +11348,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11352,7 +11413,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11441,6 +11502,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_4_wire_resistance",
+          "esphome_configured_name": "cell 4 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 04",
@@ -11472,7 +11534,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11537,7 +11599,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11626,6 +11688,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_5_wire_resistance",
+          "esphome_configured_name": "cell 5 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 05",
@@ -11657,7 +11720,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11722,7 +11785,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11811,6 +11874,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_6_wire_resistance",
+          "esphome_configured_name": "cell 6 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 06",
@@ -11842,7 +11906,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11907,7 +11971,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11996,6 +12060,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_7_wire_resistance",
+          "esphome_configured_name": "cell 7 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 07",
@@ -12027,7 +12092,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12092,7 +12157,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12181,6 +12246,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_8_wire_resistance",
+          "esphome_configured_name": "cell 8 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 08",
@@ -12212,7 +12278,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12277,7 +12343,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12366,6 +12432,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_9_wire_resistance",
+          "esphome_configured_name": "cell 9 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 09",
@@ -12397,7 +12464,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12462,7 +12529,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12551,6 +12618,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_10_wire_resistance",
+          "esphome_configured_name": "cell 10 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 10",
@@ -12582,7 +12650,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12647,7 +12715,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12736,6 +12804,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_11_wire_resistance",
+          "esphome_configured_name": "cell 11 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 11",
@@ -12767,7 +12836,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12832,7 +12901,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12921,6 +12990,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_12_wire_resistance",
+          "esphome_configured_name": "cell 12 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 12",
@@ -12952,7 +13022,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13017,7 +13087,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13106,6 +13176,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_13_wire_resistance",
+          "esphome_configured_name": "cell 13 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 13",
@@ -13137,7 +13208,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13202,7 +13273,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13291,6 +13362,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_14_wire_resistance",
+          "esphome_configured_name": "cell 14 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 14",
@@ -13322,7 +13394,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13387,7 +13459,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13476,6 +13548,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_15_wire_resistance",
+          "esphome_configured_name": "cell 15 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 15",
@@ -13507,7 +13580,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13572,7 +13645,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13661,6 +13734,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "cell_16_wire_resistance",
+          "esphome_configured_name": "cell 16 wire resistance",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Опір проводу комірки 16",
@@ -13692,7 +13766,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13757,7 +13831,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13846,6 +13920,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "mosfet_temperature",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Температура MOSFET",
@@ -13877,7 +13952,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13942,7 +14017,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14031,6 +14106,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": null,
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Маска стану опору проводів комірок (нативний регістр)",
@@ -14136,6 +14212,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "total_voltage_raw",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга батареї (нативний регістр)",
@@ -14167,7 +14244,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14246,7 +14323,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14335,6 +14412,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "native_bms_power",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Потужність BMS (нативне значення)",
@@ -14366,7 +14444,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14431,7 +14509,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14520,6 +14598,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "current_raw",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Струм (нативний регістр)",
@@ -14551,7 +14630,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14630,7 +14709,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14719,6 +14798,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "temperature_sensor_1",
+          "esphome_configured_name": "temperature sensor 1",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Температура 1",
@@ -14750,7 +14830,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14845,7 +14925,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14934,6 +15014,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "temperature_sensor_2",
+          "esphome_configured_name": "temperature sensor 2",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Температура 2",
@@ -14965,7 +15046,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15030,7 +15111,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15119,6 +15200,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "alarms_bitmask",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Маска тривог",
@@ -15150,7 +15232,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15215,7 +15297,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15304,6 +15386,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "balance_current",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Струм балансування",
@@ -15335,7 +15418,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15399,7 +15482,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15475,6 +15558,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "binary_sensor",
           "esphome_read_entity_id": "balancing",
+          "esphome_configured_name": "balancing",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Балансування активне",
@@ -15510,7 +15594,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15596,6 +15680,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "state_of_charge",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Рівень заряду (SOC)",
@@ -15627,7 +15712,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15706,7 +15791,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15795,6 +15880,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "capacity_remaining",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Залишкова ємність",
@@ -15826,7 +15912,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15934,7 +16020,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16023,6 +16109,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "full_charge_capacity",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Повна зарядна ємність BMS",
@@ -16054,7 +16141,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16147,7 +16234,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16236,6 +16323,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "charging_cycles",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Цикли заряду",
@@ -16267,7 +16355,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16360,7 +16448,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16449,6 +16537,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "total_charging_cycle_capacity",
+          "esphome_configured_name": "total charging cycle capacity",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Загальна віддана ємність",
@@ -16480,7 +16569,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16545,7 +16634,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16636,6 +16725,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "state_of_health",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Стан здоров'я батареї (SOH)",
@@ -16667,7 +16757,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16753,6 +16843,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "precharge_status",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Стан попереднього заряду",
@@ -16784,7 +16875,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16849,7 +16940,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16938,6 +17029,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "custom_alarm_1",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Користувацька тривога 1",
@@ -16969,7 +17061,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17034,7 +17126,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17123,6 +17215,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "total_runtime",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Час роботи",
@@ -17154,7 +17247,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17219,7 +17312,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17310,6 +17403,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "binary_sensor",
           "esphome_read_entity_id": "charging",
+          "esphome_configured_name": "charging",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Заряд активний",
@@ -17341,7 +17435,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17413,6 +17507,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "binary_sensor",
           "esphome_read_entity_id": "discharging",
+          "esphome_configured_name": "discharging",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Розряд активний",
@@ -17444,7 +17539,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17509,7 +17604,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17598,6 +17693,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "custom_alarm_2",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Користувацька тривога 2",
@@ -17629,7 +17725,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17694,7 +17790,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17783,6 +17879,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "discharge_ocpr_left",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Залишок відновлення OCP розряду",
@@ -17814,7 +17911,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17879,7 +17976,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17968,6 +18065,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "discharge_scpr_left",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Залишок відновлення SCP розряду",
@@ -17999,7 +18097,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18064,7 +18162,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18153,6 +18251,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "charge_ocpr_left",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Залишок відновлення OCP заряду",
@@ -18184,7 +18283,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18249,7 +18348,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18338,6 +18437,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "charge_scpr_left",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Залишок відновлення SCP заряду",
@@ -18369,7 +18469,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18434,7 +18534,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18523,6 +18623,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "uvpr_left",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Залишок відновлення після низької напруги",
@@ -18554,7 +18655,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18619,7 +18720,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18708,6 +18809,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "ovpr_left",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Залишок відновлення після перенапруги",
@@ -18739,7 +18841,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18804,7 +18906,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18893,6 +18995,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "sensor_heating_mask",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Маска відсутніх датчиків / стан підігріву",
@@ -18924,7 +19027,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18989,7 +19092,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19078,6 +19181,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": null,
           "esphome_read_entity_id": null,
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Зарезервовано (0x12D2)",
@@ -19183,6 +19287,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "emergency_timer",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Аварійний таймер",
@@ -19214,7 +19319,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19279,7 +19384,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19368,6 +19473,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "battery_current_correction",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Корекція струму батареї",
@@ -19399,7 +19505,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19464,7 +19570,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19553,6 +19659,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "charge_current_measurement_voltage",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга вимірювання струму заряду",
@@ -19584,7 +19691,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19649,7 +19756,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19738,6 +19845,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "discharge_current_measurement_voltage",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Напруга вимірювання струму розряду",
@@ -19769,7 +19877,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19834,7 +19942,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19923,6 +20031,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "battery_voltage_correction",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Корекція напруги батареї",
@@ -19954,7 +20063,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20019,7 +20128,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20108,6 +20217,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "alternate_battery_voltage",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Альтернативна напруга батареї",
@@ -20139,7 +20249,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20204,7 +20314,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20293,6 +20403,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "heating_current",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Струм підігріву",
@@ -20324,7 +20435,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20374,7 +20485,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20448,6 +20559,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "bms_system_ticks",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Системні тики BMS",
@@ -20479,7 +20591,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20544,7 +20656,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20633,6 +20745,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "temperature_sensor_3",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Температура 3",
@@ -20664,7 +20777,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20714,7 +20827,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20788,6 +20901,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "temperature_sensor_4",
+          "esphome_configured_name": "temperature sensor 4",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Температура 4",
@@ -20819,7 +20933,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20884,7 +20998,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20973,6 +21087,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "temperature_sensor_5",
+          "esphome_configured_name": "temperature sensor 5",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Температура 5",
@@ -21004,7 +21119,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21069,7 +21184,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21158,6 +21273,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "text_sensor",
           "esphome_read_entity_id": "manufacturer_device_id",
+          "esphome_configured_name": "manufacturer device id",
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Модель BMS",
@@ -21189,7 +21305,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21265,7 +21381,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21337,6 +21453,7 @@
           "write_safety_class": "credential",
           "esphome_domain": "text",
           "esphome_read_entity_id": "setup_passcode",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "setup_passcode",
           "frontend_label_uk": "Пароль налаштувань",
@@ -21368,7 +21485,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21433,7 +21550,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21524,6 +21641,7 @@
           "write_safety_class": "unsupported",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "lcd_buzzer_trigger",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "lcd_buzzer_trigger",
           "frontend_label_uk": "Джерело спрацювання LCD-зумера",
@@ -21559,7 +21677,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21614,6 +21732,7 @@
           "write_safety_class": "unsupported",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "dry_contact_1_trigger_source",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "dry_contact_1_trigger_source",
           "frontend_label_uk": "Джерело сухого контакту 1",
@@ -21649,7 +21768,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21697,7 +21816,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21771,6 +21890,7 @@
           "write_safety_class": "unsupported",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "dry_contact_2_trigger_source",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "dry_contact_2_trigger_source",
           "frontend_label_uk": "Джерело сухого контакту 2",
@@ -21806,7 +21926,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21861,6 +21981,7 @@
           "write_safety_class": "n/a",
           "esphome_domain": "text_sensor",
           "esphome_read_entity_id": "uart_protocol_library_version",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": null,
           "frontend_label_uk": "Версія бібліотеки UART-протоколу",
@@ -21892,7 +22013,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21940,7 +22061,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -22012,6 +22133,7 @@
           "write_safety_class": "unsupported",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "dry_contact_1_trigger_value",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "dry_contact_1_trigger_value",
           "frontend_label_uk": "Поріг сухого контакту 1",
@@ -22047,7 +22169,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22095,7 +22217,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -22167,6 +22289,7 @@
           "write_safety_class": "unsupported",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "dry_contact_1_recovery_value",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "dry_contact_1_recovery_value",
           "frontend_label_uk": "Відновлення сухого контакту 1",
@@ -22202,7 +22325,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22250,7 +22373,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -22322,6 +22445,7 @@
           "write_safety_class": "unsupported",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "dry_contact_2_trigger_value",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "dry_contact_2_trigger_value",
           "frontend_label_uk": "Поріг сухого контакту 2",
@@ -22357,7 +22481,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22405,7 +22529,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -22477,6 +22601,7 @@
           "write_safety_class": "unsupported",
           "esphome_domain": "sensor",
           "esphome_read_entity_id": "dry_contact_2_recovery_value",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "dry_contact_2_recovery_value",
           "frontend_label_uk": "Відновлення сухого контакту 2",
@@ -22512,7 +22637,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22560,7 +22685,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -22634,6 +22759,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "rcv_time",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "rcv_time",
           "frontend_label_uk": "Час RCV",
@@ -22665,7 +22791,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22737,6 +22863,7 @@
           "write_safety_class": "normal",
           "esphome_domain": "number",
           "esphome_read_entity_id": "rfv_time",
+          "esphome_configured_name": null,
           "esphome_write_entity_id": null,
           "backend_key": "rfv_time",
           "frontend_label_uk": "Час RFV",
@@ -22768,7 +22895,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+              "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22833,7 +22960,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:8ab394813d31fa06aad0a5686c07f961f9f2165dd436d3db3cb5689e25050253",
+          "source_fingerprint": "sha256:32e6ad1538efe886490517f094a86feeb7a40d397fe2eaf6028fda6a987d1c18",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"

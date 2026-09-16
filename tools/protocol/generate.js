@@ -214,7 +214,23 @@ function buildWireObjectIdAliases() {
   const entries = [];
   for (const { field: f } of allRegisterFields) {
     if (f.esphome_read_entity_id && f.esphome_read_entity_id !== f.key) {
-      entries.push({ key: f.key, domain: f.esphome_domain, realId: f.esphome_read_entity_id });
+      entries.push({
+        key: f.key,
+        domain: f.esphome_domain,
+        realId: f.esphome_read_entity_id,
+        // The field's real, live ESPHome `name:` string (esphome_configured_name),
+        // e.g. "cell 1 wire resistance" — distinct from realId, the sanitized
+        // object_id ("cell_1_wire_resistance"). object_id is a one-way
+        // sanitization of name and is NOT safely recoverable from it by
+        // string substitution (replacing "_" with " " loses case/punctuation
+        // in general, even though it happens to round-trip for today's all-
+        // lowercase entries) — never derive one from the other here. null
+        // until a field's real configured name has been confirmed against a
+        // live device or compiled source (matching esphome_read_entity_id's
+        // own confirmation discipline); consumers fall back to realId alone
+        // for those, same as before this field existed.
+        configuredName: f.esphome_configured_name || null,
+      });
     }
   }
   return entries;
@@ -491,7 +507,7 @@ function buildJsInjectionBlock() {
     .map(([k, m]) => `      ${k}: { unit: ${jsLiteral(m.unit)}, ukUnit: ${jsLiteral(m.ukUnit)}, enUnit: ${jsLiteral(m.enUnit)}, precision: ${jsLiteral(m.precision)}, min: ${jsLiteral(m.min)}, max: ${jsLiteral(m.max)}, step: ${jsLiteral(m.step)}, pollGroup: ${jsLiteral(m.pollGroup)}, freshnessBudgetS: ${jsLiteral(m.freshnessBudgetS)}, labelUk: ${jsLiteral(m.labelUk)}, labelEn: ${jsLiteral(m.labelEn)}, uiSection: ${jsLiteral(m.uiSection)}, uiOrder: ${jsLiteral(m.uiOrder)}, uiGroup: ${jsLiteral(m.uiGroup)}, editorKind: ${jsLiteral(m.editorKind)}, enumMap: ${jsEnumMapLiteral(m.enumMap)} },`)
     .join("\n");
   const wireAliasLines = wireAliases
-    .map((a) => `      [${jsLiteral(a.key)}, ${jsLiteral(a.domain)}, ${jsLiteral(a.realId)}],`)
+    .map((a) => `      [${jsLiteral(a.key)}, ${jsLiteral(a.domain)}, ${jsLiteral(a.realId)}, ${jsLiteral(a.configuredName)}],`)
     .join("\n");
   return [
     JS_BEGIN,
@@ -520,15 +536,20 @@ function buildJsInjectionBlock() {
     "    fieldMeta: Object.freeze({",
     fieldMetaLines,
     "    }),",
-    "    // Final-preparation-plan Stage 1 corrective pass: [key, domain, realWireObjectId]",
-    "    // triples for every field whose real, compiled ESPHome object_id (ALWAYS",
+    "    // Final-preparation-plan Stage 1 corrective pass: [key, domain, realWireObjectId, configuredName]",
+    "    // quadruples for every field whose real, compiled ESPHome object_id (ALWAYS",
     "    // sanitize(snake_case(name)), never the YAML `id:`) differs from its own",
-    "    // canonical key. jk_bms.js registers each of these as a wire-id alias",
-    "    // alongside its own hand-typed registerEntity() calls (harmlessly redundant",
-    "    // for entries already covered there) so the field's real SSE updates are",
-    "    // recognized. See buildWireObjectIdAliases()'s own comment for the full",
-    "    // reasoning and test/protocol_catalog/test_entity_id_collision.js for the",
-    "    // 1:1-coverage/no-collision validator.",
+    "    // canonical key. realWireObjectId is the sanitized object_id; configuredName",
+    "    // is the field's real live `name:` string (or null if not yet confirmed) --",
+    "    // the two are DIFFERENT wire-id variants ESPHome may use, never derived from",
+    "    // each other by string substitution. jk_bms.js registers both as wire-id",
+    "    // aliases alongside its own hand-typed registerEntity() calls (harmlessly",
+    "    // redundant for entries already covered there) so the field's real SSE",
+    "    // updates are recognized regardless of which variant this firmware/ESPHome",
+    "    // version actually emits. See buildWireObjectIdAliases()'s own comment for",
+    "    // the full reasoning and test/protocol_catalog/test_entity_id_collision.js /",
+    "    // test/protocol_catalog/test_wire_object_id_aliases.js for the coverage,",
+    "    // no-collision, and real-routing-function validators.",
     "    wireObjectIdAliases: Object.freeze([",
     wireAliasLines,
     "    ]),",
