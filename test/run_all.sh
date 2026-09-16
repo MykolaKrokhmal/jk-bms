@@ -175,6 +175,10 @@ echo "=== protocol catalog: active-group rate-limit HTTP response regression ===
 node test/protocol_catalog/test_active_group_rate_limit_response.js
 
 echo
+echo "=== protocol catalog: Діагностика software-variables scroll-reset regression ==="
+node test/protocol_catalog/test_diagnostic_software_variables_scroll.js
+
+echo
 echo "=== JS syntax checks ==="
 node --check jk_bms.js
 node --check demo/mock-server.js
