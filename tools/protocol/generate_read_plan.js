@@ -298,13 +298,13 @@ const CUSTOM_DECODE_BLOCKS = [
 // separately, not silently fixed here.
 const ENTITY_ID_OVERRIDE = {
   // total_runtime's real, pre-existing entity id ("total_runtime_in_seconds")
-  // used to be overridden here, but as of the Stage 3 precision fix (see
-  // EXACT_DECIMAL_COMPANION below) canonical.json's own esphome_read_entity_id
-  // for this field no longer equals "total_runtime" (it now points at the
-  // new exact text_sensor), so this entry would silently stop applying to
-  // the field it was meant for. The legacy id now lives in
-  // EXACT_DECIMAL_COMPANION.total_runtime.legacyEntityId instead, next to
-  // the rest of that field's precision-fix bookkeeping.
+  // used to be overridden here, but as of the Stage 3 precision fix
+  // canonical.json's own esphome_read_entity_id for this field no longer
+  // equals "total_runtime" (it now points at the new exact text_sensor),
+  // so this entry would silently stop applying to the field it was meant
+  // for. The legacy id now lives in canonical.json's own
+  // legacy_companion_entity_id (registers.canonical.json), read directly
+  // below wherever this generator needs it.
   //
   // canonical.json claims esphome_read_entity_id "setup_passcode" for this
   // field -- but that id already belongs to a DIFFERENT, pre-existing
@@ -343,9 +343,9 @@ const READ_DOMAIN_OVERRIDE = {
   hardware_version: "text_sensor",
   software_version: "text_sensor",
   // Stage 3 precision fix: these 4 keys' PRIMARY entity is now the exact
-  // text_sensor companion (see EXACT_DECIMAL_COMPANION below) -- same
-  // "an override entry is required, canonical.json's esphome_domain alone
-  // is not trusted here" reasoning as every entry above.
+  // text_sensor entity (see EXACT_DECIMAL_FIELDS below) -- same "an
+  // override entry is required, canonical.json's esphome_domain alone is
+  // not trusted here" reasoning as every entry above.
   rtc_ticks: "text_sensor",
   odd_run_time: "text_sensor",
   bms_system_ticks: "text_sensor",
@@ -380,12 +380,20 @@ const READ_DOMAIN_OVERRIDE = {
 // would reject modeling this as two canonical fields sharing one
 // register's bytes; doing it here, after block-grouping, sidesteps that
 // without weakening the validator for every other field.
-const EXACT_DECIMAL_COMPANION = {
-  rtc_ticks: { legacyEntityId: "rtc_ticks" },
-  odd_run_time: { legacyEntityId: "odd_run_time" },
-  bms_system_ticks: { legacyEntityId: "bms_system_ticks" },
-  total_runtime: { legacyEntityId: "total_runtime_in_seconds" },
-};
+//
+// Routing/duplication fix (user-directed, 2026-09-17): the legacy entity's
+// identity used to be hardcoded here as its own small table -- but
+// jk_bms.js (built by the OTHER generator, generate.js, from the SAME
+// canonical.json, never from this file) had no way to learn that same
+// fact, so it could not register the legacy wire id at all -- confirmed
+// on real hardware to produce a second, duplicate, mislabeled row in the
+// project's own custom UI. Fixed by moving the legacy identity into
+// canonical.json itself (registers.canonical.json's own
+// legacy_companion_entity_id/_domain/_configured_name, all 3 confirmed
+// against a real live SSE capture, 2026-09-17) -- generate.js and
+// generate_read_plan.js now both read the SAME source fact independently,
+// instead of one hardcoding what only the other used to know.
+const EXACT_DECIMAL_FIELDS = new Set(["rtc_ticks", "odd_run_time", "bms_system_ticks", "total_runtime"]);
 
 // Fields whose canonical poll_group implies a cadence this generator has
 // no other default for, but which ARE genuinely read on the real device
@@ -474,14 +482,21 @@ for (const { field: f, register: r } of allRegisterFields) {
 
   // decode_exact_decimal() also always produces a std::string (same
   // reasoning as the ASCII check immediately above) -- a field listed in
-  // EXACT_DECIMAL_COMPANION without a matching READ_DOMAIN_OVERRIDE entry
+  // EXACT_DECIMAL_FIELDS without a matching READ_DOMAIN_OVERRIDE entry
   // would hit the identical publish_state(float)-vs-std::string compile
   // error the ASCII check exists to catch pre-emptively.
-  if (EXACT_DECIMAL_COMPANION[f.key] && domain !== "text_sensor") {
+  if (EXACT_DECIMAL_FIELDS.has(f.key) && domain !== "text_sensor") {
     throw new Error(
-      `READ_PLAN_EXACT_DECIMAL_WRONG_DOMAIN: field "${f.key}" is in EXACT_DECIMAL_COMPANION but resolved read ` +
+      `READ_PLAN_EXACT_DECIMAL_WRONG_DOMAIN: field "${f.key}" is in EXACT_DECIMAL_FIELDS but resolved read ` +
       `domain "${domain}" (expected "text_sensor") -- decode_exact_decimal() always produces a std::string. ` +
       `Add an entry for "${f.key}": "text_sensor" to READ_DOMAIN_OVERRIDE before regenerating.`
+    );
+  }
+  if (EXACT_DECIMAL_FIELDS.has(f.key) && !f.legacy_companion_entity_id) {
+    throw new Error(
+      `READ_PLAN_EXACT_DECIMAL_MISSING_LEGACY_COMPANION: field "${f.key}" is in EXACT_DECIMAL_FIELDS but has no ` +
+      `legacy_companion_entity_id in registers.canonical.json -- add one (confirmed against a real live SSE ` +
+      `capture) before regenerating.`
     );
   }
 
@@ -584,24 +599,32 @@ const blocks = [...blocksByAddress.values()]
   });
 
 // Stage 3 precision fix: inject the approximate "legacy companion" entity
-// for every EXACT_DECIMAL_COMPANION field, into the SAME block its exact
+// for every EXACT_DECIMAL_FIELDS field, into the SAME block its exact
 // primary already landed in (same register, same raw bytes -- this reads
 // nothing twice on the wire, it publishes the one already-read block to a
 // second entity). Done here, after `blocks` exists, rather than as a
 // second canonical field, because two canonical fields covering the same
 // register bytes would fail registers.canonical.json's own
-// OVERLAPPING_MASKS validation (see EXACT_DECIMAL_COMPANION's own
-// comment). The companion's `key` is synthetic (never a real canonical
-// field key) -- confirmed safe: this generator's own kFields emission
-// only uses `key` in a C++ comment for human debugging, and entity_id
-// (not key) is what actually becomes the published entity's wire id.
+// OVERLAPPING_MASKS validation. The companion's `key` is synthetic (never
+// a real canonical field key) -- confirmed safe: this generator's own
+// kFields emission only uses `key` in a C++ comment for human debugging,
+// and entity_id (not key) is what actually becomes the published
+// entity's wire id. legacyEntityId is read from canonical.json's own
+// legacy_companion_entity_id (the single shared source generate.js also
+// reads, routing/duplication fix, 2026-09-17) via fieldByKey, moved above
+// this loop for that purpose.
+const fieldByKey = new Map(allRegisterFields.map(({ field: f }) => [f.key, f]));
 for (const block of blocks) {
   for (const pf of block.fields.slice()) {
-    const companion = EXACT_DECIMAL_COMPANION[pf.key];
-    if (!companion) continue;
+    if (!EXACT_DECIMAL_FIELDS.has(pf.key)) continue;
+    const sourceField = fieldByKey.get(pf.key);
+    const legacyEntityId = sourceField && sourceField.legacy_companion_entity_id;
+    if (!legacyEntityId) {
+      throw new Error(`READ_PLAN_EXACT_DECIMAL_MISSING_LEGACY_COMPANION: field "${pf.key}" has no legacy_companion_entity_id in registers.canonical.json`);
+    }
     block.fields.push({
       key: `${pf.key}__legacy_companion`,
-      entity_id: companion.legacyEntityId,
+      entity_id: legacyEntityId,
       domain: "sensor",
       byte_offset: pf.byte_offset,
       mask: pf.mask,
@@ -621,7 +644,8 @@ for (const block of blocks) {
 // Merge in the hand-authored custom-decode blocks (no FieldDecode entries
 // -- fields: [] -- their decode dispatch is the verbatim decodeCode string
 // instead of the generic per-field switch; see buildServicerInterval()).
-const fieldByKey = new Map(allRegisterFields.map(({ field: f }) => [f.key, f]));
+// (fieldByKey itself is declared above, ahead of the legacy-companion
+// injection loop, which needs it first.)
 for (const cb of CUSTOM_DECODE_BLOCKS) {
   blocks.push({
     address: cb.address,
@@ -968,7 +992,7 @@ function buildServicerInterval() {
         const fieldIndex = blocks.slice(0, i).reduce((n, bb) => n + bb.fields.length, 0) + j;
         if (f.wire_type === "ASCII") {
           L(`          { char buf[17]; jk_poll_scheduler::decode_ascii(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
-        } else if (EXACT_DECIMAL_COMPANION[f.key]) {
+        } else if (EXACT_DECIMAL_FIELDS.has(f.key)) {
           // Primary entity for a Stage 3 precision-fix field: exact
           // fixed-point decimal, never float -- see decode_exact_decimal's
           // own header comment. The synthetic "__legacy_companion" entry

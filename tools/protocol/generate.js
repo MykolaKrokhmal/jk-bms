@@ -236,6 +236,38 @@ function buildWireObjectIdAliases() {
   return entries;
 }
 
+// Routing/duplication fix (user-directed, 2026-09-17): a field whose
+// canonical `esphome_read_entity_id` now names an "exact" companion entity
+// (Stage 3 precision fix — rtc_ticks, odd_run_time, bms_system_ticks,
+// total_runtime) has a SEPARATE, pre-existing, approximate entity that
+// generate_read_plan.js also still generates (unchanged id/domain, purely
+// for Home Assistant history/dashboard compatibility) — but that legacy
+// entity has NO canonical.json field of its own, so it was previously
+// invisible to jk_bms.js entirely, and fell back to a raw, mislabeled,
+// DUPLICATE row in the project's own Settings/Diagnostics list (confirmed
+// on real hardware, 2026-09-17). registers.canonical.json's own
+// legacy_companion_entity_id/_domain/_configured_name (all 3 confirmed
+// against a live SSE capture) name that legacy entity's real wire
+// identity — jk_bms.js registers it against a suppression sentinel (see
+// LEGACY_COMPANION_SUPPRESSED in jk_bms.js) via the SAME registerEntity()
+// mechanism wireObjectIdAliases already uses, so it updates a real Home
+// Assistant entity but never creates a second canonical UI row and never
+// overwrites the exact value already resolved for its own canonical key.
+function buildLegacyCompanionEntities() {
+  const entries = [];
+  for (const { field: f } of allRegisterFields) {
+    if (f.legacy_companion_entity_id) {
+      entries.push({
+        key: f.key,
+        domain: f.legacy_companion_domain,
+        entityId: f.legacy_companion_entity_id,
+        configuredName: f.legacy_companion_configured_name,
+      });
+    }
+  }
+  return entries;
+}
+
 function buildBlockedWriteKeys() {
   // Declared rw but NOT effective rw — the frontend needs this list to
   // render a read-only reason (Крок G.7) instead of a misleading editable
@@ -482,6 +514,7 @@ function buildJsInjectionBlock() {
   const blockedKeys = buildBlockedWriteKeys();
   const fieldMetaEntries = buildFieldMeta();
   const wireAliases = buildWireObjectIdAliases();
+  const legacyCompanions = buildLegacyCompanionEntities();
   const fmtHex = (addr) => addr; // already "0xNNNN" string form in canonical source
   const txLines = txEntries.map(([k, addr]) => `      ${k}: ${fmtHex(addr)},`).join("\n");
   const nrLines = [];
@@ -508,6 +541,9 @@ function buildJsInjectionBlock() {
     .join("\n");
   const wireAliasLines = wireAliases
     .map((a) => `      [${jsLiteral(a.key)}, ${jsLiteral(a.domain)}, ${jsLiteral(a.realId)}, ${jsLiteral(a.configuredName)}],`)
+    .join("\n");
+  const legacyCompanionLines = legacyCompanions
+    .map((c) => `      [${jsLiteral(c.key)}, ${jsLiteral(c.domain)}, ${jsLiteral(c.entityId)}, ${jsLiteral(c.configuredName)}],`)
     .join("\n");
   return [
     JS_BEGIN,
@@ -552,6 +588,17 @@ function buildJsInjectionBlock() {
     "    // no-collision, and real-routing-function validators.",
     "    wireObjectIdAliases: Object.freeze([",
     wireAliasLines,
+    "    ]),",
+    "    // Stage 3 precision-fix routing/duplication fix: [canonicalKey, domain,",
+    "    // legacyEntityId, configuredName] quadruples for every field whose exact,",
+    "    // canonical primary entity has a separate, pre-existing, approximate",
+    "    // \"legacy companion\" entity (Home Assistant compatibility only — see",
+    "    // buildLegacyCompanionEntities()'s own comment). jk_bms.js registers each",
+    "    // one against a suppression sentinel (never a second canonical row, never",
+    "    // overwriting the already-resolved exact value) via the same",
+    "    // registerEntity() mechanism wireObjectIdAliases uses above.",
+    "    legacyCompanionEntities: Object.freeze([",
+    legacyCompanionLines,
     "    ]),",
     "  });",
     JS_END,

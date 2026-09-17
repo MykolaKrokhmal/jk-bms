@@ -113,6 +113,9 @@
                 "esphome_configured_name": { "type": ["string", "null"] },
                 "esphome_write_entity_id": { "type": ["string", "null"] },
                 "backend_key": { "type": ["string", "null"] },
+                "legacy_companion_entity_id": { "type": ["string", "null"] },
+                "legacy_companion_domain": { "type": ["string", "null"] },
+                "legacy_companion_configured_name": { "type": ["string", "null"] },
                 "frontend_label_uk": { "type": "string", "minLength": 1 },
                 "frontend_label_en": { "type": "string", "minLength": 1 },
                 "ui_section": {

@@ -94,7 +94,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -165,7 +165,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -286,7 +286,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -351,7 +351,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -472,7 +472,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -543,7 +543,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -664,7 +664,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -729,7 +729,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -850,7 +850,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -921,7 +921,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1042,7 +1042,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1113,7 +1113,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1234,7 +1234,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1305,7 +1305,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1426,7 +1426,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1497,7 +1497,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1618,7 +1618,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1689,7 +1689,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -1810,7 +1810,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -1881,7 +1881,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2002,7 +2002,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2067,7 +2067,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2188,7 +2188,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2253,7 +2253,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2374,7 +2374,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2439,7 +2439,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2560,7 +2560,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2631,7 +2631,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2752,7 +2752,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -2817,7 +2817,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -2938,7 +2938,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3003,7 +3003,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3124,7 +3124,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3195,7 +3195,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3316,7 +3316,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3387,7 +3387,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3508,7 +3508,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3579,7 +3579,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3700,7 +3700,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3765,7 +3765,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -3886,7 +3886,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -3957,7 +3957,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4078,7 +4078,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4143,7 +4143,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4264,7 +4264,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4335,7 +4335,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4456,7 +4456,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4521,7 +4521,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4642,7 +4642,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4713,7 +4713,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -4834,7 +4834,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -4899,7 +4899,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5020,7 +5020,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5091,7 +5091,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5212,7 +5212,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5291,7 +5291,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5415,7 +5415,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5480,7 +5480,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5604,7 +5604,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5669,7 +5669,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5793,7 +5793,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -5858,7 +5858,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -5979,7 +5979,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6050,7 +6050,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6171,7 +6171,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6236,7 +6236,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6357,7 +6357,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6428,7 +6428,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -6813,7 +6813,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -6878,7 +6878,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7001,7 +7001,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7088,7 +7088,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7136,7 +7136,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7240,7 +7240,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7347,7 +7347,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7468,7 +7468,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7547,7 +7547,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7668,7 +7668,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7747,7 +7747,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -7868,7 +7868,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -7947,7 +7947,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8068,7 +8068,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8147,7 +8147,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8268,7 +8268,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8347,7 +8347,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8468,7 +8468,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8547,7 +8547,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8668,7 +8668,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8747,7 +8747,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -8868,7 +8868,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -8947,7 +8947,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9068,7 +9068,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9147,7 +9147,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9268,7 +9268,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9347,7 +9347,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9468,7 +9468,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9547,7 +9547,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9668,7 +9668,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9747,7 +9747,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -9868,7 +9868,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -9947,7 +9947,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10068,7 +10068,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10147,7 +10147,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10268,7 +10268,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10347,7 +10347,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10468,7 +10468,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10547,7 +10547,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10668,7 +10668,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10747,7 +10747,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -10868,7 +10868,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -10947,7 +10947,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11240,7 +11240,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11305,7 +11305,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11426,7 +11426,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11491,7 +11491,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11612,7 +11612,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11677,7 +11677,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11798,7 +11798,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -11863,7 +11863,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -11984,7 +11984,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12049,7 +12049,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12170,7 +12170,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12235,7 +12235,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12356,7 +12356,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12421,7 +12421,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12542,7 +12542,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12607,7 +12607,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12728,7 +12728,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12793,7 +12793,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -12914,7 +12914,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -12979,7 +12979,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13100,7 +13100,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13165,7 +13165,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13286,7 +13286,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13351,7 +13351,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13472,7 +13472,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13537,7 +13537,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13658,7 +13658,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13723,7 +13723,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -13844,7 +13844,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -13909,7 +13909,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14030,7 +14030,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14095,7 +14095,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14216,7 +14216,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14281,7 +14281,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14508,7 +14508,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14587,7 +14587,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14708,7 +14708,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14773,7 +14773,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -14894,7 +14894,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -14973,7 +14973,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15094,7 +15094,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15189,7 +15189,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15310,7 +15310,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15375,7 +15375,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15496,7 +15496,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15561,7 +15561,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15682,7 +15682,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15746,7 +15746,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -15858,7 +15858,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -15976,7 +15976,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16055,7 +16055,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16176,7 +16176,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16284,7 +16284,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16405,7 +16405,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16498,7 +16498,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16619,7 +16619,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16712,7 +16712,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -16833,7 +16833,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -16898,7 +16898,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17021,7 +17021,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17139,7 +17139,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17204,7 +17204,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17325,7 +17325,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17390,7 +17390,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17479,9 +17479,12 @@
           "write_safety_class": "n/a",
           "esphome_domain": "text_sensor",
           "esphome_read_entity_id": "total_runtime_exact",
-          "esphome_configured_name": null,
+          "esphome_configured_name": "total runtime exact",
           "esphome_write_entity_id": null,
           "backend_key": null,
+          "legacy_companion_entity_id": "total_runtime_in_seconds",
+          "legacy_companion_domain": "sensor",
+          "legacy_companion_configured_name": "total runtime in seconds",
           "frontend_label_uk": "Час роботи",
           "frontend_label_en": "Runtime",
           "ui_section": "diagnostics",
@@ -17511,7 +17514,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17576,7 +17579,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17699,7 +17702,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17803,7 +17806,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -17868,7 +17871,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -17989,7 +17992,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18054,7 +18057,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18175,7 +18178,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18240,7 +18243,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18361,7 +18364,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18426,7 +18429,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18547,7 +18550,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18612,7 +18615,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18733,7 +18736,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18798,7 +18801,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -18919,7 +18922,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -18984,7 +18987,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19105,7 +19108,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19170,7 +19173,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19291,7 +19294,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19356,7 +19359,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19583,7 +19586,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19648,7 +19651,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19769,7 +19772,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -19834,7 +19837,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -19955,7 +19958,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20020,7 +20023,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20141,7 +20144,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20206,7 +20209,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20327,7 +20330,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20392,7 +20395,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20513,7 +20516,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20578,7 +20581,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -20699,7 +20702,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -20749,7 +20752,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21026,9 +21029,12 @@
           "write_safety_class": "n/a",
           "esphome_domain": "text_sensor",
           "esphome_read_entity_id": "bms_system_ticks_exact",
-          "esphome_configured_name": null,
+          "esphome_configured_name": "bms system ticks exact",
           "esphome_write_entity_id": null,
           "backend_key": null,
+          "legacy_companion_entity_id": "bms_system_ticks",
+          "legacy_companion_domain": "sensor",
+          "legacy_companion_configured_name": "bms system ticks",
           "frontend_label_uk": "Системні тики BMS",
           "frontend_label_en": "BMS system ticks",
           "ui_section": "diagnostics",
@@ -21058,7 +21064,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21123,7 +21129,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21244,7 +21250,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21294,7 +21300,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21400,7 +21406,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21465,7 +21471,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21586,7 +21592,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -21651,7 +21657,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -21740,9 +21746,12 @@
           "write_safety_class": "n/a",
           "esphome_domain": "text_sensor",
           "esphome_read_entity_id": "rtc_ticks_exact",
-          "esphome_configured_name": null,
+          "esphome_configured_name": "rtc ticks exact",
           "esphome_write_entity_id": null,
           "backend_key": null,
+          "legacy_companion_entity_id": "rtc_ticks",
+          "legacy_companion_domain": "sensor",
+          "legacy_companion_configured_name": "rtc ticks",
           "frontend_label_uk": "Лічильник RTC (з 2020-01-01)",
           "frontend_label_en": "RTC tick counter (since 2020-01-01)",
           "ui_section": "settings",
@@ -22231,7 +22240,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22307,7 +22316,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -22635,9 +22644,12 @@
           "write_safety_class": "n/a",
           "esphome_domain": "text_sensor",
           "esphome_read_entity_id": "odd_run_time_exact",
-          "esphome_configured_name": null,
+          "esphome_configured_name": "odd run time exact",
           "esphome_write_entity_id": null,
           "backend_key": null,
+          "legacy_companion_entity_id": "odd_run_time",
+          "legacy_companion_domain": "sensor",
+          "legacy_companion_configured_name": "odd run time",
           "frontend_label_uk": "Сумарний час роботи",
           "frontend_label_en": "Cumulative run time",
           "ui_section": "settings",
@@ -22923,7 +22935,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -22988,7 +23000,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -23533,7 +23545,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -23624,7 +23636,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -23672,7 +23684,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -23782,7 +23794,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -23869,7 +23881,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -23917,7 +23929,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -24289,7 +24301,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -24337,7 +24349,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -24445,7 +24457,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -24493,7 +24505,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -24601,7 +24613,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -24649,7 +24661,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -24757,7 +24769,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -24805,7 +24817,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"
@@ -25043,7 +25055,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -25147,7 +25159,7 @@
                 "declared_access",
                 "implementation_entity_mapping"
               ],
-              "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+              "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
               "confidence": "medium",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
               "derivation_group": "syssi_implementation_family"
@@ -25212,7 +25224,7 @@
             "declared_access",
             "implementation_entity_mapping"
           ],
-          "source_fingerprint": "sha256:bea7097e9f688eaeb2cb715d4e3a00b9b6a824cd46e9899c4d7f0f1c5171071f",
+          "source_fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb",
           "confidence": "medium",
           "applicability": "current catalog scope; exact BMS protocol variant not independently established",
           "derivation_group": "syssi_implementation_family"

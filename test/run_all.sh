@@ -189,6 +189,10 @@ echo "=== protocol catalog: Діагностика software-variables scroll-res
 node test/protocol_catalog/test_diagnostic_software_variables_scroll.js
 
 echo
+echo "=== protocol catalog: exact-decimal companion routing/duplication regression ==="
+node test/protocol_catalog/test_exact_decimal_companion_routing.js
+
+echo
 echo "=== Stage 2: settings UI mapping completeness (265/265) ==="
 node test/protocol_catalog/test_stage2_mapping_completeness.js
 
