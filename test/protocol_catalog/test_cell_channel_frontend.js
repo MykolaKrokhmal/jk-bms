@@ -2,19 +2,25 @@
 "use strict";
 
 // Frontend regression test for the cell-channel batch's user-directed
-// rework (2026-09-17): activeCellCount()/topologyState() are the exact
-// closures renderCells() calls to decide how many card slots (out of the
-// full 32-channel pool, MAX_CELL_COUNT) get shown vs hidden -- this file
-// exercises the REAL closures via the same vm test-hook technique as
-// test_exact_decimal_companion_routing.js/test_cell_channel_batch.js, no
-// reimplementation of the logic anywhere below.
+// rework (THIRD pass, 2026-09-17): configured channel count and confirmed/
+// trustworthy status are DIFFERENT CONCEPTS. activeCellCount() -- the
+// exact closure renderCells()/the bar chart/the cell-selector buttons/the
+// history-modal invalidation all call to decide how many of the 32-slot
+// card pool are shown vs hidden -- now reads resolve_topology's own
+// display_cell_count sensor, which reflects a validly-read CellCount in
+// EVERY state (CONFIRMED, MISMATCH, OFFLINE with a cached last-read
+// value), never falling back to the full 32-channel pool just because
+// topology isn't confirmed. This file exercises the REAL closures via the
+// same vm test-hook technique as test_exact_decimal_companion_routing.js/
+// test_cell_channel_batch.js, no reimplementation of the logic anywhere
+// below.
 //
-// Covers: LOADING (no valid N yet -> render nothing, never a made-up
-// configuration or a previous battery's residual value), CONFIRMED for
-// 4S/8S/16S/24S/32S (one general mechanism, not separate hardcoded
-// modes), PENDING (last confirmed count, never a guessed intermediate),
-// and MISMATCH/INVALID/OFFLINE/WRITE_UNCERTAIN (full protocol pool, so
-// nothing real is hidden while state is uncertain).
+// This corrects a real defect in the prior pass (7780ca5 series):
+// activeCellCount() used to fall back to the full protocol pool (32) for
+// MISMATCH/INVALID/OFFLINE/WRITE_UNCERTAIN, silently showing N+1..32 as
+// if they were active elements whenever topology wasn't CONFIRMED, even
+// for an 8S pack. The checks below specifically target that scenario for
+// 8S and 16S, per instruction.
 //
 // Does not exercise DOM rendering itself (button.hidden etc.) -- the
 // project's own no-DOM-library test convention (see
@@ -22,8 +28,9 @@
 // renderCells()'s actual card show/hide is verified by inspection against
 // this same activeCellCount() contract, not re-simulated here; see
 // test/jk_topology/test_jk_topology_core.cpp for the backend decision
-// logic these frontend values ultimately come from, including its own
-// direct hiding-boundary assertions.
+// logic (display_cell_count) these frontend values ultimately come from,
+// including its own direct hiding-boundary and MISMATCH/OFFLINE-with-
+// valid-N assertions.
 
 const fs = require("fs");
 const path = require("path");
@@ -87,98 +94,110 @@ check("MAX_CELL_COUNT reflects protocol capacity (32), not the old 16S-only pool
 function setTopologyState(code) {
   ingestPayload({ id: "text_sensor/topology state", domain: "text_sensor", name: "topology state", icon: "", entity_category: 0, value: code, state: code });
 }
-function setEffectiveCellCount(n) {
-  ingestPayload({ id: "sensor/effective cell count", domain: "sensor", name: "effective cell count", icon: "", entity_category: 0, value: n, state: `${n}` });
-}
-function setLastConfirmedCellCount(n) {
-  ingestPayload({ id: "sensor/last confirmed cell count", domain: "sensor", name: "last confirmed cell count", icon: "", entity_category: 0, value: n, state: `${n}` });
+function setDisplayCellCount(n) {
+  ingestPayload({ id: "sensor/display cell count", domain: "sensor", name: "display cell count", icon: "", entity_category: 0, value: n, state: `${n}` });
 }
 
 // ===========================================================================
-// 1. LOADING: no valid N has ever been obtained -- activeCellCount() must
-// return 0 (render nothing), never MAX_CELL_COUNT or any guessed value --
-// proves the frontend never draws a made-up configuration or a previous
-// battery's residual values before the device has said anything real.
+// 1. LOADING / no valid N yet (new connection): activeCellCount() must
+// return 0 (render nothing), never MAX_CELL_COUNT and never a previous
+// device's residual value -- proves the frontend never draws a made-up
+// configuration before the device has said anything real.
 // ===========================================================================
 {
-  // A field genuinely never touched by ingestPayload reads as undefined in
-  // state[], which topologyState() itself already treats as "LOADING"
-  // (its own fallback for an unrecognized/absent code) -- exercised here
-  // via a literal state string too, for an explicit, real SSE shape.
+  // A field genuinely never touched by ingestPayload reads as null via
+  // numeric() -- the real "brand new connection, nothing read yet" shape.
+  check("brand new connection, display_cell_count never published: activeCellCount() == 0",
+    activeCellCount() === 0);
+
   setTopologyState("LOADING");
   check("topologyState() reports LOADING for a real 'LOADING' SSE payload", topologyState() === "LOADING");
-  check("activeCellCount() returns 0 during LOADING (render nothing, no made-up configuration)", activeCellCount() === 0);
-}
-
-// ===========================================================================
-// 2. CONFIRMED for 4S/8S/16S/24S/32S -- one general mechanism: every case
-// below drives the SAME two real SSE payloads (topology state + effective
-// count) through the SAME activeCellCount(), differing only in the number.
-// ===========================================================================
-for (const n of [4, 8, 16, 24, 32]) {
-  setTopologyState("CONFIRMED");
-  setEffectiveCellCount(n);
-  check(`CONFIRMED ${n}S: activeCellCount() returns exactly ${n} (drives card 1..${n} shown, ${n + 1}..32 hidden)`,
-    activeCellCount() === n, `got=${activeCellCount()}`);
-}
-
-// ===========================================================================
-// 3. CONFIRMED with an out-of-range reported count falls back to
-// MAX_CELL_COUNT (defensive clamp -- the backend itself should never emit
-// this, but the frontend must not silently render a bogus tiny/huge pool
-// if it somehow did).
-// ===========================================================================
-{
-  setTopologyState("CONFIRMED");
-  setEffectiveCellCount(0);
-  check("CONFIRMED with effective_cell_count=0 (out of 1..32): falls back to MAX_CELL_COUNT, not 0 or a crash",
-    activeCellCount() === MAX_CELL_COUNT);
-  setEffectiveCellCount(99);
-  check("CONFIRMED with effective_cell_count=99 (out of 1..32): falls back to MAX_CELL_COUNT",
-    activeCellCount() === MAX_CELL_COUNT);
-}
-
-// ===========================================================================
-// 4. PENDING: a write is in flight -- renders the LAST CONFIRMED count,
-// never a guessed intermediate toward the requested-but-unverified value.
-// ===========================================================================
-{
-  setLastConfirmedCellCount(16);
-  setTopologyState("PENDING");
-  check("PENDING: activeCellCount() returns the last CONFIRMED count (16), not a guess",
-    activeCellCount() === 16);
-
-  setLastConfirmedCellCount(8);
-  setTopologyState("PENDING");
-  check("PENDING after a different last-confirmed value (8): activeCellCount() tracks it, not stale 16",
-    activeCellCount() === 8);
-}
-
-// ===========================================================================
-// 5. MISMATCH/INVALID/OFFLINE/WRITE_UNCERTAIN: the full protocol pool, so
-// nothing that might be a real physical channel is hidden while state is
-// uncertain -- distinct from LOADING (0), which only applies before the
-// very first valid snapshot.
-// ===========================================================================
-for (const code of ["MISMATCH", "INVALID", "OFFLINE", "WRITE_UNCERTAIN"]) {
-  setTopologyState(code);
-  check(`${code}: activeCellCount() returns the full protocol pool (${MAX_CELL_COUNT}), not 0 and not a guessed count`,
-    activeCellCount() === MAX_CELL_COUNT, `got=${activeCellCount()}`);
-}
-
-// ===========================================================================
-// 6. Transition MISMATCH -> LOADING is impossible in real firmware
-// (LOADING only ever precedes a first snapshot), but proves LOADING's 0
-// wins whenever topologyState() reports it, regardless of what
-// effective_cell_count last held -- no leftover value survives.
-// ===========================================================================
-{
-  setTopologyState("CONFIRMED");
-  setEffectiveCellCount(24);
-  check("sanity: CONFIRMED 24S reads 24 before the LOADING re-check below", activeCellCount() === 24);
-  setTopologyState("LOADING");
-  check("LOADING always returns 0, even immediately after a CONFIRMED 24S reading -- no stale value leaks through",
+  check("activeCellCount() still 0 while state is LOADING and display_cell_count is unset",
     activeCellCount() === 0);
+}
+
+// ===========================================================================
+// 2. Configured N drives channel count in EVERY state -- CONFIRMED,
+// MISMATCH, and OFFLINE all show the SAME N once display_cell_count
+// reports it, for both 8S and 16S. This is the exact defect this pass
+// fixes: for N=8, channels 9-32 must NEVER appear active in ANY of these
+// three states.
+// ===========================================================================
+for (const n of [8, 16]) {
+  for (const stateCode of ["CONFIRMED", "MISMATCH", "OFFLINE"]) {
+    setTopologyState(stateCode);
+    setDisplayCellCount(n);
+    check(`${stateCode} ${n}S: activeCellCount() returns exactly ${n} (channels ${n + 1}-32 do NOT appear as active elements)`,
+      activeCellCount() === n, `got=${activeCellCount()}`);
+    check(`${stateCode} ${n}S: activeCellCount() is NOT the full pool (32) just because state isn't CONFIRMED`,
+      n === MAX_CELL_COUNT || activeCellCount() !== MAX_CELL_COUNT);
+  }
+}
+
+// Also exercise 4S/24S/32S in CONFIRMED for the "one general mechanism,
+// not hardcoded modes" property, mirroring the backend's own coverage.
+for (const n of [4, 24, 32]) {
+  setTopologyState("CONFIRMED");
+  setDisplayCellCount(n);
+  check(`CONFIRMED ${n}S: activeCellCount() returns exactly ${n}`, activeCellCount() === n, `got=${activeCellCount()}`);
+}
+
+// ===========================================================================
+// 3. Invalid CellCount (backend already reports display_cell_count=0 for
+// this case, state INVALID/reason COUNT_OUT_OF_RANGE) must never show as
+// activeCellCount()==32 -- an explicit configuration error, not a silent
+// fallback to the full pool.
+// ===========================================================================
+{
+  setTopologyState("INVALID");
+  setDisplayCellCount(0);
+  check("INVALID/config-error: activeCellCount() == 0 (explicit error), never 32",
+    activeCellCount() === 0);
+}
+
+// ===========================================================================
+// 4. WRITE_UNCERTAIN with a cached valid N (a CellCount write was in
+// flight when comms hiccuped) still shows that N -- the resolver itself
+// always recomputes display_cell_count from whatever CellCount reading is
+// currently available, even mid-uncertainty.
+// ===========================================================================
+{
+  setTopologyState("WRITE_UNCERTAIN");
+  setDisplayCellCount(16);
+  check("WRITE_UNCERTAIN with a cached N=16: activeCellCount() == 16, not 32",
+    activeCellCount() === 16);
+}
+
+// ===========================================================================
+// 5. Out-of-range display_cell_count defensively clamps to 0 (the backend
+// itself should never emit this -- jk_topology_core.h's own resolve()
+// only ever sets it to 0 or a value already validated 1..32 -- but the
+// frontend must not silently render a bogus pool if it somehow did).
+// ===========================================================================
+{
+  setDisplayCellCount(99);
+  check("display_cell_count=99 (out of 1..32, defensive): activeCellCount() == 0, not 99 and not 32",
+    activeCellCount() === 0);
+}
+
+// ===========================================================================
+// 6. Transition 16 -> 8: no stale value leaks through, in either
+// direction -- covers the exact transition named in the instructions.
+// ===========================================================================
+{
+  setTopologyState("CONFIRMED");
+  setDisplayCellCount(16);
+  check("16->8 transition: before, activeCellCount() == 16", activeCellCount() === 16);
+
+  setDisplayCellCount(8);
+  check("16->8 transition: after, activeCellCount() == 8, not stale 16 -- channels 9-32 no longer active",
+    activeCellCount() === 8);
+
+  // And immediately into MISMATCH at the new N=8 -- still 8, not 32 and
+  // not stale 16.
+  setTopologyState("MISMATCH");
+  check("16->8 transition, then MISMATCH at the new N: activeCellCount() == 8, neither stale 16 nor fallback 32",
+    activeCellCount() === 8);
 }
 
 console.log(`\n${checks} checks run, ${failures} failed.`);

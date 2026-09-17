@@ -112,7 +112,34 @@ struct Inputs {
 struct Outputs {
   uint8_t state_code = STATE_LOADING;
   uint8_t reason_code = REASON_AWAITING_SNAPSHOT;
+  // effective_cell_count: UNCHANGED semantics (user-directed rework,
+  // 2026-09-17, THIRD pass) -- "the count safe to trust for CONFIRMED-only
+  // purposes" (PROTOCOL_CHANNEL_CAPACITY when not confirmed). Kept exactly
+  // as-is because batterylifepo4.yaml's CellCount write-transaction driver
+  // already depends on this specific field's existing meaning
+  // (effective_matches = id(g_effective_cell_count) == target, ANDed with
+  // topo_confirmed) -- changing it here would risk that unrelated
+  // consumer. display_cell_count (below) is the NEW, separate concept the
+  // UI should actually use for "how many channels to render."
   uint8_t effective_cell_count = PROTOCOL_CHANNEL_CAPACITY;
+  // display_cell_count: how many channel cards/rows/series/selectors the
+  // UI should show (channels 1..N), decoupled from confirmation status --
+  // "configured N" and "topology/data trustworthy" are different
+  // concepts (user-directed rework, THIRD pass): a validly-read CellCount
+  // drives channel count in EVERY state (LOADING excepted), while
+  // CONFIRMED/MISMATCH/OFFLINE/etc. only ever affects how trustworthy the
+  // VALUES within that range are, never how many channels are shown. 0
+  // means "no valid N to show yet" -- either genuinely no snapshot since
+  // boot/reconnect (state LOADING) or a nonsensical CellCount reading
+  // (state INVALID, reason COUNT_OUT_OF_RANGE, distinguishable from
+  // LOADING by state_code) -- in NEITHER case does this fall back to
+  // PROTOCOL_CHANNEL_CAPACITY: an invalid reading is a configuration
+  // error to surface explicitly, never silently turned into "show all 32".
+  // Always equal to blank_voltage_from (see that field's own comment) --
+  // kept as its own named field because the two describe different
+  // INTENTS (a sensor-blanking bound vs a UI channel count) even though
+  // they share one computation, and future divergence should stay safe.
+  uint8_t display_cell_count = 0;
   bool has_connected_count = false;
   float connected_count = 0.0f;
   bool has_measured_count = false;
@@ -154,6 +181,7 @@ inline Outputs resolve(const Inputs &in) {
   }
   out.blank_voltage_from = blank_from;
   out.blank_resistance_from = blank_from < RESISTANCE_CHANNEL_COUNT ? blank_from : RESISTANCE_CHANNEL_COUNT;
+  out.display_cell_count = blank_from;
 
   if (in.topology_uncertain) {
     out.state_code = STATE_WRITE_UNCERTAIN;

@@ -2165,11 +2165,32 @@ sensor:
   # on this sensor, and it only does so with the configured count once
   # every other cross-check has passed — everywhere else (loading/mismatch/
   # invalid, or simply "not yet resolved this boot") it publishes the full
-  # 16-channel protocol maximum, exactly like jk_bms.js's own
-  # activeCellCount() fallback. Nothing downstream needs its own guard.
+  # protocol channel capacity (32). User-directed rework (THIRD pass,
+  # 2026-09-17): this field's OWN meaning is deliberately UNCHANGED --
+  # jk_bms.js's CellCount write-transaction driver still depends on it
+  # specifically meaning "trust this count only once CONFIRMED" (see
+  # jk_topology_core.h's own Outputs::effective_cell_count comment). The
+  # UI's card/row/series/selector COUNT now comes from display_cell_count
+  # (below) instead, which is NOT gated on confirmation.
   - platform: template
     id: effective_cell_count
     name: "effective cell count"
+    update_interval: never
+    accuracy_decimals: 0
+
+  # How many channel cards/rows/series/selectors the UI should render
+  # (channels 1..N), DECOUPLED from confirmation status -- user-directed
+  # rework, THIRD pass, 2026-09-17: a validly-read CellCount drives this in
+  # EVERY state (CONFIRMED, MISMATCH, OFFLINE with a cached last-read
+  # value) -- only LOADING (no snapshot since boot/reconnect) and INVALID/
+  # COUNT_OUT_OF_RANGE (a nonsensical reading -- an explicit configuration
+  # error, never silently turned into 32) publish 0. See
+  # jk_topology_core.h's own Outputs::display_cell_count comment for the
+  # full reasoning; jk_bms.js's activeCellCount() reads THIS sensor
+  # directly now, not effective_cell_count.
+  - platform: template
+    id: display_cell_count
+    name: "display cell count"
     update_interval: never
     accuracy_decimals: 0
 
@@ -2891,6 +2912,7 @@ script:
           id(g_topology_revision) += 1;
           id(g_topology_last_publish_ms) = millis();
           id(effective_cell_count)->publish_state(float(out.effective_cell_count));
+          id(display_cell_count)->publish_state(float(out.display_cell_count));
           id(last_confirmed_cell_count)->publish_state(float(id(g_last_confirmed_cell_count)));
           id(topology_revision)->publish_state(float(id(g_topology_revision)));
           id(topology_state)->publish_state(std::string(jk_topology::STATE_NAMES[out.state_code]));

@@ -119,7 +119,102 @@ static void test_confirmed_various_topologies() {
     const uint8_t expected_resistance_blank = n < RESISTANCE_CHANNEL_COUNT ? n : RESISTANCE_CHANNEL_COUNT;
     std::snprintf(desc, sizeof(desc), "%dS: blank_resistance_from == %d", n, expected_resistance_blank);
     check_eq<uint8_t>(out.blank_resistance_from, expected_resistance_blank, desc);
+    std::snprintf(desc, sizeof(desc), "%dS CONFIRMED: display_cell_count == %d (the UI-facing structural count)", n, n);
+    check_eq<uint8_t>(out.display_cell_count, n, desc);
   }
+}
+
+// ===========================================================================
+// 1b. User-directed rework (THIRD pass, 2026-09-17): configured N and
+// confirmed/trustworthy status are DIFFERENT concepts -- display_cell_count
+// must equal the validly-read configured N in EVERY state (CONFIRMED,
+// MISMATCH, OFFLINE with a cached last-read N), NEVER falling back to
+// PROTOCOL_CHANNEL_CAPACITY (32) just because state isn't CONFIRMED. This
+// is the exact defect this pass closes: effective_cell_count (a different,
+// pre-existing field with its own write-confirmation consumer) DOES still
+// fall back to 32 outside CONFIRMED -- display_cell_count must not.
+// ===========================================================================
+static void test_display_cell_count_independent_of_confirmation_8s_16s() {
+  for (uint8_t n : {8, 16}) {
+    char desc[256];
+
+    // CONFIRMED: healthy fixture, as already covered above, re-asserted
+    // here for direct side-by-side contrast with the MISMATCH/OFFLINE
+    // cases immediately below.
+    {
+      const Outputs out = resolve(healthy_pack(n));
+      std::snprintf(desc, sizeof(desc), "%dS CONFIRMED: display_cell_count == %d, effective_cell_count == %d (both agree when confirmed)", n, n, n);
+      check(out.display_cell_count == n && out.effective_cell_count == n, desc);
+    }
+
+    // MISMATCH (pack voltage sum wildly off, but CellCount itself was
+    // validly read as n): display_cell_count must STILL be n -- channels
+    // n+1..32 must not appear as active elements, and channels 1..n must
+    // not collapse to nothing either.
+    {
+      Inputs in = healthy_pack(n);
+      in.pack_voltage = float(n) * 3.30f - 5.0f;  // forces VOLTAGE_SUM_DIFFERS
+      const Outputs out = resolve(in);
+      std::snprintf(desc, sizeof(desc), "%dS MISMATCH: state is MISMATCH (not CONFIRMED) -- sanity check for this fixture", n);
+      check(out.state_code == STATE_MISMATCH, desc);
+      std::snprintf(desc, sizeof(desc), "%dS MISMATCH: display_cell_count == %d, NOT 32 -- configured N still drives channel count even though data isn't confirmed", n, n);
+      check_eq<uint8_t>(out.display_cell_count, n, desc);
+      std::snprintf(desc, sizeof(desc), "%dS MISMATCH: effective_cell_count still falls back to 32 (its own, unrelated write-confirmation semantics) -- proves display_cell_count and effective_cell_count are genuinely decoupled", n);
+      check_eq<uint8_t>(out.effective_cell_count, PROTOCOL_CHANNEL_CAPACITY, desc);
+      std::snprintf(desc, sizeof(desc), "%dS MISMATCH: channels n+1..32 are still blanked (blank_voltage_from == %d) -- never appear as active elements", n, n);
+      check_eq<uint8_t>(out.blank_voltage_from, n, desc);
+    }
+
+    // OFFLINE with a cached last-valid configured_f (comms went stale,
+    // but the CellCount sensor itself still holds its last successfully-
+    // read value, exactly as a real ESPHome sensor would -- see
+    // Inputs::configured_f's own comment): display_cell_count must STILL
+    // reflect the last known N, with an explicit offline/stale STATUS
+    // (state_code == STATE_OFFLINE) carrying the "don't trust the values"
+    // signal separately.
+    {
+      Inputs in = healthy_pack(n);
+      in.comm_elapsed_ms = 45000;  // stale communication
+      const Outputs out = resolve(in);
+      std::snprintf(desc, sizeof(desc), "%dS OFFLINE: state is OFFLINE -- sanity check for this fixture", n);
+      check(out.state_code == STATE_OFFLINE, desc);
+      std::snprintf(desc, sizeof(desc), "%dS OFFLINE: display_cell_count == %d (last known valid N of the current connection), NOT 32 and NOT 0", n, n);
+      check_eq<uint8_t>(out.display_cell_count, n, desc);
+    }
+  }
+}
+
+// ===========================================================================
+// 1c. Invalid CellCount (out of 1..32) must NEVER become display_cell_count
+// == 32 -- an explicit configuration-error signal instead (state INVALID,
+// reason COUNT_OUT_OF_RANGE), distinguishable from LOADING's "no snapshot
+// yet" by state_code even though both share display_cell_count == 0.
+// ===========================================================================
+static void test_invalid_cellcount_shows_config_error_not_32() {
+  for (float bad : {0.0f, 33.0f, 99.0f}) {
+    Inputs in = healthy_pack(16);
+    in.configured_f = bad;
+    const Outputs out = resolve(in);
+    char desc[160];
+    std::snprintf(desc, sizeof(desc), "configured=%.0f: display_cell_count == 0 (explicit config error), never 32", bad);
+    check_eq<uint8_t>(out.display_cell_count, 0, desc);
+    std::snprintf(desc, sizeof(desc), "configured=%.0f: state is INVALID/COUNT_OUT_OF_RANGE, distinguishable from LOADING", bad);
+    check(out.state_code == STATE_INVALID && out.reason_code == REASON_COUNT_OUT_OF_RANGE, desc);
+  }
+}
+
+// ===========================================================================
+// 1d. New connection without N yet: no valid snapshot at all (mirrors
+// boot/reconnect before the first successful CellCount read) must show
+// display_cell_count == 0, state LOADING -- never the previous device's
+// configuration (there IS no previous configured_f to read: this Inputs
+// fixture is the true "nothing known yet" default).
+// ===========================================================================
+static void test_new_connection_without_n_shows_zero_not_previous_config() {
+  const Inputs in;  // all defaults: have_cell_data=false, configured_f=NAN
+  const Outputs out = resolve(in);
+  check_eq<uint8_t>(out.display_cell_count, 0, "new connection, no N read yet: display_cell_count == 0");
+  check_eq<uint8_t>(out.state_code, uint8_t(STATE_LOADING), "new connection, no N read yet: state is LOADING");
 }
 
 // ===========================================================================
@@ -152,11 +247,13 @@ static void test_transition_16_to_8() {
   const Outputs before = resolve(healthy_pack(16));
   check(before.confirmed, "16->8 transition: initial 16S resolves CONFIRMED");
   check_eq<uint8_t>(before.effective_cell_count, 16, "16->8 transition: initial effective_cell_count == 16");
+  check_eq<uint8_t>(before.display_cell_count, 16, "16->8 transition: initial display_cell_count == 16");
   check_eq<uint8_t>(before.blank_voltage_from, 16, "16->8 transition: initial blank_voltage_from == 16 (17-32 hidden, 1-16 shown)");
 
   const Outputs after = resolve(healthy_pack(8));
   check(after.confirmed, "16->8 transition: new 8S resolves CONFIRMED");
   check_eq<uint8_t>(after.effective_cell_count, 8, "16->8 transition: NEW effective_cell_count == 8, not stale 16");
+  check_eq<uint8_t>(after.display_cell_count, 8, "16->8 transition: NEW display_cell_count == 8, not stale 16 -- channels 9-32 must not appear as active elements after this transition");
   check_eq<uint8_t>(after.blank_voltage_from, 8, "16->8 transition: NEW blank_voltage_from == 8 -- channels 9-16 now correctly hidden, not left showing as if still part of a 16S pack");
   check_eq<uint8_t>(after.blank_resistance_from, 8, "16->8 transition: resistance channels 9-16 also blanked (no longer active)");
 }
@@ -329,6 +426,9 @@ static void test_32s_fixture_is_not_a_hardware_claim() {
 
 int main() {
   test_confirmed_various_topologies();
+  test_display_cell_count_independent_of_confirmation_8s_16s();
+  test_invalid_cellcount_shows_config_error_not_32();
+  test_new_connection_without_n_shows_zero_not_previous_config();
   test_hiding_boundary_exact_per_topology();
   test_transition_16_to_8();
   test_transition_8_to_24();
