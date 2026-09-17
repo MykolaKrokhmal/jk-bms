@@ -2856,6 +2856,33 @@ script:
             if (!isnan(active_sum)) id(active_cells_voltage_sum)->publish_state(active_sum);
           };
 
+          // Stage 3 cell-channel batch, targeted correction (user-directed,
+          // 2026-09-17): channels 17-32 (cell_voltage_17..32) are blanked
+          // to NaN UNCONDITIONALLY, on every single resolve_topology() call,
+          // before any state determination below -- not only in the
+          // CONFIRMED branch as the batch originally had it. This resolver's
+          // own MAX_CELL_CHANNELS operational ceiling stays 16 (unchanged),
+          // so channels 17-32 are NEVER part of any confirmable topology for
+          // this deployed unit, in ANY state (LOADING, WRITE_UNCERTAIN,
+          // OFFLINE, INVALID, MISMATCH, or CONFIRMED) -- blanking them only
+          // on CONFIRMED left a real gap: during LOADING/MISMATCH/etc. they
+          // would otherwise still show whatever raw millivolts the 1Hz
+          // cell-block lambda last decoded from those buffer bytes,
+          // indistinguishable in the UI from a genuine, trustworthy active-
+          // cell reading. Placed here (top of resolve_topology, before every
+          // branch) rather than duplicated into each of the 5 early-return
+          // paths below, for one single, unconditional guarantee instead of
+          // 5 places that could independently drift out of sync.
+          {
+            esphome::sensor::Sensor *const voltage_sensors_ext[16] = {
+              id(cell_voltage_17), id(cell_voltage_18), id(cell_voltage_19), id(cell_voltage_20),
+              id(cell_voltage_21), id(cell_voltage_22), id(cell_voltage_23), id(cell_voltage_24),
+              id(cell_voltage_25), id(cell_voltage_26), id(cell_voltage_27), id(cell_voltage_28),
+              id(cell_voltage_29), id(cell_voltage_30), id(cell_voltage_31), id(cell_voltage_32)
+            };
+            for (uint8_t i = 0; i < 16; i++) voltage_sensors_ext[i]->publish_state(NAN);
+          }
+
           // ---- WRITE_UNCERTAIN: overrides everything else until the
           // recovery probe (250ms interval) clears it with a genuinely
           // fresh, independently re-read snapshot. ----
@@ -3006,24 +3033,14 @@ script:
               voltage_sensors[i]->publish_state(NAN);
               resistance_sensors[i]->publish_state(NAN);
             }
-            // Stage 3 cell-channel batch (2026-09-17): channels 17-32
-            // (cell_voltage_17..32) are protocol capacity, never part of
-            // this resolver's own 1-16 operational range (MAX_CELL_CHANNELS
-            // stays 16 this batch -- see its own comment above) -- so they
-            // are ALWAYS beyond `configured` for the deployed unit, and get
-            // the exact same "not applicable to the current connected
-            // topology" NaN treatment channels beyond `configured` already
-            // get for 1-16, unconditionally rather than looped from
-            // `configured` (which never exceeds 16). cell_resistance_17..32
-            // has no entities yet this batch (not implemented -- see their
-            // own register safety_notes), so nothing to blank there.
-            esphome::sensor::Sensor *const voltage_sensors_ext[16] = {
-              id(cell_voltage_17), id(cell_voltage_18), id(cell_voltage_19), id(cell_voltage_20),
-              id(cell_voltage_21), id(cell_voltage_22), id(cell_voltage_23), id(cell_voltage_24),
-              id(cell_voltage_25), id(cell_voltage_26), id(cell_voltage_27), id(cell_voltage_28),
-              id(cell_voltage_29), id(cell_voltage_30), id(cell_voltage_31), id(cell_voltage_32)
-            };
-            for (uint8_t i = 0; i < 16; i++) voltage_sensors_ext[i]->publish_state(NAN);
+            // Channels 17-32 (cell_voltage_17..32) no longer need blanking
+            // here -- targeted correction (2026-09-17) moved that to an
+            // UNCONDITIONAL blank at the very top of resolve_topology
+            // (before the WRITE_UNCERTAIN check), covering every state this
+            // function can resolve to, not just CONFIRMED. See that
+            // comment for the full reasoning (a channel beyond
+            // MAX_CELL_CHANNELS=16 must never show raw bytes as a
+            // trustworthy voltage in ANY state, not only when NOT confirmed).
           }
 
 number:
