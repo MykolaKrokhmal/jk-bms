@@ -148,6 +148,76 @@ inline float decode_numeric(const uint8_t *data, const FieldDecode &f, uint8_t r
   return numeric * f.scale + f.offset;
 }
 
+// Decodes a numeric field's raw integer EXACTLY as a fixed-point decimal
+// string -- no float/double conversion anywhere in this path. Added for
+// the Stage 3 precision fix (user-directed, 2026-09-17): decode_numeric()
+// above casts through `float`, which only exactly represents integers up
+// to 2^24 (16,777,216) -- confirmed on real hardware that several wide
+// UINT32 counters (rtc_ticks, odd_run_time, bms_system_ticks,
+// total_runtime) already exceed this in normal operation, and that
+// ESPHome's own `sensor::state` is ALSO hard-typed `float` (checked the
+// real esphome/components/sensor/sensor.h), so returning `double` from
+// decode_numeric() would not have fixed anything -- the precision loss
+// happens again the moment publish_state(float) is called. The only way
+// to keep an exact wide integer through ESPHome's own entity system is a
+// text_sensor's std::string state, which this function produces directly
+// via pure integer/string arithmetic.
+//
+// Reads the SAME raw integer via the SAME mask/shift path as
+// decode_numeric() (so the two can never disagree on WHICH bits they're
+// reading, only on how they publish them), then formats it as a
+// fixed-point decimal with `decimal_places` digits after the decimal
+// point (0 for a whole-number field). decimal_places mirrors the field's
+// own canonical decimal_precision -- always a small, fixed, compile-time-
+// known constant per field (the generator supplies it as a literal,
+// never inferred from `scale` here); every field routed through this
+// path uses a power-of-ten scale, so fixed-point formatting is always
+// exact for it. Unsigned only -- every current user of this path is a
+// monotonic UINT32 counter; add a signed variant the same way (mirroring
+// decode_numeric's own is_signed branch) if a future signed field needs
+// this treatment, never by silently reusing this one on signed data.
+//
+// out_capacity must be at least 12 (10 digits for UINT32_MAX + '.' + at
+// least 1 fractional digit + NUL); callers in this project use buf[16]
+// for margin, matching decode_ascii's own buffer-sizing convention.
+inline void decode_exact_decimal(const uint8_t *data, const FieldDecode &f, uint8_t register_bytes,
+                                  uint8_t decimal_places, char *out, size_t out_capacity) {
+  uint32_t raw = read_be(data, register_bytes);
+  if (f.mask != 0) raw &= f.mask;
+  raw >>= f.shift;
+
+  // uint32_t max (4294967295) is 10 decimal digits.
+  char digits[10];
+  uint8_t n = 0;
+  uint32_t v = raw;
+  do {
+    digits[n++] = char('0' + (v % 10));
+    v /= 10;
+  } while (v > 0 && n < sizeof(digits));
+  // digits[] is now least-significant-digit-first (digits[0] is the ones
+  // place); reading it back most-significant-first (digits[n-1-i]) below
+  // reconstructs the original decimal representation.
+
+  size_t pos = 0;
+  const uint8_t int_digits = n > decimal_places ? n - decimal_places : 0;
+  if (int_digits == 0 && decimal_places > 0) {
+    // The raw value has fewer digits than decimal_places demands -- the
+    // integer part is "0" (e.g. raw=5, decimal_places=3 -> "0.005").
+    if (pos < out_capacity - 1) out[pos++] = '0';
+  }
+  for (uint8_t i = 0; i < int_digits && pos < out_capacity - 1; i++) {
+    out[pos++] = digits[n - 1 - i];
+  }
+  if (decimal_places > 0) {
+    if (pos < out_capacity - 1) out[pos++] = '.';
+    for (uint8_t i = 0; i < decimal_places && pos < out_capacity - 1; i++) {
+      const uint8_t digit_index = decimal_places - 1 - i;
+      out[pos++] = digit_index < n ? digits[digit_index] : '0';
+    }
+  }
+  out[pos] = '\0';
+}
+
 // Decodes a WireType::BIT field to a plain boolean (bit set -> true). Only
 // meaningful for fields the generator marked as a real single-bit wire
 // value (e.g. charging_float_mode) -- the several OTHER "boolean-ish"

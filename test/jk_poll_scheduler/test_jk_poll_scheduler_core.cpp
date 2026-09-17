@@ -14,6 +14,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 using namespace jk_poll_scheduler;
 
@@ -115,6 +116,121 @@ static void test_decode_s16_negative() {
   FieldDecode f{"temperature_1", 0, 0xFFFFu, 0, true, WireType::S16, 0.1f, 0.0f};
   const uint8_t data[2] = {0xFF, 0xCE};  // 0xFFCE = -50 as int16
   check_near(decode_numeric(data, f, 2), -5.0f, 1e-6f, "S16 negative decodes with scale");
+}
+
+// ---------------------------------------------------------------------
+// decode_exact_decimal -- Stage 3 precision fix (2026-09-17). Every case
+// below is checked against a STRING, never re-parsed through float/double
+// -- the whole point of this function is that no such conversion happens
+// anywhere on its path, so a test that itself parsed the result back to a
+// number would hide exactly the class of bug this exists to prevent.
+// ---------------------------------------------------------------------
+
+static void check_str(const char *actual, const char *expected, const char *desc) {
+  g_checks++;
+  if (std::strcmp(actual, expected) != 0) {
+    g_failures++;
+    std::printf("FAIL: %s (expected=\"%s\" actual=\"%s\")\n", desc, expected, actual);
+  }
+}
+
+static void test_decode_exact_decimal_below_float_ceiling_matches_decode_numeric() {
+  // 2^24 - 1 = 16777215, the last integer float32 can ALSO still represent
+  // exactly -- both decode paths must agree here (this is not yet the
+  // regime decode_exact_decimal exists for; it's the boundary just below
+  // it, proving the two functions read identical bits up to that point).
+  FieldDecode f{"boundary_below", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0x00, 0xFF, 0xFF, 0xFF};  // 16777215
+  char buf[16];
+  decode_exact_decimal(data, f, 4, 0, buf, sizeof(buf));
+  check_str(buf, "16777215", "2^24-1: decode_exact_decimal produces the exact integer string");
+  check_near(decode_numeric(data, f, 4), 16777215.0f, 0.5f, "2^24-1: decode_numeric still agrees exactly (below the float ceiling)");
+}
+
+static void test_decode_exact_decimal_above_float_ceiling_where_decode_numeric_would_round() {
+  // 2^24 + 1 = 16777217 -- the FIRST integer float32 cannot represent
+  // exactly (it rounds to 16777216.0f). decode_exact_decimal must still
+  // produce the exact string; decode_numeric is expected to have ALREADY
+  // lost the low bit here (documented, not silently tolerated).
+  FieldDecode f{"boundary_above", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0x01, 0x00, 0x00, 0x01};  // 16777217
+  char buf[16];
+  decode_exact_decimal(data, f, 4, 0, buf, sizeof(buf));
+  check_str(buf, "16777217", "2^24+1: decode_exact_decimal is still exact where float32 cannot be");
+  check(decode_numeric(data, f, 4) == 16777216.0f, "2^24+1: decode_numeric demonstrably rounds (confirms the bug this function fixes)");
+}
+
+static void test_decode_exact_decimal_real_rtc_ticks_value() {
+  // A real value captured from live hardware this session (2026-09-17,
+  // device at 192.168.27.43): rtc_ticks raw=211789500. decode_numeric on
+  // this exact input was independently confirmed (this session, via the
+  // live SSE capture) to quantize to a multiple of 16 near this
+  // magnitude -- decode_exact_decimal must reproduce the true value.
+  FieldDecode f{"rtc_ticks", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0x0C, 0x9F, 0xA6, 0xBC};  // 211789500 big-endian
+  char buf[16];
+  decode_exact_decimal(data, f, 4, 0, buf, sizeof(buf));
+  check_str(buf, "211789500", "real captured rtc_ticks value decodes exactly, no 16-second quantization");
+}
+
+static void test_decode_exact_decimal_real_odd_run_time_value() {
+  // Real captured value: odd_run_time raw=57411300 (this session).
+  FieldDecode f{"odd_run_time", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0x03, 0x6C, 0x06, 0xE4};  // 57411300 big-endian
+  char buf[16];
+  decode_exact_decimal(data, f, 4, 0, buf, sizeof(buf));
+  check_str(buf, "57411300", "real captured odd_run_time value decodes exactly, no 4-second quantization");
+}
+
+static void test_decode_exact_decimal_uint32_max() {
+  FieldDecode f{"uint32_max_field", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0xFF, 0xFF, 0xFF, 0xFF};  // 4294967295
+  char buf[16];
+  decode_exact_decimal(data, f, 4, 0, buf, sizeof(buf));
+  check_str(buf, "4294967295", "UINT32_MAX decodes exactly (float32 would round this to 4294967296.0)");
+}
+
+static void test_decode_exact_decimal_one_decimal_place_matches_bms_system_ticks_scale() {
+  // bms_system_ticks: scale 0.1, decimal_precision 1. raw=21886290 ->
+  // "2188629.0" (the fixed-point string a 0.1-scaled field needs, formed
+  // by pure integer/string arithmetic, never raw*0.1 in float).
+  FieldDecode f{"bms_system_ticks", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 0.1f, 0.0f};
+  const uint8_t data[4] = {0x01, 0x4D, 0xF5, 0x52};  // 21886290 big-endian
+  char buf[16];
+  decode_exact_decimal(data, f, 4, 1, buf, sizeof(buf));
+  check_str(buf, "2188629.0", "one-decimal-place field formats as exact fixed-point, matching its canonical scale");
+}
+
+static void test_decode_exact_decimal_small_value_zero_pads_fractional_field() {
+  // A hypothetical small raw value under a 3-decimal-place field must
+  // still produce a well-formed "0.00N" string, not "N" or an empty
+  // integer part.
+  FieldDecode f{"tiny_value", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 0.001f, 0.0f};
+  const uint8_t data[4] = {0x00, 0x00, 0x00, 0x05};  // 5
+  char buf[16];
+  decode_exact_decimal(data, f, 4, 3, buf, sizeof(buf));
+  check_str(buf, "0.005", "small raw value under a fractional-place field zero-pads correctly");
+}
+
+static void test_decode_exact_decimal_zero() {
+  FieldDecode f{"zero_field", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0x00, 0x00, 0x00, 0x00};
+  char buf[16];
+  decode_exact_decimal(data, f, 4, 0, buf, sizeof(buf));
+  check_str(buf, "0", "raw zero decodes as a plain \"0\", not an empty string");
+}
+
+static void test_decode_exact_decimal_respects_mask_and_shift_like_decode_numeric() {
+  // Packed high-byte-of-a-wider-value case: mask/shift must apply
+  // identically to decode_numeric's own path (this function reads the
+  // SAME bits, only formats them differently) -- reuses the same fixture
+  // as test_decode_packed_s8_high_byte but as an unsigned 8-bit exact
+  // read, since every real user of this path today is unsigned.
+  FieldDecode f{"packed_high_byte", 0, 0xFF00u, 8, false, WireType::U8, 1.0f, 0.0f};
+  const uint8_t data[2] = {0xF6, 0x00};  // high byte 0xF6 = 246 unsigned
+  char buf[16];
+  decode_exact_decimal(data, f, 2, 0, buf, sizeof(buf));
+  check_str(buf, "246", "decode_exact_decimal applies mask+shift identically to decode_numeric");
 }
 
 // ---------------------------------------------------------------------
@@ -358,6 +474,16 @@ int main() {
   test_decode_f32_reinterprets_bit_pattern();
   test_decode_u16_no_scale();
   test_decode_s16_negative();
+
+  test_decode_exact_decimal_below_float_ceiling_matches_decode_numeric();
+  test_decode_exact_decimal_above_float_ceiling_where_decode_numeric_would_round();
+  test_decode_exact_decimal_real_rtc_ticks_value();
+  test_decode_exact_decimal_real_odd_run_time_value();
+  test_decode_exact_decimal_uint32_max();
+  test_decode_exact_decimal_one_decimal_place_matches_bms_system_ticks_scale();
+  test_decode_exact_decimal_small_value_zero_pads_fractional_field();
+  test_decode_exact_decimal_zero();
+  test_decode_exact_decimal_respects_mask_and_shift_like_decode_numeric();
 
   test_decode_bool_bit_set();
   test_decode_bool_bit_clear();
