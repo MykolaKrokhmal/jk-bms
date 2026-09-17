@@ -77,6 +77,12 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" \
 "$BUILD_DIR/test_electrical_metrics_decode"
 
 echo
+echo "=== jk_topology_core unit tests (4S/8S/16S/24S/32S, transitions, sparse/high-bit masks, UNKNOWN/MISMATCH) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_topology" \
+  "$REPO_ROOT/test/jk_topology/test_jk_topology_core.cpp" -o "$BUILD_DIR/test_jk_topology_core"
+"$BUILD_DIR/test_jk_topology_core"
+
+echo
 echo "=== read_plan_decode.h generated-table integration test ==="
 # Two -I roots: repo root (so #include "protocol/generated/read_plan_decode.h"
 # resolves the same way it does from batterylifepo4.yaml's own includes:) AND
@@ -195,6 +201,10 @@ node test/protocol_catalog/test_exact_decimal_companion_routing.js
 echo
 echo "=== protocol catalog: cell-channel capability batch (CellVol/CellWireRes/CellConWireRes, mask precision) ==="
 node test/protocol_catalog/test_cell_channel_batch.js
+
+echo
+echo "=== protocol catalog: cell-channel frontend (activeCellCount adaptive hiding, LOADING/PENDING/MISMATCH) ==="
+node test/protocol_catalog/test_cell_channel_frontend.js
 
 echo
 echo "=== Stage 2: settings UI mapping completeness (265/265) ==="

@@ -203,20 +203,24 @@ for (let ch = 1; ch <= 32; ch++) {
 }
 
 {
-  // Targeted correction (user-directed, 2026-09-17): maximum=32 was
-  // reverted -- CellVol/CellWireRes/CellConWireRes spanning indices 0-31
-  // proves protocol CHANNEL CAPACITY is 32 (a real fact about the register
-  // map), not that CellCount's OWN register documents a range up to 32.
-  // Neither the official PDF nor the V2 workbook states an explicit valid
-  // range for CellCount itself (re-searched this session) -- maximum=16
-  // is restored to its pre-batch value, itself ALSO not a confirmed
-  // protocol-wide maximum, just this deployed unit's own observed value
-  // (see cell_count's own register safety_notes for the full three-way
-  // distinction: protocol capacity=32, operational ceiling=16, CellCount's
-  // own confirmed range=unknown).
+  // Two rounds of user-directed correction (2026-09-17): round 1 reverted
+  // maximum=32 -> 16 (CellVol/CellWireRes/CellConWireRes spanning indices
+  // 0-31 proves protocol CHANNEL CAPACITY is 32, not that CellCount's OWN
+  // register documents a range up to 32). Round 2 went further: 16 was
+  // ALSO never a confirmed protocol-wide maximum, only this deployed
+  // unit's own observed value -- neither the official PDF nor the V2
+  // workbook states an explicit valid range for CellCount itself
+  // (re-searched both rounds) -- maximum is now explicitly null (schema-
+  // supported -- 25 other fields already use null min/max, all
+  // editor_kind:"readonly" like this one), stating plainly that the range
+  // is genuinely unknown rather than asserting either unevidenced number.
+  // See cell_count's own register safety_notes for the full three-way
+  // distinction: protocol capacity=32 (evidenced), resolve_topology's own
+  // acceptance range=1..32 (an acceptance-range change, not a hardware
+  // claim), CellCount's own confirmed documented range=unknown (null).
   const cc = fieldsByKey.get("cell_count").field;
-  check("cell_count.maximum was NOT left at an unevidenced protocol-capacity claim (32) -- reverted to 16",
-    cc.maximum === 16, `maximum=${cc.maximum}`);
+  check("cell_count.maximum is explicitly null -- genuinely unconfirmed, not asserted as either 16 or 32",
+    cc.maximum === null, `maximum=${cc.maximum}`);
   check("cell_count's evidence array was not manipulated to dodge or force the verification-status cascade (still 4 citations, same as pre-batch)",
     Array.isArray(cc.evidence) && cc.evidence.length === 4, `evidence.length=${cc.evidence.length}`);
 }
@@ -264,26 +268,41 @@ for (let ch = 17; ch <= 32; ch++) {
 }
 
 // ===========================================================================
-// 9b. Targeted correction (user-directed, 2026-09-17): channels 17-32 must
-// never show residual/raw bytes as trustworthy active-cell voltages during
-// UNKNOWN/MISMATCH -- the unconditional blank must run BEFORE every branch
-// resolve_topology can take (WRITE_UNCERTAIN/LOADING/OFFLINE/INVALID/
-// MISMATCH/CONFIRMED), not only inside the CONFIRMED branch.
+// 9b. User-directed architectural rework (2026-09-17, second pass):
+// resolve_topology's decision logic (including the "never show residual
+// bytes as trustworthy during UNKNOWN/MISMATCH, channel-aware not a fixed
+// 16-ceiling" behavior) was extracted entirely into
+// components/jk_topology/jk_topology_core.h's pure resolve() function --
+// the REAL behavioral proof that blanking covers every branch (not only
+// CONFIRMED) now lives in test/jk_topology/test_jk_topology_core.cpp
+// (which actually calls resolve() with LOADING/WRITE_UNCERTAIN/OFFLINE/
+// INVALID/MISMATCH/CONFIRMED inputs and asserts blank_voltage_from in
+// each), a far stronger guarantee than a source-text landmark search can
+// give. This block only checks that batterylifepo4.yaml's own wrapper
+// correctly wires up to that pure function -- includes the header, calls
+// resolve(), reads the RAW pre-blank voltage snapshot before calling it,
+// and applies the returned blanking bounds afterward -- not the decision
+// logic itself.
 // ===========================================================================
 {
-  const publishLambdaIdx = batteryYaml.indexOf("auto publish = [](uint8_t state_code");
-  const writeUncertainIdx = batteryYaml.indexOf("if (id(g_topology_uncertain))", publishLambdaIdx);
-  const unconditionalBlankIdx = batteryYaml.indexOf("voltage_sensors_ext[16]", publishLambdaIdx);
-  check("resolve_topology's publish lambda and its own WRITE_UNCERTAIN branch are both found (source landmarks present)",
-    publishLambdaIdx !== -1 && writeUncertainIdx !== -1 && unconditionalBlankIdx !== -1);
-  check("channels 17-32 are blanked to NaN BEFORE the WRITE_UNCERTAIN branch (and therefore before every other branch too, since WRITE_UNCERTAIN is resolve_topology's first check) -- covers LOADING/WRITE_UNCERTAIN/OFFLINE/INVALID/MISMATCH, not only CONFIRMED",
-    unconditionalBlankIdx !== -1 && writeUncertainIdx !== -1 && unconditionalBlankIdx < writeUncertainIdx);
+  const includeIdx = batteryYaml.indexOf("components/jk_topology/jk_topology_core.h");
+  check("batterylifepo4.yaml's includes: references components/jk_topology/jk_topology_core.h",
+    includeIdx !== -1);
 
-  // Negative control: the OLD, narrower "only blank on CONFIRMED" comment
-  // text must be gone (proves this is a real behavior change, not just a
-  // new comment layered over the old, still-conditional code).
-  check("the old CONFIRMED-only blanking comment for channels 17-32 is gone (replaced, not just annotated)",
-    !batteryYaml.includes("get the exact same \"not applicable to the current connected"));
+  const wrapperIdx = batteryYaml.indexOf("id: resolve_topology");
+  const rawReadIdx = batteryYaml.indexOf("in.voltage[i] = voltage_sensors[i]->state;", wrapperIdx);
+  const resolveCallIdx = batteryYaml.indexOf("jk_topology::resolve(in)", wrapperIdx);
+  const blankAfterIdx = batteryYaml.indexOf("out.blank_voltage_from", wrapperIdx);
+  check("resolve_topology's wrapper reads the RAW (pre-blank) voltage snapshot before calling jk_topology::resolve()",
+    wrapperIdx !== -1 && rawReadIdx !== -1 && resolveCallIdx !== -1 && rawReadIdx < resolveCallIdx);
+  check("resolve_topology's wrapper applies blank_voltage_from/blank_resistance_from AFTER calling resolve(), never before",
+    resolveCallIdx !== -1 && blankAfterIdx !== -1 && resolveCallIdx < blankAfterIdx);
+
+  // Negative control: the OLD inline decision logic (pre-extraction) must
+  // be gone from the YAML, not just supplemented -- proves this is a real
+  // extraction, not a second copy left behind alongside the new wrapper.
+  check("the old inline MAX_CELL_CHANNELS constant is gone from batterylifepo4.yaml (logic now lives only in jk_topology_core.h)",
+    !batteryYaml.includes("const uint8_t MAX_CELL_CHANNELS"));
 }
 
 // ===========================================================================
@@ -311,11 +330,29 @@ for (let ch = 17; ch <= 32; ch++) {
   const numberSectionEndIdx = batteryYaml.indexOf("\n  - platform: template", setActionIdx + 1);
   check("set_cell_count's set_action body queues no Modbus command at all (the refusal is real, not just logged-then-ignored)",
     queueCommandAfterSetAction === -1 || (numberSectionEndIdx !== -1 && queueCommandAfterSetAction > numberSectionEndIdx));
+
+  // Architectural rework, round 3 (user-directed, 2026-09-17): the UI
+  // spinner's own max_value was raised 16 -> 32 (protocol capacity, a
+  // sane input-range bound -- NOT a claim CellCount's own documented
+  // range is confirmed) -- write safety is UNCHANGED by this: the
+  // hardcoded refusal above still fires unconditionally regardless of
+  // what value the spinner would accept. This permission never included
+  // enabling any write to the BMS.
+  const maxValueIdx = batteryYaml.indexOf("max_value: 32", setCellCountIdx);
+  check("set_cell_count's max_value is 32 (protocol capacity, input-bound only) -- write still fail-closed regardless",
+    maxValueIdx !== -1 && maxValueIdx > setCellCountIdx && maxValueIdx < setActionIdx);
 }
 
 // ===========================================================================
-// 10. Existing 16S telemetry preserved: cell_voltage_1..16/cell_resistance_1..16
-// unchanged -- still implemented, still their original addresses.
+// 10. Adaptive mechanism preserved: cell_voltage_1..16/cell_resistance_1..16
+// unchanged -- still implemented, still their original addresses. Framing
+// correction (user-directed, 2026-09-17, round 3): this is NOT "the
+// deployed 16S battery must keep working" as a hardcoded baseline -- it is
+// "the adaptive mechanism must keep working correctly for whatever
+// configured cell count it is given; the deployed 16S unit is one
+// hardware test case among the fixture-tested range (see
+// test/jk_topology/test_jk_topology_core.cpp's own 4S/8S/16S/24S/32S
+// coverage), not a special case the mechanism is built around."
 // ===========================================================================
 const ORIGINAL_VOLTAGE_ADDRS = ["0x1200", "0x1202", "0x1204", "0x1206", "0x1208", "0x120A", "0x120C", "0x120E",
   "0x1210", "0x1212", "0x1214", "0x1216", "0x1218", "0x121A", "0x121C", "0x121E"];

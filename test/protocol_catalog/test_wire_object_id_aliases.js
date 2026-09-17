@@ -100,10 +100,14 @@ function loadRealClosures() {
 const { hooks, collisions } = loadRealClosures();
 const { registerEntity, entityByWireId, ingestPayload, numeric, cellResistanceKeys, PROTOCOL_CATALOG } = hooks;
 
+// >= 16, not === 16: this file only exercises cell_resistance_1..16 (the
+// only channels with real wire-id aliases/entities) -- cellResistanceKeys'
+// own pool grew to 32 with the cell-channel batch's user-directed rework
+// (2026-09-17, protocol capacity), which this file need not know about.
 check("real jk_bms.js closures loaded via the test hook (not reimplemented)",
   typeof ingestPayload === "function" && typeof numeric === "function" &&
   typeof registerEntity === "function" && entityByWireId instanceof Map &&
-  Array.isArray(cellResistanceKeys) && cellResistanceKeys.length === 16);
+  Array.isArray(cellResistanceKeys) && cellResistanceKeys.length >= 16);
 
 // --- No alias collisions, observed on the REAL entityByWireId Map ----------
 // Instrumented during the actual script load above (every real

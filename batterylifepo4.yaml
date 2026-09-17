@@ -88,6 +88,12 @@ esphome:
     # uses jk_poll_scheduler_core.h's types directly, with no dependency on
     # generated data). See test/jk_poll_scheduler/test_read_plan_decode.cpp.
     - protocol/generated/read_plan_decode.h
+    # User-directed rework (2026-09-17): pure, hardware-independent core
+    # for the Topology Resolver's decision logic (resolve_topology, below)
+    # -- same header-only, zero-I/O pattern as jk_write_tx_core.h/
+    # jk_poll_scheduler_core.h above -- desktop-testable, see
+    # test/jk_topology/test_jk_topology_core.cpp.
+    - components/jk_topology/jk_topology_core.h
   on_boot:
     priority: -100
     then:
@@ -2776,271 +2782,134 @@ script:
   # below) — so it continuously self-heals (covers a reboot mid-mismatch
   # too) rather than only re-evaluating on a write.
   #
-  # Inputs: cell_count (configured), cell_connected_mask (CellStatus, low
-  # 16 bits), cell_voltage_1..16 (already-decoded, from the cell-block
-  # poll), total_voltage (BMS's own direct pack measurement — NEVER
-  # replaced by a derived sum). Rules, in priority order:
-  #   LOADING          — no complete snapshot yet since boot.
-  #   WRITE_UNCERTAIN  — g_topology_uncertain is set (a CellCount write's
-  #                      ACK or readback was lost) and hasn't been cleared
-  #                      by a fresh, independently-verified re-read yet —
-  #                      overrides everything below; the old CONFIRMED
-  #                      snapshot is never reported as still trustworthy.
-  #   OFFLINE          — BMS communication itself has gone stale (>30s
-  #                      since the last valid cell-block decode) — a mask/
-  #                      count snapshot this old cannot be asserted CONFIRMED.
-  #   INVALID          — configured count outside 1..MAX_CELL_CHANNELS, OR
-  #                      zero connected channels, OR zero channels WITHIN
-  #                      THE CONFIGURED ACTIVE RANGE report a plausible
-  #                      voltage. Data is nonsensical, not just
-  #                      inconsistent with configuration.
-  #   MISMATCH         — the connected mask is not *exactly* the expected
-  #                      contiguous "first N bits set" pattern (checking
-  #                      popcount alone is NOT sufficient — a scattered
-  #                      mask with the right bit COUNT but wrong
-  #                      POSITIONS must still fail), OR a channel inside
-  #                      the configured range lacks a plausible voltage,
-  #                      OR the BMS's direct pack-voltage measurement
-  #                      doesn't match the sum of the active cell voltages
-  #                      within a reasonable tolerance (max(0.5V, 1.5% of
-  #                      pack voltage) — generous enough for real ADC-chain
-  #                      differences between the pack-level and per-cell-
-  #                      tap measurements, tight enough to catch a genuine
-  #                      8S/16S mix-up outright). Channels AT OR BEYOND the
-  #                      configured range are never examined for
-  #                      plausibility at all (measured_count is published
-  #                      purely as a diagnostic) — see the loop below for
-  #                      why gating on them would deadlock CONFIRMED.
-  #   CONFIRMED        — none of the above; effective_cell_count becomes
-  #                      the configured count, last_confirmed_cell_count
-  #                      is updated, and channels beyond it are blanked to
-  #                      NaN so no stale/foreign reading can linger
-  #                      anywhere in the UI (raw registers included).
-  # Every branch publishes the real diagnostic numbers (connected/measured
-  # count, active-cell voltage sum) — mismatch/invalid/offline/uncertain
-  # never hide physical data, only effective_cell_count (safely 16, the
-  # full transport range) and the blanking above are gated on CONFIRMED.
+  # User-directed rework (2026-09-17): this lambda is now a thin wrapper —
+  # the actual decision logic lives in
+  # components/jk_topology/jk_topology_core.h's resolve(), a pure function
+  # exercised by test/jk_topology/test_jk_topology_core.cpp against 4S/8S/
+  # 16S/24S/32S and the transitions between them (one general mechanism
+  # driven by whatever `configured` count the device reports, never a
+  # fixed set of hardcoded topology sizes — the deployed 16S unit is one
+  # hardware test case among the fixture-tested range, not a baseline
+  # limitation baked into the mechanism). See that header's own comments
+  # for the full up-to-date rule set; kept here only as a short pointer so
+  # a reader starting from this YAML file finds it.
+  #
+  # Inputs: cell_count (configured), cell_connected_mask (CellSta, all 32
+  # bits), cell_voltage_1..32 (already-decoded, from the cell-block poll —
+  # channels 17-32 read from bytes the SAME 1Hz buffer already fetches, no
+  # new Modbus command), total_voltage (BMS's own direct pack measurement
+  # — NEVER replaced by a derived sum). Acceptance range for `configured`
+  # is now the protocol's own documented channel capacity (1..32, not a
+  # fixed 16) — see jk_topology_core.h's PROTOCOL_CHANNEL_CAPACITY. A
+  # channel at or beyond the CURRENT candidate `configured` is blanked to
+  # NaN in EVERY state (LOADING/WRITE_UNCERTAIN/OFFLINE/INVALID/MISMATCH/
+  # CONFIRMED), not only when CONFIRMED — so it never shows raw/residual
+  # bytes as a trustworthy active-cell voltage while state is uncertain.
+  # cell_resistance_17..32 have no entities at all this batch (not
+  # actively polled — CellCount alone never proves that extension
+  # read-block is available); the frontend shows an explicit "not read"
+  # state for those specific channels' resistance, never hiding the
+  # channel itself (its voltage is real and shown normally).
   - id: resolve_topology
     then:
       - lambda: |-
-          static const char *const REASON_NAMES[12] = {
-            "OK", "AWAITING_SNAPSHOT", "COUNT_OUT_OF_RANGE", "NO_CONNECTED_CELLS",
-            "NO_VALID_VOLTAGE", "MASK_COUNT_DIFFERS", "VOLTAGE_COUNT_DIFFERS",
-            "ACTIVE_RANGE_GAP", "VOLTAGE_SUM_DIFFERS", "MASK_NOT_CONTIGUOUS",
-            "BMS_OFFLINE", "WRITE_UNCERTAIN"
-          };
-          static const char *const STATE_NAMES[7] = {
-            "LOADING", "CONFIRMED", "MISMATCH", "INVALID",
-            "WRITE_UNCERTAIN", "OFFLINE", "PENDING"
-          };
+          // Thin wrapper (user-directed rework, 2026-09-17): the actual
+          // decision logic now lives entirely in
+          // components/jk_topology/jk_topology_core.h's resolve() -- a
+          // pure, hardware-independent function, desktop-testable against
+          // concrete channel-count scenarios (4S/8S/16S/24S/32S and the
+          // transitions between them) without ESP-IDF or real hardware,
+          // see test/jk_topology/test_jk_topology_core.cpp. This lambda's
+          // only job is gathering real sensor/global state into
+          // jk_topology::Inputs, calling resolve(), and applying the
+          // jk_topology::Outputs it returns (publish_state calls) — no
+          // decision-making of its own.
+          jk_topology::Inputs in;
+          in.topology_uncertain = id(g_topology_uncertain);
+          in.have_cell_data = id(g_last_bms_response_ms) != 0;
+          in.comm_elapsed_ms = millis() - id(g_last_bms_response_ms);
+          in.configured_f = id(cell_count).state;
+          // g_cell_connected_mask_raw/g_cell_connected_mask_valid (Stage 3
+          // cell-channel batch, set alongside every decode of this field --
+          // the generic 15s poll AND the 2 one-shot topology-driver
+          // re-reads, above) instead of id(cell_connected_mask).state, a
+          // float that loses precision on the LOW bits too once ANY high
+          // bit (e.g. bit31) is set -- float's ULP scales with magnitude,
+          // so a high bit being set corrupts exactly the low bits resolve()
+          // goes on to test. g_cell_connected_mask_valid is the same
+          // "never decoded yet since boot" sentinel isnan() used to
+          // provide for free from a float sensor's own
+          // NaN-until-first-publish default.
+          in.mask_valid = id(g_cell_connected_mask_valid);
+          in.mask_raw = id(g_cell_connected_mask_raw);
+          in.pack_voltage = id(total_voltage).state;
 
-          // publish() is the ONLY place that touches the published
-          // sensors/globals below, so every early-return branch (LOADING,
-          // WRITE_UNCERTAIN, OFFLINE, INVALID) goes through the exact same
-          // bookkeeping (revision bump, freshness timestamp, diagnostic
-          // numbers when available) as the full CONFIRMED/MISMATCH path.
-          auto publish = [](uint8_t state_code, uint8_t reason, uint8_t effective,
-                             float connected_count, float measured_count, float active_sum) {
-            id(g_topology_state_code) = state_code;
-            id(g_topology_reason_code) = reason;
-            id(g_effective_cell_count) = effective;
-            id(g_topology_revision) += 1;
-            id(g_topology_last_publish_ms) = millis();
-            id(effective_cell_count)->publish_state(float(effective));
-            id(last_confirmed_cell_count)->publish_state(float(id(g_last_confirmed_cell_count)));
-            id(topology_revision)->publish_state(float(id(g_topology_revision)));
-            id(topology_state)->publish_state(std::string(STATE_NAMES[state_code]));
-            id(topology_reason)->publish_state(std::string(REASON_NAMES[reason]));
-            if (!isnan(connected_count)) id(connected_cell_count)->publish_state(connected_count);
-            if (!isnan(measured_count)) id(measured_cell_count)->publish_state(measured_count);
-            if (!isnan(active_sum)) id(active_cells_voltage_sum)->publish_state(active_sum);
-          };
-
-          // Stage 3 cell-channel batch, targeted correction (user-directed,
-          // 2026-09-17): channels 17-32 (cell_voltage_17..32) are blanked
-          // to NaN UNCONDITIONALLY, on every single resolve_topology() call,
-          // before any state determination below -- not only in the
-          // CONFIRMED branch as the batch originally had it. This resolver's
-          // own MAX_CELL_CHANNELS operational ceiling stays 16 (unchanged),
-          // so channels 17-32 are NEVER part of any confirmable topology for
-          // this deployed unit, in ANY state (LOADING, WRITE_UNCERTAIN,
-          // OFFLINE, INVALID, MISMATCH, or CONFIRMED) -- blanking them only
-          // on CONFIRMED left a real gap: during LOADING/MISMATCH/etc. they
-          // would otherwise still show whatever raw millivolts the 1Hz
-          // cell-block lambda last decoded from those buffer bytes,
-          // indistinguishable in the UI from a genuine, trustworthy active-
-          // cell reading. Placed here (top of resolve_topology, before every
-          // branch) rather than duplicated into each of the 5 early-return
-          // paths below, for one single, unconditional guarantee instead of
-          // 5 places that could independently drift out of sync.
-          {
-            esphome::sensor::Sensor *const voltage_sensors_ext[16] = {
-              id(cell_voltage_17), id(cell_voltage_18), id(cell_voltage_19), id(cell_voltage_20),
-              id(cell_voltage_21), id(cell_voltage_22), id(cell_voltage_23), id(cell_voltage_24),
-              id(cell_voltage_25), id(cell_voltage_26), id(cell_voltage_27), id(cell_voltage_28),
-              id(cell_voltage_29), id(cell_voltage_30), id(cell_voltage_31), id(cell_voltage_32)
-            };
-            for (uint8_t i = 0; i < 16; i++) voltage_sensors_ext[i]->publish_state(NAN);
-          }
-
-          // ---- WRITE_UNCERTAIN: overrides everything else until the
-          // recovery probe (250ms interval) clears it with a genuinely
-          // fresh, independently re-read snapshot. ----
-          if (id(g_topology_uncertain)) {
-            publish(4, 11, 16, NAN, NAN, NAN);
-            return;
-          }
-
-          const bool have_cell_data = id(g_last_bms_response_ms) != 0;
-          if (!have_cell_data) {
-            publish(0, 1, 16, NAN, NAN, NAN);
-            return;
-          }
-
-          // ---- OFFLINE: BMS communication itself is stale. Mirrors
-          // bms_health's own OFFLINE threshold (30s) for consistency —
-          // a mask/count snapshot this old cannot be asserted CONFIRMED. ----
-          const uint32_t comm_elapsed_ms = millis() - id(g_last_bms_response_ms);
-          if (comm_elapsed_ms > 30000U) {
-            publish(5, 10, 16, NAN, NAN, NAN);
-            return;
-          }
-
-          const float configured_f = id(cell_count).state;
-          // Stage 3 cell-channel batch (user-directed, 2026-09-17): reads
-          // g_cell_connected_mask_raw/g_cell_connected_mask_valid (set
-          // alongside every decode of this field -- the generic 15s poll
-          // AND the 2 one-shot topology-driver re-reads, above) instead of
-          // id(cell_connected_mask).state, a float that loses precision on
-          // the LOW bits too once ANY high bit (e.g. bit31) is set --
-          // float's ULP scales with magnitude, so a high bit being set
-          // corrupts exactly the low-16-bits this function goes on to test
-          // below. g_cell_connected_mask_valid is the same "never decoded
-          // yet since boot" sentinel isnan(mask_f) used to provide for
-          // free from a float sensor's own NaN-until-first-publish default.
-          if (isnan(configured_f) || !id(g_cell_connected_mask_valid)) {
-            publish(0, 1, 16, NAN, NAN, NAN);
-            return;
-          }
-
-          const int32_t configured_raw = int32_t(lroundf(configured_f));
-          // MAX_CELL_CHANNELS = 16: this resolver's own OPERATIONAL
-          // ceiling for the deployed unit -- deliberately UNCHANGED by the
-          // Stage 3 cell-channel batch (2026-09-17). The protocol's own
-          // documented capacity is 32 channels (CellVol/CellWireRes/
-          // CellConWireRes all span index 0-31 in both the official PDF
-          // and the V2 workbook -- confirmed that session, see
-          // registers.canonical.json's cell_count safety_notes), NOT 16 as
-          // this comment used to claim -- but protocol capacity is a
-          // separate concern from this DEPLOYED 16S unit's own confirmed
-          // capability, which has never been independently verified beyond
-          // 16 channels. Raising this ceiling is deliberately NOT done
-          // here (would change real accept/reject behavior for a
-          // CellCount write, unverified on real hardware) -- only
-          // cell_connected_mask's own PRECISION was in this batch's scope,
-          // not this resolver's capability policy. The active count is
-          // configured_raw, cross-checked below; it is never hardcoded.
-          const uint8_t MAX_CELL_CHANNELS = 16;
-          const bool count_in_range = configured_raw >= 1 && configured_raw <= int32_t(MAX_CELL_CHANNELS);
-          if (!count_in_range) {
-            publish(3, 2, MAX_CELL_CHANNELS, NAN, NAN, NAN);
-            return;
-          }
-          const uint8_t configured = uint8_t(configured_raw);
-
-          const uint32_t mask = id(g_cell_connected_mask_raw) & 0xFFFFU;
-          // The ONE exact mask this configuration can ever legitimately
-          // produce: the first `configured` bits set, nothing else — a
-          // gap, an extra high bit, or a right POPCOUNT in the wrong
-          // POSITIONS all fail this, which a popcount-only check would miss.
-          const uint32_t expected_mask = (uint32_t(1) << configured) - 1U;
-          const bool mask_exact = mask == expected_mask;
-
-          uint8_t connected_count = 0;
-          for (uint8_t i = 0; i < 16; i++) if (mask & (1U << i)) connected_count++;
-          if (connected_count == 0) {
-            publish(3, 3, MAX_CELL_CHANNELS, 0.0f, NAN, NAN);
-            return;
-          }
-
-          esphome::sensor::Sensor *const voltage_sensors[16] = {
+          esphome::sensor::Sensor *const voltage_sensors[jk_topology::PROTOCOL_CHANNEL_CAPACITY] = {
             id(cell_voltage_1),  id(cell_voltage_2),  id(cell_voltage_3),  id(cell_voltage_4),
             id(cell_voltage_5),  id(cell_voltage_6),  id(cell_voltage_7),  id(cell_voltage_8),
             id(cell_voltage_9),  id(cell_voltage_10), id(cell_voltage_11), id(cell_voltage_12),
-            id(cell_voltage_13), id(cell_voltage_14), id(cell_voltage_15), id(cell_voltage_16)
+            id(cell_voltage_13), id(cell_voltage_14), id(cell_voltage_15), id(cell_voltage_16),
+            id(cell_voltage_17), id(cell_voltage_18), id(cell_voltage_19), id(cell_voltage_20),
+            id(cell_voltage_21), id(cell_voltage_22), id(cell_voltage_23), id(cell_voltage_24),
+            id(cell_voltage_25), id(cell_voltage_26), id(cell_voltage_27), id(cell_voltage_28),
+            id(cell_voltage_29), id(cell_voltage_30), id(cell_voltage_31), id(cell_voltage_32)
           };
-
-          // measured_count is a DIAGNOSTIC over all 16 physical channels —
-          // published for the operator to see, but deliberately NOT a
-          // CONFIRMED gate: whether a channel beyond `configured` happens
-          // to still report a plausible (possibly stale) voltage is a BMS
-          // firmware implementation detail this resolver has no verified
-          // way to depend on, and gating on it would create a genuine
-          // chicken-and-egg deadlock — the ONLY place a channel beyond
-          // `configured` gets blanked to NaN is the CONFIRMED branch
-          // below, so requiring it to ALREADY read as implausible before
-          // CONFIRMED can ever be reached would make a cell-count
-          // reduction permanently unconfirmable on any BMS that holds the
-          // last real reading on now-unused channels rather than zeroing
-          // them. Spec: "для кожного неактивної комірки значення не
-          // використовуються" — inactive-channel values are excluded from
-          // the determination entirely, not required to look a certain way.
-          uint8_t measured_count = 0;
-          uint8_t active_measured_count = 0;
-          bool active_range_gap = false;
-          float active_sum = 0.0f;
-          for (uint8_t i = 0; i < 16; i++) {
-            const float v = voltage_sensors[i]->state;
-            // isfinite() explicitly rejects NaN AND +/-infinity, not just
-            // the range check below (which would already exclude both,
-            // but this makes the exclusion an explicit, named intent
-            // rather than an accident of the bounds chosen).
-            const bool plausible = std::isfinite(v) && v > 0.5f && v < 10.0f;
-            if (plausible) measured_count++;
-            if (i < configured) {
-              if (plausible) { active_sum += v; active_measured_count++; } else active_range_gap = true;
-            }
-          }
-          if (active_measured_count == 0) {
-            publish(3, 4, MAX_CELL_CHANNELS, float(connected_count), float(measured_count), NAN);
-            return;
+          // cell_resistance_17..32 (CellWireRes16-31) have NO entities at
+          // all this batch (source_only_unimplemented -- not actively
+          // polled, see their own register safety_notes): CellCount alone
+          // never proves that extension read-block is available, so this
+          // resolver must never assume/fabricate resistance data for
+          // channels 17-32 -- only 16 real sensors exist to blank/read.
+          esphome::sensor::Sensor *const resistance_sensors[jk_topology::RESISTANCE_CHANNEL_COUNT] = {
+            id(cell_resistance_1),  id(cell_resistance_2),  id(cell_resistance_3),  id(cell_resistance_4),
+            id(cell_resistance_5),  id(cell_resistance_6),  id(cell_resistance_7),  id(cell_resistance_8),
+            id(cell_resistance_9),  id(cell_resistance_10), id(cell_resistance_11), id(cell_resistance_12),
+            id(cell_resistance_13), id(cell_resistance_14), id(cell_resistance_15), id(cell_resistance_16)
+          };
+          // RAW (pre-blank) snapshot -- read BEFORE any blanking is
+          // applied below, so measured_count (inside resolve()) stays a
+          // genuine diagnostic of what the BMS itself still reports on
+          // now-unused channels, not an artifact of this same call having
+          // already blanked them.
+          for (uint8_t i = 0; i < jk_topology::PROTOCOL_CHANNEL_CAPACITY; i++) {
+            in.voltage[i] = voltage_sensors[i]->state;
           }
 
-          uint8_t state_code = 1;  // CONFIRMED, optimistically
-          uint8_t reason = 0;      // OK
-          if (!mask_exact) {
-            state_code = 2;
-            reason = (connected_count != configured) ? 5 : 9;  // MASK_COUNT_DIFFERS vs MASK_NOT_CONTIGUOUS
-          } else if (active_range_gap) { state_code = 2; reason = 7; }
-          else {
-            const float raw_pack_v = id(total_voltage).state;
-            const float tolerance = std::max(0.5f, fabsf(raw_pack_v) * 0.015f);
-            if (!std::isfinite(raw_pack_v) || fabsf(raw_pack_v - active_sum) > tolerance) { state_code = 2; reason = 8; }
+          const jk_topology::Outputs out = jk_topology::resolve(in);
+
+          // g_last_confirmed_cell_count must be updated BEFORE it's
+          // published below (a real ordering bug caught during this
+          // extraction: publishing first and updating after would lag the
+          // sensor one call behind a just-confirmed count, unlike the
+          // original inline lambda, which always updated before its own
+          // single publish() call).
+          if (out.confirmed) id(g_last_confirmed_cell_count) = out.configured;
+
+          id(g_topology_state_code) = out.state_code;
+          id(g_topology_reason_code) = out.reason_code;
+          id(g_effective_cell_count) = out.effective_cell_count;
+          id(g_topology_revision) += 1;
+          id(g_topology_last_publish_ms) = millis();
+          id(effective_cell_count)->publish_state(float(out.effective_cell_count));
+          id(last_confirmed_cell_count)->publish_state(float(id(g_last_confirmed_cell_count)));
+          id(topology_revision)->publish_state(float(id(g_topology_revision)));
+          id(topology_state)->publish_state(std::string(jk_topology::STATE_NAMES[out.state_code]));
+          id(topology_reason)->publish_state(std::string(jk_topology::REASON_NAMES[out.reason_code]));
+          if (out.has_connected_count) id(connected_cell_count)->publish_state(out.connected_count);
+          if (out.has_measured_count) id(measured_cell_count)->publish_state(out.measured_count);
+          if (out.has_active_sum) id(active_cells_voltage_sum)->publish_state(out.active_sum);
+
+          // Channel-aware blanking, applied AFTER resolve() -- see
+          // Outputs::blank_voltage_from/blank_resistance_from's own
+          // comment in jk_topology_core.h: covers every state resolve()
+          // can return, not only CONFIRMED, so a channel beyond the
+          // current candidate CellCount never shows raw/residual bytes as
+          // a trustworthy active-cell voltage in ANY state.
+          for (uint8_t i = out.blank_voltage_from; i < jk_topology::PROTOCOL_CHANNEL_CAPACITY; i++) {
+            voltage_sensors[i]->publish_state(NAN);
           }
-
-          const uint8_t effective = state_code == 1 ? configured : MAX_CELL_CHANNELS;
-          if (state_code == 1) id(g_last_confirmed_cell_count) = configured;
-          publish(state_code, reason, effective, float(connected_count), float(measured_count), active_sum);
-
-          if (state_code == 1) {
-            esphome::sensor::Sensor *const resistance_sensors[16] = {
-              id(cell_resistance_1),  id(cell_resistance_2),  id(cell_resistance_3),  id(cell_resistance_4),
-              id(cell_resistance_5),  id(cell_resistance_6),  id(cell_resistance_7),  id(cell_resistance_8),
-              id(cell_resistance_9),  id(cell_resistance_10), id(cell_resistance_11), id(cell_resistance_12),
-              id(cell_resistance_13), id(cell_resistance_14), id(cell_resistance_15), id(cell_resistance_16)
-            };
-            for (uint8_t i = configured; i < 16; i++) {
-              voltage_sensors[i]->publish_state(NAN);
-              resistance_sensors[i]->publish_state(NAN);
-            }
-            // Channels 17-32 (cell_voltage_17..32) no longer need blanking
-            // here -- targeted correction (2026-09-17) moved that to an
-            // UNCONDITIONAL blank at the very top of resolve_topology
-            // (before the WRITE_UNCERTAIN check), covering every state this
-            // function can resolve to, not just CONFIRMED. See that
-            // comment for the full reasoning (a channel beyond
-            // MAX_CELL_CHANNELS=16 must never show raw bytes as a
-            // trustworthy voltage in ANY state, not only when NOT confirmed).
+          for (uint8_t i = out.blank_resistance_from; i < jk_topology::RESISTANCE_CHANNEL_COUNT; i++) {
+            resistance_sensors[i]->publish_state(NAN);
           }
 
 number:
@@ -3049,7 +2918,15 @@ number:
     internal: true
     name: "set cell count"
     min_value: 1
-    max_value: 16
+    # max_value 32 (user-directed rework, 2026-09-17): the protocol's
+    # evidenced channel capacity (CellVol/CellWireRes/CellConWireRes all
+    # span index 0-31 in both the official PDF and the V2 workbook), used
+    # here only as a sane input-range bound -- NOT a claim that CellCount's
+    # own documented valid range is confirmed as 1..32 (it isn't -- see
+    # registers.canonical.json's own cell_count safety_notes/maximum:null).
+    # Moot either way: set_action below refuses every write unconditionally,
+    # regardless of what value this spinner would accept.
+    max_value: 32
     step: 1
     lambda: return id(cell_count).state;
     # Reverted to fail-closed (2026-09-10, second critical audit) pending
