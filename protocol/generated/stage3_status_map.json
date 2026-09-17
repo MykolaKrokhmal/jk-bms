@@ -1,15 +1,15 @@
 {
   "$comment": "GENERATED -- Stage 3 (typed-petting-puzzle plan) preflight deliverable: exact address-based status of every one of the 265 manifest parameters against the CURRENT registers.canonical.json and CURRENT open protocol_blockers.json entries. NOT a mechanical manifest-count-vs-canonical-count comparison -- packed fields, aliases, and derived entities have a different structure between the two catalogs. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_stage3_status_map.js. Because this reads the CURRENT canonical/blocker state (which Stage 3 itself will change), this file's own committed content reflects one snapshot in the stage's history -- re-run this generator (and its own --check) after each canonical/blocker change within Stage 3, exactly like every other generator in this pipeline.",
   "manifest_source_sha256": "23b07669074e51b20cc1e915f202c1dd2b14f911e0da641a2091a44dc14a3ba7",
-  "canonical_source_sha256": "50d675cc4d28656c94e5f5ea2e610ea1ae4f0d90bec64f302c3a311d1db289a2",
+  "canonical_source_sha256": "8565e06af4bf7a1852ee11f9f01fca4472a02173ac79517ce26c2143253fc373",
   "blockers_source_sha256": "8ccffc8405786afd2e256487beb4e7c4ec88901b1ce80c64f55f42b7801178ef",
   "parameter_count": 265,
   "counts": {
-    "implemented_read": 114,
+    "implemented_read": 130,
     "blocked": 54,
-    "catalog_only": 2,
+    "catalog_only": 50,
     "implemented_write_confirmed": 18,
-    "missing": 72,
+    "missing": 8,
     "derived_not_a_register": 1,
     "reserved": 4
   },
@@ -1307,128 +1307,128 @@
       "base_address": "0x1220",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol17",
       "base_address": "0x1222",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol18",
       "base_address": "0x1224",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol19",
       "base_address": "0x1226",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol20",
       "base_address": "0x1228",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol21",
       "base_address": "0x122A",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol22",
       "base_address": "0x122C",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol23",
       "base_address": "0x122E",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol24",
       "base_address": "0x1230",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol25",
       "base_address": "0x1232",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol26",
       "base_address": "0x1234",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol27",
       "base_address": "0x1236",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol28",
       "base_address": "0x1238",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol29",
       "base_address": "0x123A",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol30",
       "base_address": "0x123C",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellVol31",
       "base_address": "0x123E",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "implemented_read",
+      "note": "canonical field implemented, effective_access=r"
     },
     {
       "id": "CellWireRes0",
@@ -1563,384 +1563,384 @@
       "base_address": "0x126A",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes17",
       "base_address": "0x126C",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes18",
       "base_address": "0x126E",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes19",
       "base_address": "0x1270",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes20",
       "base_address": "0x1272",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes21",
       "base_address": "0x1274",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes22",
       "base_address": "0x1276",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes23",
       "base_address": "0x1278",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes24",
       "base_address": "0x127A",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes25",
       "base_address": "0x127C",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes26",
       "base_address": "0x127E",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes27",
       "base_address": "0x1280",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes28",
       "base_address": "0x1282",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes29",
       "base_address": "0x1284",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes30",
       "base_address": "0x1286",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellWireRes31",
       "base_address": "0x1288",
       "access": "R",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes0",
       "base_address": "0x1088",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes1",
       "base_address": "0x108C",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes2",
       "base_address": "0x1090",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes3",
       "base_address": "0x1094",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes4",
       "base_address": "0x1098",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes5",
       "base_address": "0x109C",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes6",
       "base_address": "0x10A0",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes7",
       "base_address": "0x10A4",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes8",
       "base_address": "0x10A8",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes9",
       "base_address": "0x10AC",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes10",
       "base_address": "0x10B0",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes11",
       "base_address": "0x10B4",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes12",
       "base_address": "0x10B8",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes13",
       "base_address": "0x10BC",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes14",
       "base_address": "0x10C0",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes15",
       "base_address": "0x10C4",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes16",
       "base_address": "0x10C8",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes17",
       "base_address": "0x10CC",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes18",
       "base_address": "0x10D0",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes19",
       "base_address": "0x10D4",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes20",
       "base_address": "0x10D8",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes21",
       "base_address": "0x10DC",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes22",
       "base_address": "0x10E0",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes23",
       "base_address": "0x10E4",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes24",
       "base_address": "0x10E8",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes25",
       "base_address": "0x10EC",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes26",
       "base_address": "0x10F0",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes27",
       "base_address": "0x10F4",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes28",
       "base_address": "0x10F8",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes29",
       "base_address": "0x10FC",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes30",
       "base_address": "0x1100",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "CellConWireRes31",
       "base_address": "0x1104",
       "access": "RW",
       "classification": "official",
-      "status": "missing",
-      "note": "no canonical register at this address; PDF locator resolved"
+      "status": "catalog_only",
+      "note": "canonical field exists but not implementation_status=implemented"
     },
     {
       "id": "BatDisCurCorrect",

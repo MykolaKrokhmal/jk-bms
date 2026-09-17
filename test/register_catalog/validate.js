@@ -207,17 +207,29 @@ for (const { field: f } of settingsFields) orderCounts.set(f.ui_order, (orderCou
 const dupOrders = Array.from(orderCounts.entries()).filter(([, c]) => c > 1);
 check("Settings ui_order has no duplicates", dupOrders.length === 0, dupOrders.map(([o]) => o).join(","));
 
-for (const prefix of ["cell_voltage_", "cell_resistance_"]) {
+// Stage 3 cell-channel batch (2026-09-17): protocol capacity is 32
+// channels (CellVol0-31/CellWireRes0-31, confirmed against both the
+// official PDF and the V2 workbook), not the deployed 16S unit's own
+// observed count -- see registers.canonical.json's own cell_count
+// safety_notes for the same protocol-capacity-vs-device-capability
+// distinction. cell_voltage_1..32 are ALL implemented and UI-visible this
+// batch (decoded from the existing 1Hz cell-block buffer, zero new reads).
+// cell_resistance_17..32 are catalog-documented only (source_only_unimplemented,
+// ui_section "none", ui_order 0 -- not actively polled this batch, see
+// their own register safety_notes) -- deliberately excluded from this
+// check by filtering to ui_section !== "none" first: a field with no UI
+// row has no "position" for a natural-order check to mean anything about.
+for (const [prefix, expectedCount] of [["cell_voltage_", 32], ["cell_resistance_", 16]]) {
   const rows = allFields
-    .filter((x) => x.field.key.startsWith(prefix))
+    .filter((x) => x.field.key.startsWith(prefix) && x.field.ui_section !== "none")
     .sort((a, b) => a.field.ui_order - b.field.ui_order);
   let naturalOrder = true;
   rows.forEach((x, i) => {
     const expectedIndex = i + 1;
     if (!x.field.key.endsWith(`_${expectedIndex}`)) naturalOrder = false;
   });
-  check(`"${prefix}*" fields sort into natural 01..N order by ui_order`, naturalOrder && rows.length === 16,
-    `count=${rows.length}`);
+  check(`"${prefix}*" UI-visible fields sort into natural 01..N order by ui_order`, naturalOrder && rows.length === expectedCount,
+    `count=${rows.length}, expected=${expectedCount}`);
 }
 
 // entity id / backend key uniqueness
@@ -238,7 +250,7 @@ for (const { field: f } of allFields) {
 // ===========================================================================
 const UNIT_GLOSSARY = {
   "V": { uk: "В", en: "V" }, "A": { uk: "А", en: "A" }, "Ah": { uk: "А·год", en: "Ah" },
-  "Ω": { uk: "Ом", en: "Ω" }, "mΩ": { uk: "мОм", en: "mΩ" }, "µs": { uk: "мкс", en: "µs" },
+  "Ω": { uk: "Ом", en: "Ω" }, "mΩ": { uk: "мОм", en: "mΩ" }, "µΩ": { uk: "мкОм", en: "µΩ" }, "µs": { uk: "мкс", en: "µs" },
   "s": { uk: "с", en: "s" }, "h": { uk: "год", en: "h" }, "°C": { uk: "°C", en: "°C" },
   "%": { uk: "%", en: "%" }, "W": { uk: "Вт", en: "W" }, "mV": { uk: "мВ", en: "mV" }, "dBm": { uk: "дБм", en: "dBm" },
   "": { uk: "", en: "" }, "raw": { uk: "необроблено", en: "raw" },

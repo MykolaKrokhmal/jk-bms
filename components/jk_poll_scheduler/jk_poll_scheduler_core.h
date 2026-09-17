@@ -148,6 +148,25 @@ inline float decode_numeric(const uint8_t *data, const FieldDecode &f, uint8_t r
   return numeric * f.scale + f.offset;
 }
 
+// Stage 3 cell-channel batch (user-directed, 2026-09-17): the SAME raw-bits
+// extraction decode_numeric() and decode_exact_decimal() both already do
+// internally (read_be + mask + shift), exposed as its own tiny primitive
+// for a caller that needs the bit-exact uint32_t itself -- never a float
+// cast (decode_numeric) and never a formatted string (decode_exact_decimal).
+// Added specifically so cell_connected_mask's decode site can ALSO feed a
+// raw uint32_t global for resolve_topology's own bit-testing (batterylifepo4.yaml)
+// without that safety-critical function ever reading a lossy float-cast
+// bitmask again -- a value with any high bit (bit31 etc.) set corrupts
+// float's precision for the LOW bits too (ULP scales with magnitude), which
+// is exactly the "high AND low bits together" precision risk this batch
+// closes. Unsigned only, same rationale as decode_exact_decimal's own.
+inline uint32_t decode_raw_u32(const uint8_t *data, const FieldDecode &f, uint8_t register_bytes) {
+  uint32_t raw = read_be(data, register_bytes);
+  if (f.mask != 0) raw &= f.mask;
+  raw >>= f.shift;
+  return raw;
+}
+
 // Decodes a numeric field's raw integer EXACTLY as a fixed-point decimal
 // string -- no float/double conversion anywhere in this path. Added for
 // the Stage 3 precision fix (user-directed, 2026-09-17): decode_numeric()

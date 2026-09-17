@@ -234,6 +234,90 @@ static void test_decode_exact_decimal_respects_mask_and_shift_like_decode_numeri
 }
 
 // ---------------------------------------------------------------------
+// decode_raw_u32 -- Stage 3 cell-channel batch (2026-09-17). Added so
+// cell_connected_mask's decode site can export the bit-exact raw uint32_t
+// into a global for resolve_topology's own bit-testing, without ever
+// reading a lossy float-cast bitmask again. Every case here targets
+// exactly what a bitmask needs: high bit AND low bits preserved
+// SIMULTANEOUSLY (the precision risk this batch closes -- a float cast
+// with any high bit set corrupts low-bit precision too, since float's ULP
+// scales with magnitude), sparse/non-contiguous bit patterns, and mask/
+// shift applied identically to decode_numeric's own path (same raw bits,
+// only decode_exact_decimal/decode_numeric differ in how they format
+// them, never in which bits they read).
+// ---------------------------------------------------------------------
+
+static void test_decode_raw_u32_bit31_and_low_bits_together() {
+  // The exact scenario decode_numeric's float cast cannot represent
+  // exactly: bit31 set (0x80000000) together with low bits (0x1) set.
+  // float32's ULP at this magnitude is 256 -- decode_numeric would round
+  // this to 2147483648.0f or 2147483904.0f, losing the low bit entirely.
+  // decode_raw_u32 must reproduce it bit-for-bit.
+  FieldDecode f{"cell_connected_mask", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0x80, 0x00, 0x00, 0x01};  // 0x80000001
+  check_eq<uint32_t>(decode_raw_u32(data, f, 4), 0x80000001u,
+    "bit31 set together with bit0 set: both survive simultaneously, unlike a float round-trip");
+  // Cross-check against decode_numeric's own OWN lossy behavior on the
+  // exact same bytes -- proves this isn't a redundant test: the float
+  // path genuinely disagrees with the true value here.
+  // The true value (2147483649, i.e. 0x80000001) is itself not exactly
+  // representable as float32 -- even the LITERAL "2147483649.0f" in this
+  // source file would already be rounded by the compiler to the same
+  // float32 value decode_numeric produces, so comparing against it would
+  // prove nothing. 2147483648.0f (2^31, a power of two) IS exactly
+  // representable and IS the value float32 rounds 0x80000001 down to --
+  // asserting equality to it is the precise, stable way to show the low
+  // bit is gone.
+  const float lossy = decode_numeric(data, f, 4);
+  check(lossy == 2147483648.0f,
+    "decode_numeric's float cast genuinely loses precision on this same input (rounds 0x80000001 down to 2147483648.0f -- the low bit is gone)");
+}
+
+static void test_decode_raw_u32_sparse_mask() {
+  // A scattered, non-contiguous bit pattern (e.g. an implausible/faulty
+  // connected-cell mask a real resolver must still decode correctly even
+  // though it will go on to reject it as MISMATCH) -- proves no bit
+  // silently gets dropped or merged.
+  FieldDecode f{"cell_connected_mask", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0x00, 0x01, 0x00, 0x05};  // bits 0, 2, 16 set -- 0x00010005
+  check_eq<uint32_t>(decode_raw_u32(data, f, 4), 0x00010005u, "sparse/non-contiguous bit pattern decodes exactly");
+}
+
+static void test_decode_raw_u32_16s_deployed_mask() {
+  // The exact, real 16S deployed-unit shape: bits 0-15 set (all 16
+  // channels connected), bits 16-31 clear -- confirmed on real hardware
+  // this session as the plausible/expected mask for the deployed unit.
+  FieldDecode f{"cell_connected_mask", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0x00, 0x00, 0xFF, 0xFF};  // 0x0000FFFF
+  check_eq<uint32_t>(decode_raw_u32(data, f, 4), 0x0000FFFFu, "16S deployed-unit mask (bits 0-15 set) decodes exactly");
+}
+
+static void test_decode_raw_u32_all_32_channels() {
+  // The full 32-channel protocol-capacity case (never claimed as verified
+  // hardware behavior for the deployed 16S unit -- exercises the decode
+  // path's own correctness at the protocol's documented ceiling, not a
+  // hardware capability claim).
+  FieldDecode f{"cell_connected_mask", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+  check_eq<uint32_t>(decode_raw_u32(data, f, 4), 0xFFFFFFFFu, "all 32 channels connected (protocol capacity ceiling) decodes exactly");
+}
+
+static void test_decode_raw_u32_zero() {
+  FieldDecode f{"cell_connected_mask", 0, 0xFFFFFFFFu, 0, false, WireType::U32, 1.0f, 0.0f};
+  const uint8_t data[4] = {0x00, 0x00, 0x00, 0x00};
+  check_eq<uint32_t>(decode_raw_u32(data, f, 4), 0u, "all-zero mask decodes exactly as 0 (a real value, distinguished by the caller's own valid flag from 'never decoded')");
+}
+
+static void test_decode_raw_u32_respects_mask_and_shift_like_decode_numeric() {
+  // Same fixture as test_decode_exact_decimal_respects_mask_and_shift_like_decode_numeric
+  // -- proves decode_raw_u32 reads the identical bits decode_numeric and
+  // decode_exact_decimal already agree on, for a packed sub-field.
+  FieldDecode f{"packed_high_byte", 0, 0xFF00u, 8, false, WireType::U8, 1.0f, 0.0f};
+  const uint8_t data[2] = {0xF6, 0x00};
+  check_eq<uint32_t>(decode_raw_u32(data, f, 2), 246u, "decode_raw_u32 applies mask+shift identically to decode_numeric/decode_exact_decimal");
+}
+
+// ---------------------------------------------------------------------
 // decode_bool
 // ---------------------------------------------------------------------
 
@@ -484,6 +568,13 @@ int main() {
   test_decode_exact_decimal_small_value_zero_pads_fractional_field();
   test_decode_exact_decimal_zero();
   test_decode_exact_decimal_respects_mask_and_shift_like_decode_numeric();
+
+  test_decode_raw_u32_bit31_and_low_bits_together();
+  test_decode_raw_u32_sparse_mask();
+  test_decode_raw_u32_16s_deployed_mask();
+  test_decode_raw_u32_all_32_channels();
+  test_decode_raw_u32_zero();
+  test_decode_raw_u32_respects_mask_and_shift_like_decode_numeric();
 
   test_decode_bool_bit_set();
   test_decode_bool_bit_clear();

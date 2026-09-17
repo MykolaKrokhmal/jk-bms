@@ -88,8 +88,15 @@ const { ingestPayload, entityByWireId, state, diagnosticReadouts, LEGACY_COMPANI
 check("real jk_bms.js closures loaded via the test hook (not reimplemented)",
   typeof ingestPayload === "function" && entityByWireId instanceof Map && typeof LEGACY_COMPANION_SUPPRESSED === "symbol");
 
-check("PROTOCOL_CATALOG.legacyCompanionEntities carries all 4 fields",
-  Array.isArray(PROTOCOL_CATALOG.legacyCompanionEntities) && PROTOCOL_CATALOG.legacyCompanionEntities.length === 4,
+// >= 4, not === 4: this file only exercises the original 4 Stage 3
+// precision-fix fields (rtc_ticks/odd_run_time/bms_system_ticks/
+// total_runtime) -- a later, legitimate reuse of the SAME mechanism for a
+// different field (e.g. cell_connected_mask, Stage 3 cell-channel batch,
+// 2026-09-17 -- a bitmask precision fix, not a decimal counter) should not
+// fail this specific test file, which never claims to be exhaustive over
+// every legacyCompanionEntities user.
+check("PROTOCOL_CATALOG.legacyCompanionEntities carries at least the original 4 fields",
+  Array.isArray(PROTOCOL_CATALOG.legacyCompanionEntities) && PROTOCOL_CATALOG.legacyCompanionEntities.length >= 4,
   `count=${PROTOCOL_CATALOG.legacyCompanionEntities.length}`);
 
 // --- No collisions from real registration (instrumented during the actual

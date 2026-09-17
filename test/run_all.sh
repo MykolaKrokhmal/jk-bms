@@ -193,6 +193,10 @@ echo "=== protocol catalog: exact-decimal companion routing/duplication regressi
 node test/protocol_catalog/test_exact_decimal_companion_routing.js
 
 echo
+echo "=== protocol catalog: cell-channel capability batch (CellVol/CellWireRes/CellConWireRes, mask precision) ==="
+node test/protocol_catalog/test_cell_channel_batch.js
+
+echo
 echo "=== Stage 2: settings UI mapping completeness (265/265) ==="
 node test/protocol_catalog/test_stage2_mapping_completeness.js
 

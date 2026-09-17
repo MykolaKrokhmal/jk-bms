@@ -141,7 +141,7 @@
         "batterylifepo4.yaml",
         "jk_bms.js"
       ],
-      "fingerprint": "sha256:b67f1307e3f00849b39783307bb8d98f43d641472895b8dad53c7ba11e2ae6cb"
+      "fingerprint": "sha256:fc8af03efafe022bdccbc20b3cf2e0327e9d00cf0ae5a37ea37e77b6d44225de"
     },
     {
       "source_id": "hardware_audit_2026_09_09",

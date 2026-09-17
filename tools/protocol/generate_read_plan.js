@@ -197,8 +197,39 @@ for (const reg of registerDoc.registers) {
 // ---------------------------------------------------------------------------
 
 const BESPOKE_EXCLUDED_KEYS = new Set([
-  ...Array.from({ length: 16 }, (_, i) => `cell_voltage_${i + 1}`),
+  // cell_voltage_1..16: read+decoded by the dedicated 1Hz cell-block
+  // lambda (batterylifepo4.yaml, 0x1200/106-byte read), untouched by this
+  // generic generator, same as ever.
+  //
+  // cell_voltage_17..32 (Stage 3 cell-channel batch, 2026-09-17): ALSO
+  // excluded here, but for a different reason -- these ARE now decoded
+  // (from the SAME already-fetched 106-byte buffer, zero new Modbus
+  // reads), but by that SAME dedicated 1Hz lambda, hand-extended this
+  // batch -- never by this generic scheduler, which has no cadence
+  // default for poll_group "cell_block_1s" at all (see cell_block_1s:
+  // null in CADENCE_OVERRIDE_MS's own comment, below).
+  ...Array.from({ length: 32 }, (_, i) => `cell_voltage_${i + 1}`),
+  // cell_resistance_1..16: same dedicated 1Hz lambda as cell_voltage_1..16.
   ...Array.from({ length: 16 }, (_, i) => `cell_resistance_${i + 1}`),
+  //
+  // cell_resistance_17..32 / CellWireRes16-31 (Stage 3 cell-channel batch):
+  // catalog-documented (source_only_unimplemented) but deliberately NOT
+  // wired into ANY read path this batch -- extending the 1Hz lambda's own
+  // 106-byte read to 138 bytes to cover these is a real wire-behavior
+  // change, out of THIS batch's bounded scope (deferred pending an
+  // explicit device-capability confirmation policy). Excluded here so the
+  // generic pipeline does not silently generate a NEW read for them
+  // instead (it would otherwise succeed, since poll_group "telemetry_15s"
+  // DOES have a default cadence) -- that would be exactly the
+  // "querying an unconfirmed extension" this batch's own scope excludes.
+  ...Array.from({ length: 16 }, (_, i) => `cell_resistance_${i + 17}`),
+  // cell_connection_wire_resistance_1..32 / CellConWireRes0-31 (Stage 3
+  // cell-channel batch): catalog-documented RW calibration constants at a
+  // SEPARATE, never-before-read address block (0x1088-0x1104) -- same
+  // "not this batch's scope to actually poll" reasoning as CellWireRes16-31
+  // above, plus this is explicitly RW calibration, not R telemetry (never
+  // confused with CellWireRes) -- write path stays fail-closed regardless.
+  ...Array.from({ length: 32 }, (_, i) => `cell_connection_wire_resistance_${i + 1}`),
   "max_voltage_cell_index_native",
   "min_voltage_cell_index_native",
   "reserved_0x12d2",
@@ -350,6 +381,9 @@ const READ_DOMAIN_OVERRIDE = {
   odd_run_time: "text_sensor",
   bms_system_ticks: "text_sensor",
   total_runtime: "text_sensor",
+  // Stage 3 cell-channel batch (2026-09-17): cell_connected_mask's
+  // precision fix -- same reasoning as the 4 entries directly above.
+  cell_connected_mask: "text_sensor",
 };
 
 // Stage 3 precision fix (user-directed, 2026-09-17): wide UINT32 counters
@@ -393,7 +427,16 @@ const READ_DOMAIN_OVERRIDE = {
 // against a real live SSE capture, 2026-09-17) -- generate.js and
 // generate_read_plan.js now both read the SAME source fact independently,
 // instead of one hardcoding what only the other used to know.
-const EXACT_DECIMAL_FIELDS = new Set(["rtc_ticks", "odd_run_time", "bms_system_ticks", "total_runtime"]);
+// Stage 3 cell-channel batch (2026-09-17): cell_connected_mask joins this
+// set for a DIFFERENT reason than the original 4 (wide monotonic
+// counters whose DECIMAL MAGNITUDE exceeds float's exact-integer range) --
+// a bitmask needs bit-exactness regardless of magnitude (a value with
+// bit31 set already corrupts float's LOW-bit precision too, at any
+// decimal_precision), but the underlying fix (decode_exact_decimal(),
+// never decode_numeric()) is identical either way. decimal_precision=0
+// for this field, so decode_exact_decimal() degenerates to a plain
+// integer string -- exactly what a mask needs, no decimal point.
+const EXACT_DECIMAL_FIELDS = new Set(["rtc_ticks", "odd_run_time", "bms_system_ticks", "total_runtime", "cell_connected_mask"]);
 
 // Fields whose canonical poll_group implies a cadence this generator has
 // no other default for, but which ARE genuinely read on the real device
@@ -1000,6 +1043,17 @@ function buildServicerInterval() {
           // key and falls through to the plain decode_numeric branch,
           // publishing the approximate value under its unchanged legacy id.
           L(`          { char buf[16]; jk_poll_scheduler::decode_exact_decimal(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes, ${f.precision}, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
+          // Stage 3 cell-channel batch: cell_connected_mask ALSO exports
+          // its bit-exact raw value into a global -- see
+          // g_cell_connected_mask_raw's own comment in batterylifepo4.yaml.
+          // No other EXACT_DECIMAL_FIELDS entry needs this (they are scalar
+          // counters, not bitmasks resolve_topology tests bit-by-bit), so
+          // this stays a narrow, named special case rather than a new
+          // generic per-field mechanism for a single current user.
+          if (f.key === "cell_connected_mask") {
+            L(`          id(g_cell_connected_mask_raw) = jk_poll_scheduler::decode_raw_u32(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes);`);
+            L(`          id(g_cell_connected_mask_valid) = true;`);
+          }
         } else if (f.wire_type === "BIT") {
           L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_bool(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
         } else {
