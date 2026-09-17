@@ -212,23 +212,26 @@ const BESPOKE_EXCLUDED_KEYS = new Set([
   // cell_resistance_1..16: same dedicated 1Hz lambda as cell_voltage_1..16.
   ...Array.from({ length: 16 }, (_, i) => `cell_resistance_${i + 1}`),
   //
-  // cell_resistance_17..32 / CellWireRes16-31 (Stage 3 cell-channel batch):
-  // catalog-documented (source_only_unimplemented) but deliberately NOT
-  // wired into ANY read path this batch -- extending the 1Hz lambda's own
-  // 106-byte read to 138 bytes to cover these is a real wire-behavior
-  // change, out of THIS batch's bounded scope (deferred pending an
-  // explicit device-capability confirmation policy). Excluded here so the
-  // generic pipeline does not silently generate a NEW read for them
-  // instead (it would otherwise succeed, since poll_group "telemetry_15s"
-  // DOES have a default cadence) -- that would be exactly the
-  // "querying an unconfirmed extension" this batch's own scope excludes.
+  // cell_resistance_17..32 / CellWireRes16-31 (Stage 3 bounded batch,
+  // 2026-09-17: implemented): now genuinely read, but via their OWN
+  // isolated, capability-gated bespoke command (0x126A, 32 bytes, its own
+  // 15s interval, jk_capability_core.h-tracked, only issued when
+  // configured CellCount is 17..32) -- deliberately NOT the generic
+  // pipeline's own poll_group "telemetry_15s" default cadence, which would
+  // query this never-before-confirmed block unconditionally, forever,
+  // regardless of configured N or of this project's own bounded-probe
+  // policy. Excluded here so the generic pipeline does not silently
+  // generate that unconditional read instead of the bespoke, gated one.
   ...Array.from({ length: 16 }, (_, i) => `cell_resistance_${i + 17}`),
   // cell_connection_wire_resistance_1..32 / CellConWireRes0-31 (Stage 3
-  // cell-channel batch): catalog-documented RW calibration constants at a
-  // SEPARATE, never-before-read address block (0x1088-0x1104) -- same
-  // "not this batch's scope to actually poll" reasoning as CellWireRes16-31
-  // above, plus this is explicitly RW calibration, not R telemetry (never
-  // confused with CellWireRes) -- write path stays fail-closed regardless.
+  // bounded batch, 2026-09-17: implemented): genuinely read now too, via
+  // their own isolated, capability-gated bespoke command (0x1088, 128
+  // bytes, its own 300s interval) -- same "the generic pipeline has no
+  // bounded-probe/capability-state concept, so a never-before-confirmed
+  // block needs bespoke code, not its default cadence" reasoning as
+  // CellWireRes16-31 above. Also explicitly RW calibration, not R
+  // telemetry (never confused with CellWireRes) -- write path stays
+  // fail-closed regardless (write-enablement is Stage 4 scope).
   ...Array.from({ length: 32 }, (_, i) => `cell_connection_wire_resistance_${i + 1}`),
   "max_voltage_cell_index_native",
   "min_voltage_cell_index_native",

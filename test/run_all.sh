@@ -83,6 +83,12 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_topology" \
 "$BUILD_DIR/test_jk_topology_core"
 
 echo
+echo "=== jk_capability_core unit tests (bounded probing, no starvation, CellWireRes16-31 / CellConWireRes0-31) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_capability" \
+  "$REPO_ROOT/test/jk_capability/test_jk_capability_core.cpp" -o "$BUILD_DIR/test_jk_capability_core"
+"$BUILD_DIR/test_jk_capability_core"
+
+echo
 echo "=== read_plan_decode.h generated-table integration test ==="
 # Two -I roots: repo root (so #include "protocol/generated/read_plan_decode.h"
 # resolves the same way it does from batterylifepo4.yaml's own includes:) AND

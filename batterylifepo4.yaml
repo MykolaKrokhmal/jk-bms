@@ -94,6 +94,14 @@ esphome:
     # jk_poll_scheduler_core.h above -- desktop-testable, see
     # test/jk_topology/test_jk_topology_core.cpp.
     - components/jk_topology/jk_topology_core.h
+    # Stage 3 bounded batch (2026-09-17): pure, hardware-independent
+    # UNKNOWN/SUPPORTED/UNSUPPORTED capability-tracking core for
+    # CellWireRes16-31 and CellConWireRes0-31 -- two never-before-read
+    # blocks whose actual support on the connected device is independent
+    # of topology confirmation (see that header's own module comment) --
+    # same header-only, zero-I/O pattern as the components above --
+    # desktop-testable, see test/jk_capability/test_jk_capability_core.cpp.
+    - components/jk_capability/jk_capability_core.h
   on_boot:
     priority: -100
     then:
@@ -587,6 +595,53 @@ globals:
     restore_value: false
     initial_value: "false"
   - id: g_cell_poll_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+  # Stage 3 bounded batch (2026-09-17): CellWireRes16-31 capability state
+  # (jk_capability::State, stored as plain uint8_t -- this project's own
+  # globals: convention uses only fundamental C++ types, never a custom
+  # struct, see every other global in this list) + its own bounded
+  # consecutive-failure counter, fully independent of topology
+  # confirmation. Read via its own isolated command/pending pair below
+  # (0x126A, 32 bytes) so a failure here can never stall or regress the
+  # proven-reliable 0x1200/106-byte base cell-block read.
+  - id: g_cellwireres_ext_capability
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"   # jk_capability::STATE_UNKNOWN
+  - id: g_cellwireres_ext_attempts
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_cellwireres_ext_pending
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_cellwireres_ext_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+  # Stage 3 bounded batch (2026-09-17): CellConWireRes0-31 capability
+  # state -- same shape and same jk_capability_core.h policy as the
+  # CellWireRes16-31 block above, tracked completely separately (a
+  # different, never-before-read address block, its own bounded probe
+  # budget). Read on its own slow (config_slow_300s) cadence, never 1Hz.
+  - id: g_cellconwireres_capability
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"   # jk_capability::STATE_UNKNOWN
+  - id: g_cellconwireres_attempts
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_cellconwireres_pending
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_cellconwireres_started_ms
     type: uint32_t
     restore_value: false
     initial_value: "0"
@@ -1190,6 +1245,169 @@ interval:
                 // self-heal after a reboot or a transient mismatch without
                 // needing its own dedicated re-check logic (spec test 9).
                 id(resolve_topology)->execute();
+              });
+          id(bms0)->queue_command(std::move(command));
+
+  # ---- CellWireRes16-31 capability-gated extension read (Stage 3 bounded
+  # batch, 2026-09-17) -- isolated from the 1Hz base cell-block read above
+  # on purpose: this address range (0x126A, 32 bytes, channels 17-32) has
+  # never been read by this project before, so a failure/short response
+  # here must never be able to stall or regress the proven-reliable 1-16
+  # telemetry (a separate command, a separate pending/timeout pair, a
+  # separate capability state -- nothing shared with the 1Hz block except
+  # the same bms0 Modbus bus). Only attempted when id(cell_count) itself
+  # (the raw configured value, NOT display_cell_count/topology
+  # confirmation -- see jk_capability_core.h's own module comment on why
+  # those are different questions) is plausibly 17..32 -- on the currently
+  # deployed 16S unit this command is never issued at all, zero added bus
+  # traffic. Bounded by jk_capability::should_attempt()/record_outcome():
+  # at most MAX_PROBE_ATTEMPTS (3) consecutive failures (short response OR
+  # a full non-response, the latter detected the same way the CellCount
+  # write-transaction driver above detects a silent ACK timeout -- an
+  # explicit elapsed-time check on the SAME pending flag, not a second
+  # mechanism) before this project stops attempting this block for the
+  # rest of the boot session. A single success sets SUPPORTED and this
+  # keeps reading normally forever after -- ordinary polling of a
+  # proven-working block, not "probing" anymore.
+  - interval: 15s
+    then:
+      - lambda: |-
+          const uint32_t now = millis();
+          jk_capability::ProbeState ps;
+          ps.state = static_cast<jk_capability::State>(id(g_cellwireres_ext_capability));
+          ps.consecutive_failures = id(g_cellwireres_ext_attempts);
+
+          if (id(g_cellwireres_ext_pending)) {
+            if (uint32_t(now - id(g_cellwireres_ext_started_ms)) < 5000U) return;
+            // No callback within 5s -- a real, countable failure, exactly
+            // like the CellCount driver's own ACK-timeout branch treats a
+            // silent non-response, not a stuck-forever pending flag.
+            id(g_cellwireres_ext_pending) = false;
+            ps = jk_capability::record_outcome(ps, false);
+            id(g_cellwireres_ext_capability) = static_cast<uint8_t>(ps.state);
+            id(g_cellwireres_ext_attempts) = ps.consecutive_failures;
+            id(cell_wire_resistance_ext_capability)->publish_state(
+                std::string(jk_capability::STATE_NAMES[ps.state]));
+          }
+
+          const bool need_ext = jk_capability::needs_cellwireres_extended_read(id(cell_count).state);
+          if (!need_ext || !jk_capability::should_attempt(ps)) return;
+
+          id(g_cellwireres_ext_pending) = true;
+          id(g_cellwireres_ext_started_ms) = now;
+          auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+              id(bms0), esphome::modbus::EntityType::HOLDING,
+              0x126A, 32,
+              [](auto, uint16_t, const auto &data) {
+                id(g_cellwireres_ext_pending) = false;
+                const bool success = data.size() >= 32;
+                if (success) {
+                  esphome::sensor::Sensor *const resistance_sensors_ext2[16] = {
+                    id(cell_resistance_17), id(cell_resistance_18), id(cell_resistance_19), id(cell_resistance_20),
+                    id(cell_resistance_21), id(cell_resistance_22), id(cell_resistance_23), id(cell_resistance_24),
+                    id(cell_resistance_25), id(cell_resistance_26), id(cell_resistance_27), id(cell_resistance_28),
+                    id(cell_resistance_29), id(cell_resistance_30), id(cell_resistance_31), id(cell_resistance_32)
+                  };
+                  for (uint8_t i = 0; i < 16; ++i) {
+                    const size_t off = size_t(i) * 2U;
+                    const uint16_t milliohms = (uint16_t(data[off]) << 8) | data[off + 1U];
+                    resistance_sensors_ext2[i]->publish_state(milliohms * 0.001f);
+                  }
+                } else {
+                  ESP_LOGW("jk_cellwireres_ext", "Short CellWireRes16-31 response: %u/32 bytes",
+                           static_cast<unsigned>(data.size()));
+                }
+                jk_capability::ProbeState ps2;
+                ps2.state = static_cast<jk_capability::State>(id(g_cellwireres_ext_capability));
+                ps2.consecutive_failures = id(g_cellwireres_ext_attempts);
+                ps2 = jk_capability::record_outcome(ps2, success);
+                id(g_cellwireres_ext_capability) = static_cast<uint8_t>(ps2.state);
+                id(g_cellwireres_ext_attempts) = ps2.consecutive_failures;
+                id(cell_wire_resistance_ext_capability)->publish_state(
+                    std::string(jk_capability::STATE_NAMES[ps2.state]));
+              });
+          id(bms0)->queue_command(std::move(command));
+
+  # ---- CellConWireRes0-31 capability-gated calibration read (Stage 3
+  # bounded batch, 2026-09-17) -- a wholly separate, never-before-read
+  # address block (0x1088, 128 bytes, 32 x UINT32 calibration constants),
+  # read on a slow config_slow_300s cadence (never 1Hz -- these are
+  # calibration constants, not live telemetry) with the exact same bounded
+  # UNKNOWN/SUPPORTED/UNSUPPORTED capability policy as CellWireRes16-31
+  # above, tracked with its own independent globals/state. NOT gated on
+  # configured CellCount -- these 32 calibration slots are a property of
+  # the BMS controller board itself, not of how many cell channels happen
+  # to be configured, so unlike the read above there is no "N doesn't need
+  # it" case to skip. READ ONLY: no set_action exists anywhere for these
+  # entities -- write-enablement is explicitly Stage 4 scope (see this
+  # register family's own dynamic_dependency.rule in
+  # registers.canonical.json).
+  - interval: 300s
+    startup_delay: 10s
+    then:
+      - lambda: |-
+          const uint32_t now = millis();
+          jk_capability::ProbeState ps;
+          ps.state = static_cast<jk_capability::State>(id(g_cellconwireres_capability));
+          ps.consecutive_failures = id(g_cellconwireres_attempts);
+
+          if (id(g_cellconwireres_pending)) {
+            if (uint32_t(now - id(g_cellconwireres_started_ms)) < 5000U) return;
+            id(g_cellconwireres_pending) = false;
+            ps = jk_capability::record_outcome(ps, false);
+            id(g_cellconwireres_capability) = static_cast<uint8_t>(ps.state);
+            id(g_cellconwireres_attempts) = ps.consecutive_failures;
+            id(cell_connection_wire_resistance_capability)->publish_state(
+                std::string(jk_capability::STATE_NAMES[ps.state]));
+          }
+
+          if (!jk_capability::should_attempt(ps)) return;
+
+          id(g_cellconwireres_pending) = true;
+          id(g_cellconwireres_started_ms) = now;
+          auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+              id(bms0), esphome::modbus::EntityType::HOLDING,
+              0x1088, 128,
+              [](auto, uint16_t, const auto &data) {
+                id(g_cellconwireres_pending) = false;
+                const bool success = data.size() >= 128;
+                if (success) {
+                  esphome::sensor::Sensor *const calibration_sensors[32] = {
+                    id(cell_connection_wire_resistance_1),  id(cell_connection_wire_resistance_2),
+                    id(cell_connection_wire_resistance_3),  id(cell_connection_wire_resistance_4),
+                    id(cell_connection_wire_resistance_5),  id(cell_connection_wire_resistance_6),
+                    id(cell_connection_wire_resistance_7),  id(cell_connection_wire_resistance_8),
+                    id(cell_connection_wire_resistance_9),  id(cell_connection_wire_resistance_10),
+                    id(cell_connection_wire_resistance_11), id(cell_connection_wire_resistance_12),
+                    id(cell_connection_wire_resistance_13), id(cell_connection_wire_resistance_14),
+                    id(cell_connection_wire_resistance_15), id(cell_connection_wire_resistance_16),
+                    id(cell_connection_wire_resistance_17), id(cell_connection_wire_resistance_18),
+                    id(cell_connection_wire_resistance_19), id(cell_connection_wire_resistance_20),
+                    id(cell_connection_wire_resistance_21), id(cell_connection_wire_resistance_22),
+                    id(cell_connection_wire_resistance_23), id(cell_connection_wire_resistance_24),
+                    id(cell_connection_wire_resistance_25), id(cell_connection_wire_resistance_26),
+                    id(cell_connection_wire_resistance_27), id(cell_connection_wire_resistance_28),
+                    id(cell_connection_wire_resistance_29), id(cell_connection_wire_resistance_30),
+                    id(cell_connection_wire_resistance_31), id(cell_connection_wire_resistance_32)
+                  };
+                  for (uint8_t i = 0; i < 32; ++i) {
+                    const size_t off = size_t(i) * 4U;
+                    const uint32_t microohms = (uint32_t(data[off]) << 24) | (uint32_t(data[off + 1U]) << 16) |
+                                                (uint32_t(data[off + 2U]) << 8) | uint32_t(data[off + 3U]);
+                    calibration_sensors[i]->publish_state(float(microohms));
+                  }
+                } else {
+                  ESP_LOGW("jk_cellconwireres", "Short CellConWireRes0-31 response: %u/128 bytes",
+                           static_cast<unsigned>(data.size()));
+                }
+                jk_capability::ProbeState ps2;
+                ps2.state = static_cast<jk_capability::State>(id(g_cellconwireres_capability));
+                ps2.consecutive_failures = id(g_cellconwireres_attempts);
+                ps2 = jk_capability::record_outcome(ps2, success);
+                id(g_cellconwireres_capability) = static_cast<uint8_t>(ps2.state);
+                id(g_cellconwireres_attempts) = ps2.consecutive_failures;
+                id(cell_connection_wire_resistance_capability)->publish_state(
+                    std::string(jk_capability::STATE_NAMES[ps2.state]));
               });
           id(bms0)->queue_command(std::move(command));
 
@@ -2402,6 +2620,432 @@ sensor:
     unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
+
+  # Stage 3 bounded batch (2026-09-17): channels 17-32 (CellWireRes16-31,
+  # 0x126A-0x1288) -- catalog-documented, confirmed against both the
+  # official PDF and the V2 workbook, but NOT part of the always-on
+  # 0x1200/106-byte 1Hz base cell-block read above (that read stops
+  # exactly before 0x126A, unchanged, on purpose). Read instead by their
+  # own isolated, capability-gated command further below (own pending/
+  # timeout pair, own jk_capability::ProbeState, own 15s cadence matching
+  # this family's canonical telemetry_15s poll_group) -- a failure or
+  # short response here can never stall or regress the proven-reliable
+  # 1-16 telemetry, and this project never queries it at all unless the
+  # configured CellCount is actually in 17..32 (a genuinely wider pack) --
+  # see that command's own comment for the full bounded-probe policy.
+  # 0x126A   106    UINT16    2    R    CellWireRes16   mΩ
+  - platform: template
+    id: cell_resistance_17
+    name: "cell 17 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x126C   108    UINT16    2    R    CellWireRes17   mΩ
+  - platform: template
+    id: cell_resistance_18
+    name: "cell 18 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x126E   110    UINT16    2    R    CellWireRes18   mΩ
+  - platform: template
+    id: cell_resistance_19
+    name: "cell 19 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1270   112    UINT16    2    R    CellWireRes19   mΩ
+  - platform: template
+    id: cell_resistance_20
+    name: "cell 20 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1272   114    UINT16    2    R    CellWireRes20   mΩ
+  - platform: template
+    id: cell_resistance_21
+    name: "cell 21 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1274   116    UINT16    2    R    CellWireRes21   mΩ
+  - platform: template
+    id: cell_resistance_22
+    name: "cell 22 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1276   118    UINT16    2    R    CellWireRes22   mΩ
+  - platform: template
+    id: cell_resistance_23
+    name: "cell 23 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1278   120    UINT16    2    R    CellWireRes23   mΩ
+  - platform: template
+    id: cell_resistance_24
+    name: "cell 24 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x127A   122    UINT16    2    R    CellWireRes24   mΩ
+  - platform: template
+    id: cell_resistance_25
+    name: "cell 25 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x127C   124    UINT16    2    R    CellWireRes25   mΩ
+  - platform: template
+    id: cell_resistance_26
+    name: "cell 26 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x127E   126    UINT16    2    R    CellWireRes26   mΩ
+  - platform: template
+    id: cell_resistance_27
+    name: "cell 27 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1280   128    UINT16    2    R    CellWireRes27   mΩ
+  - platform: template
+    id: cell_resistance_28
+    name: "cell 28 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1282   130    UINT16    2    R    CellWireRes28   mΩ
+  - platform: template
+    id: cell_resistance_29
+    name: "cell 29 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1284   132    UINT16    2    R    CellWireRes29   mΩ
+  - platform: template
+    id: cell_resistance_30
+    name: "cell 30 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1286   134    UINT16    2    R    CellWireRes30   mΩ
+  - platform: template
+    id: cell_resistance_31
+    name: "cell 31 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+  # 0x1288   136    UINT16    2    R    CellWireRes31   mΩ
+  - platform: template
+    id: cell_resistance_32
+    name: "cell 32 wire resistance"
+    update_interval: never
+    unit_of_measurement: "mΩ"
+    state_class: measurement
+    accuracy_decimals: 3
+
+
+  # Stage 3 bounded batch (2026-09-17): CellConWireRes0-31 (0x1088-0x1104,
+  # 32 x UINT32 connection-wire-resistance CALIBRATION CONSTANTS -- a
+  # structurally distinct, never-before-read address block, NOT the same
+  # feature as CellWireRes16-31 above (that is read-only telemetry at a
+  # completely different address). Declared RW in the protocol, but this
+  # batch implements READ ONLY -- write-enablement is explicitly Stage 4
+  # scope (registers.canonical.json's own dynamic_dependency.rule on each
+  # of these 32 fields records this same decision as canonical fact, not
+  # just a YAML comment). No set_action anywhere for these entities.
+  # Read on a slow, capability-gated cadence (own command further below,
+  # config_slow_300s -- calibration constants, not live telemetry, never
+  # 1Hz) -- see that command's own comment for the full bounded-probe
+  # policy shared with CellWireRes16-31 above (jk_capability_core.h).
+  # 0x1088   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes0   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_1
+    name: "cell connection wire resistance 1"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x108C   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes1   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_2
+    name: "cell connection wire resistance 2"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x1090   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes2   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_3
+    name: "cell connection wire resistance 3"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x1094   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes3   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_4
+    name: "cell connection wire resistance 4"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x1098   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes4   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_5
+    name: "cell connection wire resistance 5"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x109C   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes5   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_6
+    name: "cell connection wire resistance 6"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10A0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes6   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_7
+    name: "cell connection wire resistance 7"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10A4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes7   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_8
+    name: "cell connection wire resistance 8"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10A8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes8   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_9
+    name: "cell connection wire resistance 9"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10AC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes9   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_10
+    name: "cell connection wire resistance 10"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10B0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes10   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_11
+    name: "cell connection wire resistance 11"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10B4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes11   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_12
+    name: "cell connection wire resistance 12"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10B8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes12   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_13
+    name: "cell connection wire resistance 13"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10BC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes13   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_14
+    name: "cell connection wire resistance 14"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10C0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes14   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_15
+    name: "cell connection wire resistance 15"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10C4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes15   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_16
+    name: "cell connection wire resistance 16"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10C8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes16   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_17
+    name: "cell connection wire resistance 17"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10CC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes17   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_18
+    name: "cell connection wire resistance 18"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10D0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes18   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_19
+    name: "cell connection wire resistance 19"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10D4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes19   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_20
+    name: "cell connection wire resistance 20"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10D8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes20   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_21
+    name: "cell connection wire resistance 21"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10DC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes21   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_22
+    name: "cell connection wire resistance 22"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10E0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes22   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_23
+    name: "cell connection wire resistance 23"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10E4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes23   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_24
+    name: "cell connection wire resistance 24"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10E8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes24   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_25
+    name: "cell connection wire resistance 25"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10EC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes25   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_26
+    name: "cell connection wire resistance 26"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10F0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes26   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_27
+    name: "cell connection wire resistance 27"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10F4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes27   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_28
+    name: "cell connection wire resistance 28"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10F8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes28   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_29
+    name: "cell connection wire resistance 29"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x10FC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes29   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_30
+    name: "cell connection wire resistance 30"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x1100   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes30   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_31
+    name: "cell connection wire resistance 31"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
+
+  # 0x1104   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes31   µΩ
+  - platform: template
+    id: cell_connection_wire_resistance_32
+    name: "cell connection wire resistance 32"
+    update_interval: never
+    unit_of_measurement: "µΩ"
+    accuracy_decimals: 0
 
 
   # 0x1290 BatVol UINT32 mV, 0x1294 BatWatt UINT32 mW (never decoded --
@@ -3808,6 +4452,25 @@ text_sensor:
   - platform: template
     id: topology_reason
     name: "topology reason"
+    update_interval: never
+
+  # Stage 3 bounded batch (2026-09-17): jk_capability::State for the two
+  # never-before-read blocks this batch adds, published as a stable
+  # English UNKNOWN/SUPPORTED/UNSUPPORTED code -- deliberately independent
+  # of topology_state above (see jk_capability_core.h's own module
+  # comment on why topology confirmation is not proof a register block is
+  # supported). Diagnostics-only; nothing in the UI gates on these
+  # directly -- the Cells tab's own "not read" state already reflects the
+  # same underlying fact via whether cell_resistance_17-32 has ever
+  # published a real value (see jk_bms.js's renderCells()).
+  - platform: template
+    id: cell_wire_resistance_ext_capability
+    name: "cell wire resistance extension capability"
+    update_interval: never
+
+  - platform: template
+    id: cell_connection_wire_resistance_capability
+    name: "cell connection wire resistance capability"
     update_interval: never
 
   # Atomic snapshot of every currently-tracked generic write transaction

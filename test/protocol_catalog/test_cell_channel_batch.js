@@ -2,11 +2,9 @@
 "use strict";
 
 // Regression test for the Stage 3 cell-channel batch (user-directed,
-// 2026-09-17): 64 missing cell-channel parameters (CellVol16-31,
-// CellWireRes16-31, CellConWireRes0-31) plus the cell_connected_mask
-// precision fix (topology bitmask must never round-trip through float --
-// a high bit set, e.g. bit31, corrupts float's LOW-bit precision too,
-// since float's ULP scales with magnitude). Covers:
+// 2026-09-17) and its FOLLOW-UP bounded batch (also 2026-09-17: read-path
+// for CellWireRes16-31 + CellConWireRes0-31, the 48 parameters this file
+// originally proved were deliberately catalog-only). Covers:
 //   - cell_connected_mask routing (exact/legacy, both arrival orders,
 //     bit31+low-bits together, sparse masks) via the REAL jk_bms.js
 //     closures (same vm test-hook technique as
@@ -15,17 +13,25 @@
 //     16S unit's own connected topology, kept as separate, explicit
 //     concerns -- never a fabricated value for an unsupported/unknown
 //     channel.
-//   - No extra polling of unconfirmed extension blocks (CellWireRes16-31 /
-//     CellConWireRes0-31 must be absent from the generated read plan).
+//   - CellWireRes16-31 / CellConWireRes0-31 are now genuinely implemented
+//     (bounded batch, 2026-09-17) via their OWN isolated, capability-gated
+//     bespoke commands, absent from the GENERIC read plan on purpose (that
+//     pipeline has no bounded-probe/capability-state concept) but present
+//     in batterylifepo4.yaml's own code, each behind a short-response
+//     guard exactly like the existing 1-16 decode.
 //   - Existing 16S telemetry (cell_voltage_1..16/cell_resistance_1..16)
 //     unchanged.
-//   - Short/exception Modbus responses stay safe by construction (the new
-//     channel-17-32 decode sits inside the SAME short-response guard the
-//     existing 1-16 decode already relies on).
 //
-// Does NOT claim 32S hardware support is verified -- every check below
-// either exercises protocol-capacity-only data (explicitly labeled) or
-// the deployed 16S unit's own real, hardware-confirmed shape.
+// Does NOT claim 32S hardware support is verified, and does NOT claim
+// CellWireRes16-31/CellConWireRes0-31 are hardware-verified on the
+// deployed 16S unit either -- that unit's own configured CellCount (16)
+// never triggers the CellWireRes16-31 read at all, and CellConWireRes0-31
+// has not been read on real hardware as of this batch. Every check below
+// either exercises protocol-capacity-only data (explicitly labeled), the
+// deployed 16S unit's own real, hardware-confirmed shape, or source-level
+// structural facts about the new bespoke code (never a hardware claim by
+// itself) -- see test/jk_capability/test_jk_capability_core.cpp for the
+// capability state machine's own behavioral coverage.
 
 const fs = require("fs");
 const path = require("path");
@@ -82,7 +88,8 @@ function loadRealClosures() {
 }
 
 const hooks = loadRealClosures();
-const { ingestPayload, entityByWireId, state, diagnosticReadouts, LEGACY_COMPANION_SUPPRESSED, PROTOCOL_CATALOG } = hooks;
+const { ingestPayload, entityByWireId, state, diagnosticReadouts, LEGACY_COMPANION_SUPPRESSED, PROTOCOL_CATALOG,
+  numeric, activeCellCount } = hooks;
 
 check("real jk_bms.js closures loaded via the test hook (not reimplemented)",
   typeof ingestPayload === "function" && entityByWireId instanceof Map);
@@ -187,8 +194,13 @@ for (let ch = 17; ch <= 32; ch++) {
   const entry = fieldsByKey.get(`cell_resistance_${ch}`);
   check(`cell_resistance_${ch} exists in canonical.json (protocol capacity, CellWireRes${ch - 1})`, !!entry);
   if (entry) {
-    check(`cell_resistance_${ch} is explicitly NOT polled this batch (source_only_unimplemented, not a fabricated value)`,
-      entry.field.implementation_status === "source_only_unimplemented" && entry.field.ui_section === "none");
+    // Bounded batch (2026-09-17): now implemented, read via its own
+    // isolated capability-gated command (batterylifepo4.yaml, 0x126A) --
+    // ui_section "cells"/ui_order 1200+ch, matching cell_resistance_1..16's
+    // own convention (see test/register_catalog/validate.js's own natural-
+    // order check, updated to expect all 32 this batch).
+    check(`cell_resistance_${ch} is implemented this bounded batch (own isolated capability-gated read, not a fabricated value)`,
+      entry.field.implementation_status === "implemented" && entry.field.ui_section === "cells" && entry.field.ui_order === 1200 + ch);
   }
 }
 for (let ch = 1; ch <= 32; ch++) {
@@ -197,8 +209,17 @@ for (let ch = 1; ch <= 32; ch++) {
   if (entry) {
     check(`cell_connection_wire_resistance_${ch} is RW-declared but write-blocked (calibration, not R telemetry, not confused with CellWireRes)`,
       entry.field.access === "rw" && entry.field.effective_access === "r");
-    check(`cell_connection_wire_resistance_${ch} is explicitly NOT polled this batch`,
-      entry.field.implementation_status === "source_only_unimplemented" && entry.field.ui_section === "none");
+    // Bounded batch (2026-09-17): read is now implemented (own isolated,
+    // capability-gated, slow-cadence command, batterylifepo4.yaml 0x1088)
+    // -- write stays blocked above regardless, and independently: an
+    // explicit dynamic_dependency.rule (not just effective_access) records
+    // that write-enablement is deliberately deferred to Stage 4, checked
+    // below so a future accidental write-enable is caught even if
+    // effective_access were ever miscomputed.
+    check(`cell_connection_wire_resistance_${ch} is implemented (read) this bounded batch`,
+      entry.field.implementation_status === "implemented");
+    check(`cell_connection_wire_resistance_${ch} records its write-deferral as canonical fact (dynamic_dependency.resolved === false), not just a YAML comment`,
+      !!entry.field.dynamic_dependency && entry.field.dynamic_dependency.resolved === false);
   }
 }
 
@@ -226,20 +247,38 @@ for (let ch = 1; ch <= 32; ch++) {
 }
 
 // ===========================================================================
-// 7. No extra polling of unconfirmed extension blocks: CellWireRes16-31 /
-// CellConWireRes0-31 addresses must be ABSENT from the generated read plan
-// (the only thing that actually issues Modbus reads on real hardware).
+// 7. CellWireRes16-31 / CellConWireRes0-31 are read via their OWN bespoke,
+// capability-gated commands in batterylifepo4.yaml (bounded batch,
+// 2026-09-17) -- NOT via the generic read plan, which has no bounded-probe/
+// capability-state concept at all and would otherwise poll them
+// unconditionally, forever, regardless of configured N or of this
+// project's own bounded-probe policy. Both facts checked: absent from the
+// generated read plan, AND present (as a real command, not just a comment)
+// in batterylifepo4.yaml's own bespoke code.
 // ===========================================================================
 for (let i = 16; i <= 31; i++) {
   const addr = `0x${(0x124A + i * 2).toString(16).toUpperCase().padStart(4, "0")}`;
-  check(`CellWireRes${i} address ${addr} does NOT appear in the generated read plan (not polled this batch)`,
+  check(`CellWireRes${i} address ${addr} does NOT appear in the generated read plan (bespoke-excluded, not the generic pipeline's job)`,
     !readPlanYaml.includes(addr));
 }
+check("CellWireRes16-31's own read command (0x126A, 32 bytes) is present in batterylifepo4.yaml",
+  batteryYaml.includes("0x126A, 32,"));
+check("CellWireRes16-31's read is gated on configured CellCount (id(cell_count).state) via jk_capability::needs_cellwireres_extended_read(), not topology confirmation",
+  batteryYaml.includes("jk_capability::needs_cellwireres_extended_read(id(cell_count).state)"));
+check("CellWireRes16-31's read is bounded by jk_capability::should_attempt()/record_outcome() (no infinite probing)",
+  batteryYaml.includes("jk_capability::should_attempt(ps)") && batteryYaml.includes("jk_capability::record_outcome(ps2, success)"));
+
 for (let i = 0; i <= 31; i++) {
   const addr = `0x${(0x1088 + i * 4).toString(16).toUpperCase().padStart(4, "0")}`;
-  check(`CellConWireRes${i} address ${addr} does NOT appear in the generated read plan (not polled this batch)`,
+  check(`CellConWireRes${i} address ${addr} does NOT appear in the generated read plan (bespoke-excluded, not the generic pipeline's job)`,
     !readPlanYaml.includes(addr));
 }
+check("CellConWireRes0-31's own read command (0x1088, 128 bytes) is present in batterylifepo4.yaml",
+  batteryYaml.includes("0x1088, 128,"));
+check("CellConWireRes0-31 is read on a slow cadence (interval: 300s), never 1Hz",
+  /interval:\s*300s[\s\S]{0,1500}0x1088,\s*128,/.test(batteryYaml));
+check("CellConWireRes0-31 has no set_action / write path anywhere (write stays Stage 4 scope)",
+  !batteryYaml.includes("set_cell_connection_wire_resistance"));
 
 // ===========================================================================
 // 8. cell_voltage_17-32 are read via the hand-written 1Hz cell-block lambda,
@@ -367,6 +406,93 @@ for (let ch = 1; ch <= 16; ch++) {
   const entry = fieldsByKey.get(`cell_resistance_${ch}`);
   check(`cell_resistance_${ch} (existing 16S telemetry) still implemented at its original address`,
     !!entry && entry.field.implementation_status === "implemented" && entry.register.address === ORIGINAL_RESISTANCE_ADDRS[ch - 1]);
+}
+
+// ===========================================================================
+// 11. Bounded batch (2026-09-17): CellWireRes16-31 is now genuinely wired
+// to the frontend -- real wire-id resolution AND the "hidden channels stay
+// hidden regardless of capability" / "active channel with no value yet
+// shows unavailable, never a fabricated value" contracts, exercised
+// through the REAL jk_bms.js closures (ingestPayload/numeric/
+// activeCellCount -- the exact functions renderCells() itself calls), not
+// a reimplementation. Channel hiding itself (activeCellCount()) is NOT
+// re-proven exhaustively here -- that is test/jk_topology/
+// test_jk_topology_core.cpp's and test_cell_channel_frontend.js's own job
+// (137+26 checks, unchanged by this batch); this section only proves the
+// NEW read path plugs into that existing, already-tested mechanism
+// correctly, without leaking capability state into channel visibility.
+// ===========================================================================
+function setCellCount(n) {
+  ingestPayload({ id: "sensor/cell count", domain: "sensor", name: "cell count", icon: "", entity_category: 0, value: n, state: `${n}` });
+}
+function setTopologyStateForHidingTest(code) {
+  ingestPayload({ id: "text_sensor/topology state", domain: "text_sensor", name: "topology state", icon: "", entity_category: 0, value: code, state: code });
+}
+function setDisplayCellCountForHidingTest(n) {
+  ingestPayload({ id: "sensor/display cell count", domain: "sensor", name: "display cell count", icon: "", entity_category: 0, value: n, state: `${n}` });
+}
+
+{
+  // 11a. Real wire-id resolution for the new entities -- proves the
+  // esphome_read_entity_id/esphome_configured_name fix (canonical.json)
+  // and the explicit registerEntity() calls (jk_bms.js) actually connect a
+  // real incoming SSE payload to the right canonical key, for a
+  // representative sample (first/last of both new families).
+  check('wire id "sensor/cell 17 wire resistance" resolves to canonical key "cell_resistance_17"',
+    entityByWireId.get("sensor/cell 17 wire resistance") === "cell_resistance_17");
+  check('wire id "sensor/cell 32 wire resistance" resolves to canonical key "cell_resistance_32"',
+    entityByWireId.get("sensor/cell 32 wire resistance") === "cell_resistance_32");
+  check('wire id "sensor/cell connection wire resistance 1" resolves to canonical key "cell_connection_wire_resistance_1"',
+    entityByWireId.get("sensor/cell connection wire resistance 1") === "cell_connection_wire_resistance_1");
+  check('wire id "sensor/cell connection wire resistance 32" resolves to canonical key "cell_connection_wire_resistance_32"',
+    entityByWireId.get("sensor/cell connection wire resistance 32") === "cell_connection_wire_resistance_32");
+}
+
+{
+  // 11b. A real value for channel 17's resistance actually reaches
+  // numeric() (the same accessor renderCells() itself calls) once ingested.
+  ingestPayload({ id: "sensor/cell 17 wire resistance", domain: "sensor", name: "cell 17 wire resistance", icon: "", entity_category: 0, value: 0.06, state: "0.060" });
+  check("cell_resistance_17's real value reaches numeric() after ingestPayload -- the read path is genuinely wired end to end",
+    numeric("cell_resistance_17") === 0.06);
+}
+
+{
+  // 11c. Hiding is unaffected by CellWireRes16-31 capability: for the
+  // deployed unit's own N=16, activeCellCount() stays 16 (channels 17-32
+  // hidden) regardless of whether cell_resistance_17 already has a real
+  // value (11b, above, already gave it one) -- proves the new read path
+  // cannot leak a channel into visibility just because its resistance
+  // happened to arrive; channel count is still driven solely by
+  // display_cell_count, exactly as test_jk_topology_core.cpp/
+  // test_cell_channel_frontend.js already established.
+  setTopologyStateForHidingTest("CONFIRMED");
+  setDisplayCellCountForHidingTest(16);
+  setCellCount(16);
+  check("N=16: activeCellCount() == 16 even though cell_resistance_17 already has a real value -- CellWireRes support never leaks into channel visibility",
+    activeCellCount() === 16);
+}
+
+{
+  // 11d. A wider pack (N=24): channels 17-24 become active (would be
+  // shown), but an active channel whose resistance has not arrived yet
+  // (channel 20, deliberately never ingested) reads as null/NaN via
+  // numeric() -- the exact underlying signal jk_bms.js's own
+  // resistanceUnsupported condition (renderCells()) uses to show "not
+  // read" instead of a fabricated value. This does not re-render the DOM
+  // (this project's own no-DOM-library test convention, see
+  // test_cell_channel_frontend.js's own precedent) -- it proves the real
+  // data-layer signal renderCells() reads from is correct.
+  setDisplayCellCountForHidingTest(24);
+  setCellCount(24);
+  check("N=24: activeCellCount() == 24 (channels 17-24 now active, 25-32 still hidden)",
+    activeCellCount() === 24);
+  check("N=24, channel 20's resistance never ingested: numeric('cell_resistance_20') is null -- renderCells() would show 'not read', never a fabricated 0",
+    numeric("cell_resistance_20") === null);
+  // Channel 17 (already given a real value in 11b) stays real even after
+  // the topology change -- no stale-clearing bug reintroduced by this
+  // batch's own changes.
+  check("N=24, channel 17's earlier real value is still readable (no regression from the topology change above)",
+    numeric("cell_resistance_17") === 0.06);
 }
 
 console.log(`\n${checks} checks run, ${failures} failed.`);

@@ -214,12 +214,13 @@ check("Settings ui_order has no duplicates", dupOrders.length === 0, dupOrders.m
 // safety_notes for the same protocol-capacity-vs-device-capability
 // distinction. cell_voltage_1..32 are ALL implemented and UI-visible this
 // batch (decoded from the existing 1Hz cell-block buffer, zero new reads).
-// cell_resistance_17..32 are catalog-documented only (source_only_unimplemented,
-// ui_section "none", ui_order 0 -- not actively polled this batch, see
-// their own register safety_notes) -- deliberately excluded from this
-// check by filtering to ui_section !== "none" first: a field with no UI
-// row has no "position" for a natural-order check to mean anything about.
-for (const [prefix, expectedCount] of [["cell_voltage_", 32], ["cell_resistance_", 16]]) {
+// cell_resistance_17..32 (Stage 3 bounded batch, 2026-09-17: implemented)
+// are now ALSO implemented and UI-visible (ui_section "cells", ui_order
+// 1217-1232, matching cell_resistance_1..16's own 1201-1216 convention) --
+// read via their own isolated, capability-gated command
+// (batterylifepo4.yaml, 0x126A) rather than always-on, see that command's
+// own comment for the bounded-probe policy.
+for (const [prefix, expectedCount] of [["cell_voltage_", 32], ["cell_resistance_", 32]]) {
   const rows = allFields
     .filter((x) => x.field.key.startsWith(prefix) && x.field.ui_section !== "none")
     .sort((a, b) => a.field.ui_order - b.field.ui_order);
