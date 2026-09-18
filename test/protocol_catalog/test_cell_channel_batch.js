@@ -273,12 +273,38 @@ for (let i = 0; i <= 31; i++) {
   check(`CellConWireRes${i} address ${addr} does NOT appear in the generated read plan (bespoke-excluded, not the generic pipeline's job)`,
     !readPlanYaml.includes(addr));
 }
-check("CellConWireRes0-31's own read command (0x1088, 128 bytes) is present in batterylifepo4.yaml",
-  batteryYaml.includes("0x1088, 128,"));
+check("CellConWireRes0-31's own read command (0x1088, register_count registers) is present in batterylifepo4.yaml",
+  batteryYaml.includes("0x1088, register_count,"));
 check("CellConWireRes0-31 is read on a slow cadence (interval: 300s), never 1Hz",
-  /interval:\s*300s[\s\S]{0,4000}0x1088,\s*128,/.test(batteryYaml));
+  /interval:\s*300s[\s\S]{0,5000}0x1088,\s*register_count,/.test(batteryYaml));
 check("CellConWireRes0-31 has no set_action / write path anywhere (write stays Stage 4 scope)",
   !batteryYaml.includes("set_cell_connection_wire_resistance"));
+
+// ===========================================================================
+// 7c. Register-count unit fix (2026-09-18, user-directed): the prior pass
+// passed create_read_command() a literal "128" meaning REGISTERS (256
+// bytes on the wire), double the real 64-register/128-byte block. Fixed to
+// named constants; these checks pin the fix structurally so the literal
+// "0x1088, 128," (registers, not bytes) can never silently reappear.
+// ===========================================================================
+check("CellConWireRes0-31: the old, unit-confused literal '0x1088, 128,' (128 REGISTERS = 256 bytes) does NOT appear anywhere",
+  !batteryYaml.includes("0x1088, 128,"));
+check("CellConWireRes0-31: channel_count/registers_per_channel/register_count/expected_payload_bytes are declared as named constants, not re-inlined magic numbers",
+  batteryYaml.includes("constexpr uint8_t channel_count = 32;") &&
+  batteryYaml.includes("constexpr uint8_t registers_per_channel = 2;") &&
+  batteryYaml.includes("constexpr uint16_t register_count = uint16_t(channel_count) * uint16_t(registers_per_channel);") &&
+  batteryYaml.includes("constexpr size_t expected_payload_bytes = size_t(register_count) * 2U;"));
+check("CellConWireRes0-31: the read command requests exactly register_count (64) registers, not a re-inlined literal",
+  /create_read_command\(\s*\n\s*id\(bms0\), esphome::modbus::EntityType::HOLDING,\s*\n\s*0x1088, register_count,/.test(batteryYaml));
+check("CellConWireRes0-31: response classification uses expected_payload_bytes, not a re-inlined '128U' literal",
+  batteryYaml.includes("jk_capability::classify_response(data.size(), expected_payload_bytes)") &&
+  !batteryYaml.includes("classify_response(data.size(), 128U)"));
+check("CellConWireRes0-31: the decode loop iterates channel_count channels (not a re-inlined '32'), at a registers_per_channel-derived stride (not a re-inlined '4U')",
+  batteryYaml.includes("for (uint8_t i = 0; i < channel_count; ++i)") &&
+  batteryYaml.includes("size_t(i) * (size_t(registers_per_channel) * 2U)"));
+check("CellConWireRes0-31: classify_response() itself now requires an EXACT byte-length match, not merely '>=' (extra bytes are never silently accepted)",
+  fs.readFileSync(path.join(ROOT, "components", "jk_capability", "jk_capability_core.h"), "utf8")
+    .includes("return bytes_received == bytes_expected ? ATTEMPT_RESPONSE_OK : ATTEMPT_RESPONSE_LENGTH_MISMATCH;"));
 
 // ===========================================================================
 // 7b. Diagnostic instrumentation (2026-09-18, user-directed): the
@@ -289,8 +315,8 @@ check("CellConWireRes0-31 has no set_action / write path anywhere (write stays S
 // ===========================================================================
 check("CellConWireRes0-31: exactly one 300s interval exists project-wide (instrumentation did not add a second polling loop)",
   (batteryYaml.match(/interval:\s*300s/g) || []).length === 1);
-check("CellConWireRes0-31: exactly one 0x1088,128 read command exists (instrumentation did not add a second/duplicate request)",
-  (batteryYaml.match(/0x1088, 128,/g) || []).length === 1);
+check("CellConWireRes0-31: exactly one 0x1088,register_count read command exists (instrumentation did not add a second/duplicate request)",
+  (batteryYaml.match(/0x1088, register_count,/g) || []).length === 1);
 check("CellConWireRes0-31: still gated by jk_capability::should_attempt()/record_outcome() (bounded retry policy unchanged)",
   batteryYaml.includes("jk_capability::should_attempt(ps)") &&
   /record_outcome\(ps2, success\)/.test(batteryYaml));
@@ -303,7 +329,7 @@ check("CellConWireRes0-31: a late/stale callback is checked against jk_capabilit
   batteryYaml.includes("jk_capability::callback_matches_pending_attempt("));
 check("CellConWireRes0-31: exactly one record_outcome() call site exists in the response lambda (never double-counted for one attempt)",
   (() => {
-    const start = batteryYaml.indexOf("0x1088, 128,");
+    const start = batteryYaml.indexOf("0x1088, register_count,");
     const end = batteryYaml.indexOf("id(bms0)->queue_command(std::move(command));", start);
     const scope = batteryYaml.slice(start, end);
     return (scope.match(/jk_capability::record_outcome\(/g) || []).length === 1;

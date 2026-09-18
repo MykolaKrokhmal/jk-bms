@@ -177,8 +177,18 @@ inline constexpr const char *const ATTEMPT_OUTCOME_NAMES[5] = {
 // Pure classification for an ACTUAL callback firing (never called for the
 // deadline-expired/no-callback case -- that is a direct, unclassified
 // assignment at the call site, nothing to classify since no data exists).
+// EXACT match, not a floor (2026-09-18, user-directed corrective pass --
+// "не приймай зайві байти мовчки"): for a fixed-register_count FC03 read,
+// the framework's own contract (modbus_controller.cpp's on_response calls
+// on_data_func with modbus::helpers::server_pdu_payload(response_pdu),
+// sized by the response the device actually sent for the requested
+// register_count) makes any byte count other than exactly bytes_expected
+// a real anomaly worth surfacing as RESPONSE_LENGTH_MISMATCH, not silently
+// accepted as success -- this previously masked the CellConWireRes0-31
+// register-count bug (a response long enough to clear a ">=" floor would
+// have read as success even while carrying the wrong quantity of data).
 inline AttemptOutcome classify_response(size_t bytes_received, size_t bytes_expected) {
-  return bytes_received >= bytes_expected ? ATTEMPT_RESPONSE_OK : ATTEMPT_RESPONSE_LENGTH_MISMATCH;
+  return bytes_received == bytes_expected ? ATTEMPT_RESPONSE_OK : ATTEMPT_RESPONSE_LENGTH_MISMATCH;
 }
 
 // Does a callback belonging to `callback_generation` still correspond to

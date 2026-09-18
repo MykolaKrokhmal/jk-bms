@@ -1388,9 +1388,10 @@ interval:
           id(bms0)->queue_command(std::move(command));
 
   # ---- CellConWireRes0-31 capability-gated calibration read (Stage 3
-  # bounded batch, 2026-09-17; diagnostic instrumentation added 2026-09-18,
-  # user-directed) -- a wholly separate, never-before-read address block
-  # (0x1088, 128 bytes, 32 x UINT32 calibration constants), read on a slow
+  # bounded batch, 2026-09-17; diagnostic instrumentation added 2026-09-18;
+  # register-count unit fix 2026-09-18, user-directed) -- a wholly separate,
+  # never-before-read address block (0x1088, 64 Modbus registers = 128
+  # bytes, 32 x UINT32 calibration constants), read on a slow
   # config_slow_300s cadence (never 1Hz -- these are calibration constants,
   # not live telemetry) with the exact same bounded UNKNOWN/SUPPORTED/
   # UNSUPPORTED capability policy as CellWireRes16-31 above, tracked with
@@ -1401,21 +1402,45 @@ interval:
   # READ ONLY: no set_action exists anywhere for these entities --
   # write-enablement is explicitly Stage 4 scope (see this register
   # family's own dynamic_dependency.rule in registers.canonical.json).
-  # The address (0x1088), byte count (128), function code (FC03, via
-  # EntityType::HOLDING), cadence (300s/startup_delay 10s), and bounded
-  # retry policy (jk_capability::MAX_PROBE_ATTEMPTS) are UNCHANGED by this
-  # instrumentation pass -- every addition below is either a diagnostic
-  # publish alongside an EXISTING call site, or the generation-id guard
-  # needed to satisfy "a late response must never be misattributed to a
-  # different attempt" (see jk_capability_core.h's own
-  # callback_matches_pending_attempt() comment for the full reasoning,
-  # including the confirmed ModbusCommandItem::on_response/on_error/
-  # on_no_response framework behavior this design is based on).
+  # CORRECTED (2026-09-18): create_read_command()'s count parameter is
+  # REGISTERS, not bytes (confirmed against the real esphome 2026.8.2
+  # source -- see the channel_count/registers_per_channel/register_count/
+  # expected_payload_bytes constants below). The prior pass requested 128
+  # REGISTERS (256 bytes, double the real 64-register/128-byte block) --
+  # this may be why every hardware attempt so far has failed (a too-wide
+  # FC03 request past this block's real end is a plausible cause of a
+  # Modbus exception, indistinguishable from a timeout at this call site
+  # either way), but this is NOT confirmed against real hardware yet and
+  # must not be read as such until a real BMS response is observed.
+  # The address (0x1088), function code (FC03, via EntityType::HOLDING),
+  # cadence (300s/startup_delay 10s), and bounded retry policy
+  # (jk_capability::MAX_PROBE_ATTEMPTS) are UNCHANGED by either pass --
+  # every addition below is either a diagnostic publish alongside an
+  # EXISTING call site, the generation-id guard needed to satisfy "a late
+  # response must never be misattributed to a different attempt" (see
+  # jk_capability_core.h's own callback_matches_pending_attempt() comment),
+  # or this register-count correction.
   - interval: 300s
     startup_delay: 10s
     then:
       - lambda: |-
           const uint32_t now = millis();
+          // Unit-confusion guard (2026-09-18, user-directed corrective pass):
+          // ModbusCommandItem::create_read_command()'s 4th parameter is a
+          // REGISTER count (16-bit Modbus registers), confirmed against the
+          // real esphome 2026.8.2 source (send() forwards it verbatim into
+          // create_client_pdu(function_code, start_address, register_count,
+          // ...), the literal FC03 quantity-of-registers field) -- NOT a
+          // byte count. Named explicitly here so the two units can never be
+          // silently swapped again the way the prior pass's literal "128"
+          // was (it was 128 REGISTERS = 256 bytes on the wire, double the
+          // 32 x UINT32 = 128-byte block this decode loop actually reads;
+          // protocol/registers.canonical.json's own word_count:2-per-channel
+          // agrees: 32 x 2 = 64 registers).
+          constexpr uint8_t channel_count = 32;
+          constexpr uint8_t registers_per_channel = 2;
+          constexpr uint16_t register_count = uint16_t(channel_count) * uint16_t(registers_per_channel);
+          constexpr size_t expected_payload_bytes = size_t(register_count) * 2U;
           jk_capability::ProbeState ps;
           ps.state = static_cast<jk_capability::State>(id(g_cellconwireres_capability));
           ps.consecutive_failures = id(g_cellconwireres_attempts);
@@ -1468,7 +1493,7 @@ interval:
           // callback_matches_pending_attempt().
           auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
               id(bms0), esphome::modbus::EntityType::HOLDING,
-              0x1088, 128,
+              0x1088, register_count,
               [this_attempt_generation](auto, uint16_t, const auto &data) {
                 // Counted for EVERY callback firing, including a late one
                 // for an attempt this project has already recorded as
@@ -1502,7 +1527,7 @@ interval:
                 }
 
                 const jk_capability::AttemptOutcome outcome =
-                    jk_capability::classify_response(data.size(), 128U);
+                    jk_capability::classify_response(data.size(), expected_payload_bytes);
                 const bool success = outcome == jk_capability::ATTEMPT_RESPONSE_OK;
                 id(cell_connection_wire_resistance_last_outcome)->publish_state(
                     std::string(jk_capability::ATTEMPT_OUTCOME_NAMES[outcome]));
@@ -1543,15 +1568,15 @@ interval:
                     id(cell_connection_wire_resistance_29), id(cell_connection_wire_resistance_30),
                     id(cell_connection_wire_resistance_31), id(cell_connection_wire_resistance_32)
                   };
-                  for (uint8_t i = 0; i < 32; ++i) {
-                    const size_t off = size_t(i) * 4U;
+                  for (uint8_t i = 0; i < channel_count; ++i) {
+                    const size_t off = size_t(i) * (size_t(registers_per_channel) * 2U);
                     const uint32_t microohms = (uint32_t(data[off]) << 24) | (uint32_t(data[off + 1U]) << 16) |
                                                 (uint32_t(data[off + 2U]) << 8) | uint32_t(data[off + 3U]);
                     calibration_sensors[i]->publish_state(float(microohms));
                   }
                 } else {
-                  ESP_LOGW("jk_cellconwireres", "Short CellConWireRes0-31 response: %u/128 bytes",
-                           static_cast<unsigned>(data.size()));
+                  ESP_LOGW("jk_cellconwireres", "CellConWireRes0-31 response length mismatch: %u/%u bytes",
+                           static_cast<unsigned>(data.size()), static_cast<unsigned>(expected_payload_bytes));
                 }
 
                 if (already_resolved_by_deadline) return;

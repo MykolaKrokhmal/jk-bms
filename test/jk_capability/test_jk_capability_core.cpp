@@ -260,17 +260,63 @@ void test_short_and_exception_responses_both_count_as_failures() {
 }
 
 // ===========================================================================
-// 11. classify_response(): pure boundary check between RESPONSE_OK and
+// 11. classify_response(): pure EXACT-match check between RESPONSE_OK and
 // RESPONSE_LENGTH_MISMATCH -- only ever called for a callback that
 // actually fired (a real response arrived), never for the deadline-
-// expired/no-callback case.
+// expired/no-callback case. Corrected 2026-09-18 (user-directed): a
+// response LONGER than expected must not be silently accepted either --
+// for a fixed register_count FC03 read the framework's own response size
+// is deterministic, so any mismatch (short OR long) is a real anomaly.
 // ===========================================================================
 void test_classify_response_boundary() {
   check_eq<int>(int(classify_response(128, 128)), int(ATTEMPT_RESPONSE_OK), "exact expected length: RESPONSE_OK");
-  check_eq<int>(int(classify_response(200, 128)), int(ATTEMPT_RESPONSE_OK), "more than expected (framework padding/oversized response): still RESPONSE_OK -- the real caller's own `>=` check, mirrored here");
+  check_eq<int>(int(classify_response(200, 128)), int(ATTEMPT_RESPONSE_LENGTH_MISMATCH), "more than expected: RESPONSE_LENGTH_MISMATCH -- extra bytes are never silently accepted as success (this is exactly the class of bug that let a doubled register_count request go unnoticed)");
+  check_eq<int>(int(classify_response(256, 128)), int(ATTEMPT_RESPONSE_LENGTH_MISMATCH), "exactly double the expected length (the CellConWireRes0-31 register-count bug's own shape, 256 vs 128): RESPONSE_LENGTH_MISMATCH, not RESPONSE_OK");
   check_eq<int>(int(classify_response(127, 128)), int(ATTEMPT_RESPONSE_LENGTH_MISMATCH), "one byte short: RESPONSE_LENGTH_MISMATCH");
   check_eq<int>(int(classify_response(0, 128)), int(ATTEMPT_RESPONSE_LENGTH_MISMATCH), "zero bytes (a real callback fired, but empty): RESPONSE_LENGTH_MISMATCH, not confused with 'no callback at all'");
   check_eq<int>(int(classify_response(1, 128)), int(ATTEMPT_RESPONSE_LENGTH_MISMATCH), "one byte: RESPONSE_LENGTH_MISMATCH");
+}
+
+// ===========================================================================
+// 13. CellConWireRes0-31's own channel/register/byte constants (2026-09-18,
+// user-directed register-count fix): 32 channels x 2 registers/channel = 64
+// registers = 128 bytes. These mirror the named constants declared inline
+// in batterylifepo4.yaml's own interval lambda (channel_count,
+// registers_per_channel, register_count, expected_payload_bytes) -- kept
+// here as an independent, desktop-checkable arithmetic proof that the
+// relationship between them is exactly what the wire request/decode loop
+// assume, so a future edit to any one of the YAML literals is caught even
+// though the YAML lambda body itself isn't C++-unit-testable directly.
+// ===========================================================================
+void test_cellconwireres_register_byte_arithmetic() {
+  constexpr uint8_t channel_count = 32;
+  constexpr uint8_t registers_per_channel = 2;
+  constexpr uint16_t register_count = uint16_t(channel_count) * uint16_t(registers_per_channel);
+  constexpr size_t expected_payload_bytes = size_t(register_count) * 2U;
+
+  check_eq<uint16_t>(register_count, 64, "32 channels x 2 registers/channel = 64 Modbus registers (the FC03 request's own register_count field)");
+  check_eq<size_t>(expected_payload_bytes, 128, "64 registers x 2 bytes/register = 128 bytes (the decode loop's own byte budget: 32 channels x 4 bytes/channel)");
+
+  // The prior pass's literal "128" passed where register_count now goes
+  // would have requested double the correct quantity -- proven here purely
+  // arithmetically, independent of any framework/hardware behavior.
+  check_eq<uint16_t>(uint16_t(128), uint16_t(register_count * 2), "the old literal (128 registers) equals exactly double the corrected register_count -- confirms the bug was a factor-of-2 registers/bytes unit confusion, not an unrelated off-by-some-other-amount");
+
+  // A response classified against the corrected byte budget: exactly 128
+  // bytes is success, 256 (what the OLD, buggy register_count=128 would
+  // have actually requested on the wire, register_count_old * 2) is not.
+  check_eq<int>(int(classify_response(expected_payload_bytes, expected_payload_bytes)), int(ATTEMPT_RESPONSE_OK),
+                "a real 128-byte response against the corrected 128-byte budget: RESPONSE_OK");
+  check_eq<int>(int(classify_response(256, expected_payload_bytes)), int(ATTEMPT_RESPONSE_LENGTH_MISMATCH),
+                "256 bytes (what register_count=128, the pre-fix literal, would request on the wire) against the corrected 128-byte budget: RESPONSE_LENGTH_MISMATCH -- would have masked the bug under the old '>=' semantics");
+
+  // Decode-loop bounds: the last channel's 4-byte field must end exactly
+  // at expected_payload_bytes, never past it -- a silent off-by-one in
+  // either constant would read out of bounds of a 128-byte payload.
+  const size_t last_channel_offset = size_t(channel_count - 1) * (size_t(registers_per_channel) * 2U);
+  const size_t last_channel_end = last_channel_offset + 4U;
+  check_eq<size_t>(last_channel_offset, 124, "channel 32 (index 31)'s own byte offset: 124");
+  check_eq<size_t>(last_channel_end, expected_payload_bytes, "channel 32's own 4-byte field ends exactly at expected_payload_bytes -- no out-of-bounds read, no gap left undecoded");
 }
 
 // ===========================================================================
@@ -304,6 +350,7 @@ int main() {
   test_short_and_exception_responses_both_count_as_failures();
   test_classify_response_boundary();
   test_callback_matches_pending_attempt();
+  test_cellconwireres_register_byte_arithmetic();
 
   std::printf("%d checks run, %d failed.\n", g_checks, g_failures);
   return g_failures ? 1 : 0;
