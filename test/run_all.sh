@@ -193,6 +193,10 @@ echo "=== protocol catalog: generic write-tx ACK-readback/recovery-probe registe
 node test/protocol_catalog/test_write_tx_register_count.js
 
 echo
+echo "=== protocol catalog: bespoke read (0x1200/0x126A/0x106C/0x1240/0x1470) register-count unit fix regression ==="
+node test/protocol_catalog/test_bespoke_read_register_count.js
+
+echo
 echo "=== protocol catalog: secret-leakage scan ==="
 node test/protocol_catalog/test_secret_scan.js
 
