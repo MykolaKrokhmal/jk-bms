@@ -1672,10 +1672,18 @@ interval:
               id(g_cellcount_readback_started_ms) = now;
               id(cellcount_tx_status_code)->publish_state(3.0f);  // readback_wait
 
+              // Register-count unit fix (2026-09-18, user-directed):
+              // cell_count (0x106C) is word_count=2 in
+              // protocol/registers.canonical.json -- 2 registers, 4 bytes
+              // -- matching exactly what this decode reads. The prior
+              // literal "8" was REGISTERS (16 bytes on the wire), 4x the
+              // real block.
+              constexpr uint16_t cellcount_register_count = 2;
+              constexpr size_t cellcount_expected_payload_bytes = size_t(cellcount_register_count) * 2U;
               auto cc_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-                  id(bms0), esphome::modbus::EntityType::HOLDING, 0x106C, 8,
+                  id(bms0), esphome::modbus::EntityType::HOLDING, 0x106C, cellcount_register_count,
                   [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
-                    if (data.size() >= 4) {
+                    if (data.size() == cellcount_expected_payload_bytes) {
                       const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
                                           (uint32_t(data[2]) << 8) | uint32_t(data[3]);
                       id(cell_count)->publish_state(float(v));
@@ -1684,10 +1692,16 @@ interval:
                   });
               id(bms0)->queue_command(std::move(cc_cmd));
 
+              // cell_connected_mask (0x1240) is also word_count=2 -- same
+              // 2-register/4-byte contract as cell_count above. The prior
+              // literal "4" here was REGISTERS (8 bytes on the wire), 2x
+              // the real block.
+              constexpr uint16_t mask_register_count = 2;
+              constexpr size_t mask_expected_payload_bytes = size_t(mask_register_count) * 2U;
               auto mask_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-                  id(bms0), esphome::modbus::EntityType::HOLDING, 0x1240, 4,
+                  id(bms0), esphome::modbus::EntityType::HOLDING, 0x1240, mask_register_count,
                   [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
-                    if (data.size() >= 4) {
+                    if (data.size() == mask_expected_payload_bytes) {
                       const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
                                           (uint32_t(data[2]) << 8) | uint32_t(data[3]);
                       id(cell_connected_mask)->publish_state(float(v));
@@ -1764,10 +1778,16 @@ interval:
           id(g_topology_recovery_cellcount_done) = false;
           id(g_topology_recovery_mask_done) = false;
 
+          // Register-count unit fix (2026-09-18, user-directed): same
+          // contract as the initial readback above -- cell_count (0x106C)
+          // and cell_connected_mask (0x1240) are both word_count=2 (2
+          // registers, 4 bytes each).
+          constexpr uint16_t cellcount_register_count = 2;
+          constexpr size_t cellcount_expected_payload_bytes = size_t(cellcount_register_count) * 2U;
           auto rec_cc_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-              id(bms0), esphome::modbus::EntityType::HOLDING, 0x106C, 8,
+              id(bms0), esphome::modbus::EntityType::HOLDING, 0x106C, cellcount_register_count,
               [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
-                if (data.size() >= 4) {
+                if (data.size() == cellcount_expected_payload_bytes) {
                   const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
                                       (uint32_t(data[2]) << 8) | uint32_t(data[3]);
                   id(cell_count)->publish_state(float(v));
@@ -1776,10 +1796,12 @@ interval:
               });
           id(bms0)->queue_command(std::move(rec_cc_cmd));
 
+          constexpr uint16_t mask_register_count = 2;
+          constexpr size_t mask_expected_payload_bytes = size_t(mask_register_count) * 2U;
           auto rec_mask_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-              id(bms0), esphome::modbus::EntityType::HOLDING, 0x1240, 4,
+              id(bms0), esphome::modbus::EntityType::HOLDING, 0x1240, mask_register_count,
               [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
-                if (data.size() >= 4) {
+                if (data.size() == mask_expected_payload_bytes) {
                   const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
                                       (uint32_t(data[2]) << 8) | uint32_t(data[3]);
                   id(cell_connected_mask)->publish_state(float(v));
