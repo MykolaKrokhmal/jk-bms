@@ -83,6 +83,12 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_topology" \
 "$BUILD_DIR/test_jk_topology_core"
 
 echo
+echo "=== publish-sequence simulation (decode-gate + resolve_topology, N=4/8/16/24/32 x 7 topology states, no publish-then-blank flicker) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_topology" \
+  "$REPO_ROOT/test/jk_topology/test_publish_sequence_simulation.cpp" -o "$BUILD_DIR/test_publish_sequence_simulation"
+"$BUILD_DIR/test_publish_sequence_simulation"
+
+echo
 echo "=== jk_capability_core unit tests (bounded probing, no starvation, CellWireRes16-31 / CellConWireRes0-31) ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_capability" \
   "$REPO_ROOT/test/jk_capability/test_jk_capability_core.cpp" -o "$BUILD_DIR/test_jk_capability_core"

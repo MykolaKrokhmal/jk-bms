@@ -1285,23 +1285,36 @@ interval:
                   const uint16_t milliohms =
                       (uint16_t(data[resistance_offset]) << 8) | data[resistance_offset + 1U];
 
-                  // Raw millivolts/milliohms stay available above for the
-                  // min/max-tracking loop below (unchanged, still scoped to
-                  // the deployed 16S unit's own confirmed range per the
-                  // Stage 3 batch's original note) -- only the OUTWARD
-                  // publish_state() calls are gated; the raw decode itself
-                  // is never suppressed.
+                  // Raw millivolts/milliohms are always decoded (kept
+                  // internally) regardless of the gate -- but min/max
+                  // tracking, like the publish_state() calls, must be
+                  // folded into the SAME `i < known_active_channels` gate
+                  // (2026-09-18, second-round audit, user-directed): raw
+                  // bytes for a channel beyond N are NOT a trustworthy
+                  // reading just because they happen to pass the >=500U
+                  // sanity floor (a stale/residual register value from a
+                  // now-unused channel could easily do that) -- an
+                  // unconditional min/max loop over all 16 base channels
+                  // would corrupt min_cell_voltage/max_cell_voltage/
+                  // min_voltage_cell/max_voltage_cell with data from an
+                  // inactive channel. On the currently-deployed 16S unit
+                  // this changes nothing at all (known_active_channels is
+                  // always 16 there, identical to the old unconditional
+                  // i<16 loop) -- this only matters for N<16, exercised in
+                  // test/jk_topology/test_publish_sequence_simulation.cpp,
+                  // not yet on any real hardware this project has access
+                  // to.
                   if (i < known_active_channels) {
                     voltage_sensors[i]->publish_state(millivolts * 0.001f);
                     resistance_sensors[i]->publish_state(milliohms * 0.001f);
-                  }
-                  if (millivolts >= 500U && millivolts < min_mv) {
-                    min_mv = millivolts;
-                    min_index = i + 1U;
-                  }
-                  if (millivolts >= 500U && millivolts > max_mv) {
-                    max_mv = millivolts;
-                    max_index = i + 1U;
+                    if (millivolts >= 500U && millivolts < min_mv) {
+                      min_mv = millivolts;
+                      min_index = i + 1U;
+                    }
+                    if (millivolts >= 500U && millivolts > max_mv) {
+                      max_mv = millivolts;
+                      max_index = i + 1U;
+                    }
                   }
                 }
 

@@ -64,12 +64,25 @@ check("decode callback: known_active_channels is computed from jk_topology::chan
 // ===========================================================================
 // 2. Base channels 1-16: both voltage_sensors[i] and resistance_sensors[i]
 // publish_state() calls are gated behind `i < known_active_channels` --
-// the old unconditional pair (no surrounding if) must be gone.
+// the old unconditional pair (no surrounding if) must be gone. (The plain
+// "publish pair immediately followed by an unguarded `if millivolts>=500U`"
+// text check that used to live here was retired: since the second-round
+// audit below moved min/max INSIDE the same gate, that sequential-text
+// pattern would still match even though the code is now correctly gated --
+// the real discriminator is check #80 below, which specifically requires
+// the gate's closing brace to appear BEFORE the min/max checks, not after.)
 // ===========================================================================
-check("base 1-16 loop: the OLD unconditional publish pair (no gate) is gone",
-  !/voltage_sensors\[i\]->publish_state\(millivolts \* 0\.001f\);\s*\n\s*resistance_sensors\[i\]->publish_state\(milliohms \* 0\.001f\);\s*\n\s*if \(millivolts >= 500U/.test(yaml));
 check("base 1-16 loop: voltage_sensors[i] and resistance_sensors[i] publish_state() are both wrapped in `if (i < known_active_channels)`",
-  /if \(i < known_active_channels\) \{\s*\n\s*voltage_sensors\[i\]->publish_state\(millivolts \* 0\.001f\);\s*\n\s*resistance_sensors\[i\]->publish_state\(milliohms \* 0\.001f\);\s*\n\s*\}/.test(yaml));
+  /if \(i < known_active_channels\) \{\s*\n\s*voltage_sensors\[i\]->publish_state\(millivolts \* 0\.001f\);\s*\n\s*resistance_sensors\[i\]->publish_state\(milliohms \* 0\.001f\);/.test(yaml));
+// Second-round audit (2026-09-18, user-directed): min/max-tracking is now
+// ALSO inside the same `i < known_active_channels` gate, not a separate,
+// unconditional pass -- raw bytes from an inactive channel (N<16) could
+// pass the >=500U sanity floor and corrupt min_cell_voltage/max_cell_voltage/
+// min_voltage_cell/max_voltage_cell with a non-trustworthy reading.
+check("base 1-16 loop: min/max-tracking (millivolts >= 500U comparisons) is now INSIDE the known_active_channels gate, not a separate unconditional pass",
+  /if \(i < known_active_channels\) \{\s*\n\s*voltage_sensors\[i\]->publish_state\(millivolts \* 0\.001f\);\s*\n\s*resistance_sensors\[i\]->publish_state\(milliohms \* 0\.001f\);\s*\n\s*if \(millivolts >= 500U && millivolts < min_mv\) \{\s*\n\s*min_mv = millivolts;\s*\n\s*min_index = i \+ 1U;\s*\n\s*\}\s*\n\s*if \(millivolts >= 500U && millivolts > max_mv\) \{\s*\n\s*max_mv = millivolts;\s*\n\s*max_index = i \+ 1U;\s*\n\s*\}\s*\n\s*\}\s*\n\s*\}/.test(yaml));
+check("base 1-16 loop: the OLD unconditional min/max pattern (checks running outside/after the gate) is gone",
+  !/\}\s*\n\s*if \(millivolts >= 500U && millivolts < min_mv\) \{\s*\n\s*min_mv = millivolts;\s*\n\s*min_index = i \+ 1U;\s*\n\s*\}\s*\n\s*if \(millivolts >= 500U && millivolts > max_mv\) \{\s*\n\s*max_mv = millivolts;\s*\n\s*max_index = i \+ 1U;\s*\n\s*\}\s*\n\s*\}\s*\n\s*\n\s*\/\/ Stage 3 cell-channel batch/.test(yaml));
 
 // ===========================================================================
 // 3. Extended channels 17-32: voltage_sensors_ext[i] publish_state() is
@@ -83,17 +96,14 @@ check("ext 17-32 loop: voltage_sensors_ext[i] publish_state() is wrapped in `if 
   /if \(\(16U \+ i\) < known_active_channels\) \{\s*\n\s*voltage_sensors_ext\[i\]->publish_state\(millivolts \* 0\.001f\);\s*\n\s*\}/.test(yaml));
 
 // ===========================================================================
-// 4. Raw decode is preserved internally (millivolts/milliohms locals still
-// computed unconditionally for every one of the 32 channels, feeding the
-// UNCHANGED min/max-tracking loop) -- only the OUTWARD publish_state()
-// call is gated, per instruction: "raw decode може зберігатися
+// 4. Raw decode (millivolts/milliohms) is still computed unconditionally
+// for every one of the 32 base+ext channels -- gating happens only at the
+// point values are USED (publish_state and, since the second-round audit,
+// min/max tracking too), per instruction: "raw decode може зберігатися
 // внутрішньо, але не виходить назовні як достовірний стан."
 // ===========================================================================
-check("base loop: millivolts/milliohms are still decoded unconditionally for all 16 base channels (only the publish is gated)",
+check("base loop: millivolts/milliohms are still decoded unconditionally for all 16 base channels (only downstream USE is gated)",
   yaml.includes("const uint16_t millivolts =\n                      (uint16_t(data[voltage_offset]) << 8) | data[voltage_offset + 1U];\n                  const uint16_t milliohms =\n                      (uint16_t(data[resistance_offset]) << 8) | data[resistance_offset + 1U];"));
-check("base loop: min/max-tracking (millivolts >= 500U comparisons) is untouched -- still runs for every i regardless of the new gate",
-  yaml.includes("if (millivolts >= 500U && millivolts < min_mv) {") &&
-  yaml.includes("if (millivolts >= 500U && millivolts > max_mv) {"));
 
 // ===========================================================================
 // 5. resolve_topology()'s own blank-to-NaN pass is UNCHANGED -- still the
