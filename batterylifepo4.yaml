@@ -1201,14 +1201,38 @@ interval:
           }
           id(g_cell_poll_pending) = true;
           id(g_cell_poll_started_ms) = now;
+          // Register-count unit fix (2026-09-18, user-directed): the real
+          // decoded range is 0x1200 (cell_voltage_1) through 0x1268
+          // (cell_resistance_16, register-width 16-bit each) --
+          // protocol/registers.canonical.json confirms both endpoints and
+          // every register in between, giving (0x1268-0x1200)/2+1 = 53
+          // registers = 106 bytes, matching exactly what the decode below
+          // already reads (voltage 1-16 at byte 0-31, voltage 17-32 at
+          // byte 32-63, resistance 1-16 at byte 74-105 -- the 64-73 gap
+          // is cell_connected_mask/average/delta/extrema, read separately
+          // elsewhere, never decoded here). The prior literal "106" here
+          // was REGISTERS (212 bytes on the wire, per the real esphome
+          // 2026.9.0 create_read_command()/create_client_pdu() contract),
+          // not the intended byte count -- this block still worked on
+          // real hardware because 0x1200-0x1268 is a small subrange of a
+          // much larger, densely-populated register block (through at
+          // least 0x1290/total_voltage_raw), so the prior over-request
+          // simply read extra, unused, still-valid registers; it was
+          // never a functional failure, only a wider-than-needed request.
+          constexpr uint16_t register_count = 53;
+          constexpr size_t expected_payload_bytes = size_t(register_count) * 2U;
           auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
               id(bms0), esphome::modbus::EntityType::HOLDING,
-              0x1200, 106,
+              0x1200, register_count,
               [](auto, uint16_t, const auto &data) {
                 id(g_cell_poll_pending) = false;
-                if (data.size() < 106) {
-                  ESP_LOGW("jk_cells", "Short cell response: %u/106 bytes",
-                           static_cast<unsigned>(data.size()));
+                // EXACT match, not a floor -- a fixed-register_count FC03
+                // read has a deterministic response size; anything else
+                // (short OR long) is a real anomaly, never silently
+                // accepted as a valid cell-block response.
+                if (data.size() != expected_payload_bytes) {
+                  ESP_LOGW("jk_cells", "Cell-block response length mismatch: %u/%u bytes",
+                           static_cast<unsigned>(data.size()), static_cast<unsigned>(expected_payload_bytes));
                   return;
                 }
 

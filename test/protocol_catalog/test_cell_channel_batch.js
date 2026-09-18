@@ -363,12 +363,16 @@ for (let ch = 17; ch <= 32; ch++) {
 
 // ===========================================================================
 // 9. Short/exception response safety: the channel-17-32 decode loop lives
-// INSIDE the same short-response guard the existing 1-16 decode already
+// INSIDE the same length-mismatch guard the existing 1-16 decode already
 // relies on (source-level check -- the guard's own early `return` is what
 // makes this safe, no separate bounds check needed for the new loop).
+// Guard condition text updated 2026-09-18 (register-count unit fix):
+// "data.size() < 106" (a floor) became
+// "data.size() != expected_payload_bytes" (an exact match) -- same
+// guard, same early-return safety property, corrected length semantics.
 // ===========================================================================
 {
-  const guardIdx = batteryYaml.indexOf("if (data.size() < 106)");
+  const guardIdx = batteryYaml.indexOf("if (data.size() != expected_payload_bytes) {\n                  ESP_LOGW(\"jk_cells\"");
   const shortReturnIdx = batteryYaml.indexOf("return;", guardIdx);
   const extDecodeIdx = batteryYaml.indexOf("voltage_sensors_ext[16]");
   check("the channel-17-32 decode block appears AFTER the short-response guard's own early return (same safety net as channels 1-16)",
