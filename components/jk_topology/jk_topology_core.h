@@ -160,25 +160,37 @@ struct Outputs {
   uint8_t configured = 0;  // only meaningful when have_cell_data/mask_valid/count_in_range all held
 };
 
+// Single source of truth for "how many leading channels (1..N) the
+// current candidate CellCount actually covers" -- shared by resolve()'s
+// own blanking bound below AND by the raw-decode publish path in
+// batterylifepo4.yaml's 1Hz cell-block callback (Stage 3 corrective fix,
+// 2026-09-18, user-directed: eliminate the publish-then-blank race for
+// channels beyond N, rather than only hiding it in the UI). A channel
+// index >= this count must never receive a numeric publish_state() call
+// anywhere in this project -- duplicating this computation in two places
+// (the resolver and the decode callback) would risk exactly the kind of
+// divergence this one function forecloses. Unknown/unreadable/
+// out-of-[1,32]-range CellCount returns 0 (nothing is safe to publish
+// yet) -- the same safe default resolve() already used inline before
+// this was extracted.
+inline uint8_t channel_count_from_configured(float configured_f) {
+  if (std::isnan(configured_f)) return 0;
+  const int32_t candidate_raw = int32_t(lroundf(configured_f));
+  if (candidate_raw < 1 || candidate_raw > int32_t(PROTOCOL_CHANNEL_CAPACITY)) return 0;
+  return uint8_t(candidate_raw);
+}
+
 inline Outputs resolve(const Inputs &in) {
   Outputs out;
 
   // Channel-aware blanking bound -- computed unconditionally, before any
   // branch below, from whatever candidate CellCount is currently readable
-  // (even if the rest of this function goes on to reject it). Unknown/
-  // unreadable CellCount defaults to 0 (blank everything) -- the safest
-  // default when nothing is known yet, e.g. before the very first
-  // snapshot since boot. Never "silently picks" a trusted count: this
-  // bound feeds ONLY the blanking outputs, never mask/plausibility/
-  // CONFIRMED determination below (those independently re-derive
-  // `configured` from the same read, but as their own local variable).
-  uint8_t blank_from = 0;
-  if (!std::isnan(in.configured_f)) {
-    const int32_t candidate_raw = int32_t(lroundf(in.configured_f));
-    if (candidate_raw >= 1 && candidate_raw <= int32_t(PROTOCOL_CHANNEL_CAPACITY)) {
-      blank_from = uint8_t(candidate_raw);
-    }
-  }
+  // (even if the rest of this function goes on to reject it). Never
+  // "silently picks" a trusted count: this bound feeds ONLY the blanking
+  // outputs, never mask/plausibility/CONFIRMED determination below (those
+  // independently re-derive `configured` from the same read, but as their
+  // own local variable).
+  const uint8_t blank_from = channel_count_from_configured(in.configured_f);
   out.blank_voltage_from = blank_from;
   out.blank_resistance_from = blank_from < RESISTANCE_CHANNEL_COUNT ? blank_from : RESISTANCE_CHANNEL_COUNT;
   out.display_cell_count = blank_from;

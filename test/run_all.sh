@@ -197,6 +197,10 @@ echo "=== protocol catalog: bespoke read (0x1200/0x126A/0x106C/0x1240/0x1470) re
 node test/protocol_catalog/test_bespoke_read_register_count.js
 
 echo
+echo "=== protocol catalog: inactive-channel publish-before-blank fix regression (cell_voltage 1-32 gate) ==="
+node test/protocol_catalog/test_cell_voltage_publish_gate.js
+
+echo
 echo "=== protocol catalog: secret-leakage scan ==="
 node test/protocol_catalog/test_secret_scan.js
 

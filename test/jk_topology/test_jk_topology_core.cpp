@@ -424,6 +424,43 @@ static void test_32s_fixture_is_not_a_hardware_claim() {
   check(out16.confirmed && out32.confirmed, "16S and 32S both resolve CONFIRMED via the identical code path -- no separate hardcoded mode for either");
 }
 
+// ===========================================================================
+// 9. channel_count_from_configured() -- the shared publish-gate helper
+// (Stage 3 corrective fix, 2026-09-18, user-directed): extracted so the
+// YAML decode callback's publish_state() gate and resolve()'s own
+// blank_voltage_from bound can never diverge. This is REAL production
+// code execution (the exact function batterylifepo4.yaml's decode
+// callback calls), unlike the source-text pin in
+// test/protocol_catalog/test_cell_voltage_publish_gate.js, which can only
+// check that the YAML calls this function -- not that the function itself
+// is correct. That correctness is proven here.
+// ===========================================================================
+static void test_channel_count_from_configured() {
+  check_eq<uint8_t>(channel_count_from_configured(8.0f), 8, "channel_count_from_configured(8) == 8");
+  check_eq<uint8_t>(channel_count_from_configured(16.0f), 16, "channel_count_from_configured(16) == 16");
+  check_eq<uint8_t>(channel_count_from_configured(24.0f), 24, "channel_count_from_configured(24) == 24");
+  check_eq<uint8_t>(channel_count_from_configured(32.0f), 32, "channel_count_from_configured(32) == 32 (PROTOCOL_CHANNEL_CAPACITY, inclusive)");
+  check_eq<uint8_t>(channel_count_from_configured(1.0f), 1, "channel_count_from_configured(1) == 1 (minimum valid count)");
+  check_eq<uint8_t>(channel_count_from_configured(NAN), 0, "channel_count_from_configured(NaN) == 0 -- nothing safe to publish before the first snapshot");
+  check_eq<uint8_t>(channel_count_from_configured(0.0f), 0, "channel_count_from_configured(0) == 0 -- below the valid [1,32] range");
+  check_eq<uint8_t>(channel_count_from_configured(33.0f), 0, "channel_count_from_configured(33) == 0 -- above PROTOCOL_CHANNEL_CAPACITY, rejected wholesale, never clamped to 32");
+  check_eq<uint8_t>(channel_count_from_configured(-1.0f), 0, "channel_count_from_configured(-1) == 0 -- negative, rejected");
+  check_eq<uint8_t>(channel_count_from_configured(16.4f), 16, "channel_count_from_configured(16.4) == 16 -- rounds like resolve()'s own lroundf");
+  check_eq<uint8_t>(channel_count_from_configured(15.6f), 16, "channel_count_from_configured(15.6) == 16 -- rounds up, same as resolve()'s own lroundf");
+
+  // Cross-check against resolve()'s own blank_voltage_from for every N this
+  // project's other fixtures already exercise -- proves the extraction was
+  // a pure refactor: identical result via either path, not a rewrite that
+  // could have silently drifted from the original inline logic.
+  for (uint8_t n : {4, 8, 16, 24, 32}) {
+    char desc[160];
+    const uint8_t direct = channel_count_from_configured(float(n));
+    const uint8_t via_resolve = resolve(healthy_pack(n)).blank_voltage_from;
+    std::snprintf(desc, sizeof(desc), "%dS: channel_count_from_configured() agrees with resolve()'s own blank_voltage_from (%d == %d)", n, direct, via_resolve);
+    check_eq<uint8_t>(direct, via_resolve, desc);
+  }
+}
+
 int main() {
   test_confirmed_various_topologies();
   test_display_cell_count_independent_of_confirmation_8s_16s();
@@ -443,6 +480,7 @@ int main() {
   test_write_uncertain_overrides_everything();
   test_offline_stale_communication();
   test_32s_fixture_is_not_a_hardware_claim();
+  test_channel_count_from_configured();
 
   std::printf("%d checks run, %d failed.\n", g_checks, g_failures);
   return g_failures ? 1 : 0;

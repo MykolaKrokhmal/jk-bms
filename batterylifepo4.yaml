@@ -1249,6 +1249,30 @@ interval:
                   id(cell_resistance_13), id(cell_resistance_14), id(cell_resistance_15), id(cell_resistance_16)
                 };
 
+                // Channel-aware publish gate (Stage 3 corrective fix,
+                // 2026-09-18, user-directed): the same source of truth
+                // jk_topology::resolve()'s own blanking bound already uses
+                // (id(cell_count).state, rounded/range-checked by the one
+                // shared helper both call) -- a channel index >= this count
+                // must never receive a numeric publish_state() call here,
+                // full stop. This is the actual fix, not the later
+                // resolve_topology() blank-to-NaN pass below (unchanged,
+                // still runs every cycle as a defensive backstop for paths
+                // that don't go through this decode callback at all, e.g.
+                // OFFLINE/no-fresh-decode) -- previously this decode loop
+                // published EVERY channel's raw bytes unconditionally, and
+                // resolve_topology() only blanked the out-of-range ones a
+                // few dozen ms later, producing a real, hardware-observed
+                // numeric-then-NaN flicker for every channel beyond N on
+                // every 1Hz cycle (see the 2026-09-18 hardware retest's
+                // 30-minute SSE capture). No hardcoded channel count: N
+                // comes from id(cell_count).state fresh every decode, so
+                // this scales correctly for 8S/16S/24S/32S packs and for a
+                // live CellCount change, not just the currently-deployed
+                // 16S unit.
+                const uint8_t known_active_channels =
+                    jk_topology::channel_count_from_configured(id(cell_count).state);
+
                 uint16_t min_mv = UINT16_MAX;
                 uint16_t max_mv = 0;
                 uint8_t min_index = 0;
@@ -1261,8 +1285,16 @@ interval:
                   const uint16_t milliohms =
                       (uint16_t(data[resistance_offset]) << 8) | data[resistance_offset + 1U];
 
-                  voltage_sensors[i]->publish_state(millivolts * 0.001f);
-                  resistance_sensors[i]->publish_state(milliohms * 0.001f);
+                  // Raw millivolts/milliohms stay available above for the
+                  // min/max-tracking loop below (unchanged, still scoped to
+                  // the deployed 16S unit's own confirmed range per the
+                  // Stage 3 batch's original note) -- only the OUTWARD
+                  // publish_state() calls are gated; the raw decode itself
+                  // is never suppressed.
+                  if (i < known_active_channels) {
+                    voltage_sensors[i]->publish_state(millivolts * 0.001f);
+                    resistance_sensors[i]->publish_state(milliohms * 0.001f);
+                  }
                   if (millivolts >= 500U && millivolts < min_mv) {
                     min_mv = millivolts;
                     min_index = i + 1U;
@@ -1284,10 +1316,18 @@ interval:
                 // transaction confirmation and Overview widgets, scoped to
                 // the deployed 16S unit's own confirmed range; extending
                 // that logic to protocol-capacity-only channels is out of
-                // this batch's bounded scope. resolve_topology (below)
-                // blanks these to NaN whenever topology is CONFIRMED, same
-                // "not applicable to the current connected topology"
-                // treatment channels beyond CellCount already get for 1-16.
+                // this batch's bounded scope.
+                //
+                // Publish gate (Stage 3 corrective fix, 2026-09-18,
+                // user-directed): same known_active_channels bound computed
+                // above, same reasoning -- a channel here is index 16+i
+                // overall (channel 17 = i=0), so the gate is
+                // `(16U + i) < known_active_channels`. Never published raw
+                // and left for resolve_topology (below) to blank to NaN
+                // afterward -- that produced the hardware-observed
+                // numeric-then-NaN flicker this fix removes; resolve_topology
+                // still re-blanks every cycle regardless, as an unchanged
+                // defensive backstop, not the primary mechanism anymore.
                 esphome::sensor::Sensor *const voltage_sensors_ext[16] = {
                   id(cell_voltage_17), id(cell_voltage_18), id(cell_voltage_19), id(cell_voltage_20),
                   id(cell_voltage_21), id(cell_voltage_22), id(cell_voltage_23), id(cell_voltage_24),
@@ -1298,7 +1338,9 @@ interval:
                   const size_t voltage_offset = 32U + size_t(i) * 2U;
                   const uint16_t millivolts =
                       (uint16_t(data[voltage_offset]) << 8) | data[voltage_offset + 1U];
-                  voltage_sensors_ext[i]->publish_state(millivolts * 0.001f);
+                  if ((16U + i) < known_active_channels) {
+                    voltage_sensors_ext[i]->publish_state(millivolts * 0.001f);
+                  }
                 }
 
                 if (min_index == 0U || max_index == 0U) return;
@@ -2447,10 +2489,15 @@ sensor:
   # workbook, protocol capacity, not a claim of 32S support on this
   # deployed 16S unit. Decoded from bytes ALREADY fetched by the existing
   # 0x1200/106-byte 1Hz cell-block read (no new Modbus command -- see that
-  # read's own lambda, below). resolve_topology blanks these to NaN
-  # whenever topology is CONFIRMED, the same "not applicable to the
-  # current connected topology" treatment channels beyond CellCount
-  # already get for 1-16 -- never a fabricated zero.
+  # read's own lambda, below). Gated at publish time in that same lambda
+  # (Stage 3 corrective fix, 2026-09-18, user-directed): a channel beyond
+  # the current CellCount never receives a numeric publish_state() call at
+  # all -- not "published raw, then corrected to NaN a moment later" (that
+  # was this project's own earlier behavior, and a real, hardware-observed
+  # flicker; fixed, not merely hidden in the UI). resolve_topology still
+  # re-publishes NaN on these channels every cycle as an unchanged,
+  # defensive backstop, the same "not applicable to the current connected
+  # topology" treatment channels beyond CellCount already get for 1-16.
   # 0x1220   32    UINT16    2    R    CellVol16    mV
   - platform: template
     id: cell_voltage_17
