@@ -189,6 +189,10 @@ echo "=== protocol catalog: numeric register-editor input pattern validity regre
 node test/protocol_catalog/test_input_pattern_validity.js
 
 echo
+echo "=== protocol catalog: generic write-tx ACK-readback/recovery-probe register-count unit fix regression ==="
+node test/protocol_catalog/test_write_tx_register_count.js
+
+echo
 echo "=== protocol catalog: secret-leakage scan ==="
 node test/protocol_catalog/test_secret_scan.js
 

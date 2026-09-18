@@ -1763,10 +1763,27 @@ interval:
   # test/jk_write_tx/test_jk_write_tx_core.cpp). The ONLY hardware-facing
   # work here is: issuing the forced one-shot readback the instant tick()
   # first asks for one, and freeing a terminal slot ~3s later so a later
-  # write to a different register can reuse the capacity. Register count
-  # for the readback is passed as a BYTE count (word_count*2), matching
-  # this BMS's own count convention documented above the 1s cell-block
-  # poll ("JK-PB expects the requested register count in bytes").
+  # write to a different register can reuse the capacity.
+  # CORRECTED (2026-09-18, user-directed): create_read_command()'s count
+  # parameter is Modbus REGISTERS, confirmed against the real esphome
+  # 2026.9.0 source (send() forwards it verbatim into
+  # create_client_pdu(function_code, start_address, register_count, ...),
+  # the literal FC03 quantity-of-registers field -- unchanged from
+  # 2026.8.2, independently re-verified against 2026.9.0 specifically
+  # since that is the actual HA build in use). s.word_count is ALREADY a
+  # register count (1 for a 16-bit register, 2 for a packed 32-bit pair
+  # -- see begin_write_tx's own word_count parameter and
+  # protocol/registers.canonical.json's word_count field), so it is used
+  # directly as register_count below -- the prior "JK-PB expects the
+  # register count in bytes" comment this replaces was never true of this
+  # framework call and doubled every readback/recovery-probe request
+  # (word_count*2 registers instead of word_count registers), exactly the
+  # same class of bug fixed in the CellConWireRes0-31 read (see
+  # jk_capability_core.h's AttemptOutcome module comment). Currently only
+  # word_count=2 (32-bit) is exercised in production (write_bms_u32, the
+  # only invoked generic-write entry point -- write_bms_u16 is defined but
+  # never called), so word_count=1 stays desktop-test-verified only until
+  # a real 16-bit RW field is write-enabled.
   - interval: 250ms
     then:
       - lambda: |-
@@ -1831,13 +1848,19 @@ interval:
                 now >= id(g_wtx_recovery_next_ms)[i]) {
               id(g_wtx_recovery_next_ms)[i] = now + 2000U;
               const uint16_t addr = s.address;
-              const uint16_t byte_count = uint16_t(s.word_count) * 2U;
+              // register_count is Modbus REGISTERS (word_count itself --
+              // see this interval's own module comment above);
+              // expected_payload_bytes is the separate, explicit BYTE
+              // budget used only for response-length validation/decode,
+              // never re-inlined into the wire request.
+              const uint16_t register_count = uint16_t(s.word_count);
+              const size_t expected_payload_bytes = size_t(register_count) * 2U;
               const uint32_t recovery_tx_id = s.tx_id;
               const uint16_t recovery_addr = s.address;
               const uint32_t recovery_generation = s.generation;
               auto recovery_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-                  id(bms0), esphome::modbus::EntityType::HOLDING, addr, byte_count,
-                  [i, recovery_tx_id, recovery_addr, recovery_generation](esphome::modbus::EntityType, uint16_t,
+                  id(bms0), esphome::modbus::EntityType::HOLDING, addr, register_count,
+                  [i, recovery_tx_id, recovery_addr, recovery_generation, expected_payload_bytes](esphome::modbus::EntityType, uint16_t,
                       std::span<const uint8_t> data) {
                     if (id(g_wtx_generation)[i] != recovery_generation || id(g_wtx_tx_id)[i] != recovery_tx_id ||
                         id(g_wtx_address)[i] != recovery_addr || id(g_wtx_status)[i] != jk_write_tx::WRITE_UNCERTAIN) {
@@ -1845,14 +1868,19 @@ interval:
                                unsigned(recovery_tx_id), unsigned(recovery_addr), int(i));
                       return;
                     }
-                    const size_t need = size_t(id(g_wtx_word_count)[i]) * 2;
-                    if (data.size() < need) {
-                      ESP_LOGW("jk_write_tx", "Short recovery-probe readback for tx_id=%u addr=0x%04X (%u/%u bytes)",
-                               unsigned(recovery_tx_id), unsigned(recovery_addr), unsigned(data.size()), unsigned(need));
+                    // EXACT match, not a floor (user-directed: "коротка/
+                    // зайва відповідь не підтверджує запис") -- a
+                    // fixed-register_count FC03 read has a deterministic
+                    // response size; anything else (short OR long) is a
+                    // real anomaly, never silently accepted as a valid
+                    // readback.
+                    if (data.size() != expected_payload_bytes) {
+                      ESP_LOGW("jk_write_tx", "Recovery-probe readback length mismatch for tx_id=%u addr=0x%04X (%u/%u bytes)",
+                               unsigned(recovery_tx_id), unsigned(recovery_addr), unsigned(data.size()), unsigned(expected_payload_bytes));
                       return;
                     }
                     uint32_t v = 0;
-                    for (size_t b = 0; b < need; b++) v = (v << 8) | uint32_t(data[b]);
+                    for (size_t b = 0; b < expected_payload_bytes; b++) v = (v << 8) | uint32_t(data[b]);
                     id(g_wtx_readback_raw)[i] = v;
                     const bool matches = jk_write_tx::compare_masked(id(g_wtx_requested_raw)[i], v, id(g_wtx_compare_mask)[i]);
                     id(g_wtx_status)[i] = matches ? jk_write_tx::RECOVERED_CONFIRMED : jk_write_tx::RECOVERED_MISMATCH;
@@ -1868,7 +1896,13 @@ interval:
 
             if (result.issue_readback) {
               const uint16_t addr = s.address;
-              const uint16_t byte_count = uint16_t(s.word_count) * 2U;
+              // register_count is Modbus REGISTERS (word_count itself);
+              // expected_payload_bytes is the separate BYTE budget for
+              // response-length validation/decode only -- same split as
+              // the recovery-probe read above and the CellConWireRes0-31
+              // fix this pattern is modeled on.
+              const uint16_t register_count = uint16_t(s.word_count);
+              const size_t expected_payload_bytes = size_t(register_count) * 2U;
               // Third critical audit (2026-09-10, item 6): same immutable-
               // quadruple capture-and-verify as the ACK callback above — a
               // late readback response for a transaction this slot has
@@ -1879,8 +1913,8 @@ interval:
               const uint16_t readback_addr = s.address;
               const uint32_t readback_generation = s.generation;
               auto read_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-                  id(bms0), esphome::modbus::EntityType::HOLDING, addr, byte_count,
-                  [i, readback_tx_id, readback_addr, readback_generation](esphome::modbus::EntityType, uint16_t,
+                  id(bms0), esphome::modbus::EntityType::HOLDING, addr, register_count,
+                  [i, readback_tx_id, readback_addr, readback_generation, expected_payload_bytes](esphome::modbus::EntityType, uint16_t,
                       std::span<const uint8_t> data) {
                     if (id(g_wtx_generation)[i] != readback_generation || id(g_wtx_tx_id)[i] != readback_tx_id ||
                         id(g_wtx_address)[i] != readback_addr) {
@@ -1888,15 +1922,17 @@ interval:
                                unsigned(readback_tx_id), unsigned(readback_addr), int(i));
                       return;
                     }
-                    const size_t need = size_t(id(g_wtx_word_count)[i]) * 2;
-                    if (data.size() < need) {
-                      ESP_LOGW("jk_write_tx", "Short readback for tx_id=%u addr=0x%04X (%u/%u bytes)",
+                    // EXACT match, not a floor -- same reasoning as the
+                    // recovery-probe read above: a short OR an excess
+                    // response must never confirm a write.
+                    if (data.size() != expected_payload_bytes) {
+                      ESP_LOGW("jk_write_tx", "Readback length mismatch for tx_id=%u addr=0x%04X (%u/%u bytes)",
                                unsigned(id(g_wtx_tx_id)[i]), unsigned(id(g_wtx_address)[i]),
-                               unsigned(data.size()), unsigned(need));
+                               unsigned(data.size()), unsigned(expected_payload_bytes));
                       return;
                     }
                     uint32_t v = 0;
-                    for (size_t b = 0; b < need; b++) v = (v << 8) | uint32_t(data[b]);
+                    for (size_t b = 0; b < expected_payload_bytes; b++) v = (v << 8) | uint32_t(data[b]);
                     id(g_wtx_readback_raw)[i] = v;
                     id(g_wtx_readback_done)[i] = 1;
                     // BUG FIX: a CONFIRMED transaction only ever proved the
