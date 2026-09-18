@@ -99,8 +99,10 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 bounded task (2026-09-18, user-directed MinVolCellNbr/CellWireResSta implementation): manual review of the raw pdftotext -layout extraction (BMS_RS485_Modbus_V1.1.pdf, p.9) resolved the byte offset directly -- the mechanical matcher's backward-only lookback cannot resolve a packed sibling whose own mnemonic line ('UINT8 R MaxVolCellNbr') appears BEFORE the shared offset-marker line ('0x0048 72 2'), the same matcher limitation already closed for PCLModuleSta/UART1MPRTOLNbr/UART2MPRTOLNbr on 2026-09-16. Not a protocol contradiction. Independently corroborated by the V2 workbook (row 83). Field implemented in registers.canonical.json accordingly, published RAW/unnormalized pending independent confirmation of the 0- vs 1-based indexing convention (see the field's own safety_notes).",
+      "closed_date": "2026-09-18"
     },
     {
       "parameter_id": "BalanSta",

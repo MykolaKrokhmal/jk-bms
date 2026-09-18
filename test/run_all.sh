@@ -207,6 +207,10 @@ echo "=== protocol catalog: inactive-channel publish-before-blank fix regression
 node test/protocol_catalog/test_cell_voltage_publish_gate.js
 
 echo
+echo "=== protocol catalog: MaxVolCellNbr/MinVolCellNbr (0x1248) + CellWireResSta (0x128C) read-only implementation regression ==="
+node test/protocol_catalog/test_min_max_native_and_wire_res_status.js
+
+echo
 echo "=== protocol catalog: secret-leakage scan ==="
 node test/protocol_catalog/test_secret_scan.js
 

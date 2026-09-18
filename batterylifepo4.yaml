@@ -1318,6 +1318,26 @@ interval:
                   }
                 }
 
+                // Stage 3 bounded task (2026-09-18, user-directed):
+                // MaxVolCellNbr/MinVolCellNbr, packed UINT8+UINT8 at 0x1248
+                // (byte 72-73 of this same 106-byte payload -- confirmed by
+                // byte-range arithmetic against the 53-register/106-byte
+                // request above, not assumed; see the sensor declarations'
+                // own comment for the full evidence trail). Published RAW,
+                // exactly as read off the wire (0-255) -- no `+1`/`-1`
+                // normalization, no channel-count gate: the indexing base
+                // is not independently confirmed by any source, and this
+                // is the BMS's own internal fact about whatever cells IT
+                // currently tracks, not one of this project's own 32
+                // per-channel telemetry slots, so known_active_channels
+                // (which gates the array of 32 per-channel sensors above)
+                // does not apply here. Bytes 72/73 are within bounds by
+                // construction: the exact-length guard at the top of this
+                // callback (data.size() != expected_payload_bytes -> return)
+                // already guarantees data.size() == 106 here, well past 73.
+                id(max_voltage_cell_index_native)->publish_state(float(data[72]));
+                id(min_voltage_cell_index_native)->publish_state(float(data[73]));
+
                 // Stage 3 cell-channel batch (user-directed, 2026-09-17):
                 // channels 17-32 (CellVol16-31, byte offsets 32-63) --
                 // ALREADY inside this same 106-byte response (0x1200 spans
@@ -2963,6 +2983,39 @@ sensor:
     unit_of_measurement: "mΩ"
     state_class: measurement
     accuracy_decimals: 3
+
+  # Stage 3 bounded task (2026-09-18, user-directed): MaxVolCellNbr/
+  # MinVolCellNbr, packed UINT8+UINT8 at 0x1248 (relative offset 0x0048 =
+  # byte 72-73 of the 106-byte 0x1200 payload -- already inside the
+  # existing 53-register/106-byte read above; decoded from bytes 72/73
+  # right there, zero new Modbus traffic). Confirmed by two independent
+  # primary sources (official PDF p.9, V2 workbook rows 83-84) -- address,
+  # packed UINT8+UINT8 layout, byte order (Max=high/first byte, Min=low/
+  # second byte), R access. Published RAW/unnormalized (0-255 as read off
+  # the wire) rather than as a validated 1-16 "cell number": neither
+  # source states whether the encoded value is 0-based or 1-based, and no
+  # live hardware readback of this specific native register has resolved
+  # it either -- see protocol/registers.canonical.json's own safety_notes
+  # for reg_0x1248_cell_extrema_index. Deliberately NOT blended with the
+  # already-existing, hardware-cross-validated min_voltage_cell/
+  # max_voltage_cell entities (computed locally from this project's own
+  # 1Hz scan, 1-based, verified 352/352 against firmware's own tie-break
+  # logic in the 2026-09-18 hardware retest) -- these are a second,
+  # independent, RAW native-register fact, not a replacement or a claimed
+  # match for that computed one.
+  - platform: template
+    id: max_voltage_cell_index_native
+    name: "max voltage cell index (native)"
+    update_interval: never
+    accuracy_decimals: 0
+    entity_category: diagnostic
+
+  - platform: template
+    id: min_voltage_cell_index_native
+    name: "min voltage cell index (native)"
+    update_interval: never
+    accuracy_decimals: 0
+    entity_category: diagnostic
 
   # Stage 3 bounded batch (2026-09-17): channels 17-32 (CellWireRes16-31,
   # 0x126A-0x1288) -- catalog-documented, confirmed against both the

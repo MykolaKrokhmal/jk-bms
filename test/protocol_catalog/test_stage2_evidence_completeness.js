@@ -80,11 +80,22 @@ check("exactly 1 parameter is classified derived/calculated (not a hardware regi
 // they legitimately fall out of BOTH the "resolved locator" and "open
 // blocker" buckets -- a 3rd bucket accounts for them honestly instead of
 // mis-flagging closed, implemented work as "uncovered".
+//
+// MaxVolCellNbr (2026-09-18, Stage 3 bounded task: MinVolCellNbr/
+// CellWireResSta read-only implementation) joins this bucket for the
+// EXACT same reason: its own PDF row ("UINT8 R MaxVolCellNbr") precedes
+// the shared "0x0048 72 2" offset-marker line, so the matcher's backward
+// lookback cannot resolve it -- MinVolCellNbr's own mnemonic line comes
+// AFTER that marker, so the matcher resolves it automatically and it
+// never needed this bucket at all (confirmed: MinVolCellNbr has a real
+// pdf_locator entry). Manually resolved via direct PDF (p.9) + V2
+// workbook (row 83) review this session; blocker closed accordingly.
 const canonicalKeysForEvidence = new Set(canonical.registers.flatMap((r) => r.fields).map((f) => f.key));
 const MANUALLY_RESOLVED_ID_TO_KEY = {
   PCLModuleSta: "pcl_module_sta",
   UART1MPRTOLNbr: "uart1_mprtol_nbr",
   UART2MPRTOLNbr: "uart2_mprtol_nbr",
+  MaxVolCellNbr: "max_voltage_cell_index_native",
 };
 
 const uncategorized = [];
@@ -108,8 +119,8 @@ check("every non-reserved, non-calculated parameter (260 of 265) is either PDF-r
 check("resolved + blocked + manually-resolved accounts for all 260 non-reserved/non-calculated parameters",
   resolvedCount + blockedCount + manuallyResolvedCount === 260,
   `resolved=${resolvedCount} blocked=${blockedCount} manually-resolved=${manuallyResolvedCount} total=${resolvedCount + blockedCount + manuallyResolvedCount}`);
-check("exactly 3 parameters are in the manually-resolved-and-implemented bucket (Stage 3 batch 1's blocker closures)",
-  manuallyResolvedCount === 3, `actual=${manuallyResolvedCount}`);
+check("exactly 4 parameters are in the manually-resolved-and-implemented bucket (Stage 3 batch 1's 3 blocker closures + MaxVolCellNbr, 2026-09-18)",
+  manuallyResolvedCount === 4, `actual=${manuallyResolvedCount}`);
 
 // The 3 newly-authored reserved rows must each have a REAL canonical.json
 // entry (not just a manifest classification) -- cross-checked against the
