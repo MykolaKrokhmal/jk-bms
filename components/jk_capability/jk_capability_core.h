@@ -38,6 +38,7 @@
 // record_outcome's own comment on this).
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 
 namespace jk_capability {
@@ -119,6 +120,77 @@ inline ProbeState record_outcome(ProbeState s, bool success) {
   s.consecutive_failures += 1;
   s.state = (s.consecutive_failures >= MAX_PROBE_ATTEMPTS) ? STATE_UNSUPPORTED : STATE_UNKNOWN;
   return s;
+}
+
+// ---------------------------------------------------------------------------
+// Per-attempt diagnostic instrumentation (2026-09-18, user-directed): the
+// ProbeState above answers "is this block supported", aggregated across
+// attempts -- it cannot show WHICH failure mode a single attempt hit, or
+// prove a request was genuinely issued (queue_command() only enqueues; it
+// is not evidence of actual UART transmission). This section exists to
+// give the CellConWireRes0-31 read (batterylifepo4.yaml) a per-attempt
+// outcome trail, entirely independent of, and never feeding back into,
+// the bounded-retry policy above.
+//
+// Framework research this pass (esphome/components/modbus_controller/
+// modbus_controller.h + .cpp, esphome/dev branch -- "2026.8.2" as pinned
+// in toolchain.lock.json does not exist as a real tag; verified against
+// the real, current dev-branch source instead, stated as a limitation):
+// ModbusCommandItem has THREE response-handling virtuals, not one --
+//   on_response(...)  -- success: calls on_data_func(register_type,
+//     start_address, data), where `data` is already
+//     modbus::helpers::server_pdu_payload(response_pdu) -- the framework
+//     has ALREADY stripped address/function-code/CRC before this project's
+//     callback ever sees it. Safe to treat as this register's own raw
+//     payload bytes directly; never a raw Modbus frame.
+//   on_error(...)     -- a genuine Modbus EXCEPTION response: logs via
+//     ESP_LOGW and unqueues the command. Does NOT call on_data_func.
+//   on_no_response(...) -- timeout: increments the controller's own
+//     non-response counter and may return true to have the hub silently
+//     RE-QUEUE the same frame for a retry (gated on the hub's own
+//     can_send()) before ever giving up -- one call to queue_command() on
+//     this project's side can correspond to more than one wire-level
+//     attempt underneath, invisible to this project's own code.
+// Both on_error and a fully-exhausted on_no_response leave on_data_func
+// uncalled -- from this project's own on_data_func-only callback style,
+// a genuine Modbus exception and a plain no-response timeout are
+// currently indistinguishable; both surface only as "no callback arrived
+// within our own deadline". Reaching on_error/on_no_response directly
+// would require subclassing ModbusCommandItem (they are fixed virtual
+// overrides, not settable std::function fields on the object
+// create_read_command() returns) -- a larger, compiler-unverifiable
+// change this pass deliberately does not attempt; vendor files are not
+// patched either way.
+enum AttemptOutcome : uint8_t {
+  ATTEMPT_NOT_ATTEMPTED = 0,
+  ATTEMPT_QUEUED_WAITING = 1,
+  ATTEMPT_RESPONSE_OK = 2,
+  ATTEMPT_RESPONSE_LENGTH_MISMATCH = 3,
+  ATTEMPT_DEADLINE_EXPIRED_NO_DATA_CALLBACK = 4,
+};
+
+inline constexpr const char *const ATTEMPT_OUTCOME_NAMES[5] = {
+  "NOT_ATTEMPTED", "QUEUED_WAITING", "RESPONSE_OK", "RESPONSE_LENGTH_MISMATCH",
+  "DEADLINE_EXPIRED_NO_DATA_CALLBACK"
+};
+
+// Pure classification for an ACTUAL callback firing (never called for the
+// deadline-expired/no-callback case -- that is a direct, unclassified
+// assignment at the call site, nothing to classify since no data exists).
+inline AttemptOutcome classify_response(size_t bytes_received, size_t bytes_expected) {
+  return bytes_received >= bytes_expected ? ATTEMPT_RESPONSE_OK : ATTEMPT_RESPONSE_LENGTH_MISMATCH;
+}
+
+// Does a callback belonging to `callback_generation` still correspond to
+// the attempt this project is CURRENTLY tracking (`pending_generation`)?
+// A late callback for an attempt already recorded as deadline-expired
+// must never be misattributed to a newer attempt's own bookkeeping. The
+// caller captures its own generation id BY VALUE into the (otherwise
+// captureless-by-this-project's-own-convention) response lambda -- an
+// ordinary, safe std::function capture (the id is copied into the
+// closure, no dangling reference), not a framework hook.
+inline bool callback_matches_pending_attempt(uint32_t callback_generation, uint32_t pending_generation) {
+  return callback_generation == pending_generation;
 }
 
 }  // namespace jk_capability

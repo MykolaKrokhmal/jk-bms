@@ -403,6 +403,16 @@ esphome:
             }
           };
           id(web_server_base_id)->add_handler(new ActiveGroupHandler());
+      # Diagnostic instrumentation (2026-09-18, user-directed): publish
+      # NOT_ATTEMPTED explicitly at boot, before the CellConWireRes0-31
+      # interval's own startup_delay (10s) ever fires -- otherwise this
+      # entity would simply be unpublished ("--") until the first attempt,
+      # indistinguishable from "not yet initialized". A separate, tiny
+      # lambda action (not folded into the large one above) to keep this
+      # one-line addition trivially reviewable on its own.
+      - lambda: |-
+          id(cell_connection_wire_resistance_last_outcome)->publish_state(
+              std::string(jk_capability::ATTEMPT_OUTCOME_NAMES[jk_capability::ATTEMPT_NOT_ATTEMPTED]));
 
 esp32:
   board: esp32dev
@@ -659,6 +669,38 @@ globals:
     restore_value: false
     initial_value: "false"
   - id: g_cellconwireres_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_cellconwireres_ended_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+  # Diagnostic instrumentation (2026-09-18, user-directed): does NOT change
+  # the read's own protocol contract, cadence, retry bound, or capability
+  # policy -- see the CellConWireRes0-31 interval's own comment for the
+  # full reasoning. g_cellconwireres_generation is bumped once per attempt
+  # actually queued; g_cellconwireres_pending_generation records which
+  # generation the CURRENTLY outstanding attempt (if any) belongs to -- the
+  # response lambda captures its own generation BY VALUE at queue time and
+  # compares it against this global when its callback eventually fires, so
+  # a late response for an attempt already recorded as deadline-expired
+  # can never be misattributed to a newer attempt's own bookkeeping (see
+  # jk_capability::callback_matches_pending_attempt()).
+  - id: g_cellconwireres_generation
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_cellconwireres_pending_generation
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_cellconwireres_queued_count
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: g_cellconwireres_callback_count
     type: uint32_t
     restore_value: false
     initial_value: "0"
@@ -1346,19 +1388,29 @@ interval:
           id(bms0)->queue_command(std::move(command));
 
   # ---- CellConWireRes0-31 capability-gated calibration read (Stage 3
-  # bounded batch, 2026-09-17) -- a wholly separate, never-before-read
-  # address block (0x1088, 128 bytes, 32 x UINT32 calibration constants),
-  # read on a slow config_slow_300s cadence (never 1Hz -- these are
-  # calibration constants, not live telemetry) with the exact same bounded
-  # UNKNOWN/SUPPORTED/UNSUPPORTED capability policy as CellWireRes16-31
-  # above, tracked with its own independent globals/state. NOT gated on
-  # configured CellCount -- these 32 calibration slots are a property of
-  # the BMS controller board itself, not of how many cell channels happen
-  # to be configured, so unlike the read above there is no "N doesn't need
-  # it" case to skip. READ ONLY: no set_action exists anywhere for these
-  # entities -- write-enablement is explicitly Stage 4 scope (see this
-  # register family's own dynamic_dependency.rule in
-  # registers.canonical.json).
+  # bounded batch, 2026-09-17; diagnostic instrumentation added 2026-09-18,
+  # user-directed) -- a wholly separate, never-before-read address block
+  # (0x1088, 128 bytes, 32 x UINT32 calibration constants), read on a slow
+  # config_slow_300s cadence (never 1Hz -- these are calibration constants,
+  # not live telemetry) with the exact same bounded UNKNOWN/SUPPORTED/
+  # UNSUPPORTED capability policy as CellWireRes16-31 above, tracked with
+  # its own independent globals/state. NOT gated on configured CellCount --
+  # these 32 calibration slots are a property of the BMS controller board
+  # itself, not of how many cell channels happen to be configured, so
+  # unlike the read above there is no "N doesn't need it" case to skip.
+  # READ ONLY: no set_action exists anywhere for these entities --
+  # write-enablement is explicitly Stage 4 scope (see this register
+  # family's own dynamic_dependency.rule in registers.canonical.json).
+  # The address (0x1088), byte count (128), function code (FC03, via
+  # EntityType::HOLDING), cadence (300s/startup_delay 10s), and bounded
+  # retry policy (jk_capability::MAX_PROBE_ATTEMPTS) are UNCHANGED by this
+  # instrumentation pass -- every addition below is either a diagnostic
+  # publish alongside an EXISTING call site, or the generation-id guard
+  # needed to satisfy "a late response must never be misattributed to a
+  # different attempt" (see jk_capability_core.h's own
+  # callback_matches_pending_attempt() comment for the full reasoning,
+  # including the confirmed ModbusCommandItem::on_response/on_error/
+  # on_no_response framework behavior this design is based on).
   - interval: 300s
     startup_delay: 10s
     then:
@@ -1371,23 +1423,107 @@ interval:
           if (id(g_cellconwireres_pending)) {
             if (uint32_t(now - id(g_cellconwireres_started_ms)) < 5000U) return;
             id(g_cellconwireres_pending) = false;
+            id(g_cellconwireres_ended_ms) = now;
             ps = jk_capability::record_outcome(ps, false);
             id(g_cellconwireres_capability) = static_cast<uint8_t>(ps.state);
             id(g_cellconwireres_attempts) = ps.consecutive_failures;
             id(cell_connection_wire_resistance_capability)->publish_state(
                 std::string(jk_capability::STATE_NAMES[ps.state]));
+            // No data callback arrived within our own 5s deadline for
+            // this generation -- see jk_capability_core.h's own
+            // AttemptOutcome module comment: this covers BOTH a genuine
+            // Modbus exception response and a plain non-response
+            // timeout, indistinguishable at this call site (on_error
+            // does not invoke on_data_func). A LATER, genuinely late
+            // callback for this SAME generation may still overwrite this
+            // outcome below (see the response lambda's own
+            // already_resolved_by_deadline handling) -- that is not a
+            // contradiction, it means a real response eventually did
+            // arrive, just after this project stopped waiting for it.
+            id(cell_connection_wire_resistance_last_outcome)->publish_state(
+                std::string(jk_capability::ATTEMPT_OUTCOME_NAMES[
+                    jk_capability::ATTEMPT_DEADLINE_EXPIRED_NO_DATA_CALLBACK]));
           }
 
           if (!jk_capability::should_attempt(ps)) return;
 
+          const uint32_t this_attempt_generation = ++id(g_cellconwireres_generation);
+          id(g_cellconwireres_pending_generation) = this_attempt_generation;
           id(g_cellconwireres_pending) = true;
           id(g_cellconwireres_started_ms) = now;
+          id(g_cellconwireres_queued_count) += 1;
+          id(cell_connection_wire_resistance_queued_count)->publish_state(
+              float(id(g_cellconwireres_queued_count)));
+          id(cell_connection_wire_resistance_attempt_started_uptime_s)->publish_state(
+              float(now) * 0.001f);
+          id(cell_connection_wire_resistance_last_outcome)->publish_state(
+              std::string(jk_capability::ATTEMPT_OUTCOME_NAMES[jk_capability::ATTEMPT_QUEUED_WAITING]));
+          // this_attempt_generation is captured BY VALUE below -- an
+          // ordinary, safe std::function capture (the uint32_t is copied
+          // into the closure, no dangling reference to anything on this
+          // YAML lambda's own stack frame, which ends the instant
+          // queue_command() returns). This is the only thing standing
+          // between a late response and misattribution to a newer
+          // attempt; see jk_capability_core.h's own
+          // callback_matches_pending_attempt().
           auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
               id(bms0), esphome::modbus::EntityType::HOLDING,
               0x1088, 128,
-              [](auto, uint16_t, const auto &data) {
-                id(g_cellconwireres_pending) = false;
-                const bool success = data.size() >= 128;
+              [this_attempt_generation](auto, uint16_t, const auto &data) {
+                // Counted for EVERY callback firing, including a late one
+                // for an attempt this project has already recorded as
+                // deadline-expired -- these two counters answer "did a
+                // callback ever fire, with how many bytes", independent
+                // of attribution to a specific attempt.
+                id(g_cellconwireres_callback_count) += 1;
+                id(cell_connection_wire_resistance_callback_count)->publish_state(
+                    float(id(g_cellconwireres_callback_count)));
+                // `data` is already the parsed application-layer payload
+                // -- ModbusCommandItem::on_response calls
+                // modbus::helpers::server_pdu_payload(response_pdu)
+                // before this callback ever runs, stripping address/
+                // function-code/CRC first (confirmed against the real
+                // framework source, 2026-09-18). Never a raw Modbus
+                // frame; safe to read as this register's own payload
+                // bytes directly, exactly as the decode below already
+                // assumed.
+                id(cell_connection_wire_resistance_last_response_bytes)->publish_state(
+                    float(data.size()));
+
+                if (!jk_capability::callback_matches_pending_attempt(
+                        this_attempt_generation, id(g_cellconwireres_pending_generation))) {
+                  // A response for an attempt this project has already
+                  // moved past (a NEWER attempt is now the one pending) --
+                  // the raw counters above still reflect that a callback
+                  // really did fire, but nothing else here may be
+                  // touched: not the capability state, not the
+                  // calibration sensors, not the pending flag.
+                  return;
+                }
+
+                const jk_capability::AttemptOutcome outcome =
+                    jk_capability::classify_response(data.size(), 128U);
+                const bool success = outcome == jk_capability::ATTEMPT_RESPONSE_OK;
+                id(cell_connection_wire_resistance_last_outcome)->publish_state(
+                    std::string(jk_capability::ATTEMPT_OUTCOME_NAMES[outcome]));
+
+                // Exactly one bounded-retry outcome per attempt: if our
+                // own 5s deadline already fired for THIS generation (the
+                // branch above), record_outcome() was already called for
+                // it once -- this is a genuinely late arrival for the
+                // same attempt, not a different one (the generation
+                // check above already proved that). The diagnostic
+                // outcome/byte-count fields are still updated (a real
+                // answer arrived, just late), but the bounded-retry
+                // ProbeState below is deliberately NOT touched again.
+                const bool already_resolved_by_deadline = !id(g_cellconwireres_pending);
+                if (!already_resolved_by_deadline) {
+                  id(g_cellconwireres_pending) = false;
+                  id(g_cellconwireres_ended_ms) = millis();
+                  id(cell_connection_wire_resistance_attempt_ended_uptime_s)->publish_state(
+                      float(id(g_cellconwireres_ended_ms)) * 0.001f);
+                }
+
                 if (success) {
                   esphome::sensor::Sensor *const calibration_sensors[32] = {
                     id(cell_connection_wire_resistance_1),  id(cell_connection_wire_resistance_2),
@@ -1417,6 +1553,8 @@ interval:
                   ESP_LOGW("jk_cellconwireres", "Short CellConWireRes0-31 response: %u/128 bytes",
                            static_cast<unsigned>(data.size()));
                 }
+
+                if (already_resolved_by_deadline) return;
                 jk_capability::ProbeState ps2;
                 ps2.state = static_cast<jk_capability::State>(id(g_cellconwireres_capability));
                 ps2.consecutive_failures = id(g_cellconwireres_attempts);
@@ -3064,6 +3202,65 @@ sensor:
     unit_of_measurement: "µΩ"
     accuracy_decimals: 0
 
+  # Diagnostic instrumentation (2026-09-18, user-directed) for the
+  # CellConWireRes0-31 read -- does NOT add any new Modbus traffic, new
+  # retries, or a separate polling loop; these are pure bookkeeping
+  # publishes alongside the EXISTING 300s-cadence read, at the exact same
+  # call sites that already run. See the CellConWireRes0-31 interval's own
+  # comment (below) for the full reasoning and the framework research this
+  # is based on.
+  #
+  # Diagnostic 1/5: how many attempts have actually been queue_command()'d
+  # -- proves the read is being ISSUED (queue_command() only enqueues, it
+  # is not itself proof of UART transmission -- this counter answers
+  # "issued", nothing stronger).
+  - platform: template
+    id: cell_connection_wire_resistance_queued_count
+    name: "cell connection wire resistance queued count"
+    update_interval: never
+    accuracy_decimals: 0
+
+  # Diagnostic 2/5: how many times the response callback (on_data_func)
+  # has actually fired, for ANY attempt including a late/stale one --
+  # independent of attribution to a specific attempt (see queued_count
+  # above: comparing these two counts directly shows whether callbacks are
+  # firing at all relative to how many attempts were issued).
+  - platform: template
+    id: cell_connection_wire_resistance_callback_count
+    name: "cell connection wire resistance callback count"
+    update_interval: never
+    accuracy_decimals: 0
+
+  # Diagnostic 3/5: byte length of the LAST callback payload received (any
+  # attempt, including stale). Deliberately left UNPUBLISHED until the
+  # first real callback fires -- ESPHome's own "never published" sensor
+  # state (shown as "--"/unset in this project's UI, the same convention
+  # every other not-yet-resolved diagnostic sensor here already uses) is
+  # the explicit "unknown", never a fabricated 0.
+  - platform: template
+    id: cell_connection_wire_resistance_last_response_bytes
+    name: "cell connection wire resistance last response bytes"
+    update_interval: never
+    accuracy_decimals: 0
+
+  # Diagnostic 4/5 (uptime timestamps for the CURRENT attempt's own start/
+  # end, generation-gated -- see cell_connection_wire_resistance_last_outcome,
+  # declared alongside the capability text_sensors above, for the 5th
+  # piece: the attempt's own outcome enum).
+  - platform: template
+    id: cell_connection_wire_resistance_attempt_started_uptime_s
+    name: "cell connection wire resistance attempt started uptime"
+    update_interval: never
+    unit_of_measurement: "s"
+    accuracy_decimals: 3
+
+  - platform: template
+    id: cell_connection_wire_resistance_attempt_ended_uptime_s
+    name: "cell connection wire resistance attempt ended uptime"
+    update_interval: never
+    unit_of_measurement: "s"
+    accuracy_decimals: 3
+
 
   # 0x1290 BatVol UINT32 mV, 0x1294 BatWatt UINT32 mW (never decoded --
   # every power metric is derived from voltage x current instead, see
@@ -4481,16 +4678,21 @@ text_sensor:
   # same underlying fact via whether cell_resistance_17-32 has ever
   # published a real value (see jk_bms.js's renderCells()).
   #
-  # Reading note (stall/stability retest, 2026-09-17): UNSUPPORTED here
-  # means "gave up after MAX_PROBE_ATTEMPTS consecutive failed attempts",
-  # never a confirmed protocol-level rejection. This project's own Modbus
-  # callback layer cannot distinguish an explicit exception response from
-  # a plain transport timeout/dropped response (no on_error hook exists
-  # at the ModbusCommandItem level this project uses) -- so a transient
-  # run of bus/Wi-Fi trouble can reach UNSUPPORTED exactly the same way a
-  # real firmware rejection would. Treat UNSUPPORTED as "this project
-  # could not read it this boot session", not as proof the connected
-  # firmware lacks the register.
+  # Reading note (stall/stability retest, 2026-09-17; corrected 2026-09-18
+  # after direct framework research): UNSUPPORTED here means "gave up
+  # after MAX_PROBE_ATTEMPTS consecutive failed attempts", never a
+  # confirmed protocol-level rejection. ModbusCommandItem DOES have an
+  # on_error virtual (invoked on a genuine Modbus exception response) --
+  # but it does not call on_data_func, and this project's read uses only
+  # the on_data_func-based create_read_command() factory, so a real
+  # exception response and a plain transport timeout still land
+  # identically here (see jk_capability_core.h's own AttemptOutcome
+  # module comment, and cell_connection_wire_resistance_last_outcome
+  # below for the per-attempt trail this now exposes). A transient run of
+  # bus/Wi-Fi trouble can reach UNSUPPORTED exactly the same way a real
+  # firmware rejection would. Treat UNSUPPORTED as "this project could
+  # not read it this boot session", not as proof the connected firmware
+  # lacks the register.
   - platform: template
     id: cell_wire_resistance_ext_capability
     name: "cell wire resistance extension capability"
@@ -4499,6 +4701,19 @@ text_sensor:
   - platform: template
     id: cell_connection_wire_resistance_capability
     name: "cell connection wire resistance capability"
+    update_interval: never
+
+  # Diagnostic instrumentation (2026-09-18, user-directed): per-attempt
+  # outcome trail for the CellConWireRes0-31 read, independent of the
+  # aggregated capability state above. NOT_ATTEMPTED is published
+  # explicitly at boot (on_boot:, below) so it is distinguishable from
+  # "never published" -- see jk_capability_core.h's own AttemptOutcome
+  # enum/ATTEMPT_OUTCOME_NAMES for the full state list and the framework
+  # research behind why DEADLINE_EXPIRED_NO_DATA_CALLBACK covers both a
+  # genuine Modbus exception and a plain non-response at this call site.
+  - platform: template
+    id: cell_connection_wire_resistance_last_outcome
+    name: "cell connection wire resistance last outcome"
     update_interval: never
 
   # Atomic snapshot of every currently-tracked generic write transaction

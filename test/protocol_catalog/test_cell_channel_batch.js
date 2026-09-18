@@ -276,9 +276,52 @@ for (let i = 0; i <= 31; i++) {
 check("CellConWireRes0-31's own read command (0x1088, 128 bytes) is present in batterylifepo4.yaml",
   batteryYaml.includes("0x1088, 128,"));
 check("CellConWireRes0-31 is read on a slow cadence (interval: 300s), never 1Hz",
-  /interval:\s*300s[\s\S]{0,1500}0x1088,\s*128,/.test(batteryYaml));
+  /interval:\s*300s[\s\S]{0,4000}0x1088,\s*128,/.test(batteryYaml));
 check("CellConWireRes0-31 has no set_action / write path anywhere (write stays Stage 4 scope)",
   !batteryYaml.includes("set_cell_connection_wire_resistance"));
+
+// ===========================================================================
+// 7b. Diagnostic instrumentation (2026-09-18, user-directed): the
+// CellConWireRes0-31 read's protocol contract (address, byte count,
+// function code, cadence, bounded retry policy) must be BYTE-FOR-BYTE
+// unchanged by adding diagnostics -- checked structurally, since this
+// project has no way to compile/run the real firmware this session.
+// ===========================================================================
+check("CellConWireRes0-31: exactly one 300s interval exists project-wide (instrumentation did not add a second polling loop)",
+  (batteryYaml.match(/interval:\s*300s/g) || []).length === 1);
+check("CellConWireRes0-31: exactly one 0x1088,128 read command exists (instrumentation did not add a second/duplicate request)",
+  (batteryYaml.match(/0x1088, 128,/g) || []).length === 1);
+check("CellConWireRes0-31: still gated by jk_capability::should_attempt()/record_outcome() (bounded retry policy unchanged)",
+  batteryYaml.includes("jk_capability::should_attempt(ps)") &&
+  /record_outcome\(ps2, success\)/.test(batteryYaml));
+check("CellConWireRes0-31: MAX_PROBE_ATTEMPTS is not overridden or duplicated anywhere in batterylifepo4.yaml (the ONLY bound is jk_capability_core.h's own constant)",
+  !batteryYaml.includes("MAX_PROBE_ATTEMPTS ="));
+
+check("CellConWireRes0-31: the response lambda captures its own generation id BY VALUE (misattribution guard, not a vendor patch)",
+  batteryYaml.includes("[this_attempt_generation](auto, uint16_t, const auto &data)"));
+check("CellConWireRes0-31: a late/stale callback is checked against jk_capability::callback_matches_pending_attempt() before touching any shared state",
+  batteryYaml.includes("jk_capability::callback_matches_pending_attempt("));
+check("CellConWireRes0-31: exactly one record_outcome() call site exists in the response lambda (never double-counted for one attempt)",
+  (() => {
+    const start = batteryYaml.indexOf("0x1088, 128,");
+    const end = batteryYaml.indexOf("id(bms0)->queue_command(std::move(command));", start);
+    const scope = batteryYaml.slice(start, end);
+    return (scope.match(/jk_capability::record_outcome\(/g) || []).length === 1;
+  })());
+
+check("CellConWireRes0-31: NOT_ATTEMPTED is published explicitly at boot (distinct from an unpublished entity)",
+  batteryYaml.includes("jk_capability::ATTEMPT_OUTCOME_NAMES[jk_capability::ATTEMPT_NOT_ATTEMPTED]"));
+check("CellConWireRes0-31: last_response_bytes is never force-published to 0 before the first callback (stays unpublished == explicit unknown)",
+  !batteryYaml.includes('cell_connection_wire_resistance_last_response_bytes)->publish_state(0'));
+{
+  const capabilityHeaderSrc = fs.readFileSync(path.join(ROOT, "components", "jk_capability", "jk_capability_core.h"), "utf8");
+  for (const outcome of ["NOT_ATTEMPTED", "QUEUED_WAITING", "RESPONSE_OK", "RESPONSE_LENGTH_MISMATCH", "DEADLINE_EXPIRED_NO_DATA_CALLBACK"]) {
+    check(`jk_capability_core.h's AttemptOutcome/ATTEMPT_OUTCOME_NAMES includes ${outcome}`,
+      capabilityHeaderSrc.includes(outcome));
+  }
+  check("jk_capability_core.h does NOT claim an EXCEPTION-specific state (no real hook reachable from create_read_command() without subclassing -- see its own module comment)",
+    !capabilityHeaderSrc.includes("ATTEMPT_EXCEPTION") && !capabilityHeaderSrc.includes("ATTEMPT_MODBUS_EXCEPTION"));
+}
 
 // ===========================================================================
 // 8. cell_voltage_17-32 are read via the hand-written 1Hz cell-block lambda,

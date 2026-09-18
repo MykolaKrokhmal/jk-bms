@@ -237,11 +237,18 @@ void test_short_and_exception_responses_both_count_as_failures() {
   {
     // Scenario B: a Modbus EXCEPTION response or a full non-response
     // (timeout) -- this codebase's real caller cannot tell these two
-    // apart either (no on_error hook exists at the ModbusCommandItem
-    // layer this project uses -- see batterylifepo4.yaml's own pending/
-    // elapsed-time timeout branch, modeled on the pre-existing CellCount
-    // write-transaction driver's identical ACK-timeout idiom), so both
-    // also collapse to a single record_outcome(s, false) call. Proven
+    // apart either. Correction (2026-09-18 framework research):
+    // ModbusCommandItem::on_error DOES exist as a fixed virtual override
+    // and IS invoked on a genuine exception response -- but it does not
+    // call on_data_func, so a project using only the on_data_func-based
+    // create_read_command() factory (as this one does) still cannot
+    // observe it without subclassing (not attempted this pass). See
+    // jk_capability_core.h's own AttemptOutcome module comment for the
+    // full, corrected framework citation. batterylifepo4.yaml's own
+    // pending/elapsed-time timeout branch (modeled on the pre-existing
+    // CellCount write-transaction driver's identical ACK-timeout idiom)
+    // is what both failure kinds actually fall through to -- both
+    // collapse to a single record_outcome(s, false) call. Proven
     // here to reach UNSUPPORTED via the exact same bounded path as
     // scenario A -- there is no separate, unbounded path for this kind
     // of failure.
@@ -250,6 +257,36 @@ void test_short_and_exception_responses_both_count_as_failures() {
     check_eq<uint8_t>(uint8_t(s.state), uint8_t(STATE_UNSUPPORTED), "exception/timeout failure: reaches UNSUPPORTED via the same bounded path as a short response");
     check(!should_attempt(s), "exception/timeout failure: no longer attemptable once bounded out, exactly like a short response");
   }
+}
+
+// ===========================================================================
+// 11. classify_response(): pure boundary check between RESPONSE_OK and
+// RESPONSE_LENGTH_MISMATCH -- only ever called for a callback that
+// actually fired (a real response arrived), never for the deadline-
+// expired/no-callback case.
+// ===========================================================================
+void test_classify_response_boundary() {
+  check_eq<int>(int(classify_response(128, 128)), int(ATTEMPT_RESPONSE_OK), "exact expected length: RESPONSE_OK");
+  check_eq<int>(int(classify_response(200, 128)), int(ATTEMPT_RESPONSE_OK), "more than expected (framework padding/oversized response): still RESPONSE_OK -- the real caller's own `>=` check, mirrored here");
+  check_eq<int>(int(classify_response(127, 128)), int(ATTEMPT_RESPONSE_LENGTH_MISMATCH), "one byte short: RESPONSE_LENGTH_MISMATCH");
+  check_eq<int>(int(classify_response(0, 128)), int(ATTEMPT_RESPONSE_LENGTH_MISMATCH), "zero bytes (a real callback fired, but empty): RESPONSE_LENGTH_MISMATCH, not confused with 'no callback at all'");
+  check_eq<int>(int(classify_response(1, 128)), int(ATTEMPT_RESPONSE_LENGTH_MISMATCH), "one byte: RESPONSE_LENGTH_MISMATCH");
+}
+
+// ===========================================================================
+// 12. callback_matches_pending_attempt(): the guard against misattributing
+// a late/stale response to a different (newer) attempt's own bookkeeping.
+// The real caller captures its own generation id BY VALUE into the
+// response lambda at queue time and compares it here against whatever
+// generation is CURRENTLY tracked as pending when the callback eventually
+// fires -- possibly much later, possibly after several newer attempts.
+// ===========================================================================
+void test_callback_matches_pending_attempt() {
+  check(callback_matches_pending_attempt(1, 1), "same generation: matches");
+  check(callback_matches_pending_attempt(0, 0), "generation 0 (the very first attempt, before any increment): matches itself");
+  check(!callback_matches_pending_attempt(1, 2), "a late callback for generation 1 arriving after generation 2 is already pending: does NOT match -- must not be attributed to generation 2's own bookkeeping");
+  check(!callback_matches_pending_attempt(5, 1), "a callback claiming a LATER generation than what's currently pending: does not match either (should never happen in practice -- generations only ever increase monotonically before a new attempt is queued -- but the comparison itself makes no directional assumption, only equality)");
+  check(!callback_matches_pending_attempt(1, 3), "generation 1 arriving after TWO newer attempts (2, then 3) have already been queued and are now pending: still correctly rejected, not just the immediately-next generation");
 }
 
 }  // namespace
@@ -265,6 +302,8 @@ int main() {
   test_skipped_cycle_leaves_state_unchanged();
   test_needs_cellwireres_extended_read_across_configured_n();
   test_short_and_exception_responses_both_count_as_failures();
+  test_classify_response_boundary();
+  test_callback_matches_pending_attempt();
 
   std::printf("%d checks run, %d failed.\n", g_checks, g_failures);
   return g_failures ? 1 : 0;
