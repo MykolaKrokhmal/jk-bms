@@ -449,6 +449,44 @@ logger:
   # [W][component:239]: Component modbus_controller took a long time for an operation (107 ms).
   # [W][component:240]: Components should block for at most 30 ms.
   level: INFO  # DEBUG
+  # Diagnostic instrumentation (2026-09-19, user-directed, TEMPORARY -- revert
+  # by deleting this `logs:` block and the comment above it once the recurring
+  # curl-exit-18 SSE-disconnect investigation concludes; nothing else in this
+  # file depends on it):
+  #
+  # Confirmed against the REAL ESPHome 2026.9.0 source
+  # (esphome/components/web_server_idf/web_server_idf.cpp, byte-identical to
+  # 2026.8.2 in this file) -- this ESPHome component (tag "web_server_idf",
+  # ESPHome's own Logger-routed ESP_LOGx macros, NOT ESP-IDF's native
+  # esp_log.h/esp_log_level_set) has exactly two DEBUG-level calls, both
+  # sparse/event-level, never per-telemetry-payload:
+  #   - "Event source connection closed (fd: %d)" (AsyncEventSourceResponse::
+  #     destroy) -- fires once per SSE session close, any cause. There is NO
+  #     corresponding "opened" log anywhere in this file (checked exhaustively
+  #     -- confirmed absent, not merely unfound) -- session START must be
+  #     inferred externally from the test client's own connect time.
+  #   - "send error: errno %d" (nonblocking_send helper) -- fires only on a
+  #     real socket error, never on the ordinary EAGAIN/backpressure path
+  #     (that path returns silently, no log call at all).
+  # "Closing stuck EventSource connection after N failed sends" (the
+  # MAX_CONSECUTIVE_SEND_FAILURES=2500 stuck-buffer watchdog) is already
+  # ESP_LOGW (WARN) on this same tag -- already visible at the existing
+  # global `level: INFO` above, with NO config change needed for it.
+  #
+  # Explicitly NOT reachable this way (checked, not assumed): ESP-IDF's own
+  # native httpd_sess.c (tag "httpd_sess", a real ESP-IDF SDK file, not an
+  # ESPHome component) logs LRU-purge eviction ("Closing session with fd %d")
+  # and active-socket-count at ESP_LOGD via ESP-IDF's OWN esp_log.h/
+  # esp_log_level_set -- a genuinely separate mechanism ESPHome's logger:
+  # component never calls (confirmed: no esp_log_level_set() call anywhere in
+  # esphome/components/logger's real source). Whether those specific lines
+  # ever emit depends solely on this project's compiled ESP-IDF
+  # CONFIG_LOG_DEFAULT_LEVEL, which this `logs:` key cannot change -- see the
+  # diagnostic report this commit accompanies for the proposed (NOT
+  # implemented) next-tier sdkconfig_options instrumentation if this level
+  # proves insufficient.
+  logs:
+    web_server_idf: DEBUG
 
 # If you use Home Assistant please remove this `mqtt` section and uncomment the `api` component!
 # The native API has many advantages over MQTT: https://esphome.io/components/api.html#advantages-over-mqtt

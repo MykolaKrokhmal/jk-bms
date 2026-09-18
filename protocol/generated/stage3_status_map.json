@@ -1,7 +1,7 @@
 {
   "$comment": "GENERATED -- Stage 3 (typed-petting-puzzle plan) preflight deliverable: exact address-based status of every one of the 265 manifest parameters against the CURRENT registers.canonical.json and CURRENT open protocol_blockers.json entries. NOT a mechanical manifest-count-vs-canonical-count comparison -- packed fields, aliases, and derived entities have a different structure between the two catalogs. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_stage3_status_map.js. Because this reads the CURRENT canonical/blocker state (which Stage 3 itself will change), this file's own committed content reflects one snapshot in the stage's history -- re-run this generator (and its own --check) after each canonical/blocker change within Stage 3, exactly like every other generator in this pipeline.",
   "manifest_source_sha256": "23b07669074e51b20cc1e915f202c1dd2b14f911e0da641a2091a44dc14a3ba7",
-  "canonical_source_sha256": "9daab709dfe6caffcb03a9bb0682dcf2a7205807d4478ac468773f8f162c067b",
+  "canonical_source_sha256": "53b2660657d732abea6f7b213836233a292bb60fb428263b4ea5df961dec2c8a",
   "blockers_source_sha256": "cbcfeaf131329fc9e2dd88e52fe2b95241cb7c3eeb3f993277226fed7c3b6b63",
   "parameter_count": 265,
   "counts": {
