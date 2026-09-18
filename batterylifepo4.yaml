@@ -1378,12 +1378,23 @@ interval:
 
           id(g_cellwireres_ext_pending) = true;
           id(g_cellwireres_ext_started_ms) = now;
+          // Register-count unit fix (2026-09-18, user-directed): 16
+          // channels (cell_resistance_17..32, 0x126A-0x1288), each
+          // register-width 16-bit (word_count=1 in
+          // protocol/registers.canonical.json) = 16 registers = 32 bytes,
+          // matching exactly what the decode below reads. The prior
+          // literal "32" was REGISTERS (64 bytes on the wire), double the
+          // real block.
+          constexpr uint16_t register_count = 16;
+          constexpr size_t expected_payload_bytes = size_t(register_count) * 2U;
           auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
               id(bms0), esphome::modbus::EntityType::HOLDING,
-              0x126A, 32,
+              0x126A, register_count,
               [](auto, uint16_t, const auto &data) {
                 id(g_cellwireres_ext_pending) = false;
-                const bool success = data.size() >= 32;
+                // EXACT match, not a floor -- same reasoning as
+                // CellConWireRes0-31's own fix.
+                const bool success = data.size() == expected_payload_bytes;
                 if (success) {
                   esphome::sensor::Sensor *const resistance_sensors_ext2[16] = {
                     id(cell_resistance_17), id(cell_resistance_18), id(cell_resistance_19), id(cell_resistance_20),
@@ -1397,8 +1408,8 @@ interval:
                     resistance_sensors_ext2[i]->publish_state(milliohms * 0.001f);
                   }
                 } else {
-                  ESP_LOGW("jk_cellwireres_ext", "Short CellWireRes16-31 response: %u/32 bytes",
-                           static_cast<unsigned>(data.size()));
+                  ESP_LOGW("jk_cellwireres_ext", "CellWireRes16-31 response length mismatch: %u/%u bytes",
+                           static_cast<unsigned>(data.size()), static_cast<unsigned>(expected_payload_bytes));
                 }
                 jk_capability::ProbeState ps2;
                 ps2.state = static_cast<jk_capability::State>(id(g_cellwireres_ext_capability));

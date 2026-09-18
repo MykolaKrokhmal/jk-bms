@@ -261,8 +261,8 @@ for (let i = 16; i <= 31; i++) {
   check(`CellWireRes${i} address ${addr} does NOT appear in the generated read plan (bespoke-excluded, not the generic pipeline's job)`,
     !readPlanYaml.includes(addr));
 }
-check("CellWireRes16-31's own read command (0x126A, 32 bytes) is present in batterylifepo4.yaml",
-  batteryYaml.includes("0x126A, 32,"));
+check("CellWireRes16-31's own read command (0x126A, register_count registers -- fixed 2026-09-18 from the old unit-confused '32' literal, see test_bespoke_read_register_count.js) is present in batterylifepo4.yaml",
+  batteryYaml.includes("0x126A, register_count,"));
 check("CellWireRes16-31's read is gated on configured CellCount (id(cell_count).state) via jk_capability::needs_cellwireres_extended_read(), not topology confirmation",
   batteryYaml.includes("jk_capability::needs_cellwireres_extended_read(id(cell_count).state)"));
 check("CellWireRes16-31's read is bounded by jk_capability::should_attempt()/record_outcome() (no infinite probing)",
