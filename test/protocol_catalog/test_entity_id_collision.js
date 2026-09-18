@@ -116,8 +116,15 @@ check("PROTOCOL_CATALOG.fieldMeta carries the real key format (cell_resistance_N
   /cell_resistance_1: \{ unit: "m/.test(source) && !source.includes('cell_1_wire_resistance:'));
 check("DIAGNOSTIC_ENTITY_ORDER's cell-resistance entries use the real key format (cell_resistance_N)",
   source.includes("`cell_resistance_${index + 1}`") && !source.includes("`cell_${index + 1}_wire_resistance`"));
-check("diagnosticNumberedSeries()/diagnosticEntityLabel()'s cell-resistance regexes use the real key format (cell_resistance_N)",
-  (source.match(/objectId\.match\(\/\^cell_resistance_\(\\d\+\)\$\/\)/g) || []).length === 2 &&
+// Settings/Diagnostics channel-hiding fix (2026-09-17) added a THIRD
+// legitimate use of this exact regex pattern -- cellChannelRowIndex(),
+// the metadata-driven channel-index extractor the new hiding filter
+// uses -- alongside diagnosticNumberedSeries()'s and
+// diagnosticEntityLabel()'s own pre-existing two. Count raised 2 -> 3
+// accordingly; the negative assertion (never the legacy
+// cell_(\d+)_wire_resistance wire-id form) still applies to all of them.
+check("diagnosticNumberedSeries()/diagnosticEntityLabel()/cellChannelRowIndex()'s cell-resistance regexes use the real key format (cell_resistance_N)",
+  (source.match(/objectId\.match\(\/\^cell_resistance_\(\\d\+\)\$\/\)/g) || []).length === 3 &&
   !source.includes("cell_(\\d+)_wire_resistance"));
 
 // Same bug class, same fix, for the four discrete temperature sensors

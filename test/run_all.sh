@@ -213,6 +213,10 @@ echo "=== protocol catalog: cell-channel frontend (activeCellCount adaptive hidi
 node test/protocol_catalog/test_cell_channel_frontend.js
 
 echo
+echo "=== protocol catalog: Settings/Diagnostics register-list cell-channel hiding (N=8/16/24/32, 16->8 transition, late SSE) ==="
+node test/protocol_catalog/test_diagnostic_cell_channel_hiding.js
+
+echo
 echo "=== Stage 2: settings UI mapping completeness (265/265) ==="
 node test/protocol_catalog/test_stage2_mapping_completeness.js
 

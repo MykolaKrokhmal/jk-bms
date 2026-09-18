@@ -4463,6 +4463,17 @@ text_sensor:
   # directly -- the Cells tab's own "not read" state already reflects the
   # same underlying fact via whether cell_resistance_17-32 has ever
   # published a real value (see jk_bms.js's renderCells()).
+  #
+  # Reading note (stall/stability retest, 2026-09-17): UNSUPPORTED here
+  # means "gave up after MAX_PROBE_ATTEMPTS consecutive failed attempts",
+  # never a confirmed protocol-level rejection. This project's own Modbus
+  # callback layer cannot distinguish an explicit exception response from
+  # a plain transport timeout/dropped response (no on_error hook exists
+  # at the ModbusCommandItem level this project uses) -- so a transient
+  # run of bus/Wi-Fi trouble can reach UNSUPPORTED exactly the same way a
+  # real firmware rejection would. Treat UNSUPPORTED as "this project
+  # could not read it this boot session", not as proof the connected
+  # firmware lacks the register.
   - platform: template
     id: cell_wire_resistance_ext_capability
     name: "cell wire resistance extension capability"
