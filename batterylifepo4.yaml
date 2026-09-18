@@ -445,6 +445,23 @@ logger:
 api:
   encryption:
     key: !secret jk_bms_api_key
+  # Project requirement: this device must poll the BMS and serve the web UI
+  # autonomously, without requiring a connected Home Assistant (or any other
+  # native API client). ESPHome's api: component defaults reboot_timeout to
+  # 15min -- "the amount of time to wait before rebooting when no client
+  # connects to the API" (confirmed against ESPHome's own documentation for
+  # the pinned 2026.8.2 toolchain, esphome.io/components/api.html) -- a
+  # condition this device's own web_server/SSE traffic does nothing to
+  # satisfy, since the native API (this component, TCP/protobuf) and the
+  # HTTP web_server (a completely separate component/port) are unrelated:
+  # a healthy browser/SSE connection is not a native API client connecting.
+  # Investigated as the leading hypothesis for unexplained ESP reboots
+  # observed during hardware retests with no HA instance attached
+  # (2026-09-18) -- disabled explicitly rather than left to the 15min
+  # default, which would otherwise reboot this device on a fixed cadence
+  # whenever no HA happens to be present. Encryption above stays enabled;
+  # this only removes the timeout, not the native API itself.
+  reboot_timeout: 0s
 
 # Declared explicitly (rather than left to web_server: to create implicitly)
 # so on_boot below can reach the same AsyncWebServer instance via its id and
