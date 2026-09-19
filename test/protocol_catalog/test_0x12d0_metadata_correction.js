@@ -171,23 +171,31 @@ check("no new sensor_heating_mask-adjacent entity id appears in batterylifepo4.y
 const block = readPlan.blocks.find((b) => b.address === "0x12D0");
 check("0x12D0 read-plan block still has exactly 1 field (sensor_heating_mask) -- no split, no new field",
   block && block.fields.length === 1 && block.fields[0].key === "sensor_heating_mask");
-check("read plan block_count is still 100 (unchanged -- no block added or removed by this batch)",
-  readPlan.block_count === 100);
+check("read plan block_count is 101 (100 as of this batch, +1 later: 0x1118, authored in the Stage 3 completion pass, 2026-09-20 -- unrelated to this batch's own 0x12D0 scope)",
+  readPlan.block_count === 101);
 
 // ===========================================================================
-// 6. All 8 manifest-level blockers at 0x12D0 remain OPEN -- none closed
-// by this metadata-only batch.
+// 6. All 8 manifest-level parameters at 0x12D0 remain covered by an OPEN
+// blocker -- none closed by this metadata-only batch. UPDATED (Stage 3
+// completion pass, 2026-09-20): the original single 8-name blocker was
+// split into two, once real evidence made the actual blocking reasons
+// precise instead of generic -- 7 names (architectural OVERLAPPING_MASKS
+// constraint, see that blocker's own issue text) + TempSensorAbsent alone
+// (no evidenced aggregation formula, a genuinely separate reason). Both
+// stay open; this test now checks coverage across BOTH entries, not a
+// single one.
 // ===========================================================================
 const expectedOpenIds = new Set([
   "BATTempSensor1Present", "BATTempSensor2Present", "BATTempSensor3Present",
   "BATTempSensor4Present", "BATTempSensor5Present", "Heating",
   "MOSTempSensorPresent", "TempSensorAbsent",
 ]);
-const blockerEntry = blockers.blockers.find((b) => b.address === "0x12D0");
-check("the 0x12D0 blocker entry still exists and is still status=open",
-  blockerEntry && blockerEntry.status === "open");
-check("the 0x12D0 blocker entry's parameter_id still names all 8 expected manifest parameters",
-  blockerEntry && [...expectedOpenIds].every((id) => blockerEntry.parameter_id.includes(id)));
+const blockerEntries = blockers.blockers.filter((b) => b.address === "0x12D0");
+check("at least one 0x12D0 blocker entry exists and all are status=open",
+  blockerEntries.length > 0 && blockerEntries.every((b) => b.status === "open"));
+const coveredIds = new Set(blockerEntries.flatMap((b) => b.parameter_id.split(",").map((s) => s.trim())));
+check("the 0x12D0 blocker entries together still name all 8 expected manifest parameters",
+  [...expectedOpenIds].every((id) => coveredIds.has(id)), JSON.stringify([...coveredIds]));
 
 console.log(`\n${checks} checks run, ${failures} failed.`);
 process.exit(failures ? 1 : 0);

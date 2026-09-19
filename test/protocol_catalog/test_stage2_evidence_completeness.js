@@ -107,6 +107,39 @@ const MANUALLY_RESOLVED_ID_TO_KEY = {
   BalanSta: "balancing_active",
   SOCSOH: "state_of_health",
   Charge: "charging_active",
+  // 0x1114 bit cluster (Stage 3 completion pass, 2026-09-20): all 10
+  // bits share one PDF row (p.8, offset 0x0114) whose own mnemonic-
+  // bearing sub-rows are un-anchored to a distinct per-row offset marker
+  // the mechanical matcher can key on (only "Special Charger" happened to
+  // resolve automatically -- see pdf_locators.json). The other 9,
+  // including the pre-existing ChargingFloatMode (whose own field
+  // predates this batch but never had a resolved locator either), were
+  // manually confirmed against the same PDF page + the V2 workbook
+  // (source rows 87, 123-131) this round; the stale/overbroad 0x1114
+  // blocker that used to cover the other 8 (not ChargingFloatMode, which
+  // was never in that blocker's own text -- a DIFFERENT, now-fixed
+  // matcher bug) is closed accordingly.
+  ChargingFloatMode: "charging_float_mode",
+  HeatEN: "heat_en",
+  "Disable temp-sensor": "disable_temp_sensor",
+  "GPS Heartbeat": "gps_heartbeat",
+  "Port Switch": "port_switch",
+  "LCD Always On": "lcd_always_on",
+  SmartSleep: "smart_sleep_enabled",
+  DisablePCLModule: "disable_pcl_module",
+  TimedStoredData: "timed_stored_data",
+  // 0x1118 (Stage 3 completion pass, 2026-09-20): new register, same
+  // matcher-lookback limitation as the 0x1114 cluster (one shared PDF
+  // row spanning a packed pair). Manually confirmed against PDF p.8 +
+  // V2 workbook rows 132-133.
+  TIMSmartSleep: "smart_sleep_timeout_hours",
+  DataDomainEnable0: "data_domain_enable_0",
+  // LCDBuzzerTrigger/DRY2Trigger (Stage 3 completion pass, 2026-09-20):
+  // already-implemented fields (lcd_buzzer_trigger, dry_contact_2_
+  // trigger_source) whose own blockers were stale matcher-only locator
+  // gaps -- manually confirmed against PDF p.12 this round, closed.
+  LCDBuzzerTrigger: "lcd_buzzer_trigger",
+  DRY2Trigger: "dry_contact_2_trigger_source",
 };
 
 const uncategorized = [];
@@ -130,8 +163,8 @@ check("every non-reserved, non-calculated parameter (260 of 265) is either PDF-r
 check("resolved + blocked + manually-resolved accounts for all 260 non-reserved/non-calculated parameters",
   resolvedCount + blockedCount + manuallyResolvedCount === 260,
   `resolved=${resolvedCount} blocked=${blockedCount} manually-resolved=${manuallyResolvedCount} total=${resolvedCount + blockedCount + manuallyResolvedCount}`);
-check("exactly 7 parameters are in the manually-resolved-and-implemented bucket (Stage 3 batch 1's 3 blocker closures + MaxVolCellNbr 2026-09-18 + BalanSta/SOCSOH/Charge 2026-09-19)",
-  manuallyResolvedCount === 7, `actual=${manuallyResolvedCount}`);
+check("exactly 20 parameters are in the manually-resolved-and-implemented bucket (Stage 3 batch 1's 3 blocker closures + MaxVolCellNbr 2026-09-18 + BalanSta/SOCSOH/Charge 2026-09-19 + the 9-parameter 0x1114 bit cluster + TIMSmartSleep/DataDomainEnable0/LCDBuzzerTrigger/DRY2Trigger, 2026-09-20)",
+  manuallyResolvedCount === 20, `actual=${manuallyResolvedCount}`);
 
 // The 3 newly-authored reserved rows must each have a REAL canonical.json
 // entry (not just a manifest classification) -- cross-checked against the

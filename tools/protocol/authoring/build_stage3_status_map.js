@@ -108,6 +108,28 @@ function sha256(p) { return crypto.createHash("sha256").update(fs.readFileSync(p
 // of the data this generator already reads.
 function fieldOccupiesManifestParamWirePosition(pAddr, field, registerWidthBits) {
   if (pAddr.bit_unspecified) return false; // e.g. TemperatureSensorAnomaly -- cannot match anything, even correctly-blocked ones must never silently resolve via this path
+  if (pAddr.bit !== null && pAddr.bit !== undefined && pAddr.byte_half != null) {
+    // Compound address (2026-09-20 hardening, discovered while authoring
+    // the 0x12D0 cluster): the manifest's own address-parsing convention
+    // represents "BITn of the PDF's high/low byte sub-row" as byte_half +
+    // a BYTE-RELATIVE bit (0-7), not a register-absolute one -- confirmed
+    // against 0x12D0's real manifest rows (MOSTempSensorPresent..
+    // BATTempSensor5Present, byte_half="high", bit=0..5, matching the
+    // PDF's own per-byte "BIT0".."BIT5" labels, which restart from 0 at
+    // each byte, not at the register's own bit 0). A canonical field's own
+    // shift is always register-absolute (e.g. shift=9 for high-byte bit1
+    // of a 16-bit register), so the byte-relative manifest bit must be
+    // translated to the same absolute frame before comparing: high byte
+    // bit N -> absolute shift (registerWidthBits-8)+N; low byte bit N ->
+    // absolute shift N. Only meaningful for byte_half booleans within an
+    // 8-bit sub-byte of a wider register (registerWidthBits > 8); a
+    // register that is itself exactly 8 bits wide has no "byte within a
+    // byte" concept and this branch is not reached for one (no
+    // byte_half-carrying field width_bits===8 register exists in this
+    // catalog as of this writing).
+    const absoluteShift = pAddr.byte_half === "high" ? (registerWidthBits - 8) + pAddr.bit : pAddr.bit;
+    return field.wire_type === "BIT" && field.shift === absoluteShift;
+  }
   if (pAddr.bit !== null && pAddr.bit !== undefined) {
     return field.wire_type === "BIT" && field.shift === pAddr.bit;
   }

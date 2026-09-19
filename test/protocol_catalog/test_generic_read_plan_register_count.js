@@ -81,10 +81,10 @@ for (const b of readPlan.blocks) {
 }
 check("every ORDINARY_ONE_REGISTER/ASCII_CONTIGUOUS block requests register_count === canonical word_count (no implicit 2x rule)",
   wrongOrdinary.length === 0, JSON.stringify(wrongOrdinary));
-check("there are 95 ORDINARY_ONE_REGISTER blocks", ordinaryCount === 95, `actual=${ordinaryCount}`);
+check("there are 96 ORDINARY_ONE_REGISTER blocks (95 at this round's start + 1 new: 0x1118, authored later the same round)", ordinaryCount === 96, `actual=${ordinaryCount}`);
 check("there are 4 ASCII_CONTIGUOUS blocks", asciiCount === 4, `actual=${asciiCount}`);
 check("there is exactly 1 CLUSTERED_GAP_AWARE block (0x1290)", clusteredCount === 1, `actual=${clusteredCount}`);
-check("block_count is still 100 (no block added or removed by this fix)", readPlan.block_count === 100, `actual=${readPlan.block_count}`);
+check("block_count is 101 (100 from this round's register-count fix + 1 new 0x1118 block, authored later the same round)", readPlan.block_count === 101, `actual=${readPlan.block_count}`);
 
 // ===========================================================================
 // 2. block_class/validation_policy/exception_reason machine-readable audit

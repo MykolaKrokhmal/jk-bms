@@ -251,16 +251,18 @@ const NO_LOCATORS = new Map();
 }
 
 // ===========================================================================
-// 9. Real-data corroboration: ChargingFloatMode (0x1114 bit9) is the
-// production instance of fixture #8's exact shape -- re-asserted here
-// against the REAL generated status map (not synthetic) so this file
-// also pins the specific, user-flagged distinction: this is a stale/
-// overbroad protocol_blockers.json entry (the 0x1114 blocker's own
-// parameter_id list includes ChargingFloatMode alongside 8 genuinely
-// unimplemented siblings, even though ChargingFloatMode itself has a
-// real, unique, implemented canonical field), not a matcher defect --
-// out of scope for this round (blockers file is not touched), a
-// candidate for a future, dedicated 0x1114 blocker-scoping batch.
+// 9. Real-data corroboration, UPDATED (Stage 3 completion pass,
+// 2026-09-20): ChargingFloatMode (0x1114 bit9) used to be this file's
+// production instance of fixture #8's exact shape (stale/overbroad
+// blocker forcing an otherwise-correctly-implemented field to "blocked").
+// That specific 0x1114 blocker is now CLOSED -- the user-directed Stage 3
+// completion pass authored real, evidenced canonical fields for all 8
+// sibling bits and closed the blocker entirely (see
+// test_0x1114_bit_cluster.js for the full batch's own regression
+// coverage). This section now only pins that the resolution actually
+// landed: the register has grown to 10 real fields (not a collision --
+// each occupies its own distinct bit), the blocker is closed, and
+// ChargingFloatMode itself now correctly resolves implemented_read.
 // ===========================================================================
 {
   const fs = require("fs");
@@ -272,16 +274,16 @@ const NO_LOCATORS = new Map();
 
   const reg1114 = canonical.registers.find((r) => r.address === "0x1114");
   const chargingFloatField = reg1114 && reg1114.fields.find((f) => f.key === "charging_float_mode");
-  check("registers.canonical.json still has exactly one field at 0x1114 (charging_float_mode) -- ChargingFloatMode's own wire-position match is genuinely unique in production, not a collision",
-    reg1114 && reg1114.fields.length === 1 && chargingFloatField && chargingFloatField.implementation_status === "implemented");
+  check("registers.canonical.json now has 10 fields at 0x1114 (9 new bits + pre-existing charging_float_mode), each at its own distinct bit -- no collision",
+    reg1114 && reg1114.fields.length === 10 && chargingFloatField && chargingFloatField.implementation_status === "implemented");
 
-  const blocker1114 = blockers.blockers.find((b) => b.address === "0x1114" && b.status === "open");
-  check("the open 0x1114 blocker's parameter_id list still names ChargingFloatMode alongside its genuinely-unimplemented siblings (the stale/overbroad condition this fixture documents)",
-    blocker1114 && blocker1114.parameter_id.split(",").map((s) => s.trim()).includes("ChargingFloatMode"));
+  const blocker1114 = blockers.blockers.find((b) => b.address === "0x1114");
+  check("the 0x1114 blocker is now CLOSED (Stage 3 completion pass, 2026-09-20) -- the stale/overbroad condition this fixture originally documented is resolved",
+    blocker1114 && blocker1114.status === "closed");
 
   const chargingFloatEntry = statusMap.parameters.find((p) => p.id === "ChargingFloatMode");
-  check("ChargingFloatMode's generated status is 'blocked' (blocker precedence), NOT 'implemented_read' -- confirms this is a blocker-scoping issue, not a matcher false-negative",
-    chargingFloatEntry && chargingFloatEntry.status === "blocked", JSON.stringify(chargingFloatEntry));
+  check("ChargingFloatMode's generated status is now 'implemented_read' (blocker closed, its own exact-match field drives classification correctly)",
+    chargingFloatEntry && chargingFloatEntry.status === "implemented_read", JSON.stringify(chargingFloatEntry));
 }
 
 // ===========================================================================
@@ -342,21 +344,30 @@ const NO_LOCATORS = new Map();
 }
 
 // ===========================================================================
-// 11. Given zero production collisions (checks 10 above), the real
-// generated status map's counts must be unchanged from the pre-hardening
-// baseline: 182 implemented_read / 50 blocked / 18 implemented_write_
-// confirmed / 10 missing / 4 reserved / 1 derived_not_a_register, summing
-// to 265 -- this hardening pass reshuffles no real classification.
+// 11. Given zero production collisions (checks 10 above), the collision-
+// hardening pass ITSELF reshuffled no real classification -- its own
+// baseline was, and remains, 182/50/18/10/4/1. The baseline asserted
+// here has since moved to 196/40/18/6/4/1 (Stage 3 completion pass,
+// 2026-09-20), through several deliberate, real, later catalog/blocker
+// changes: the 0x1114 bit-cluster batch (+10 implemented_read, -9
+// blocked, -1 missing), AlarmBatUVP joining the pre-existing 0x12A0
+// alarm-bits blocker (+1 blocked, -1 missing), closing the stale
+// LCDBuzzerTrigger/DRY2Trigger locator-only blockers (+2 implemented_read,
+// -2 blocked), and adding a precise architectural blocker for
+// UART1MPRTOLEnable/UARTMPRTOLEnable[0-15] (+2 blocked, -2 missing, moving
+// them out of bare "missing" into a real, documented blocker) -- none of
+// this is a regression of this file's own collision-hardening property
+// (checks 1-10 above continue to verify independently of this count).
 // ===========================================================================
 {
   const fs = require("fs");
   const path = require("path");
   const ROOT = path.join(__dirname, "..", "..");
   const statusMap = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "stage3_status_map.json"), "utf8"));
-  const expected = { implemented_read: 182, blocked: 50, implemented_write_confirmed: 18, missing: 10, reserved: 4, derived_not_a_register: 1 };
+  const expected = { implemented_read: 196, blocked: 40, implemented_write_confirmed: 18, missing: 6, reserved: 4, derived_not_a_register: 1 };
   const countsMatch = Object.keys(expected).length === Object.keys(statusMap.counts).length &&
     Object.entries(expected).every(([k, v]) => statusMap.counts[k] === v);
-  check("real generated stage3_status_map.json counts are unchanged by this hardening pass (182/50/18/10/4/1, sum 265)",
+  check("real generated stage3_status_map.json counts match the current baseline (196/40/18/6/4/1, sum 265, updated by the 0x1114 batch, AlarmBatUVP, LCDBuzzerTrigger/DRY2Trigger closures, the UART architectural blocker, and the new 0x1118 register)",
     countsMatch, JSON.stringify(statusMap.counts));
   check("no AMBIGUOUS note appears anywhere in the real generated status map (production has zero collisions)",
     !statusMap.parameters.some((p) => /AMBIGUOUS/.test(p.note)));

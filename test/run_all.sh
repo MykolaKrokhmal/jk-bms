@@ -219,6 +219,10 @@ echo "=== protocol catalog: 0x12D0 sensor_heating_mask metadata correction regre
 node test/protocol_catalog/test_0x12d0_metadata_correction.js
 
 echo
+echo "=== protocol catalog: OVERLAPPING_MASKS architectural blocker (0x12D0/0x12A0 bit-projection gap, reproduced against the real checker) ==="
+node test/protocol_catalog/test_overlapping_masks_architectural_blocker.js
+
+echo
 echo "=== protocol catalog: secret-leakage scan ==="
 node test/protocol_catalog/test_secret_scan.js
 
@@ -253,6 +257,14 @@ node test/protocol_catalog/test_stage3_status_map_exact_identity.js
 echo
 echo "=== Stage 3: build_stage3_status_map.js wire-position collision hardening (ambiguity guard + terminology) ==="
 node test/protocol_catalog/test_stage3_status_map_collision_hardening.js
+
+echo
+echo "=== Stage 3: 0x1114 read-only bit-cluster (HeatEN..TimedStoredData + ChargingFloatMode unblocked) ==="
+node test/protocol_catalog/test_0x1114_bit_cluster.js
+
+echo
+echo "=== Stage 3: 0x1114 read-only bit-cluster (HeatEN..TimedStoredData + ChargingFloatMode unblocked) ==="
+node test/protocol_catalog/test_0x1114_bit_cluster.js
 
 echo
 echo "=== Stage 2: settings UI mapping completeness (265/265) ==="

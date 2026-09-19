@@ -63,12 +63,12 @@
       "opened_date": "2026-09-16"
     },
     {
-      "parameter_id": "Alarm Mask,AlarmBatOVP,AlarmCPUAuxCommuErr,AlarmCellOVP,AlarmCellQuantity,AlarmCellUVP,AlarmChOCP,AlarmChOTP,AlarmChSCP,AlarmChUTP,AlarmChargeMOS,AlarmCurSensorErr,AlarmDchOCP,AlarmDchOTP,AlarmDchSCP,AlarmDischargeMOS,AlarmMosOTP,AlarmWireRes,BatteryOverTempAlarm,DischargeOnFailed,GPSDisconneted,ModifyPWDInTime",
+      "parameter_id": "Alarm Mask,AlarmBatOVP,AlarmCPUAuxCommuErr,AlarmCellOVP,AlarmCellQuantity,AlarmCellUVP,AlarmChOCP,AlarmChOTP,AlarmChSCP,AlarmChUTP,AlarmChargeMOS,AlarmCurSensorErr,AlarmDchOCP,AlarmDchOTP,AlarmDchSCP,AlarmDischargeMOS,AlarmMosOTP,AlarmWireRes,BatteryOverTempAlarm,DischargeOnFailed,GPSDisconneted,ModifyPWDInTime,AlarmBatUVP",
       "address": "0x12A0",
-      "issue": "The 0x12A0 32-bit alarm/status bitmask's individual bit rows (this entry: 22 of them) print their shared register offset only once, on a row several lines above a long run of per-bit description lines -- confirmed by direct inspection. tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher intentionally does not search past another mnemonic-bearing line while looking backward for a shared offset (to stay conservative and avoid a wrong cross-group match), so this large a sibling group exceeds its lookback window. Not a data-availability gap -- the PDF genuinely documents these bits, just not in a layout this conservative matcher resolves.",
-      "evidence_needed": "Either a widened, still-conservative matcher pass scoped specifically to this one register's bit-list layout, or a one-time manual page-level verification against the PDF for this specific register.",
+      "issue": "UPDATED (Stage 3 completion pass, 2026-09-20): the ORIGINAL issue (mechanical PDF-locator matcher lookback-window limitation) is a real, confirmed layout artifact, not a data gap -- the PDF genuinely documents all 23 of these bits (22 original + AlarmBatUVP, added to this list this round: it was previously omitted from this blocker by a since-fixed classifier bug -- see build_stage3_status_map.js's 2026-09-19 fail-open fix -- not because its own evidence differs from its 22 siblings). The REAL, now-precise blocker is architectural, not evidentiary, and IDENTICAL to the one independently found this round at 0x12D0 (see that blocker's own issue text for the full mechanism): registers.canonical.json's OVERLAPPING_MASKS invariant unconditionally forbids a new bit-level field from coexisting with the existing RAW, whole-register 'alarms_bitmask' field (mask=0xFFFFFFFF, already covering every bit these 23 parameters would also cover). alarms_bitmask is the established, real entity publishing this register's actual wire data today -- these 23 alarm bits genuinely cannot get their own canonical field under the current architecture, regardless of how good their PDF/workbook evidence is.",
+      "evidence_needed": "Not evidentiary -- architectural, same as 0x12D0's own entry: a generalized read-plan-level field-projection mechanism (parallel to EXACT_DECIMAL_FIELDS/__legacy_companion) extended to arbitrary bit sub-ranges and recognized by build_stage3_status_map.js's classifier.",
       "owner": "stage2-pdf-locator-followup",
-      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "closure_criterion": "The generalized bit/byte projection mechanism is designed and implemented (or an alternative architectural resolution is deliberately chosen and documented), each of these 23 parameters gets a real, evidenced projection under it, and build_stage3_status_map.js correctly classifies each as implemented_read.",
       "status": "open",
       "opened_date": "2026-09-16"
     },
@@ -79,8 +79,10 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 completion pass (2026-09-20, user-directed): direct manual review of BMS_RS485_Modbus_V1.1.pdf p.8 confirms the mechanical matcher's finding was a coverage gap, not a protocol contradiction -- the PDF explicitly lists 0x0114 (absolute 0x1114) as a packed UINT16 with BIT0-BIT9 sub-rows, every one marked RW, with explicit '1: On / 0: Off' semantics for every bit except BIT3 (Port Switch), which is an explicit 2-state mode selector ('1: RS485; 0: CAN'), not a generic boolean. Independently corroborated by bms_v1_1_manifest.json / the V2 workbook (source rows 123-131, all access=RW, verification_status=confirmed_v1_1). All 9 listed parameters plus ChargingFloatMode (already implemented, its own field predates this batch) now have real, read-only canonical fields on the existing 0x1114 register (registers.canonical.json) -- zero new Modbus bus requests, same register already read for ChargingFloatMode. Each new field's own dynamic_dependency.resolved=false deliberately keeps effective_access at 'r' despite evidence being 'confirmed' -- write-enablement stays Stage 4 scope, not decided by evidence sufficiency.",
+      "closed_date": "2026-09-20"
     },
     {
       "parameter_id": "DataDomainEnable0,TIMSmartSleep",
@@ -89,8 +91,10 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 completion pass (2026-09-20, user-directed): direct manual review of BMS_RS485_Modbus_V1.1.pdf p.8 confirms this address (0x1118) as a packed UINT8+UINT8 register: high byte TIMSmartSleep (RW, hours), low byte DataDomainEnable0 (R, raw service byte, no per-bit legend given by any source). Independently corroborated by the V2 workbook (rows 132-133). Both fields authored as real read-only canonical fields (smart_sleep_timeout_hours, data_domain_enable_0) -- effective_access 'r' for both (TIMSmartSleep's RW declaration deliberately not write-enabled this stage), DataDomainEnable0 published RAW with no invented bit semantics. Uses the existing 0x1118 read; zero new bus traffic.",
+      "closed_date": "2026-09-20"
     },
     {
       "parameter_id": "MaxVolCellNbr",
@@ -141,12 +145,12 @@
       "closed_date": "2026-09-19"
     },
     {
-      "parameter_id": "BATTempSensor1Present,BATTempSensor2Present,BATTempSensor3Present,BATTempSensor4Present,BATTempSensor5Present,Heating,MOSTempSensorPresent,TempSensorAbsent",
+      "parameter_id": "BATTempSensor1Present,BATTempSensor2Present,BATTempSensor3Present,BATTempSensor4Present,BATTempSensor5Present,Heating,MOSTempSensorPresent",
       "address": "0x12D0",
-      "issue": "tools/protocol/authoring/build_pdf_locators.js's mechanical address+mnemonic matcher found no PDF table line (same-line or nearest-preceding-offset packed-sibling) containing both the expected offset and the mnemonic for 8 parameter(s) at this address. The document's own stated coverage (protocol/evidence/sources.json's official_jk_documentation entry: 208 addresses across the same 4 blocks this address falls in) makes outright absence unlikely, but this is not confirmed -- treated as an unresolved locator, not asserted either way.",
-      "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
-      "owner": "stage2-pdf-locator-followup",
-      "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "issue": "UPDATED (Stage 3 completion pass, 2026-09-20): the ORIGINAL issue (mechanical PDF-locator matcher failure) is resolved -- direct manual review of BMS_RS485_Modbus_V1.1.pdf p.11-12 (already reflected in this register's own safety_notes since 2026-09-19) gives dual-source, high-confidence evidence for Heating (low byte, 1=on/0=off) and BATTempSensor1-5Present (high byte bits 1-5, 1=present/0=absent), and single-source evidence for MOSTempSensorPresent (high byte bit 0, polarity from the V2 workbook alone -- the PDF's own row carries no value legend). The REAL, now-precise blocker is architectural, not evidentiary: registers.canonical.json's own OVERLAPPING_MASKS invariant (tools/protocol/lib/semantic-checks.js) unconditionally forbids two fields on the same register from covering overlapping bit ranges -- confirmed directly this round by attempting to author these 7 fields as individual BIT/byte sub-fields alongside the existing RAW, whole-register 'sensor_heating_mask' field (mask=0xFFFF, covering every bit these 7 parameters would also cover) and observing the real generator reject it with 7 OVERLAPPING_MASKS errors. sensor_heating_mask must not be changed (it is the established, hardware-observed RAW entity, and per this round's own explicit instruction is out of scope to touch) -- so these 7 parameters cannot get their own canonical field under the current architecture, even though their own evidence is otherwise sufficient. The identical constraint independently blocks 0x12A0's individual alarm bits alongside its own RAW 'alarms_bitmask' field -- not a one-off, a systemic architectural gap.",
+      "evidence_needed": "Not evidentiary -- architectural. Needed: a generalized read-plan-level field-projection mechanism (parallel to tools/protocol/generate_read_plan.js's existing EXACT_DECIMAL_FIELDS/__legacy_companion pattern, which already publishes a second entity from an already-covered field's own bytes without a second overlapping canonical field) extended to (a) arbitrary bit/byte sub-ranges, not just decimal-precision companions, and (b) recognized by tools/protocol/authoring/build_stage3_status_map.js's classifier as a legitimate wire-position match, so these parameters can classify implemented_read once the projection exists -- today the status-map only ever reads registers.canonical.json's own field list.",
+      "owner": "stage3-architecture-followup",
+      "closure_criterion": "The generalized bit/byte projection mechanism is designed and implemented (or an alternative architectural resolution is deliberately chosen and documented), each of these 7 parameters gets a real, evidenced projection under it, and build_stage3_status_map.js correctly classifies each as implemented_read.",
       "status": "open",
       "opened_date": "2026-09-16"
     },
@@ -193,8 +197,10 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 completion pass (2026-09-20, user-directed): direct manual review of BMS_RS485_Modbus_V1.1.pdf p.12 confirms this register (0x1400 block, absolute 0x14E4) is genuinely documented -- packed UINT8+UINT8, RW, matching the field's own already-implemented canonical entry exactly (address, width, packed-sibling layout). Not a data-availability gap, only the mechanical matcher's own lookback limitation (same class already closed for PCLModuleSta/UART1MPRTOLNbr/UART2MPRTOLNbr on 2026-09-16). The field was already implemented (project_implementation + workbook evidence) before this closure -- this only adds the missing PDF-page confirmation and closes the stale locator blocker. The enum meaning of each 0-255/0-12 trigger-source code remains genuinely unconfirmed by any available source (unchanged, unrelated to this closure -- see the field's own dynamic_dependency note, which stays resolved=false).",
+      "closed_date": "2026-09-20"
     },
     {
       "parameter_id": "DRY2Trigger",
@@ -203,8 +209,40 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 completion pass (2026-09-20, user-directed): direct manual review of BMS_RS485_Modbus_V1.1.pdf p.12 confirms this register (0x1400 block, absolute 0x14E6) is genuinely documented -- packed UINT8+UINT8, RW, matching the field's own already-implemented canonical entry exactly (address, width, packed-sibling layout). Not a data-availability gap, only the mechanical matcher's own lookback limitation (same class already closed for PCLModuleSta/UART1MPRTOLNbr/UART2MPRTOLNbr on 2026-09-16). The field was already implemented (project_implementation + workbook evidence) before this closure -- this only adds the missing PDF-page confirmation and closes the stale locator blocker. The enum meaning of each 0-255/0-12 trigger-source code remains genuinely unconfirmed by any available source (unchanged, unrelated to this closure -- see the field's own dynamic_dependency note, which stays resolved=false).",
+      "closed_date": "2026-09-20"
+    },
+    {
+      "parameter_id": "TempSensorAbsent",
+      "address": "0x12D0",
+      "issue": "TempSensorAbsent is documented in the manifest as an aggregate over the high byte of 0x12D0 (the same byte MOSTempSensorPresent/BATTempSensor1-5Present occupy), but neither the official PDF (p.11) nor the V2 workbook states a formula for how the 6 individual bits (bit0 MOS + bits1-5 BAT1-5, bits 6-7 undocumented) combine into one 'absent' value/count -- inventing one (e.g. a bit-count, or a boolean OR/AND across the 6 known bits) would be exactly the kind of unevidenced semantic this project's policy forbids. This is a genuinely separate blocker from the other 7 0x12D0 parameters (architectural bit/byte-projection constraint (see the other 0x12D0 blocker for the full mechanism)) -- even once that architectural gap is resolved, TempSensorAbsent specifically still has no formula to implement.",
+      "evidence_needed": "An official clarification of the intended aggregation formula, or confirmation that no such aggregate exists on the wire at all (i.e. this manifest row is a documentation-only summary label, not a real addressable value) -- either resolves this without guessing.",
+      "owner": "stage3-architecture-followup",
+      "closure_criterion": "A formula is confirmed by an independent source and implemented, or the parameter is permanently classified as not independently addressable (a documentation label over the 6 individual bits, not its own wire value) with that reasoning recorded.",
       "status": "open",
-      "opened_date": "2026-09-16"
+      "opened_date": "2026-09-20"
+    },
+    {
+      "parameter_id": "UART1MPRTOLEnable",
+      "address": "0x14B4",
+      "issue": "UART1MPRTOLEnable (0x14B4): Both parameters are UINT8[16] (16-byte raw bitmask arrays, per bms_v1_1_manifest.json and confirmed against the PDF -- p.12, 'UINT8 16 R'), not a scalar numeric or a text string. This project's canonical schema (protocol/schema/register-source.schema.json) supports wire_type U8/S8/U16/S16/U32/S32/F32/ASCII/BIT -- ASCII is the only multi-byte-array type available, and its real decode (jk_poll_scheduler_core.h's decode_ascii()) copies raw bytes VERBATIM into a display string with no hex-encoding -- safe for genuine text (device_model etc.) but NOT safe for an arbitrary 16-byte bitmask, which may contain embedded null bytes (truncating the displayed string early) or non-printable control bytes (rendering unpredictably in HTML/JS). No safe RAW hex-string representation exists in this project's decode primitives today -- inventing per-byte semantics for the bitmask (which bit means which protocol) was also explicitly out of scope this round. A genuine architecture gap, not an evidence gap: both the address and the wire type/length are already confirmed.",
+      "evidence_needed": "Not evidentiary. Needed: a new decode primitive (e.g. decode_hex_string(), parallel to decode_ascii()/decode_exact_decimal()) that formats N raw bytes as a hex string (\"AA BB CC ...\"), safe for arbitrary binary content, plus the corresponding wire_type/domain plumbing through generate.js/generate_read_plan.js and its own unit tests -- a real, reviewable engineering task, not a one-line fix.",
+      "owner": "stage3-architecture-followup",
+      "closure_criterion": "decode_hex_string() (or equivalent) is implemented and unit-tested, this field gets a real canonical entry using it, and it classifies implemented_read.",
+      "status": "open",
+      "opened_date": "2026-09-20"
+    },
+    {
+      "parameter_id": "UARTMPRTOLEnable[0-15]",
+      "address": "0x14C4",
+      "issue": "UARTMPRTOLEnable[0-15] (0x14C4): Both parameters are UINT8[16] (16-byte raw bitmask arrays, per bms_v1_1_manifest.json and confirmed against the PDF -- p.12, 'UINT8 16 R'), not a scalar numeric or a text string. This project's canonical schema (protocol/schema/register-source.schema.json) supports wire_type U8/S8/U16/S16/U32/S32/F32/ASCII/BIT -- ASCII is the only multi-byte-array type available, and its real decode (jk_poll_scheduler_core.h's decode_ascii()) copies raw bytes VERBATIM into a display string with no hex-encoding -- safe for genuine text (device_model etc.) but NOT safe for an arbitrary 16-byte bitmask, which may contain embedded null bytes (truncating the displayed string early) or non-printable control bytes (rendering unpredictably in HTML/JS). No safe RAW hex-string representation exists in this project's decode primitives today -- inventing per-byte semantics for the bitmask (which bit means which protocol) was also explicitly out of scope this round. A genuine architecture gap, not an evidence gap: both the address and the wire type/length are already confirmed.",
+      "evidence_needed": "Not evidentiary. Needed: a new decode primitive (e.g. decode_hex_string(), parallel to decode_ascii()/decode_exact_decimal()) that formats N raw bytes as a hex string (\"AA BB CC ...\"), safe for arbitrary binary content, plus the corresponding wire_type/domain plumbing through generate.js/generate_read_plan.js and its own unit tests -- a real, reviewable engineering task, not a one-line fix.",
+      "owner": "stage3-architecture-followup",
+      "closure_criterion": "decode_hex_string() (or equivalent) is implemented and unit-tested, this field gets a real canonical entry using it, and it classifies implemented_read.",
+      "status": "open",
+      "opened_date": "2026-09-20"
     }
   ]
 }

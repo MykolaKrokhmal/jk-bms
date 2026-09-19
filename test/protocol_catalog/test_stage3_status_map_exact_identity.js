@@ -62,31 +62,46 @@ fs.writeFileSync(OUT_PATH, committedBefore);
 const byId = new Map(statusMap.parameters.map((p) => [p.id, p]));
 
 // ===========================================================================
-// 1. The two proven false positives: exact bit-identity now correctly
-// fails for the un-modeled sibling bit, and does NOT silently promote it
-// to "blocked" or "implemented_read" -- it must be the fail-closed
-// "missing" state, since neither parameter is named in an open blocker.
+// 1. The two originally-proven false positives. AlarmBatUVP (0x12A0) has
+// ALSO changed since this test was first written -- Stage 3 completion
+// pass (2026-09-20) added it to the pre-existing 0x12A0 alarm-bits
+// blocker (it was always the SAME 22-name group's identical architectural
+// situation, just previously omitted from that blocker's own text by a
+// since-fixed classifier bug -- not evidence of a different, weaker
+// evidentiary status). It is now "blocked", not "missing" -- correctly
+// so, since it IS covered by a real, open blocker now.
+// Special Charger (0x1114 bit5) is DIFFERENT now: the Stage 3 completion
+// pass (2026-09-20, user-directed) authored a real, evidenced canonical
+// field for it (and its 8 siblings) and closed the stale 0x1114 blocker
+// that used to force it (and ChargingFloatMode) to "blocked" regardless
+// of field-matching. Special Charger now has a genuine, unique,
+// exact-identity-matched implemented field -- it is SUPPOSED to resolve
+// implemented_read now, via the exact same mechanism this file's own
+// classifier fix established; this is graduation, not regression. See
+// test_0x1114_bit_cluster.js for the full authoring-round regression
+// coverage of that batch.
 // ===========================================================================
-check("Special Charger (0x1114 bit5) is NOT implemented_read (was the confirmed false positive)",
-  byId.get("Special Charger") && byId.get("Special Charger").status !== "implemented_read");
-check("Special Charger (0x1114 bit5) classifies as missing (fail-closed: no exact-identity field, no open blocker names it)",
-  byId.get("Special Charger") && byId.get("Special Charger").status === "missing");
-check("AlarmBatUVP (0x12A0 bit12) is NOT implemented_read (was the confirmed false positive)",
+check("Special Charger (0x1114 bit5) is implemented_read (now has its own real, evidenced canonical field -- Stage 3 completion pass, 2026-09-20; the 0x1114 blocker that used to force it to 'blocked' is closed)",
+  byId.get("Special Charger") && byId.get("Special Charger").status === "implemented_read");
+check("AlarmBatUVP (0x12A0 bit12) is NOT implemented_read (was the confirmed false positive, still correctly not implemented)",
   byId.get("AlarmBatUVP") && byId.get("AlarmBatUVP").status !== "implemented_read");
-check("AlarmBatUVP (0x12A0 bit12) classifies as missing (fail-closed: no exact-identity field, no open blocker names it)",
-  byId.get("AlarmBatUVP") && byId.get("AlarmBatUVP").status === "missing");
+check("AlarmBatUVP (0x12A0 bit12) classifies as blocked (Stage 3 completion pass, 2026-09-20: now named in the 0x12A0 alarm-bits blocker, alongside its 22 siblings -- same architectural OVERLAPPING_MASKS reason)",
+  byId.get("AlarmBatUVP") && byId.get("AlarmBatUVP").status === "blocked");
 
 // ===========================================================================
-// 2. 0x1114 bit9 (ChargingFloatMode) itself is the ONE genuinely
-// canonical-implemented field at that address -- it must still resolve
-// correctly. It is ALSO separately named in the open 0x1114 blocker
-// (pre-existing, unrelated to this fix), so blocker precedence (checked
-// before field-matching, per this generator's own stated priority order)
-// correctly yields "blocked", not "implemented_read" -- this is the
-// existing, unchanged precedence behavior, confirmed still intact.
+// 2. 0x1114 bit9 (ChargingFloatMode) itself is the ONE canonical-
+// implemented field at that address this file originally exercised for
+// blocker precedence. As of the Stage 3 completion pass (2026-09-20),
+// the 0x1114 blocker that used to name it is closed (it was a stale,
+// overbroad blocker -- ChargingFloatMode always had its own exact,
+// implemented field; the blocker's real, unresolved concern was the
+// OTHER 8 sibling bits, now themselves implemented too). It therefore
+// now correctly resolves implemented_read, not blocked -- this is the
+// SAME exact-identity classifier behaving correctly against updated
+// input data, not a regression in the classifier itself.
 // ===========================================================================
-check("ChargingFloatMode (0x1114 bit9) resolves to blocked (blocker precedence over field-matching, pre-existing and unaffected by this fix)",
-  byId.get("ChargingFloatMode") && byId.get("ChargingFloatMode").status === "blocked");
+check("ChargingFloatMode (0x1114 bit9) resolves to implemented_read (the stale 0x1114 blocker that used to force it to 'blocked' is closed, Stage 3 completion pass 2026-09-20)",
+  byId.get("ChargingFloatMode") && byId.get("ChargingFloatMode").status === "implemented_read");
 
 // ===========================================================================
 // 3. An implemented sibling field does not "infect" other bits/bytes at
@@ -147,12 +162,17 @@ for (const [id, addr] of exactMatchFixtures) {
 // ===========================================================================
 // 5. Blocker precedence: a parameter named in an open blocker classifies
 // as "blocked" regardless of whether it also happens to have an
-// exact-identity-matching implemented field (ChargingFloatMode, above, is
-// exactly this scenario -- re-asserted here as its own named check since
-// it is the one real fixture that exercises this precedence rule).
+// exact-identity-matching implemented field. ChargingFloatMode used to be
+// this file's real-data fixture for this property, but its own 0x1114
+// blocker closed as of the Stage 3 completion pass (2026-09-20) -- "Alarm
+// Mask" (0x12A0, still an open blocker as of this writing, with its own
+// unique implemented whole-register field) replaces it as the current
+// real fixture. See test_stage3_status_map_collision_hardening.js's
+// synthetic fixtures for a version of this property that never depends
+// on which real parameter happens to still be blocked.
 // ===========================================================================
-check("blocker precedence is checked before field-matching (ChargingFloatMode fixture: exact-match implemented field + open blocker -> blocked, not implemented_read)",
-  byId.get("ChargingFloatMode") && byId.get("ChargingFloatMode").status === "blocked");
+check("blocker precedence is checked before field-matching (Alarm Mask fixture: exact-match implemented field + open blocker -> blocked, not implemented_read)",
+  byId.get("Alarm Mask") && byId.get("Alarm Mask").status === "blocked");
 
 // ===========================================================================
 // 6. Absence of any canonical field for a manifest parameter can never

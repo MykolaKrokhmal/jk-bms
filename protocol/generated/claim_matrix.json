@@ -26,10 +26,10 @@
     "safety_class"
   ],
   "counts": {
-    "physical_registers": 199,
-    "logical_fields": 212,
+    "physical_registers": 200,
+    "logical_fields": 223,
     "write_ready": 0,
-    "write_blocked": 212,
+    "write_blocked": 223,
     "policy_inconsistent": 0
   },
   "fields": [
@@ -13424,6 +13424,1761 @@
       "policy_consistent": true
     },
     {
+      "key": "heat_en",
+      "register_id": "reg_0x1114_charging_float_mode",
+      "address": "0x1114",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers",
+            "locator": "BMS Parameters!A9:F9",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
+            "provenance_status": "unknown",
+            "derivation_group": "workbook_unknown_provenance"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A87:O87",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A123:O123",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A124:O124",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A125:O125",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A126:O126",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A127:O127",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A128:O128",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A129:O129",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A130:O130",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A131:O131",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A123:O123",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "implementation_entity_mapping": [
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "implementation_entity_mapping",
+            "normalized_value": {
+              "platform": "modbus_controller",
+              "id": null,
+              "name": "charging float mode",
+              "value_type": null,
+              "register_count": null,
+              "response_size": null,
+              "unit": null,
+              "has_filters": false,
+              "has_lambda": false,
+              "has_set_action": false
+            },
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": true,
+          "conflict": false,
+          "evidence_count": 12
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        },
+        "implementation_entity_mapping": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "disable_temp_sensor",
+      "register_id": "reg_0x1114_charging_float_mode",
+      "address": "0x1114",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers",
+            "locator": "BMS Parameters!A9:F9",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
+            "provenance_status": "unknown",
+            "derivation_group": "workbook_unknown_provenance"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A87:O87",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A123:O123",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A124:O124",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A125:O125",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A126:O126",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A127:O127",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A128:O128",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A129:O129",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A130:O130",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A131:O131",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A124:O124",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "implementation_entity_mapping": [
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "implementation_entity_mapping",
+            "normalized_value": {
+              "platform": "modbus_controller",
+              "id": null,
+              "name": "charging float mode",
+              "value_type": null,
+              "register_count": null,
+              "response_size": null,
+              "unit": null,
+              "has_filters": false,
+              "has_lambda": false,
+              "has_set_action": false
+            },
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": true,
+          "conflict": false,
+          "evidence_count": 12
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        },
+        "implementation_entity_mapping": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "gps_heartbeat",
+      "register_id": "reg_0x1114_charging_float_mode",
+      "address": "0x1114",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers",
+            "locator": "BMS Parameters!A9:F9",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
+            "provenance_status": "unknown",
+            "derivation_group": "workbook_unknown_provenance"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A87:O87",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A123:O123",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A124:O124",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A125:O125",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A126:O126",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A127:O127",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A128:O128",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A129:O129",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A130:O130",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A131:O131",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A125:O125",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "implementation_entity_mapping": [
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "implementation_entity_mapping",
+            "normalized_value": {
+              "platform": "modbus_controller",
+              "id": null,
+              "name": "charging float mode",
+              "value_type": null,
+              "register_count": null,
+              "response_size": null,
+              "unit": null,
+              "has_filters": false,
+              "has_lambda": false,
+              "has_set_action": false
+            },
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": true,
+          "conflict": false,
+          "evidence_count": 12
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        },
+        "implementation_entity_mapping": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "port_switch",
+      "register_id": "reg_0x1114_charging_float_mode",
+      "address": "0x1114",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers",
+            "locator": "BMS Parameters!A9:F9",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
+            "provenance_status": "unknown",
+            "derivation_group": "workbook_unknown_provenance"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A87:O87",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A123:O123",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A124:O124",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A125:O125",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A126:O126",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A127:O127",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A128:O128",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A129:O129",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A130:O130",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A131:O131",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A126:O126",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "implementation_entity_mapping": [
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "implementation_entity_mapping",
+            "normalized_value": {
+              "platform": "modbus_controller",
+              "id": null,
+              "name": "charging float mode",
+              "value_type": null,
+              "register_count": null,
+              "response_size": null,
+              "unit": null,
+              "has_filters": false,
+              "has_lambda": false,
+              "has_set_action": false
+            },
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": true,
+          "conflict": false,
+          "evidence_count": 12
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        },
+        "implementation_entity_mapping": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "lcd_always_on",
+      "register_id": "reg_0x1114_charging_float_mode",
+      "address": "0x1114",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers",
+            "locator": "BMS Parameters!A9:F9",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
+            "provenance_status": "unknown",
+            "derivation_group": "workbook_unknown_provenance"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A87:O87",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A123:O123",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A124:O124",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A125:O125",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A126:O126",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A127:O127",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A128:O128",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A129:O129",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A130:O130",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A131:O131",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A127:O127",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "implementation_entity_mapping": [
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "implementation_entity_mapping",
+            "normalized_value": {
+              "platform": "modbus_controller",
+              "id": null,
+              "name": "charging float mode",
+              "value_type": null,
+              "register_count": null,
+              "response_size": null,
+              "unit": null,
+              "has_filters": false,
+              "has_lambda": false,
+              "has_set_action": false
+            },
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": true,
+          "conflict": false,
+          "evidence_count": 12
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        },
+        "implementation_entity_mapping": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "special_charger",
+      "register_id": "reg_0x1114_charging_float_mode",
+      "address": "0x1114",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers",
+            "locator": "BMS Parameters!A9:F9",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
+            "provenance_status": "unknown",
+            "derivation_group": "workbook_unknown_provenance"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A87:O87",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A123:O123",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A124:O124",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A125:O125",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A126:O126",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A127:O127",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A128:O128",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A129:O129",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A130:O130",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A131:O131",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A128:O128",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "implementation_entity_mapping": [
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "implementation_entity_mapping",
+            "normalized_value": {
+              "platform": "modbus_controller",
+              "id": null,
+              "name": "charging float mode",
+              "value_type": null,
+              "register_count": null,
+              "response_size": null,
+              "unit": null,
+              "has_filters": false,
+              "has_lambda": false,
+              "has_set_action": false
+            },
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": true,
+          "conflict": false,
+          "evidence_count": 12
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        },
+        "implementation_entity_mapping": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "smart_sleep_enabled",
+      "register_id": "reg_0x1114_charging_float_mode",
+      "address": "0x1114",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers",
+            "locator": "BMS Parameters!A9:F9",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
+            "provenance_status": "unknown",
+            "derivation_group": "workbook_unknown_provenance"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A87:O87",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A123:O123",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A124:O124",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A125:O125",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A126:O126",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A127:O127",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A128:O128",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A129:O129",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A130:O130",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A131:O131",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A129:O129",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "implementation_entity_mapping": [
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "implementation_entity_mapping",
+            "normalized_value": {
+              "platform": "modbus_controller",
+              "id": null,
+              "name": "charging float mode",
+              "value_type": null,
+              "register_count": null,
+              "response_size": null,
+              "unit": null,
+              "has_filters": false,
+              "has_lambda": false,
+              "has_set_action": false
+            },
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": true,
+          "conflict": false,
+          "evidence_count": 12
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        },
+        "implementation_entity_mapping": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "disable_pcl_module",
+      "register_id": "reg_0x1114_charging_float_mode",
+      "address": "0x1114",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers",
+            "locator": "BMS Parameters!A9:F9",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
+            "provenance_status": "unknown",
+            "derivation_group": "workbook_unknown_provenance"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A87:O87",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A123:O123",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A124:O124",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A125:O125",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A126:O126",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A127:O127",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A128:O128",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A129:O129",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A130:O130",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A131:O131",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A130:O130",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "implementation_entity_mapping": [
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "implementation_entity_mapping",
+            "normalized_value": {
+              "platform": "modbus_controller",
+              "id": null,
+              "name": "charging float mode",
+              "value_type": null,
+              "register_count": null,
+              "response_size": null,
+              "unit": null,
+              "has_filters": false,
+              "has_lambda": false,
+              "has_set_action": false
+            },
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": true,
+          "conflict": false,
+          "evidence_count": 12
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        },
+        "implementation_entity_mapping": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "timed_stored_data",
+      "register_id": "reg_0x1114_charging_float_mode",
+      "address": "0x1114",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers",
+            "locator": "BMS Parameters!A9:F9",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
+            "provenance_status": "unknown",
+            "derivation_group": "workbook_unknown_provenance"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A87:O87",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A123:O123",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A124:O124",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A125:O125",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A126:O126",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A127:O127",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A128:O128",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A129:O129",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A130:O130",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A131:O131",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "address",
+            "normalized_value": "0x1114",
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A131:O131",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "implementation_entity_mapping": [
+          {
+            "source_id": "upstream_syssi_esphome_jk_bms",
+            "locator": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml:138-144",
+            "claim_type": "implementation_entity_mapping",
+            "normalized_value": {
+              "platform": "modbus_controller",
+              "id": null,
+              "name": "charging float mode",
+              "value_type": null,
+              "register_count": null,
+              "response_size": null,
+              "unit": null,
+              "has_filters": false,
+              "has_lambda": false,
+              "has_set_action": false
+            },
+            "fingerprint": "git:08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1;sha256:00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
+            "provenance_status": "known",
+            "derivation_group": "syssi_implementation_family"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": true,
+          "conflict": false,
+          "evidence_count": 12
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        },
+        "implementation_entity_mapping": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 1
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
       "key": "charging_float_mode",
       "register_id": "reg_0x1114_charging_float_mode",
       "address": "0x1114",
@@ -13569,96 +15324,6 @@
             "fingerprint": "sha256:333d65a5bf33bf83f804cb4592ec446597e1b2d2691ffe3a61db93a7db1020d0",
             "provenance_status": "unknown",
             "derivation_group": "workbook_unknown_provenance"
-          },
-          {
-            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
-            "locator": "Реєстр параметрів!A87:O87",
-            "claim_type": "declared_access",
-            "normalized_value": "rw",
-            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
-            "provenance_status": "known",
-            "derivation_group": "vendor_workbook_v2"
-          },
-          {
-            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
-            "locator": "Реєстр параметрів!A123:O123",
-            "claim_type": "declared_access",
-            "normalized_value": "rw",
-            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
-            "provenance_status": "known",
-            "derivation_group": "vendor_workbook_v2"
-          },
-          {
-            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
-            "locator": "Реєстр параметрів!A124:O124",
-            "claim_type": "declared_access",
-            "normalized_value": "rw",
-            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
-            "provenance_status": "known",
-            "derivation_group": "vendor_workbook_v2"
-          },
-          {
-            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
-            "locator": "Реєстр параметрів!A125:O125",
-            "claim_type": "declared_access",
-            "normalized_value": "rw",
-            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
-            "provenance_status": "known",
-            "derivation_group": "vendor_workbook_v2"
-          },
-          {
-            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
-            "locator": "Реєстр параметрів!A126:O126",
-            "claim_type": "declared_access",
-            "normalized_value": "rw",
-            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
-            "provenance_status": "known",
-            "derivation_group": "vendor_workbook_v2"
-          },
-          {
-            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
-            "locator": "Реєстр параметрів!A127:O127",
-            "claim_type": "declared_access",
-            "normalized_value": "rw",
-            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
-            "provenance_status": "known",
-            "derivation_group": "vendor_workbook_v2"
-          },
-          {
-            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
-            "locator": "Реєстр параметрів!A128:O128",
-            "claim_type": "declared_access",
-            "normalized_value": "rw",
-            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
-            "provenance_status": "known",
-            "derivation_group": "vendor_workbook_v2"
-          },
-          {
-            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
-            "locator": "Реєстр параметрів!A129:O129",
-            "claim_type": "declared_access",
-            "normalized_value": "rw",
-            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
-            "provenance_status": "known",
-            "derivation_group": "vendor_workbook_v2"
-          },
-          {
-            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
-            "locator": "Реєстр параметрів!A130:O130",
-            "claim_type": "declared_access",
-            "normalized_value": "rw",
-            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
-            "provenance_status": "known",
-            "derivation_group": "vendor_workbook_v2"
-          },
-          {
-            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
-            "locator": "Реєстр параметрів!A131:O131",
-            "claim_type": "declared_access",
-            "normalized_value": "rw",
-            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
-            "provenance_status": "known",
-            "derivation_group": "vendor_workbook_v2"
           }
         ],
         "implementation_entity_mapping": [
@@ -13703,7 +15368,7 @@
         "declared_access": {
           "confirmed": false,
           "conflict": false,
-          "evidence_count": 11
+          "evidence_count": 1
         },
         "implementation_entity_mapping": {
           "confirmed": false,
@@ -13714,6 +15379,182 @@
       "read_readiness": "implemented_unverified",
       "write_readiness": "blocked",
       "missing_write_claims": [
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "smart_sleep_timeout_hours",
+      "register_id": "reg_0x1118_tim_smart_sleep_data_domain",
+      "address": "0x1118",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A132:O132",
+            "claim_type": "address",
+            "normalized_value": "0x1118",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A133:O133",
+            "claim_type": "address",
+            "normalized_value": "0x1118",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A132:O132",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A133:O133",
+            "claim_type": "declared_access",
+            "normalized_value": "r",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 2
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": true,
+          "evidence_count": 2
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "address",
+        "register_width",
+        "word_count",
+        "payload_byte_length",
+        "byte_order",
+        "word_order",
+        "field_width",
+        "mask_shift_byte_offset",
+        "signedness",
+        "wire_type",
+        "scale",
+        "offset",
+        "canonical_unit",
+        "raw_encode_decode_transform",
+        "minimum_maximum_step",
+        "declared_access",
+        "write_function",
+        "readback_function_comparator",
+        "packed_atomicity_preserve_sibling",
+        "model_protocol_applicability",
+        "safety_class"
+      ],
+      "owner_authorized": false,
+      "derived_effective_access": "r",
+      "stored_effective_access": "r",
+      "policy_consistent": true
+    },
+    {
+      "key": "data_domain_enable_0",
+      "register_id": "reg_0x1118_tim_smart_sleep_data_domain",
+      "address": "0x1118",
+      "claims": {
+        "address": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A132:O132",
+            "claim_type": "address",
+            "normalized_value": "0x1118",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A133:O133",
+            "claim_type": "address",
+            "normalized_value": "0x1118",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ],
+        "declared_access": [
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A132:O132",
+            "claim_type": "declared_access",
+            "normalized_value": "rw",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          },
+          {
+            "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+            "locator": "Реєстр параметрів!A133:O133",
+            "claim_type": "declared_access",
+            "normalized_value": "r",
+            "fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+            "provenance_status": "known",
+            "derivation_group": "vendor_workbook_v2"
+          }
+        ]
+      },
+      "claim_verdicts": {
+        "address": {
+          "confirmed": false,
+          "conflict": false,
+          "evidence_count": 2
+        },
+        "declared_access": {
+          "confirmed": false,
+          "conflict": true,
+          "evidence_count": 2
+        }
+      },
+      "read_readiness": "implemented_unverified",
+      "write_readiness": "blocked",
+      "missing_write_claims": [
+        "address",
         "register_width",
         "word_count",
         "payload_byte_length",
@@ -35561,5 +37402,5 @@
       "policy_consistent": true
     }
   ],
-  "release_generation_id": "0777953d2f7fb9d2"
+  "release_generation_id": "4f2d93fb6925c9ed"
 }
