@@ -96,6 +96,17 @@ const MANUALLY_RESOLVED_ID_TO_KEY = {
   UART1MPRTOLNbr: "uart1_mprtol_nbr",
   UART2MPRTOLNbr: "uart2_mprtol_nbr",
   MaxVolCellNbr: "max_voltage_cell_index_native",
+  // 0x12A6/0x12B8/0x12C0 metadata batch (2026-09-19): BalanSta, SOCSOH,
+  // Charge each have their own mnemonic line BEFORE the shared offset-
+  // marker line (same matcher limitation as MaxVolCellNbr above) -- their
+  // packed low-byte siblings (SOCStateOfcharge, Precharge, Discharge)
+  // come AFTER the marker and were already matcher-resolved, never
+  // needing this bucket. All three fields were ALREADY implemented
+  // (real, hardware-observed entities) before this batch -- it only
+  // added the PDF (p.11) citation and closed the blocker.
+  BalanSta: "balancing_active",
+  SOCSOH: "state_of_health",
+  Charge: "charging_active",
 };
 
 const uncategorized = [];
@@ -119,8 +130,8 @@ check("every non-reserved, non-calculated parameter (260 of 265) is either PDF-r
 check("resolved + blocked + manually-resolved accounts for all 260 non-reserved/non-calculated parameters",
   resolvedCount + blockedCount + manuallyResolvedCount === 260,
   `resolved=${resolvedCount} blocked=${blockedCount} manually-resolved=${manuallyResolvedCount} total=${resolvedCount + blockedCount + manuallyResolvedCount}`);
-check("exactly 4 parameters are in the manually-resolved-and-implemented bucket (Stage 3 batch 1's 3 blocker closures + MaxVolCellNbr, 2026-09-18)",
-  manuallyResolvedCount === 4, `actual=${manuallyResolvedCount}`);
+check("exactly 7 parameters are in the manually-resolved-and-implemented bucket (Stage 3 batch 1's 3 blocker closures + MaxVolCellNbr 2026-09-18 + BalanSta/SOCSOH/Charge 2026-09-19)",
+  manuallyResolvedCount === 7, `actual=${manuallyResolvedCount}`);
 
 // The 3 newly-authored reserved rows must each have a REAL canonical.json
 // entry (not just a manifest classification) -- cross-checked against the

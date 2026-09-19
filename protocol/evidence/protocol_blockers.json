@@ -111,8 +111,10 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 bounded metadata batch (2026-09-19, user-directed 0x12A6/0x12B8/0x12C0 evidence closure): manual review of the raw pdftotext -layout extraction (BMS_RS485_Modbus_V1.1.pdf, p.11) resolved the byte offset directly -- the mechanical matcher's backward-only lookback cannot resolve a packed sibling whose own mnemonic line ('UINT8 R 均衡状态BalanSta') appears BEFORE the shared offset-marker line ('0x00A6 166 2'), the same matcher limitation already closed for PCLModuleSta/UART1MPRTOLNbr/UART2MPRTOLNbr/MaxVolCellNbr. Not a protocol contradiction. Independently corroborated by the V1 workbook (row 23, re-verified directly against the raw XLSX this round). Field was ALREADY implemented (real entity, live-observed correctly throughout this session's hardware retests) -- this closure adds evidence only, zero code/runtime change. See the field's own safety_notes for a separate, explicit loss-of-information note about the 3-state-to-boolean UI projection (unrelated to this blocker's own closure criterion, which is about address/layout documentation, not UI fidelity).",
+      "closed_date": "2026-09-19"
     },
     {
       "parameter_id": "SOCSOH",
@@ -121,8 +123,10 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 bounded metadata batch (2026-09-19): manual review of the raw pdftotext -layout extraction (BMS_RS485_Modbus_V1.1.pdf, p.11) resolved the byte offset directly -- same matcher limitation class as BalanSta above ('UINT8 R SOH估值SOCSOH' precedes the shared '0x00B8 184 2' marker line). Independently corroborated by the V1 workbook (row 17, re-verified directly against the raw XLSX this round). Field was ALREADY implemented; this closure adds evidence only.",
+      "closed_date": "2026-09-19"
     },
     {
       "parameter_id": "Charge",
@@ -131,8 +135,10 @@
       "evidence_needed": "A one-time manual page-level check against the PDF at this address, or a further-improved (still conservative, still no-guessing) matcher pass.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "Each listed parameter_id gets a resolved pdf_locator in protocol/generated/pdf_locators.json (regenerated), and this blocker is closed once none remain.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 bounded metadata batch (2026-09-19): manual review of the raw pdftotext -layout extraction (BMS_RS485_Modbus_V1.1.pdf, p.11) resolved the byte offset directly -- same matcher limitation class as BalanSta above ('UINT8 R 充电状态Charge' precedes the shared '0x00C0 192 2' marker line). The PDF explicitly documents Charge's own 0/1 semantics ('1：打开 ; 0：关闭') on this same line, confirming the binary mapping already used by the bound UI entity is accurate, not assumed. Independently corroborated by the V1 workbook (row 5, re-verified directly against the raw XLSX this round). Field was ALREADY implemented; this closure adds evidence only.",
+      "closed_date": "2026-09-19"
     },
     {
       "parameter_id": "BATTempSensor1Present,BATTempSensor2Present,BATTempSensor3Present,BATTempSensor4Present,BATTempSensor5Present,Heating,MOSTempSensorPresent,TempSensorAbsent",

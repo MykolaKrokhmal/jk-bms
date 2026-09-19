@@ -25289,29 +25289,19 @@
           },
           "evidence": [
             {
-              "source_id": "project_implementation",
-              "locator": "batterylifepo4.yaml line(s) [2800, 2812]",
-              "locator_id": "project_implementation:a50576d458c1831d",
+              "source_id": "official_jk_documentation",
+              "locator": "p.11: packed row at relative offset 0x00A6 (absolute 0x12A6) -- 'UINT8 R 均衡状态BalanSta % 2：放电; 1：充电 ; 0：关闭' (high byte -- explicit 3-state enum: 0=idle, 1=charging-direction, 2=discharging-direction) followed by 'UINT8 R 剩余电量SOCStateOfcharge' (low byte) under one '0x00A6 166 2' address/length row. Confirms address, packed UINT8+UINT8 layout, R access, and BalanSta's full 3-state semantics.",
+              "locator_id": "official_jk_documentation:12f37c37fe8ebc0d",
               "claim_types": [
                 "address",
-                "register_width",
-                "word_count",
-                "byte_order",
-                "word_order",
-                "field_width",
-                "mask_shift_byte_offset",
-                "signedness",
                 "wire_type",
-                "scale",
-                "offset",
-                "canonical_unit",
-                "declared_access",
-                "implementation_entity_mapping"
+                "field_width",
+                "declared_access"
               ],
-              "source_fingerprint": "sha256:2c96aa8de861d31cb4ceb1633efeb39869828eccf286debd6fcc7a006f3ea5c8",
-              "confidence": "medium",
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "high",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
-              "derivation_group": "syssi_implementation_family"
+              "derivation_group": "jikong_official"
             },
             {
               "source_id": "workbook_lifepo4_bms_parameters_registers",
@@ -25360,7 +25350,7 @@
               "derivation_group": "deployed_project_decode_family"
             }
           ],
-          "verification_status": "corroborated_with_limitations",
+          "verification_status": "confirmed",
           "exclusion_reason": null,
           "implementation_status": "implemented",
           "unknown_code_policy": "preserve_raw_and_render_unknown"
@@ -25406,31 +25396,6 @@
           "dynamic_dependency": null,
           "enum_map": null,
           "evidence": [
-            {
-              "source_id": "project_implementation",
-              "locator": "batterylifepo4.yaml line(s) [2800, 2812]",
-              "locator_id": "project_implementation:a50576d458c1831d",
-              "claim_types": [
-                "address",
-                "register_width",
-                "word_count",
-                "byte_order",
-                "word_order",
-                "field_width",
-                "mask_shift_byte_offset",
-                "signedness",
-                "wire_type",
-                "scale",
-                "offset",
-                "canonical_unit",
-                "declared_access",
-                "implementation_entity_mapping"
-              ],
-              "source_fingerprint": "sha256:2c96aa8de861d31cb4ceb1633efeb39869828eccf286debd6fcc7a006f3ea5c8",
-              "confidence": "medium",
-              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
-              "derivation_group": "syssi_implementation_family"
-            },
             {
               "source_id": "workbook_lifepo4_bms_parameters_registers",
               "locator": "row 18: 'Рівень заряду (SOC)' = '78%' (access R)",
@@ -25543,8 +25508,8 @@
           "derivation_group": "syssi_implementation_family"
         }
       ],
-      "verification_status": "corroborated_with_limitations",
-      "safety_notes": "",
+      "verification_status": "confirmed",
+      "safety_notes": "Address (0x12A6), packed UINT8+UINT8 layout, and BalanSta's full 3-state semantics (0=idle, 1=charging-direction, 2=discharging-direction) confirmed by the official PDF (p.11) and independently by the V1 workbook (row 23, byte position verified directly against the raw XLSX this round: '0x12A6 (старший байт)'). The canonical field balancing_active itself (min=0/max=2, enum_map) is the accurate, lossless representation, matching the real internal raw entity (balancing_raw, ESPHome internal:true). LOSS-OF-INFORMATION NOTE: the field's currently-bound UI entity (esphome_read_entity_id=\"balancing\", ui_section=diagnostics) is a SEPARATE, pre-existing binary_sensor that collapses this 3-state value to a boolean (`balancing_raw > 0`), losing the charge/discharge-direction distinction -- an existing design choice, not changed by this evidence-only batch. A full-fidelity UI presentation of BalanSta (binding to balancing_raw or exposing its enum) remains open, out of this batch's scope (would be a runtime/UI change).",
       "payload_bytes": 2
     },
     {
@@ -26452,29 +26417,19 @@
           "enum_map": null,
           "evidence": [
             {
-              "source_id": "project_implementation",
-              "locator": "batterylifepo4.yaml line(s) [2892, 2906]",
-              "locator_id": "project_implementation:953aa5b561f8eaf3",
+              "source_id": "official_jk_documentation",
+              "locator": "p.11: packed row at relative offset 0x00B8 (absolute 0x12B8) -- 'UINT8 R SOH估值SOCSOH %' (high byte, percentage) followed by 'UINT8 R 预充状态Precharge 1：打开 ; 0：关闭' (low byte) under one '0x00B8 184 2' address/length row. Confirms address, packed UINT8+UINT8 layout, R access, % unit for SOCSOH.",
+              "locator_id": "official_jk_documentation:c560df2625bd3c17",
               "claim_types": [
                 "address",
-                "register_width",
-                "word_count",
-                "byte_order",
-                "word_order",
-                "field_width",
-                "mask_shift_byte_offset",
-                "signedness",
                 "wire_type",
-                "scale",
-                "offset",
-                "canonical_unit",
-                "declared_access",
-                "implementation_entity_mapping"
+                "field_width",
+                "declared_access"
               ],
-              "source_fingerprint": "sha256:2c96aa8de861d31cb4ceb1633efeb39869828eccf286debd6fcc7a006f3ea5c8",
-              "confidence": "medium",
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "high",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
-              "derivation_group": "syssi_implementation_family"
+              "derivation_group": "jikong_official"
             },
             {
               "source_id": "workbook_lifepo4_bms_parameters_registers",
@@ -26523,7 +26478,7 @@
               "derivation_group": "deployed_project_decode_family"
             }
           ],
-          "verification_status": "corroborated_with_limitations",
+          "verification_status": "confirmed",
           "exclusion_reason": null,
           "implementation_status": "implemented",
           "unknown_code_policy": null
@@ -26569,31 +26524,6 @@
           "dynamic_dependency": null,
           "enum_map": null,
           "evidence": [
-            {
-              "source_id": "project_implementation",
-              "locator": "batterylifepo4.yaml line(s) [2892, 2906]",
-              "locator_id": "project_implementation:953aa5b561f8eaf3",
-              "claim_types": [
-                "address",
-                "register_width",
-                "word_count",
-                "byte_order",
-                "word_order",
-                "field_width",
-                "mask_shift_byte_offset",
-                "signedness",
-                "wire_type",
-                "scale",
-                "offset",
-                "canonical_unit",
-                "declared_access",
-                "implementation_entity_mapping"
-              ],
-              "source_fingerprint": "sha256:2c96aa8de861d31cb4ceb1633efeb39869828eccf286debd6fcc7a006f3ea5c8",
-              "confidence": "medium",
-              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
-              "derivation_group": "syssi_implementation_family"
-            },
             {
               "source_id": "workbook_lifepo4_bms_parameters_registers",
               "locator": "row 107: 'Стан попереднього заряду' = '—' (access R)",
@@ -26692,7 +26622,7 @@
           "derivation_group": "syssi_implementation_family"
         }
       ],
-      "verification_status": "implementation_only_unverified",
+      "verification_status": "confirmed",
       "safety_notes": "register_count/response_size in batterylifepo4.yaml were corrected from a copy-pasted 4 to the real 2-byte width during the auth/history work referenced in this file's own comments — pre-existing fix, not part of Stage 1.",
       "payload_bytes": 2
     },
@@ -27133,29 +27063,19 @@
           "enum_map": null,
           "evidence": [
             {
-              "source_id": "project_implementation",
-              "locator": "batterylifepo4.yaml line(s) [2945, 2954]",
-              "locator_id": "project_implementation:9f49a2e1a14ded52",
+              "source_id": "official_jk_documentation",
+              "locator": "p.11: packed row at relative offset 0x00C0 (absolute 0x12C0) -- 'UINT8 R 充电状态Charge 1：打开 ; 0：关闭' (high byte -- explicit 2-state 1=on/0=off) followed by 'UINT8 R 放电状态Discharge' (low byte, no explicit value annotation on its own line) under one '0x00C0 192 2' address/length row. Confirms address, packed UINT8+UINT8 layout, R access, and Charge's explicit 0/1 semantics.",
+              "locator_id": "official_jk_documentation:d65ef235f6aed825",
               "claim_types": [
                 "address",
-                "register_width",
-                "word_count",
-                "byte_order",
-                "word_order",
-                "field_width",
-                "mask_shift_byte_offset",
-                "signedness",
                 "wire_type",
-                "scale",
-                "offset",
-                "canonical_unit",
-                "declared_access",
-                "implementation_entity_mapping"
+                "field_width",
+                "declared_access"
               ],
-              "source_fingerprint": "sha256:2c96aa8de861d31cb4ceb1633efeb39869828eccf286debd6fcc7a006f3ea5c8",
-              "confidence": "medium",
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "high",
               "applicability": "current catalog scope; exact BMS protocol variant not independently established",
-              "derivation_group": "syssi_implementation_family"
+              "derivation_group": "jikong_official"
             },
             {
               "source_id": "workbook_lifepo4_bms_parameters_registers",
@@ -27190,7 +27110,7 @@
               "derivation_group": "syssi_implementation_family"
             }
           ],
-          "verification_status": "implementation_only_unverified",
+          "verification_status": "corroborated_with_limitations",
           "exclusion_reason": null,
           "implementation_status": "implemented",
           "unknown_code_policy": null
@@ -27236,31 +27156,6 @@
           "dynamic_dependency": null,
           "enum_map": null,
           "evidence": [
-            {
-              "source_id": "project_implementation",
-              "locator": "batterylifepo4.yaml line(s) [2945, 2954]",
-              "locator_id": "project_implementation:9f49a2e1a14ded52",
-              "claim_types": [
-                "address",
-                "register_width",
-                "word_count",
-                "byte_order",
-                "word_order",
-                "field_width",
-                "mask_shift_byte_offset",
-                "signedness",
-                "wire_type",
-                "scale",
-                "offset",
-                "canonical_unit",
-                "declared_access",
-                "implementation_entity_mapping"
-              ],
-              "source_fingerprint": "sha256:2c96aa8de861d31cb4ceb1633efeb39869828eccf286debd6fcc7a006f3ea5c8",
-              "confidence": "medium",
-              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
-              "derivation_group": "syssi_implementation_family"
-            },
             {
               "source_id": "workbook_lifepo4_bms_parameters_registers",
               "locator": "row 7: 'Розряд активний' = 'Увімк' (access R)",
@@ -27359,7 +27254,7 @@
           "derivation_group": "syssi_implementation_family"
         }
       ],
-      "verification_status": "implementation_only_unverified",
+      "verification_status": "corroborated_with_limitations",
       "safety_notes": "Live current-flow STATUS, distinct from the 'charging'/'discharging' CONTROL registers at 0x1070/0x1074 (Group B). esphome_read_entity_id for both is the SAME ESPHome id ('charging' / 'discharging') as the control select in this project's implementation — the select (writable, 0x1070/0x1074) and this binary_sensor (read-only, 0x12C0) are two different ESPHome entities that happen to share a human-readable name; jk_bms.js's registerEntity() already disambiguates them by ESPHome domain ('select' vs 'binary_sensor'), which is preserved unchanged by Stage 1.",
       "payload_bytes": 2
     },
