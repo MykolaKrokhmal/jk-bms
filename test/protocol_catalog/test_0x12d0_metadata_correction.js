@@ -76,12 +76,38 @@ check("safety_notes states the mask is in the HIGH byte",
 check("safety_notes states Heating is in the LOW byte",
   /LOW BYTE \(0x00FF\): Heating status/.test(reg.safety_notes));
 check("safety_notes lists BIT0..BIT5 consecutive with no gap (BIT3 explicitly present)",
-  /BIT0\.\.BIT5, consecutive, no gap/.test(reg.safety_notes) &&
+  /BIT0\.\.BIT5 consecutive, no gap/.test(reg.safety_notes) &&
   /BIT3=battery temperature sensor 3|BIT3=sensor 3/.test(reg.safety_notes));
 check("safety_notes explicitly documents sensor_heating_mask publishes the RAW, FULL, UNSPLIT UINT16 (not a pre-extracted high-byte mask)",
   /RAW, FULL, UNSPLIT UINT16/.test(reg.safety_notes));
-check("safety_notes does NOT still assert the old, wrong claim as current fact (old claim is only quoted inside the 'PRIOR, CORRECTED CLAIM' audit-trail paragraph)",
-  /PRIOR, CORRECTED CLAIM/.test(reg.safety_notes));
+
+// ===========================================================================
+// 2b. Cleanup batch (2026-09-19): the full old, wrong claim text is REMOVED
+// from the normative safety_notes entirely -- not even quoted for "audit
+// trail" purposes inside this field. The audit trail lives in git history
+// (commit 384a290) instead; safety_notes may reference that fact, but must
+// not restate the specific wrong byte/bit scheme itself anywhere in the
+// canonical source or any generated artifact.
+// ===========================================================================
+check("safety_notes does NOT contain the 'PRIOR, CORRECTED CLAIM' paragraph or its wrong claim text anymore",
+  !/PRIOR, CORRECTED CLAIM/.test(reg.safety_notes) &&
+  !/low byte \/ heating status in the high byte/.test(reg.safety_notes));
+check("safety_notes does NOT restate the old wrong bit list \"0/1/2/4/5\"",
+  !/0\/1\/2\/4\/5/.test(reg.safety_notes));
+check("safety_notes does NOT contain the old wrong phrase \"mask ... in the low byte\" or \"heating ... in the high byte\"",
+  !/mask[^.]*\bin the low byte/i.test(reg.safety_notes) &&
+  !/heating[^.]*\bin the high byte/i.test(reg.safety_notes));
+
+const registerCatalogPath = path.join(ROOT, "register_catalog.json");
+const jkBmsPath = path.join(ROOT, "jk_bms.js");
+const registerCatalogText = fs.readFileSync(registerCatalogPath, "utf8");
+const jkBmsText = fs.readFileSync(jkBmsPath, "utf8");
+for (const [label, text] of [["register_catalog.json", registerCatalogText], ["jk_bms.js", jkBmsText]]) {
+  check(`${label} does not contain the old wrong bit list "0/1/2/4/5"`,
+    !text.includes("0/1/2/4/5"));
+  check(`${label} does not contain the "PRIOR, CORRECTED CLAIM" text`,
+    !text.includes("PRIOR, CORRECTED CLAIM"));
+}
 
 // ===========================================================================
 // 3. Evidence: both the PDF and the V2 workbook citations are present, on
