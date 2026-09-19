@@ -203,6 +203,10 @@ echo "=== protocol catalog: bespoke read (0x1200/0x126A/0x106C/0x1240/0x1470) re
 node test/protocol_catalog/test_bespoke_read_register_count.js
 
 echo
+echo "=== protocol catalog: generic read-plan register-count systemic fix (block_class, exact-length validation, 0x1290 clustered exception) ==="
+node test/protocol_catalog/test_generic_read_plan_register_count.js
+
+echo
 echo "=== protocol catalog: inactive-channel publish-before-blank fix regression (cell_voltage 1-32 gate) ==="
 node test/protocol_catalog/test_cell_voltage_publish_gate.js
 

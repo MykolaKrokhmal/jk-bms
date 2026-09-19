@@ -112,8 +112,11 @@
   "blocks": [
     {
       "address": "0x1000",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -137,8 +140,11 @@
     },
     {
       "address": "0x1004",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -162,8 +168,11 @@
     },
     {
       "address": "0x1008",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -187,8 +196,11 @@
     },
     {
       "address": "0x100C",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -212,8 +224,11 @@
     },
     {
       "address": "0x1010",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -237,8 +252,11 @@
     },
     {
       "address": "0x1014",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -262,8 +280,11 @@
     },
     {
       "address": "0x1018",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -287,8 +308,11 @@
     },
     {
       "address": "0x101C",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -312,8 +336,11 @@
     },
     {
       "address": "0x1020",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -337,8 +364,11 @@
     },
     {
       "address": "0x1024",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -362,8 +392,11 @@
     },
     {
       "address": "0x1028",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -387,8 +420,11 @@
     },
     {
       "address": "0x102C",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -412,8 +448,11 @@
     },
     {
       "address": "0x1030",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -437,8 +476,11 @@
     },
     {
       "address": "0x1034",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -462,8 +504,11 @@
     },
     {
       "address": "0x1038",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -487,8 +532,11 @@
     },
     {
       "address": "0x103C",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -512,8 +560,11 @@
     },
     {
       "address": "0x1040",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -537,8 +588,11 @@
     },
     {
       "address": "0x1044",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -562,8 +616,11 @@
     },
     {
       "address": "0x1048",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -587,8 +644,11 @@
     },
     {
       "address": "0x104C",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -612,8 +672,11 @@
     },
     {
       "address": "0x1050",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -637,8 +700,11 @@
     },
     {
       "address": "0x1054",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -662,8 +728,11 @@
     },
     {
       "address": "0x1058",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -687,8 +756,11 @@
     },
     {
       "address": "0x105C",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -712,8 +784,11 @@
     },
     {
       "address": "0x1060",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -737,8 +812,11 @@
     },
     {
       "address": "0x1064",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -762,8 +840,11 @@
     },
     {
       "address": "0x1068",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -787,8 +868,11 @@
     },
     {
       "address": "0x106C",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -812,8 +896,11 @@
     },
     {
       "address": "0x1070",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 75000,
       "ui_group": null,
       "fields": [
@@ -837,8 +924,11 @@
     },
     {
       "address": "0x1074",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 75000,
       "ui_group": null,
       "fields": [
@@ -862,8 +952,11 @@
     },
     {
       "address": "0x1078",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 75000,
       "ui_group": null,
       "fields": [
@@ -887,8 +980,11 @@
     },
     {
       "address": "0x107C",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -912,8 +1008,11 @@
     },
     {
       "address": "0x1080",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -937,8 +1036,11 @@
     },
     {
       "address": "0x1084",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -962,8 +1064,11 @@
     },
     {
       "address": "0x1108",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -987,8 +1092,11 @@
     },
     {
       "address": "0x110C",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -1012,8 +1120,11 @@
     },
     {
       "address": "0x1114",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1037,8 +1148,11 @@
     },
     {
       "address": "0x111C",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -1078,8 +1192,11 @@
     },
     {
       "address": "0x1240",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1119,8 +1236,11 @@
     },
     {
       "address": "0x1244",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1144,8 +1264,11 @@
     },
     {
       "address": "0x1246",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1169,8 +1292,11 @@
     },
     {
       "address": "0x128A",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1194,8 +1320,11 @@
     },
     {
       "address": "0x128C",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1219,8 +1348,11 @@
     },
     {
       "address": "0x1290",
+      "block_class": "CLUSTERED_GAP_AWARE",
       "register_count": 12,
       "payload_bytes": 12,
+      "validation_policy": "exact",
+      "exception_reason": "Multi-address clustered read (0x1290 total_voltage_raw + 0x1294 native_bms_power [unread] + 0x1298 current_raw, each word_count=2). registerCount=12 is the pre-existing literal, UNCHANGED this round -- neither proven correct nor reduced without hardware evidence. A declared-address-span computation gives 10 registers as an alternative candidate; payload_bytes=12 (the decoder's own compact-response read length) is independent of this question and unaffected either way. Hardware-pending: a real FC03 capture at 0x1290 is needed to disambiguate 10 vs 12 vs any other candidate before this block can be called resolved.",
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [],
@@ -1232,8 +1364,11 @@
     },
     {
       "address": "0x1294",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1257,8 +1392,11 @@
     },
     {
       "address": "0x129C",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1282,8 +1420,11 @@
     },
     {
       "address": "0x129E",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1307,8 +1448,11 @@
     },
     {
       "address": "0x12A0",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1332,8 +1476,11 @@
     },
     {
       "address": "0x12A4",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1357,8 +1504,11 @@
     },
     {
       "address": "0x12A6",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1398,8 +1548,11 @@
     },
     {
       "address": "0x12A8",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1423,8 +1576,11 @@
     },
     {
       "address": "0x12AC",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1448,8 +1604,11 @@
     },
     {
       "address": "0x12B0",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1473,8 +1632,11 @@
     },
     {
       "address": "0x12B4",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1498,8 +1660,11 @@
     },
     {
       "address": "0x12B8",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1539,8 +1704,11 @@
     },
     {
       "address": "0x12BA",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1564,8 +1732,11 @@
     },
     {
       "address": "0x12BC",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1605,8 +1776,11 @@
     },
     {
       "address": "0x12C0",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1646,8 +1820,11 @@
     },
     {
       "address": "0x12C2",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1671,8 +1848,11 @@
     },
     {
       "address": "0x12C4",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1696,8 +1876,11 @@
     },
     {
       "address": "0x12C6",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1721,8 +1904,11 @@
     },
     {
       "address": "0x12C8",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1746,8 +1932,11 @@
     },
     {
       "address": "0x12CA",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1771,8 +1960,11 @@
     },
     {
       "address": "0x12CC",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1796,8 +1988,11 @@
     },
     {
       "address": "0x12CE",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1821,8 +2016,11 @@
     },
     {
       "address": "0x12D0",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1846,8 +2044,11 @@
     },
     {
       "address": "0x12D4",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1871,8 +2072,11 @@
     },
     {
       "address": "0x12D6",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1896,8 +2100,11 @@
     },
     {
       "address": "0x12D8",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1921,8 +2128,11 @@
     },
     {
       "address": "0x12DA",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1946,8 +2156,11 @@
     },
     {
       "address": "0x12DC",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1971,8 +2184,11 @@
     },
     {
       "address": "0x12E4",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -1996,8 +2212,11 @@
     },
     {
       "address": "0x12E6",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2021,8 +2240,11 @@
     },
     {
       "address": "0x12EE",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2046,8 +2268,11 @@
     },
     {
       "address": "0x12F0",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2087,8 +2312,11 @@
     },
     {
       "address": "0x12F8",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2112,8 +2340,11 @@
     },
     {
       "address": "0x12FA",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2137,8 +2368,11 @@
     },
     {
       "address": "0x12FC",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2162,8 +2396,11 @@
     },
     {
       "address": "0x1300",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2203,8 +2440,11 @@
     },
     {
       "address": "0x1308",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2228,8 +2468,11 @@
     },
     {
       "address": "0x130C",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2253,8 +2496,11 @@
     },
     {
       "address": "0x1400",
+      "block_class": "ASCII_CONTIGUOUS",
       "register_count": 8,
       "payload_bytes": 16,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2278,8 +2524,11 @@
     },
     {
       "address": "0x1410",
+      "block_class": "ASCII_CONTIGUOUS",
       "register_count": 4,
       "payload_bytes": 8,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2303,8 +2552,11 @@
     },
     {
       "address": "0x1418",
+      "block_class": "ASCII_CONTIGUOUS",
       "register_count": 4,
       "payload_bytes": 8,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2328,8 +2580,11 @@
     },
     {
       "address": "0x1420",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2369,8 +2624,11 @@
     },
     {
       "address": "0x1424",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2394,8 +2652,11 @@
     },
     {
       "address": "0x1470",
+      "block_class": "ASCII_CONTIGUOUS",
       "register_count": 8,
       "payload_bytes": 16,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [
@@ -2419,8 +2680,11 @@
     },
     {
       "address": "0x14B2",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2460,8 +2724,11 @@
     },
     {
       "address": "0x14D4",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2501,8 +2768,11 @@
     },
     {
       "address": "0x14E4",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2542,8 +2812,11 @@
     },
     {
       "address": "0x14E6",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2583,8 +2856,11 @@
     },
     {
       "address": "0x14E8",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2608,8 +2884,11 @@
     },
     {
       "address": "0x14EC",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2633,8 +2912,11 @@
     },
     {
       "address": "0x14F0",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2658,8 +2940,11 @@
     },
     {
       "address": "0x14F4",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2683,8 +2968,11 @@
     },
     {
       "address": "0x14F8",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2708,8 +2996,11 @@
     },
     {
       "address": "0x14FC",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2733,8 +3024,11 @@
     },
     {
       "address": "0x1500",
-      "register_count": 4,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 2,
       "payload_bytes": 4,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2758,8 +3052,11 @@
     },
     {
       "address": "0x1504",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 300000,
       "ui_group": null,
       "fields": [
@@ -2799,8 +3096,11 @@
     },
     {
       "address": "0x1506",
-      "register_count": 2,
+      "block_class": "ORDINARY_ONE_REGISTER",
+      "register_count": 1,
       "payload_bytes": 2,
+      "validation_policy": "exact",
+      "exception_reason": null,
       "cadence_ms": 15000,
       "ui_group": null,
       "fields": [

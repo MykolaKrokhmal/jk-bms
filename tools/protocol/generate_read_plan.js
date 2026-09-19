@@ -112,37 +112,50 @@
  *   not listed defaults to "sensor" (verified true for every one of the
  *   87 real entities except the 3 entries below).
  *
- *   WIRE REGISTER COUNT — the actual Modbus register_count requested is
- *   NOT canonical.json's own word_count. Cross-checked directly against
- *   every real, hardware-tested batterylifepo4.yaml entity's declared
- *   register_count (2026-09-15): for every non-ASCII field, real
- *   register_count = 2 x canonical word_count (the JK protocol's
+ *   WIRE REGISTER COUNT (CORRECTED 2026-09-19, user-directed systemic
+ *   fix — supersedes the prior version of this note, which claimed a
+ *   uniform "2x canonical word_count" rule as "the JK protocol's
  *   documented declared-address gap convention, applied uniformly to
- *   every single-register read, not merely to multi-value clustered ones
- *   as an earlier draft of this generator's design assumed) — confirmed
- *   across 76 of 78 non-ASCII addresses exactly; the 2 exceptions
- *   (cell_count requesting 8 instead of 4, mosfet_temperature requesting
- *   6 instead of 2) are both explained by an artificial widening to merge
- *   with an ADJACENT register for bus efficiency in today's YAML — a
- *   cross-register optimization this generator's deliberately conservative
- *   "one block per register" design does not replicate (see
- *   jk_poll_scheduler_core.h's own Block comment), so the uniform 2x rule
- *   is used for those two as well, not their inflated real-YAML value.
- *   ASCII fields (device_model, setup_passcode) request register_count =
- *   word_count, UNDOUBLED (confirmed: 8 requested for an 8-word/16-byte
- *   field, no gap convention for contiguous string bytes).
+ *   every single-register read"): that claim was a mechanical
+ *   overgeneralization of an old YAML-literal population that itself
+ *   turned out to contain the exact same unit-confusion bug (a byte
+ *   count passed where ESPHome's create_read_command() expects a
+ *   register count) in 6 independently-audited, independently-fixed
+ *   cases (2026-09-18 commits c722f5a/73c65f2/f6483a3/7832182/b867781/
+ *   9adce23 — 0x1200, 0x1088, 0x126A, 0x106C, 0x1240, 0x1470, and the
+ *   generic write-tx ACK-readback/recovery-probe mechanism) — zero of
+ *   which needed genuine doubling once correctly re-derived against
+ *   registers.canonical.json. The real upstream technique this rule was
+ *   modeled on (protocol/evidence/upstream_esp32-jk-pb-modbus-example.
+ *   yaml) doubles register_count specifically so ESPHome's OWN
+ *   modbus_controller auto-range-merge heuristic can correctly span
+ *   MULTIPLE, separately-declared sensors at DIFFERENT addresses in one
+ *   combined request — a scenario that does not exist for this
+ *   generator's ORDINARY_ONE_REGISTER/ASCII_CONTIGUOUS blocks, which
+ *   read exactly one canonical register address each ("one block per
+ *   register" design, unchanged). Both classes now request EXACTLY
+ *   register.word_count, undoubled — see wireRegisterCount()'s own
+ *   comment. Response validation for these blocks is EXACT-LENGTH
+ *   (data.size() != payload_bytes), not a floor check, matching every
+ *   one of the 6 already-corrected sites' own policy — an oversized
+ *   response is now a rejected anomaly, not silently accepted.
  *
- *   FLAGGED FOR HARDWARE VERIFICATION (not resolvable from documentation
- *   alone, no device available this session): 0x1504 (rcv_time/rfv_time)
- *   is the one address where the uniform 2x rule goes the OTHER direction
- *   from today's real, hardware-tested value -- the real YAML requests
- *   register_count=1 for each of its two overlapping declared entities,
- *   while this generator's uniform formula gives register_count=2 for the
- *   single merged block. 2 is used here (consistent with every other
- *   single_word register in the same memory region, and Modbus over-
- *   reading is ordinarily harmless), but this is a real, identified point
- *   of residual uncertainty -- confirm on real hardware before trusting it
- *   in a hardware-verified state (see this stage's own consolidated report).
+ *   The ONE genuine multi-address clustered read in this project is the
+ *   hand-authored CUSTOM_DECODE_BLOCKS entry at 0x1290 (class
+ *   CLUSTERED_GAP_AWARE) — see that table's own comment for why its
+ *   register_count is a real, still-open, hardware-pending question
+ *   (two candidate values identified — 10 via declared-address-span, 12
+ *   as the unchanged legacy literal — neither proven this round) that is
+ *   NOT resolved by this generic fix, and is deliberately NOT reduced
+ *   without hardware evidence.
+ *
+ *   0x1504 (rcv_time/rfv_time) is an ORDINARY_ONE_REGISTER block like any
+ *   other — this fix gives it register_count=1 (= its own word_count),
+ *   matching the real, previously-hardware-tested legacy YAML value that
+ *   the pre-fix uniform rule had disagreed with. The open blocker at this
+ *   address (protocol_blockers.json) is updated to reflect that the
+ *   software side is now fixed, but stays open, hardware-pending, until a
+ *   real device confirms it (see this stage's own consolidated report).
  *
  * Anti-stall policy (plan section 6): any field this generator cannot
  * place with full confidence throws a hard error naming the field, rather
@@ -154,6 +167,19 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+
+// Block classification (2026-09-19 hardening pass, user-directed generic
+// read-plan register-count correction). Declared early (module scope,
+// before any table that references it) since CUSTOM_DECODE_BLOCKS below
+// needs BLOCK_CLASS.CLUSTERED_GAP_AWARE at module-evaluation time. See
+// wireRegisterCount()'s and blockClassOf()'s own comments, further down,
+// for the full reasoning behind each class.
+const BLOCK_CLASS = {
+  ORDINARY_ONE_REGISTER: "ORDINARY_ONE_REGISTER",
+  ASCII_CONTIGUOUS: "ASCII_CONTIGUOUS",
+  CLUSTERED_GAP_AWARE: "CLUSTERED_GAP_AWARE",
+  UNRESOLVED: "UNRESOLVED",
+};
 
 function cliValue(flag) {
   const i = process.argv.indexOf(flag);
@@ -265,10 +291,44 @@ const BESPOKE_EXCLUDED_KEYS = new Set([
 // this table exists so that verbatim C++ can be reviewed/diffed as data,
 // not regenerated from canonical.json's per-field model, which cannot
 // express this block's cross-field computation at all.
+// CLUSTERED_GAP_AWARE exception (2026-09-19 hardening pass, user-directed):
+// this is the ONE genuine multi-address clustered read in this project --
+// three separately-declared canonical registers (0x1290 total_voltage_raw,
+// 0x1294 native_bms_power, 0x1298 current_raw, each word_count=2) read in
+// ONE physical FC03 request, exactly the scenario the upstream JK
+// declared-address-gap technique (protocol/evidence/upstream_esp32-jk-pb-
+// modbus-example.yaml) was actually written for -- unlike every ORDINARY_
+// ONE_REGISTER/ASCII_CONTIGUOUS block above, which reads only ONE address
+// and has no gap to cover.
+//
+// registerCount=12/payloadBytes=12 are UNCHANGED from the pre-migration
+// literal this round -- deliberately NOT reduced to the naive "6 registers
+// = sum of the 3 fields' own word_counts" figure, because that number
+// would only be correct if the JK device's response is exactly as wide as
+// the real field data with NO padding for the declared-address gaps
+// between fields (0x1290->0x1291 real, 0x1292-0x1293 unmodeled, 0x1294-
+// 0x1295 real, 0x1296-0x1297 unmodeled, 0x1298-0x1299 real) -- unproven
+// either way this round. Two candidate register_count values were
+// computed but NEITHER is hardware-confirmed:
+//   (a) declared-span: (0x1298 + word_count(2)) - 0x1290 = 10 registers
+//   (b) current/legacy literal: 12 registers (this file's existing value)
+// payload_bytes=12 (the COMPACT response the decoder actually reads) is
+// independently supported regardless of which register_count is correct
+// -- decode_electrical_metrics() only ever reads bytes 0-11 of whatever
+// comes back, per its own golden-vector tests, so payload_bytes is not
+// part of this open question. Changing registerCount without a real
+// FC03 capture at 0x1290 to disambiguate (a) vs (b) vs the current value
+// would be exactly the kind of "mechanical reduction without proof" this
+// round was explicitly told not to do -- left as an open,
+// hardware-pending question (see this file's own emitted exception_reason
+// on this block, and the parallel 0x1504 open blocker for the same class
+// of unresolved question).
 const CUSTOM_DECODE_BLOCKS = [
   {
     address: "0x1290",
-    registerCount: 12, // JK gap hack: double the real six-register (3-DWORD) span -- unchanged from the original.
+    blockClass: BLOCK_CLASS.CLUSTERED_GAP_AWARE,
+    exceptionReason: "Multi-address clustered read (0x1290 total_voltage_raw + 0x1294 native_bms_power [unread] + 0x1298 current_raw, each word_count=2). registerCount=12 is the pre-existing literal, UNCHANGED this round -- neither proven correct nor reduced without hardware evidence. A declared-address-span computation gives 10 registers as an alternative candidate; payload_bytes=12 (the decoder's own compact-response read length) is independent of this question and unaffected either way. Hardware-pending: a real FC03 capture at 0x1290 is needed to disambiguate 10 vs 12 vs any other candidate before this block can be called resolved.",
+    registerCount: 12, // UNCHANGED pre-existing literal -- see exceptionReason above; not reduced without proof.
     payloadBytes: 12, // real, gapless response: 3 adjacent DWORDs (BatVol, BatWatt [unused here], BatCurrent).
     cadenceMs: 15000, // telemetry_15s, matching total_voltage_raw's own canonical poll_group.
     coversKeys: ["total_voltage_raw", "current_raw"],
@@ -363,6 +423,21 @@ const DERIVED_BOOLEAN_OVERRIDE = {
 
 const READ_DOMAIN_OVERRIDE = {
   charging_float_mode: "binary_sensor",
+  // 0x1114 cluster (Stage 3 completion pass, 2026-09-20): 8 genuinely
+  // single-bit boolean flags, same reasoning as charging_float_mode
+  // itself (its own sibling bit on the SAME register) -- PDF p.8 confirms
+  // each is a plain "1: On / 0: Off" bit. port_switch (bit3) is
+  // deliberately NOT listed here -- it is an explicit 2-state MODE
+  // selector (1=RS485, 0=CAN per the same PDF row), not a boolean, so it
+  // stays on the default "sensor" domain with its own enum_map.
+  heat_en: "binary_sensor",
+  disable_temp_sensor: "binary_sensor",
+  gps_heartbeat: "binary_sensor",
+  lcd_always_on: "binary_sensor",
+  special_charger: "binary_sensor",
+  smart_sleep_enabled: "binary_sensor",
+  disable_pcl_module: "binary_sensor",
+  timed_stored_data: "binary_sensor",
   device_model: "text_sensor",
   setup_passcode: "text_sensor",
   // Stage 3 batch 1 (typed-petting-puzzle plan): two more ASCII-wire-type
@@ -589,13 +664,47 @@ for (const pf of planFields) {
 
 const WIRE_REGISTER_COUNT_BYTES = 2; // one Modbus holding register = 2 bytes, always, in this protocol
 
-function wireRegisterCount(register) {
+// Block classification (2026-09-19 hardening pass, user-directed generic
+// read-plan register-count correction). See this file's own module
+// comment's "WIRE REGISTER COUNT" section for the full incident history:
+// a uniform "2x word_count for every non-ASCII block" rule was found to
+// be a mechanical overgeneralization of a upstream/pre-migration YAML
+// literal population that turned out to contain the exact same
+// unit-confusion bug (byte count passed as register count) in 6
+// independently-audited, independently-fixed cases (2026-09-18 commits
+// c722f5a/73c65f2/f6483a3/7832182/b867781/9adce23) -- zero of which
+// needed genuine doubling once corrected. This project's generic
+// pipeline issues exactly ONE physical Modbus read per canonical
+// register address (module comment, "one block per register") -- the
+// upstream project's real "declared-address gap" doubling technique
+// (protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml) exists
+// specifically to make ESPHome's OWN modbus_controller auto-range-merge
+// heuristic correctly span MULTIPLE, separately-declared sensors at
+// DIFFERENT addresses in one combined request -- a scenario this
+// project's one-block-per-address design does not create for any
+// ordinary or ASCII field. The only genuine multi-address clustered
+// read in this project is the hand-authored CUSTOM_DECODE_BLOCKS entry
+// at 0x1290 (see its own comment for why that one case IS potentially
+// gap-aware and is deliberately NOT resolved by this function).
+
+function blockClassOf(register) {
   const isAscii = register.fields.every((f) => f.wire_type === "ASCII") ||
     (register.fields[0] && register.fields[0].wire_type === "ASCII");
-  // ASCII fields request word_count unchanged (no declared-address gap
-  // convention for contiguous string bytes); every other field requests
-  // 2x word_count (the JK protocol's gap convention -- see module comment).
-  return isAscii ? register.word_count : register.word_count * 2;
+  return isAscii ? BLOCK_CLASS.ASCII_CONTIGUOUS : BLOCK_CLASS.ORDINARY_ONE_REGISTER;
+}
+
+// Both ORDINARY_ONE_REGISTER and ASCII_CONTIGUOUS request EXACTLY the
+// register's own canonical word_count -- no doubling, no gap-covering
+// multiplier. A single, standalone FC03 read of one canonical register
+// has no declared-address gap to cover (there is only one address), so
+// there is nothing for a gap convention to apply to. This is the fix:
+// the previous version of this function multiplied non-ASCII requests by
+// 2 here; every one of the 6 already-corrected bespoke/write-tx sites
+// converged on exactly word_count (unmultiplied) once independently
+// re-derived against protocol/registers.canonical.json, so that is what
+// this function now returns uniformly, for both classes.
+function wireRegisterCount(register) {
+  return register.word_count;
 }
 
 // A block's ui_group (Stage 1 hardware acceptance corrective pass, active-
@@ -618,8 +727,11 @@ const blocks = [...blocksByAddress.values()]
     const registerCount = wireRegisterCount(b.register);
     return {
       address: b.register.address,
+      block_class: blockClassOf(b.register),
       register_count: registerCount,
       payload_bytes: b.register.payload_bytes,
+      validation_policy: "exact",
+      exception_reason: null,
       cadence_ms: b.cadenceMs,
       ui_group: aggregateUiGroup(b.fields.map((pf) => pf.field.ui_group)),
       fields: b.fields.map((pf) => ({
@@ -695,8 +807,11 @@ for (const block of blocks) {
 for (const cb of CUSTOM_DECODE_BLOCKS) {
   blocks.push({
     address: cb.address,
+    block_class: cb.blockClass,
     register_count: cb.registerCount,
     payload_bytes: cb.payloadBytes,
+    validation_policy: "exact",
+    exception_reason: cb.exceptionReason,
     cadence_ms: cb.cadenceMs,
     ui_group: aggregateUiGroup(cb.coversKeys.map((k) => (fieldByKey.get(k) || {}).ui_group ?? null)),
     fields: [],
@@ -1012,8 +1127,15 @@ function buildServicerInterval() {
   L("    id(bms0), esphome::modbus::EntityType::HOLDING, block.address, block.register_count,");
   L("    [chosen](auto, uint16_t, const auto &data) {");
   L("      const uint8_t payload_bytes = jk_read_plan::kBlocks[chosen].payload_bytes;");
-  L("      if (data.size() < payload_bytes) {");
-  L('        ESP_LOGW("jk_poll_scheduler", "Short response for block %u (address 0x%04X): %u/%u bytes",');
+  L("      // Exact-length validation (2026-09-19 hardening pass, user-directed):");
+  L("      // a short response is a genuine error (incomplete data), and an");
+  L("      // OVERSIZED response is now ALSO rejected, not silently accepted --");
+  L("      // a fixed-register_count FC03 read has a deterministic response");
+  L("      // size; anything else (short OR long) is a real anomaly, matching");
+  L("      // every already-corrected bespoke read site's own exact-match policy");
+  L("      // (see this project's 2026-09-18 bespoke-read register-count fix batch and generic write-tx fix).");
+  L("      if (data.size() != payload_bytes) {");
+  L('        ESP_LOGW("jk_poll_scheduler", "Response length mismatch for block %u (address 0x%04X): %u/%u bytes",');
   L("                 unsigned(chosen), unsigned(jk_read_plan::kBlocks[chosen].address), unsigned(data.size()), unsigned(payload_bytes));");
   L("        id(g_rp_error_count)[chosen] = uint16_t(id(g_rp_error_count)[chosen] + 1);");
   L("        id(g_rp_transport_state)[chosen] = jk_poll_scheduler::IDLE;");
@@ -1057,7 +1179,17 @@ function buildServicerInterval() {
             L(`          id(g_cell_connected_mask_raw) = jk_poll_scheduler::decode_raw_u32(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes);`);
             L(`          id(g_cell_connected_mask_valid) = true;`);
           }
-        } else if (f.wire_type === "BIT") {
+        } else if (f.wire_type === "BIT" && f.domain === "binary_sensor") {
+          // decode_bool() publishes a real bool, matching a binary_sensor
+          // entity's publish_state(bool) overload. A BIT-width field whose
+          // real semantic is NOT a boolean (e.g. port_switch: 1-bit but a
+          // genuine 2-state MODE selector, RS485/CAN, published as a plain
+          // numeric sensor with its own enum_map for the frontend to
+          // render) must NOT go through this branch -- it falls through to
+          // the plain decode_numeric() branch below instead, exactly like
+          // any other non-boolean field, since decode_numeric's mask+shift
+          // logic already handles a 1-bit-wide field correctly (returns
+          // 0.0/1.0), it just returns float instead of bool.
           L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_bool(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
         } else {
           L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_numeric(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);

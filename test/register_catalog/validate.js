@@ -353,8 +353,8 @@ check("zero-legacy-polling gate: batterylifepo4.yaml declares no `platform: modb
   const readPlan = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.json"), "utf8"));
   const block1504 = readPlan.blocks.find((b) => b.address === "0x1504");
   check("0x1504 block exists in the generated read plan", !!block1504);
-  check("0x1504's generated register_count (2) still matches what the open blocker's own text describes -- a future regen changing this must update the blocker too",
-    !!block1504 && block1504.register_count === 2, block1504 && `register_count=${block1504.register_count}`);
+  check("0x1504's generated register_count (1, corrected 2026-09-19) still matches what the open blocker's own text describes -- a future regen changing this must update the blocker too",
+    !!block1504 && block1504.register_count === 1, block1504 && `register_count=${block1504.register_count}`);
 }
 
 console.log(`\n${checks} checks run, ${failures} failed.`);
