@@ -28620,6 +28620,35 @@
           "enum_map": null,
           "evidence": [
             {
+              "source_id": "official_jk_documentation",
+              "locator": "p.11-12: relative offset 0x00D0 (absolute 0x12D0). p.11 lists, BEFORE the shared '0x00D0 208 [UINT8 2 R]' marker row, six consecutive bit rows -- 'MOS温度传感器MOS TempSensorAbsent BIT0', 'BATTempSensor1Absent ... BIT1', 'BATTempSensor2Absent ... BIT2', 'BATTempSensor3Absent ... BIT3' (ON the marker row itself), 'BATTempSensor4Absent ... BIT4', 'BATTempSensor5Absent ... BIT5' -- BIT0 through BIT5 CONSECUTIVE, no gap. Page 12 (next page) lists, AFTER the marker, 'UINT8 R 加热状态Heating 1：打开 ; 0：关闭' with no bit-number annotation (a whole-byte value, not further bit-flagged). Following this project's own established packed-pair convention (first-named field = high byte, second-named = low byte, confirmed this session for 0x1248 and 0x12A6/0x12B8/0x12C0): the six-bit mask (named first) is the HIGH byte, Heating (named second, on the following page) is the LOW byte.",
+              "locator_id": "official_jk_documentation:bf340d405bf5b300",
+              "claim_types": [
+                "address",
+                "wire_type",
+                "field_width",
+                "declared_access"
+              ],
+              "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+              "confidence": "high",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "jikong_official"
+            },
+            {
+              "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+              "locator": "row 40: 'TempSensorAbsent', address '0x12D0 (старший байт)' [high byte], UINT8 (1 байт), бітова маска, R -- \"Бітова маска наявності термодатчиків у першому UINT8 packed-регістра 0x12D0: BIT0 MOS, BIT1..5 Bat1..Bat5; 1 — норма, 0 — відсутній.\" Independently confirms the mask = HIGH byte, BIT0..BIT5 consecutive (MOS, Bat1, Bat2, Bat3, Bat4, Bat5), no gap, and the 1=normal/0=absent polarity. Rows 67-72 (MOSTempSensorPresent through BATTempSensor5Present) each independently confirm one bit position (0 through 5 respectively) of this same high-byte mask, all under address '0x12D0 (старший байт), біт N' -- none skipped, none renumbered.",
+              "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:bbec3f194dbf662d",
+              "claim_types": [
+                "address",
+                "declared_access",
+                "field_width"
+              ],
+              "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+              "confidence": "high",
+              "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+              "derivation_group": "vendor_workbook_v2"
+            },
+            {
               "source_id": "project_implementation",
               "locator": "batterylifepo4.yaml line(s) [3059]",
               "locator_id": "project_implementation:4a2743c5eee21754",
@@ -28677,13 +28706,42 @@
               "derivation_group": "syssi_implementation_family"
             }
           ],
-          "verification_status": "implementation_only_unverified",
+          "verification_status": "confirmed",
           "exclusion_reason": null,
           "implementation_status": "implemented",
           "unknown_code_policy": null
         }
       ],
       "evidence": [
+        {
+          "source_id": "official_jk_documentation",
+          "locator": "p.11-12: relative offset 0x00D0 (absolute 0x12D0). p.11 lists, BEFORE the shared '0x00D0 208 [UINT8 2 R]' marker row, six consecutive bit rows -- 'MOS温度传感器MOS TempSensorAbsent BIT0', 'BATTempSensor1Absent ... BIT1', 'BATTempSensor2Absent ... BIT2', 'BATTempSensor3Absent ... BIT3' (ON the marker row itself), 'BATTempSensor4Absent ... BIT4', 'BATTempSensor5Absent ... BIT5' -- BIT0 through BIT5 CONSECUTIVE, no gap. Page 12 (next page) lists, AFTER the marker, 'UINT8 R 加热状态Heating 1：打开 ; 0：关闭' with no bit-number annotation (a whole-byte value, not further bit-flagged). Following this project's own established packed-pair convention (first-named field = high byte, second-named = low byte, confirmed this session for 0x1248 and 0x12A6/0x12B8/0x12C0): the six-bit mask (named first) is the HIGH byte, Heating (named second, on the following page) is the LOW byte.",
+          "locator_id": "official_jk_documentation:bf340d405bf5b300",
+          "claim_types": [
+            "address",
+            "wire_type",
+            "field_width",
+            "declared_access"
+          ],
+          "source_fingerprint": "sha256:b9b3f1e417017cff32ec112b6238663204133bb551a1a4a88c9d139c16d22739",
+          "confidence": "high",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "jikong_official"
+        },
+        {
+          "source_id": "workbook_lifepo4_bms_parameters_registers_v2",
+          "locator": "row 40: 'TempSensorAbsent', address '0x12D0 (старший байт)' [high byte], UINT8 (1 байт), бітова маска, R -- \"Бітова маска наявності термодатчиків у першому UINT8 packed-регістра 0x12D0: BIT0 MOS, BIT1..5 Bat1..Bat5; 1 — норма, 0 — відсутній.\" Independently confirms the mask = HIGH byte, BIT0..BIT5 consecutive (MOS, Bat1, Bat2, Bat3, Bat4, Bat5), no gap, and the 1=normal/0=absent polarity. Rows 67-72 (MOSTempSensorPresent through BATTempSensor5Present) each independently confirm one bit position (0 through 5 respectively) of this same high-byte mask, all under address '0x12D0 (старший байт), біт N' -- none skipped, none renumbered.",
+          "locator_id": "workbook_lifepo4_bms_parameters_registers_v2:bbec3f194dbf662d",
+          "claim_types": [
+            "address",
+            "declared_access",
+            "field_width"
+          ],
+          "source_fingerprint": "sha256:3226acee771fedc448458f6a521421ff55da86309171de57161d0b11d6902be8",
+          "confidence": "high",
+          "applicability": "current catalog scope; exact BMS protocol variant not independently established",
+          "derivation_group": "vendor_workbook_v2"
+        },
         {
           "source_id": "project_implementation",
           "locator": "batterylifepo4.yaml line(s) [3059]",
@@ -28742,8 +28800,8 @@
           "derivation_group": "syssi_implementation_family"
         }
       ],
-      "verification_status": "implementation_only_unverified",
-      "safety_notes": "UINT8+UINT8 per the upstream reference (AbsentBitmask bits 0/1/2/4/5 in the low byte / heating status in the high byte). Not split into two fields because this project's implementation reads it as ONE opaque U16 — matches implementation reality; splitting would create a catalog field with zero implementation mapping, contradicting spec section 6.",
+      "verification_status": "confirmed",
+      "safety_notes": "CORRECTED 2026-09-19 (metadata-only preflight): this register is a packed UINT16 -- two independent primary/verified sources (official PDF, p.11-12, and the V2 workbook, rows 13/40/67-72) agree and are cited above; this replaces an earlier, uncorroborated claim sourced only from the single upstream_syssi reference (see 'PRIOR, CORRECTED CLAIM' below), which had the byte order backward and skipped a bit.\n\nHIGH BYTE (0xFF00): absent-temperature-sensor mask. BIT0..BIT5, consecutive, no gap -- BIT0=MOS temperature sensor, BIT1=battery temperature sensor 1, BIT2=sensor 2, BIT3=sensor 3, BIT4=sensor 4, BIT5=sensor 5. Both sources agree on the value polarity for this mask PDF/workbook state: 1=normal/present, 0=missing/absent -- this project makes no independent claim about bits 6-7 or about which physical sensor position corresponds to 'battery 1..5' beyond what the sources themselves state (no further channel-mapping assumption made).\n\nLOW BYTE (0x00FF): Heating status. Both sources state 1=on/0=off as a whole-byte value (not further bit-flagged) -- this project makes no claim about bits beyond what 1/0 the sources describe (e.g. no claim about whether any other bit position in this byte carries meaning).\n\nIMPLEMENTATION NOTE: the existing runtime entity 'sensor_heating_mask' publishes the RAW, FULL, UNSPLIT UINT16 (both bytes together, mask=0xFFFF, no shift) -- it is NOT a pre-extracted high-byte mask value, despite its name suggesting otherwise. This metadata-only batch does not rename it, split it, or add any new field -- the 8 individual manifest parameters this register maps to (MOSTempSensorPresent, BATTempSensor1-5Present, Heating, TempSensorAbsent) remain blocked, with no canonical bit-field of their own.\n\nPRIOR, CORRECTED CLAIM (kept here for audit trail, no longer trusted): this safety_notes previously stated 'AbsentBitmask bits 0/1/2/4/5 in the low byte / heating status in the high byte' (sourced only from the single upstream_syssi_esphome_jk_bms reference) -- WRONG on both counts per the two independent sources above: the mask is BIT0-5 consecutive (bit 3 is NOT skipped) and occupies the HIGH byte, not the low byte; Heating occupies the LOW byte, not the high byte.",
       "payload_bytes": 2
     },
     {

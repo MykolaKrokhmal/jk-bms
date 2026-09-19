@@ -211,6 +211,10 @@ echo "=== protocol catalog: MaxVolCellNbr/MinVolCellNbr (0x1248) + CellWireResSt
 node test/protocol_catalog/test_min_max_native_and_wire_res_status.js
 
 echo
+echo "=== protocol catalog: 0x12D0 sensor_heating_mask metadata correction regression ==="
+node test/protocol_catalog/test_0x12d0_metadata_correction.js
+
+echo
 echo "=== protocol catalog: secret-leakage scan ==="
 node test/protocol_catalog/test_secret_scan.js
 
