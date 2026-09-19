@@ -2,14 +2,26 @@
 "use strict";
 
 /*
- * Stage 3 (typed-petting-puzzle plan) preflight deliverable: an EXACT,
- * address-based mapping of every one of the 265 manifest parameters
- * (protocol/generated/bms_v1_1_manifest.json) against the CURRENT
- * registers.canonical.json and the CURRENT open-blocker register --
- * never a mechanical count comparison (packed fields, aliases, and
- * derived entities have a different structure between the manifest and
- * the canonical catalog; see registers.canonical.json's own field count
- * vs. the manifest's 265 rows -- they were never expected to match 1:1).
+ * Stage 3 (typed-petting-puzzle plan) preflight deliverable: a WIRE-POSITION
+ * mapping of every one of the 265 manifest parameters (protocol/generated/
+ * bms_v1_1_manifest.json) against the CURRENT registers.canonical.json and
+ * the CURRENT open-blocker register -- never a mechanical count comparison
+ * (packed fields, aliases, and derived entities have a different structure
+ * between the manifest and the canonical catalog; see registers.canonical.
+ * json's own field count vs. the manifest's 265 rows -- they were never
+ * expected to match 1:1).
+ *
+ * TERMINOLOGY (2026-09-19 hardening pass): "match" below means WIRE-POSITION
+ * identity only -- a manifest parameter's declared bit/byte-half/
+ * whole-register slot at an address coincides with a canonical field's
+ * declared slot at that same address (see fieldOccupiesManifestParamWire
+ * Position()'s own comment for the exact rules). It is deliberately NOT a
+ * claim of full SEMANTIC identity -- this generator never inspects or
+ * compares field names/descriptions to decide a match, only wire geometry.
+ * Two same-position entries that turned out to mean different things would
+ * still "match" by this definition; that is exactly why classifyOne() below
+ * refuses to classify a position with more than one canonical match as
+ * implemented (step 5a) rather than silently picking one.
  *
  * Classification order (blocker status checked BEFORE canonical-address
  * presence -- a packed/bit-field parameter can share an address with an
@@ -21,15 +33,20 @@
  *   2. manifest classification "derived"   -> derived_not_a_register
  *   3. parameter_id named in an open protocol_blockers.json entry -> blocked
  *   4. no canonical register at this address at all -> missing
- *   5. a canonical register exists; inspect its field(s):
+ *   5. a canonical register exists; find every field occupying this
+ *      parameter's exact wire position (bit / byte-half / whole-register):
+ *      5a. more than one such field -> missing, with an explicit
+ *          "AMBIGUOUS wire-position match" note (never implemented_*,
+ *          never a guessed pick -- see TERMINOLOGY above)
+ *      5b. exactly one such field -> inspect it:
  *        implemented + effective_access "rw" -> implemented_write_confirmed
  *        implemented + effective_access "r"  -> implemented_read
  *        implemented (other effective_access) -> implemented_other
  *        source_only_unimplemented / partially_implemented /
  *          implementation_only_unverified     -> catalog_only
- *        otherwise (e.g. only a reserved placeholder sibling, like the
- *          0x12EE half-register's OWN half not yet being this parameter's
- *          half) -> missing
+ *      5c. zero such fields (e.g. only a reserved placeholder sibling,
+ *          like the 0x12EE half-register's OWN half not yet being this
+ *          parameter's half) -> missing
  *
  * Run:
  *   node tools/protocol/authoring/build_stage3_status_map.js
@@ -51,23 +68,45 @@ const CHECK = process.argv.includes("--check");
 function loadJson(p) { return JSON.parse(fs.readFileSync(p, "utf8")); }
 function sha256(p) { return crypto.createHash("sha256").update(fs.readFileSync(p)).digest("hex"); }
 
-// Exact field-identity match between one manifest parameter's own address
+// WIRE-POSITION match between one manifest parameter's own address
 // (base_address + bit OR byte_half OR neither) and one canonical field at
 // that SAME base_address (2026-09-19, user-directed fail-open-bug fix --
 // see this file's own header comment for the full incident: Special
 // Charger/0x1114-bit5 and AlarmBatUVP/0x12A0-bit12 were both classified
 // "implemented_read" solely because SOME OTHER field existed at their
-// shared address, never checking whether that field was actually THEIR
-// field). Cross-checked against every real packed-sibling register in
-// registers.canonical.json before being written (26 real 8-bit byte-half
-// fields, 100% follow byte_offset=0/mask=0xFF00=high and byte_offset=1/
-// mask=0x00FF=low with zero exceptions; the 1 real BIT field follows
-// mask=(1<<shift) with zero exceptions; all 185 whole-register-width
-// fields have field_width_bits===register_width_bits, mask either the
-// full-width value or null for ASCII/multi-word fields) -- this is not a
-// guessed convention, it is the actual, universal shape of the data this
-// generator already reads.
-function fieldMatchesManifestParam(pAddr, field, registerWidthBits) {
+// shared address, never checking whether that field occupied THEIR own
+// bit/byte slot).
+//
+// TERMINOLOGY (2026-09-19 hardening pass, corrected): this function proves
+// only WIRE-POSITION identity -- that a manifest parameter's declared
+// bit/byte-half/whole-register slot at an address coincides with a
+// canonical field's declared slot at the same address. It is NOT full
+// SEMANTIC identity -- it does not know or verify that the two names refer
+// to the same real-world quantity, only that they occupy the same wire
+// location. Two same-position entries with genuinely different meanings
+// (an aliasing/collision case) would still match here; classifyOne()'s
+// caller-side ambiguity guard (below) is what keeps a *positional*
+// collision from being silently resolved as if it were also a semantic
+// one -- when more than one canonical field or manifest parameter shares
+// a position, this project refuses to guess which pairing is the real
+// semantic one and fails closed instead (see the >1-match branch in
+// classifyOne()). A full 265-parameter audit (2026-09-19) found zero
+// wire-position collisions in the current production data -- every real
+// manifest parameter's position matches at most one canonical field, and
+// no two non-bit_unspecified manifest parameters share a position -- so
+// this guard is defense-in-depth against a *future* collision, not a fix
+// for an existing one.
+//
+// Position rules, cross-checked against every real packed-sibling
+// register in registers.canonical.json before being written (26 real
+// 8-bit byte-half fields, 100% follow byte_offset=0/mask=0xFF00=high and
+// byte_offset=1/mask=0x00FF=low with zero exceptions; the 1 real BIT
+// field follows mask=(1<<shift) with zero exceptions; all 185
+// whole-register-width fields have field_width_bits===register_width_bits,
+// mask either the full-width value or null for ASCII/multi-word fields)
+// -- this is not a guessed convention, it is the actual, universal shape
+// of the data this generator already reads.
+function fieldOccupiesManifestParamWirePosition(pAddr, field, registerWidthBits) {
   if (pAddr.bit_unspecified) return false; // e.g. TemperatureSensorAnomaly -- cannot match anything, even correctly-blocked ones must never silently resolve via this path
   if (pAddr.bit !== null && pAddr.bit !== undefined) {
     return field.wire_type === "BIT" && field.shift === pAddr.bit;
@@ -102,41 +141,62 @@ function classifyOne(p, canonByAddr, blockedIds, locatorById) {
     return { status: "missing", note: hasResolvedPdf ? "no canonical register at this address; PDF locator resolved" : "no canonical register at this address; PDF locator unresolved (unexpected -- should have an open blocker)" };
   }
 
-  // Fail-closed field selection: only fields that are EXACT-IDENTITY
+  // Fail-closed field selection: only fields that are WIRE-POSITION
   // matches for THIS parameter's own bit/byte/whole-register address may
   // ever drive its classification. A sibling field existing at the same
   // address (a different bit, the other byte-half, or an unrelated
   // whole-register field) is never sufficient by itself -- see the
   // function comment above for why this was previously wrong.
-  const matchingFieldStatuses = [];
+  const positionMatches = [];
   for (const reg of canonRegs) {
     for (const f of reg.fields) {
-      if (fieldMatchesManifestParam(p.address, f, reg.register_width_bits)) {
-        matchingFieldStatuses.push({ key: f.key, implementation_status: f.implementation_status, effective_access: f.effective_access });
+      if (fieldOccupiesManifestParamWirePosition(p.address, f, reg.register_width_bits)) {
+        positionMatches.push({ registerAddress: reg.address, key: f.key, implementation_status: f.implementation_status, effective_access: f.effective_access });
       }
     }
   }
 
-  if (matchingFieldStatuses.some((s) => s.implementation_status === "implemented" && s.effective_access === "rw")) {
-    return { status: "implemented_write_confirmed", note: "canonical field implemented (exact identity match), effective_access=rw" };
+  // Ambiguity guard (2026-09-19 hardening pass): a WIRE-POSITION match is
+  // not the same thing as a proven SEMANTIC match (see the function
+  // comment above). If more than one canonical field occupies this
+  // parameter's exact position, this generator has no principled way to
+  // pick which one is "really" this parameter's own field -- guessing by
+  // name similarity is explicitly forbidden by this project's evidence
+  // policy. Fail closed: never implemented_*, and say exactly why, rather
+  // than silently picking the first match (which is what an unguarded
+  // `.some()`/`.find()` over this array would have done). Reuses the
+  // existing "missing" status rather than inventing a new one -- a full
+  // 265-parameter audit (2026-09-19) found zero real occurrences of this
+  // case in current production data, so a new status would add schema/
+  // counts/consumer surface for a branch nothing exercises today; if a
+  // real collision is ever found, that is the point to reopen this
+  // decision, not before.
+  if (positionMatches.length > 1) {
+    const describe = positionMatches.map((m) => `${m.registerAddress}:${m.key}`).join(", ");
+    return { status: "missing", note: `AMBIGUOUS wire-position match -- ${positionMatches.length} canonical fields (${describe}) occupy this parameter's exact bit/byte/whole-register position; refusing to guess which one is this parameter's own semantic field, so this parameter is not classified implemented_* until the canonical side is disambiguated` };
   }
-  if (matchingFieldStatuses.some((s) => s.implementation_status === "implemented" && s.effective_access === "r")) {
-    return { status: "implemented_read", note: "canonical field implemented (exact identity match), effective_access=r" };
+
+  if (positionMatches.some((s) => s.implementation_status === "implemented" && s.effective_access === "rw")) {
+    return { status: "implemented_write_confirmed", note: "canonical field implemented (unique wire-position match), effective_access=rw" };
   }
-  if (matchingFieldStatuses.some((s) => s.implementation_status === "implemented")) {
-    return { status: "implemented_other", note: "canonical field implemented (exact identity match), effective_access neither r nor rw" };
+  if (positionMatches.some((s) => s.implementation_status === "implemented" && s.effective_access === "r")) {
+    return { status: "implemented_read", note: "canonical field implemented (unique wire-position match), effective_access=r" };
   }
-  if (matchingFieldStatuses.some((s) => ["source_only_unimplemented", "partially_implemented", "implementation_only_unverified"].includes(s.implementation_status))) {
-    return { status: "catalog_only", note: "canonical field exists (exact identity match) but not implementation_status=implemented" };
+  if (positionMatches.some((s) => s.implementation_status === "implemented")) {
+    return { status: "implemented_other", note: "canonical field implemented (unique wire-position match), effective_access neither r nor rw" };
   }
-  // Either no field at this address has THIS parameter's own exact
-  // identity at all (a sibling bit/byte/whole-field exists, but not this
-  // one's own), or one does but its implementation_status is something
-  // else entirely -- either way, this parameter's own data is not yet
-  // captured by anything, and it is not named in any open blocker either
-  // (checked above) -- a real, fail-closed gap this generator surfaces
-  // honestly rather than silently inheriting a sibling's status.
-  return { status: "missing", note: "canonical register exists at this address, but no field has this parameter's own exact bit/byte/whole-register identity -- this parameter's own data is not yet modeled, and it is not named in any open blocker either" };
+  if (positionMatches.some((s) => ["source_only_unimplemented", "partially_implemented", "implementation_only_unverified"].includes(s.implementation_status))) {
+    return { status: "catalog_only", note: "canonical field exists (unique wire-position match) but not implementation_status=implemented" };
+  }
+  // Either no field at this address occupies THIS parameter's own wire
+  // position at all (a sibling bit/byte/whole-field exists, but not this
+  // one's own), or exactly one does but its implementation_status is
+  // something else entirely -- either way, this parameter's own data is
+  // not yet captured by anything, and it is not named in any open
+  // blocker either (checked above) -- a real, fail-closed gap this
+  // generator surfaces honestly rather than silently inheriting a
+  // sibling's status.
+  return { status: "missing", note: "canonical register exists at this address, but no field occupies this parameter's own exact bit/byte/whole-register wire position -- this parameter's own data is not yet modeled, and it is not named in any open blocker either" };
 }
 
 function build() {
@@ -173,7 +233,7 @@ function build() {
   for (const p of parameters) counts[p.status] = (counts[p.status] || 0) + 1;
 
   return {
-    $comment: "GENERATED -- Stage 3 (typed-petting-puzzle plan) preflight deliverable: exact address-based status of every one of the 265 manifest parameters against the CURRENT registers.canonical.json and CURRENT open protocol_blockers.json entries. NOT a mechanical manifest-count-vs-canonical-count comparison -- packed fields, aliases, and derived entities have a different structure between the two catalogs. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_stage3_status_map.js. Because this reads the CURRENT canonical/blocker state (which Stage 3 itself will change), this file's own committed content reflects one snapshot in the stage's history -- re-run this generator (and its own --check) after each canonical/blocker change within Stage 3, exactly like every other generator in this pipeline.",
+    $comment: "GENERATED -- Stage 3 (typed-petting-puzzle plan) preflight deliverable: wire-position-based status of every one of the 265 manifest parameters against the CURRENT registers.canonical.json and CURRENT open protocol_blockers.json entries. 'Wire-position' means bit/byte-half/whole-register slot identity, not proven semantic identity -- a status is implemented_* only when exactly one canonical field occupies a parameter's own wire position; more than one such field yields status=missing with an explicit AMBIGUOUS note rather than a guess (see tools/protocol/authoring/build_stage3_status_map.js's own header comment). NOT a mechanical manifest-count-vs-canonical-count comparison -- packed fields, aliases, and derived entities have a different structure between the two catalogs. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_stage3_status_map.js. Because this reads the CURRENT canonical/blocker state (which Stage 3 itself will change), this file's own committed content reflects one snapshot in the stage's history -- re-run this generator (and its own --check) after each canonical/blocker change within Stage 3, exactly like every other generator in this pipeline.",
     manifest_source_sha256: sha256(MANIFEST_PATH),
     canonical_source_sha256: sha256(CANONICAL_PATH),
     blockers_source_sha256: sha256(BLOCKERS_PATH),
@@ -206,4 +266,16 @@ function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+// Exported for direct unit testing of the pure classification logic
+// (2026-09-19 hardening pass) -- specifically so regression tests can
+// construct synthetic collision fixtures (two manifest IDs / two
+// canonical fields sharing one wire position) that do not exist anywhere
+// in current production data, without needing to fabricate a full,
+// on-disk manifest/canonical/blockers file trio. No behavior change to
+// the CLI entry point: `node build_stage3_status_map.js` still runs
+// exactly as before via the require.main guard above.
+module.exports = { fieldOccupiesManifestParamWirePosition, classifyOne };

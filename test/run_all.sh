@@ -247,6 +247,10 @@ echo "=== Stage 3: build_stage3_status_map.js exact-field-identity classifier fi
 node test/protocol_catalog/test_stage3_status_map_exact_identity.js
 
 echo
+echo "=== Stage 3: build_stage3_status_map.js wire-position collision hardening (ambiguity guard + terminology) ==="
+node test/protocol_catalog/test_stage3_status_map_collision_hardening.js
+
+echo
 echo "=== Stage 2: settings UI mapping completeness (265/265) ==="
 node test/protocol_catalog/test_stage2_mapping_completeness.js
 
