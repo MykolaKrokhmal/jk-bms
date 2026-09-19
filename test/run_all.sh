@@ -243,6 +243,10 @@ echo "=== protocol catalog: Settings/Diagnostics register-list cell-channel hidi
 node test/protocol_catalog/test_diagnostic_cell_channel_hiding.js
 
 echo
+echo "=== Stage 3: build_stage3_status_map.js exact-field-identity classifier fix regression ==="
+node test/protocol_catalog/test_stage3_status_map_exact_identity.js
+
+echo
 echo "=== Stage 2: settings UI mapping completeness (265/265) ==="
 node test/protocol_catalog/test_stage2_mapping_completeness.js
 
