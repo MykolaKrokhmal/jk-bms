@@ -332,13 +332,19 @@ check("zero-legacy-polling gate: batterylifepo4.yaml declares no `platform: modb
   modbusControllerDeclarations === 0, `found ${modbusControllerDeclarations}`);
 
 // ===========================================================================
-// 11. protocol_blockers.json: schema-valid, and the one open 0x1504 entry
-//     stays consistent with the generated read plan's actual register_count
-//     for that address (Final-preparation-plan Stage 1 corrective pass §4:
+// 11. protocol_blockers.json: schema-valid, and the 0x1504 entry stays
+//     consistent with the generated read plan's actual register_count for
+//     that address (Final-preparation-plan Stage 1 corrective pass §4:
 //     "не вгадуй 0x1504... зафіксуй її як конкретний Stage 1 hardware
 //     blocker" — this is the automated guard that a future regeneration
 //     can't silently change the register_count out from under the blocker's
 //     own recorded evidence_needed/closure_criterion without this failing).
+//     CORRECTED 2026-09-20: hardware acceptance (second attempt, post-
+//     reflash, HEAD aded697) confirmed register_count=1 on real hardware,
+//     closing this blocker per its own closure_criterion — it is no longer
+//     open. The register_count consistency check still applies to the
+//     closed record (a future regen must still not silently change this
+//     value without updating the blocker's own text, even closed).
 // ===========================================================================
 {
   const blockersSchema = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "schema", "protocol-blockers.schema.json"), "utf8"));
@@ -347,14 +353,25 @@ check("zero-legacy-polling gate: batterylifepo4.yaml declares no `platform: modb
   check("protocol_blockers.json is schema-valid", blockerSchemaErrors.length === 0,
     blockerSchemaErrors.map((e) => `${e.path} ${e.message}`).join(" | "));
 
-  const rcvBlocker = blockersDoc.blockers.find((b) => b.address === "0x1504" && b.status === "open");
-  check("the open 0x1504 (rcv_time/rfv_time) hardware blocker is present", !!rcvBlocker);
+  const rcvBlocker = blockersDoc.blockers.find((b) => b.address === "0x1504");
+  check("the 0x1504 (rcv_time/rfv_time) hardware blocker is present and CLOSED (hardware acceptance 2026-09-20 confirmed register_count=1 on real hardware)",
+    !!rcvBlocker && rcvBlocker.status === "closed" && !!rcvBlocker.closed_date);
 
   const readPlan = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.json"), "utf8"));
   const block1504 = readPlan.blocks.find((b) => b.address === "0x1504");
   check("0x1504 block exists in the generated read plan", !!block1504);
-  check("0x1504's generated register_count (1, corrected 2026-09-19) still matches what the open blocker's own text describes -- a future regen changing this must update the blocker too",
+  check("0x1504's generated register_count (1, corrected 2026-09-19, hardware-confirmed 2026-09-20) still matches what the (now closed) blocker's own text describes -- a future regen changing this must update the blocker too",
     !!block1504 && block1504.register_count === 1, block1504 && `register_count=${block1504.register_count}`);
+
+  // 0x1290: the one open blocker documenting this round's confirmed
+  // strict_length defect+fix (see generate_read_plan.js's CUSTOM_DECODE_
+  // BLOCKS comment and Block::strict_length in jk_poll_scheduler_core.h).
+  const electricalBlocker = blockersDoc.blockers.find((b) => b.address === "0x1290");
+  check("the 0x1290 (electrical metrics) blocker is present and OPEN (register_count/response-length still hardware-unresolved)",
+    !!electricalBlocker && electricalBlocker.status === "open");
+  const block1290 = readPlan.blocks.find((b) => b.address === "0x1290");
+  check("0x1290's generated block has strict_length=false, matching the blocker's own description of the floor-check fix",
+    !!block1290 && block1290.strict_length === false, block1290 && JSON.stringify(block1290.strict_length));
 }
 
 console.log(`\n${checks} checks run, ${failures} failed.`);

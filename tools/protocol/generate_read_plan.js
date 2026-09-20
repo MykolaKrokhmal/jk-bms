@@ -136,9 +136,10 @@
  *   register" design, unchanged). Both classes now request EXACTLY
  *   register.word_count, undoubled — see wireRegisterCount()'s own
  *   comment. Response validation for these blocks is EXACT-LENGTH
- *   (data.size() != payload_bytes), not a floor check, matching every
- *   one of the 6 already-corrected sites' own policy — an oversized
- *   response is now a rejected anomaly, not silently accepted.
+ *   (data.size() != payload_bytes, Block::strict_length=true), not a
+ *   floor check, matching every one of the 6 already-corrected sites'
+ *   own policy — an oversized response is now a rejected anomaly, not
+ *   silently accepted.
  *
  *   The ONE genuine multi-address clustered read in this project is the
  *   hand-authored CUSTOM_DECODE_BLOCKS entry at 0x1290 (class
@@ -147,7 +148,13 @@
  *   (two candidate values identified — 10 via declared-address-span, 12
  *   as the unchanged legacy literal — neither proven this round) that is
  *   NOT resolved by this generic fix, and is deliberately NOT reduced
- *   without hardware evidence.
+ *   without hardware evidence. Its response-length validation is a FLOOR
+ *   check (data.size() >= payload_bytes, Block::strict_length=false), NOT
+ *   exact-match — confirmed necessary by hardware acceptance 2026-09-20,
+ *   which found the exact-match policy above, applied to this block
+ *   unconditionally, rejected 100% of its real responses since a
+ *   confirmed fresh boot. See CUSTOM_DECODE_BLOCKS' own exceptionReason
+ *   for the full incident.
  *
  *   0x1504 (rcv_time/rfv_time) is an ORDINARY_ONE_REGISTER block like any
  *   other — this fix gives it register_count=1 (= its own word_count),
@@ -327,7 +334,7 @@ const CUSTOM_DECODE_BLOCKS = [
   {
     address: "0x1290",
     blockClass: BLOCK_CLASS.CLUSTERED_GAP_AWARE,
-    exceptionReason: "Multi-address clustered read (0x1290 total_voltage_raw + 0x1294 native_bms_power [unread] + 0x1298 current_raw, each word_count=2). registerCount=12 is the pre-existing literal, UNCHANGED this round -- neither proven correct nor reduced without hardware evidence. A declared-address-span computation gives 10 registers as an alternative candidate; payload_bytes=12 (the decoder's own compact-response read length) is independent of this question and unaffected either way. Hardware-pending: a real FC03 capture at 0x1290 is needed to disambiguate 10 vs 12 vs any other candidate before this block can be called resolved.",
+    exceptionReason: "Multi-address clustered read (0x1290 total_voltage_raw + 0x1294 native_bms_power [unread] + 0x1298 current_raw, each word_count=2). registerCount=12 is the pre-existing literal, UNCHANGED this round -- neither proven correct nor reduced without hardware evidence. A declared-address-span computation gives 10 registers as an alternative candidate; payload_bytes=12 (the decoder's own compact-response read length) is independent of this question and unaffected either way. Hardware-pending: a real FC03 capture at 0x1290 is needed to disambiguate 10 vs 12 vs any other candidate before this block can be called resolved. CONFIRMED DEFECT, hardware acceptance 2026-09-20: the generic exact-length validation (data.size() != payload_bytes) was applied to this block unconditionally, and total_voltage/current (and every entity this block feeds) were observed unavailable (NA) continuously for >2.5h across a confirmed fresh boot -- 100% failure rate, while every other, individually-audited block on the identical validator succeeded throughout. Root cause: payload_bytes=12 was only ever proven as this block's own decoder's read length (unit/golden-vector tests), never as this device's true wire response byte count, which remains the same open question as registerCount (10 vs 12 vs other). Fix: this block now validates as a floor (data.size() >= payload_bytes), restoring the tolerant check this literal was actually hardware-validated under before the 2026-09-19 change, via Block::strict_length=false. Still open pending a real FC03 capture; do not tighten back to exact-match without one.",
     registerCount: 12, // UNCHANGED pre-existing literal -- see exceptionReason above; not reduced without proof.
     payloadBytes: 12, // real, gapless response: 3 adjacent DWORDs (BatVol, BatWatt [unused here], BatCurrent).
     cadenceMs: 15000, // telemetry_15s, matching total_voltage_raw's own canonical poll_group.
@@ -799,6 +806,7 @@ const blocks = [...blocksByAddress.values()]
       register_count: registerCount,
       payload_bytes: b.register.payload_bytes,
       validation_policy: "exact",
+      strict_length: true,
       exception_reason: null,
       cadence_ms: b.cadenceMs,
       ui_group: aggregateUiGroup(b.fields.map((pf) => pf.field.ui_group)),
@@ -878,7 +886,21 @@ for (const cb of CUSTOM_DECODE_BLOCKS) {
     block_class: cb.blockClass,
     register_count: cb.registerCount,
     payload_bytes: cb.payloadBytes,
-    validation_policy: "exact",
+    // CLUSTERED_GAP_AWARE (currently the only class CUSTOM_DECODE_BLOCKS
+    // carries): floor-check, not exact-match. This block's real wire
+    // response length is an open, hardware-pending question (see this
+    // block's own exceptionReason) -- payload_bytes is only proven as the
+    // DECODE function's own read length (golden-vector unit tests), never
+    // hardware-confirmed as the response's exact byte count. Hardware
+    // acceptance 2026-09-20 found the unconditional exact-match check
+    // (introduced generically for ORDINARY_ONE_REGISTER/ASCII_CONTIGUOUS
+    // blocks) rejected 100% of this block's real responses since a
+    // confirmed fresh boot -- see protocol_blockers.json / hardware
+    // evidence for this date. Reverting to floor-check restores exactly
+    // the tolerant validation this literal was actually hardware-proven
+    // under, without weakening the exact check for any other block.
+    validation_policy: cb.blockClass === BLOCK_CLASS.CLUSTERED_GAP_AWARE ? "floor" : "exact",
+    strict_length: cb.blockClass !== BLOCK_CLASS.CLUSTERED_GAP_AWARE,
     exception_reason: cb.exceptionReason,
     cadence_ms: cb.cadenceMs,
     ui_group: aggregateUiGroup(cb.coversKeys.map((k) => (fieldByKey.get(k) || {}).ui_group ?? null)),
@@ -960,7 +982,7 @@ function buildDecodeHeader() {
   let offset = 0;
   for (const b of blocks) {
     lines.push(
-      `    {${b.address}, ${b.register_count}, ${b.payload_bytes}, ${b.cadence_ms}u, ${offset}, ${b.fields.length}, ${b.ui_group === null ? -1 : b.ui_group}},`
+      `    {${b.address}, ${b.register_count}, ${b.payload_bytes}, ${b.cadence_ms}u, ${offset}, ${b.fields.length}, ${b.ui_group === null ? -1 : b.ui_group}, ${b.strict_length ? "true" : "false"}},`
     );
     offset += b.fields.length;
   }
@@ -1195,14 +1217,20 @@ function buildServicerInterval() {
   L("    id(bms0), esphome::modbus::EntityType::HOLDING, block.address, block.register_count,");
   L("    [chosen](auto, uint16_t, const auto &data) {");
   L("      const uint8_t payload_bytes = jk_read_plan::kBlocks[chosen].payload_bytes;");
-  L("      // Exact-length validation (2026-09-19 hardening pass, user-directed):");
-  L("      // a short response is a genuine error (incomplete data), and an");
-  L("      // OVERSIZED response is now ALSO rejected, not silently accepted --");
-  L("      // a fixed-register_count FC03 read has a deterministic response");
-  L("      // size; anything else (short OR long) is a real anomaly, matching");
-  L("      // every already-corrected bespoke read site's own exact-match policy");
-  L("      // (see this project's 2026-09-18 bespoke-read register-count fix batch and generic write-tx fix).");
-  L("      if (data.size() != payload_bytes) {");
+  L("      const bool strict_length = jk_read_plan::kBlocks[chosen].strict_length;");
+  L("      // Length validation (2026-09-19 hardening pass, user-directed;");
+  L("      // per-block strict_length carve-out added 2026-09-20 after");
+  L("      // hardware acceptance found the exact check wrongly applied to");
+  L("      // the one CLUSTERED_GAP_AWARE block -- see jk_poll_scheduler_core.h's");
+  L("      // own Block::strict_length comment). strict_length blocks (every");
+  L("      // ORDINARY_ONE_REGISTER/ASCII_CONTIGUOUS block, individually");
+  L("      // audited 2026-09-18/19): a fixed-register_count FC03 read has a");
+  L("      // deterministic response size, so short OR long is a real anomaly.");
+  L("      // Non-strict blocks (0x1290 only, as of this generation): floor");
+  L("      // check only -- payload_bytes is this block's own decoder's read");
+  L("      // length, not a hardware-proven exact response size.");
+  L("      const bool length_ok = strict_length ? (data.size() == payload_bytes) : (data.size() >= payload_bytes);");
+  L("      if (!length_ok) {");
   L('        ESP_LOGW("jk_poll_scheduler", "Response length mismatch for block %u (address 0x%04X): %u/%u bytes",');
   L("                 unsigned(chosen), unsigned(jk_read_plan::kBlocks[chosen].address), unsigned(data.size()), unsigned(payload_bytes));");
   L("        id(g_rp_error_count)[chosen] = uint16_t(id(g_rp_error_count)[chosen] + 1);");

@@ -266,6 +266,77 @@ static void test_electrical_metrics_scan_custom_block() {
   check(b->cadence_ms == 15000, "0x1290 polls at telemetry_15s cadence, matching total_voltage_raw's canonical poll_group");
 }
 
+// Regression test for the hardware-acceptance defect found 2026-09-20:
+// the generic exact-length validation (introduced 2026-09-19 for
+// ORDINARY_ONE_REGISTER/ASCII_CONTIGUOUS blocks) was applied to the ONE
+// CLUSTERED_GAP_AWARE block (0x1290) unconditionally too, whose real wire
+// response length was never hardware-proven to equal payload_bytes exactly
+// -- confirmed on real hardware as a 100% response-rejection rate (total_
+// voltage/current stuck at "NA" for the entire observation window, a
+// confirmed fresh boot). Fix: Block::strict_length, false only for 0x1290,
+// true for every other block -- this test proves that split, both ways,
+// against the ACTUAL generated table (not a reimplementation), plus
+// exercises the same length_ok logic the generated scheduler callback
+// emits, so a future regression in either the flag or the branch itself is
+// caught here before reaching hardware again.
+static void test_strict_length_carve_out_for_clustered_gap_aware_block() {
+  const auto *electrical = find_block(0x1290);
+  check(electrical != nullptr, "0x1290 block exists (precondition)");
+  if (electrical) {
+    check(electrical->strict_length == false,
+          "0x1290 (CLUSTERED_GAP_AWARE, real response length hardware-unresolved) has strict_length=false -- floor check, not exact-match");
+  }
+
+  // Every OTHER block (ORDINARY_ONE_REGISTER/ASCII_CONTIGUOUS, individually
+  // audited 2026-09-18/19) must still require an exact match -- the fix
+  // must not weaken validation for any already-correct block.
+  size_t strict_true_count = 0;
+  size_t strict_false_count = 0;
+  for (size_t i = 0; i < jk_read_plan::kBlockCount; i++) {
+    const auto &b = jk_read_plan::kBlocks[i];
+    if (b.address == 0x1290) continue;
+    if (b.strict_length) {
+      strict_true_count++;
+    } else {
+      strict_false_count++;
+      std::printf("FAIL: block at address 0x%04X unexpectedly has strict_length=false (only 0x1290 should)\n", unsigned(b.address));
+      g_failures++;
+      g_checks++;
+    }
+  }
+  check(strict_false_count == 0, "no block other than 0x1290 has strict_length=false");
+  check(strict_true_count == jk_read_plan::kBlockCount - 1, "every block other than 0x1290 has strict_length=true");
+
+  // Simulate the generated scheduler callback's own length_ok expression
+  // (kept in sync by hand with generate_read_plan.js's emission -- both
+  // read the same jk_read_plan::kBlocks[...].strict_length source of
+  // truth, so a change to one without the other is what this test exists
+  // to catch) against representative response sizes.
+  if (electrical) {
+    const uint8_t payload_bytes = electrical->payload_bytes;  // 12
+    const bool strict = electrical->strict_length;             // false
+    auto length_ok = [&](size_t data_size) { return strict ? (data_size == payload_bytes) : (data_size >= payload_bytes); };
+    check(length_ok(12) == true, "0x1290: an exactly-12-byte response is accepted (unchanged baseline behavior)");
+    check(length_ok(24) == true, "0x1290: a 24-byte response (12 registers x 2, the real hardware behavior this bug was rejecting) is now accepted under the floor check");
+    check(length_ok(20) == true, "0x1290: a 20-byte response (the alternative 10-register candidate) is also accepted under the floor check");
+    check(length_ok(11) == false, "0x1290: a genuinely short (11-byte) response is still correctly rejected");
+    check(length_ok(0) == false, "0x1290: a zero-byte/timeout response is still correctly rejected");
+  }
+
+  // Spot-check one ordinary block still rejects both short AND long
+  // responses (the exact-match policy this defect must not weaken).
+  const auto *ordinary = find_block(0x1504);
+  check(ordinary != nullptr, "0x1504 (rcv_time/rfv_time, ORDINARY_ONE_REGISTER) block exists for the strict-match spot-check");
+  if (ordinary) {
+    check(ordinary->strict_length == true, "0x1504 keeps strict_length=true (unaffected by the 0x1290-only carve-out)");
+    const uint8_t payload_bytes = ordinary->payload_bytes;
+    auto length_ok = [&](size_t data_size) { return data_size == payload_bytes; };
+    check(length_ok(payload_bytes) == true, "0x1504: an exact-length response is accepted");
+    check(length_ok(payload_bytes + 1u) == false, "0x1504: an oversized response is still rejected (exact-match policy unchanged)");
+    check(length_ok(payload_bytes - 1u) == false, "0x1504: an undersized response is still rejected (exact-match policy unchanged)");
+  }
+}
+
 int main() {
   test_every_block_field_range_is_in_bounds();
   test_no_duplicate_addresses();
@@ -281,6 +352,7 @@ int main() {
   test_uart_arrays_decode_as_hex();
   test_bespoke_excluded_keys_absent_from_generated_table();
   test_electrical_metrics_scan_custom_block();
+  test_strict_length_carve_out_for_clustered_gap_aware_block();
 
   std::printf("%d checks run, %d failed.\n", g_checks, g_failures);
   return g_failures == 0 ? 0 : 1;

@@ -374,6 +374,19 @@ struct Block {
   // Stage 1 hardware acceptance corrective pass report for that documented
   // dependency.
   int8_t ui_group;
+  // true: response length must equal payload_bytes exactly (ORDINARY_ONE_
+  // REGISTER/ASCII_CONTIGUOUS blocks -- a single-address FC03 read has a
+  // deterministic response size, audited per-site, 2026-09-19 hardening
+  // pass). false: payload_bytes is a floor, not an exact bound (the one
+  // CLUSTERED_GAP_AWARE block, 0x1290 -- its real wire response length is
+  // an open, hardware-pending question, never proven exact; see
+  // generate_read_plan.js's own CUSTOM_DECODE_BLOCKS comment. Hardware
+  // acceptance 2026-09-20 found the exact-match check applied here
+  // unconditionally was rejecting 100% of this block's real responses
+  // since boot -- this field restores the floor-check this block actually
+  // had hardware-validated before the 2026-09-19 change, without weakening
+  // the exact check for every other, individually-audited block).
+  bool strict_length;
 };
 
 // ---------------------------------------------------------------------

@@ -1041,14 +1041,20 @@ interval:
               id(bms0), esphome::modbus::EntityType::HOLDING, block.address, block.register_count,
               [chosen](auto, uint16_t, const auto &data) {
                 const uint8_t payload_bytes = jk_read_plan::kBlocks[chosen].payload_bytes;
-                // Exact-length validation (2026-09-19 hardening pass, user-directed):
-                // a short response is a genuine error (incomplete data), and an
-                // OVERSIZED response is now ALSO rejected, not silently accepted --
-                // a fixed-register_count FC03 read has a deterministic response
-                // size; anything else (short OR long) is a real anomaly, matching
-                // every already-corrected bespoke read site's own exact-match policy
-                // (see this project's 2026-09-18 bespoke-read register-count fix batch and generic write-tx fix).
-                if (data.size() != payload_bytes) {
+                const bool strict_length = jk_read_plan::kBlocks[chosen].strict_length;
+                // Length validation (2026-09-19 hardening pass, user-directed;
+                // per-block strict_length carve-out added 2026-09-20 after
+                // hardware acceptance found the exact check wrongly applied to
+                // the one CLUSTERED_GAP_AWARE block -- see jk_poll_scheduler_core.h's
+                // own Block::strict_length comment). strict_length blocks (every
+                // ORDINARY_ONE_REGISTER/ASCII_CONTIGUOUS block, individually
+                // audited 2026-09-18/19): a fixed-register_count FC03 read has a
+                // deterministic response size, so short OR long is a real anomaly.
+                // Non-strict blocks (0x1290 only, as of this generation): floor
+                // check only -- payload_bytes is this block's own decoder's read
+                // length, not a hardware-proven exact response size.
+                const bool length_ok = strict_length ? (data.size() == payload_bytes) : (data.size() >= payload_bytes);
+                if (!length_ok) {
                   ESP_LOGW("jk_poll_scheduler", "Response length mismatch for block %u (address 0x%04X): %u/%u bytes",
                            unsigned(chosen), unsigned(jk_read_plan::kBlocks[chosen].address), unsigned(data.size()), unsigned(payload_bytes));
                   id(g_rp_error_count)[chosen] = uint16_t(id(g_rp_error_count)[chosen] + 1);

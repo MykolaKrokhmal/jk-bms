@@ -117,8 +117,22 @@ const canonical = loadJson("protocol/registers.canonical.json");
 // ===========================================================================
 {
   const readPlanYaml = fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.yaml"), "utf8");
-  check("emitted C++ uses exact-length validation globally (data.size() != payload_bytes), covering the 0x12D0/0x12A0 projection blocks too",
-    readPlanYaml.includes("if (data.size() != payload_bytes)"));
+  // CORRECTED 2026-09-20: the length check is now per-block
+  // (strict_length), not a single unconditional literal -- see
+  // test_generic_read_plan_register_count.js's own module comment for the
+  // hardware-found defect this generalized. 0x12D0/0x12A0 are ORDINARY_
+  // ONE_REGISTER blocks (unaffected by that fix, which only carves out the
+  // one CLUSTERED_GAP_AWARE block, 0x1290) so they must still resolve to
+  // an exact-match check at runtime.
+  const readPlanJson = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.json"), "utf8"));
+  const block12D0 = readPlanJson.blocks.find((b) => b.address === "0x12D0");
+  const block12A0 = readPlanJson.blocks.find((b) => b.address === "0x12A0");
+  check("emitted C++ uses a per-block length_ok check (strict_length ? exact-match : floor), covering every block including 0x12D0/0x12A0",
+    readPlanYaml.includes("const bool length_ok = strict_length ? (data.size() == payload_bytes) : (data.size() >= payload_bytes);"));
+  check("0x12D0 (ORDINARY_ONE_REGISTER) resolves to strict_length=true -- still exact-match, unaffected by the 0x1290-only carve-out",
+    block12D0 && block12D0.strict_length === true);
+  check("0x12A0 (ORDINARY_ONE_REGISTER) resolves to strict_length=true -- still exact-match, unaffected by the 0x1290-only carve-out",
+    block12A0 && block12A0.strict_length === true);
   const reg12D0 = canonical.registers.find((r) => r.address === "0x12D0");
   const reg12A0 = canonical.registers.find((r) => r.address === "0x12A0");
   check("0x12D0's declared payload_bytes is still 2 (unchanged by adding 7 projections)", reg12D0.payload_bytes === 2);
