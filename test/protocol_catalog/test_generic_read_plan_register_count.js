@@ -190,18 +190,23 @@ check("the 0x1504 blocker's issue text reflects the corrected register_count=1 v
   blocker1504 && /register_count=1/.test(blocker1504.issue) && /SOFTWARE FIX LANDED/.test(blocker1504.issue));
 
 // ===========================================================================
-// 7. The 0x1290 defect this fix addresses has its own blocker entry,
-// documenting the incident and staying OPEN (the underlying register_count/
-// response-length question is still hardware-unresolved; only the
-// unconditional-exact-match regression itself is fixed this round).
+// 7. The 0x1290 defect this fix addresses has its own blocker entry.
+// CORRECTED 2026-09-20 (third hardware-acceptance attempt): the immediate
+// defect blocker is now CLOSED -- hardware confirmed total_voltage/current
+// read live, non-NA values repeatedly on the fixed firmware build. A
+// second, narrower, explicitly non-blocking technical-debt entry stays
+// OPEN for the still-unresolved exact register_count/response-length
+// question, without gating Stage 3.
 // ===========================================================================
-const blocker1290 = blockers.blockers.find((b) => b.address === "0x1290");
-check("a 0x1290 blocker entry exists, documenting the strict-length hardware-acceptance defect",
-  !!blocker1290);
-check("the 0x1290 blocker stays OPEN (the underlying register_count/response-length question remains hardware-unresolved)",
-  blocker1290 && blocker1290.status === "open");
-check("the 0x1290 blocker's issue text names the confirmed defect, the fix, and that it needs a new firmware flash to take effect",
-  blocker1290 && /CONFIRMED SOFTWARE DEFECT/.test(blocker1290.issue) && /strict_length/.test(blocker1290.issue) && /requires a new firmware build\+flash/.test(blocker1290.issue));
+const blockers1290 = blockers.blockers.filter((b) => b.address === "0x1290");
+check("there are exactly 2 blocker entries at 0x1290 (closed immediate-defect + open non-blocking technical-debt)",
+  blockers1290.length === 2, `count=${blockers1290.length}`);
+const blocker1290Closed = blockers1290.find((b) => b.status === "closed");
+const blocker1290Open = blockers1290.find((b) => b.status === "open");
+check("the 0x1290 immediate-defect blocker exists and is CLOSED, documenting the strict-length hardware-acceptance defect+fix+hardware confirmation",
+  !!blocker1290Closed && /CONFIRMED SOFTWARE DEFECT/.test(blocker1290Closed.issue) && /strict_length/.test(blocker1290Closed.issue) && !!blocker1290Closed.closed_date);
+check("the 0x1290 non-blocking technical-debt entry exists and stays OPEN (exact register_count/response-length remains hardware-unresolved, explicitly non-blocking)",
+  !!blocker1290Open && /non-blocking/i.test(blocker1290Open.issue));
 
 console.log(`\n${checks} checks run, ${failures} failed.`);
 process.exit(failures ? 1 : 0);

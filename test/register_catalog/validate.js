@@ -363,14 +363,27 @@ check("zero-legacy-polling gate: batterylifepo4.yaml declares no `platform: modb
   check("0x1504's generated register_count (1, corrected 2026-09-19, hardware-confirmed 2026-09-20) still matches what the (now closed) blocker's own text describes -- a future regen changing this must update the blocker too",
     !!block1504 && block1504.register_count === 1, block1504 && `register_count=${block1504.register_count}`);
 
-  // 0x1290: the one open blocker documenting this round's confirmed
-  // strict_length defect+fix (see generate_read_plan.js's CUSTOM_DECODE_
-  // BLOCKS comment and Block::strict_length in jk_poll_scheduler_core.h).
-  const electricalBlocker = blockersDoc.blockers.find((b) => b.address === "0x1290");
-  check("the 0x1290 (electrical metrics) blocker is present and OPEN (register_count/response-length still hardware-unresolved)",
-    !!electricalBlocker && electricalBlocker.status === "open");
+  // 0x1290: two blocker entries at this address (see generate_read_plan.js's
+  // CUSTOM_DECODE_BLOCKS comment and Block::strict_length in
+  // jk_poll_scheduler_core.h). CORRECTED 2026-09-20 (third hardware-
+  // acceptance attempt): the immediate software-defect blocker is now
+  // CLOSED -- a subsequent hardware-acceptance session on the fixed
+  // firmware build confirmed total_voltage/current read live, non-NA
+  // values repeatedly (104/104 over ~27 min) and without regression. A
+  // second, narrower, explicitly non-blocking technical-debt entry stays
+  // OPEN, tracking the still-unresolved exact FC03 wire response length
+  // (register_count 10 vs 12) without gating Stage 3 or any later stage.
+  const electricalBlockers = blockersDoc.blockers.filter((b) => b.address === "0x1290");
+  check("there are exactly 2 blocker entries at 0x1290 (the closed immediate-defect one + the open non-blocking technical-debt one)",
+    electricalBlockers.length === 2, `count=${electricalBlockers.length}`);
+  const electricalClosed = electricalBlockers.find((b) => b.status === "closed");
+  const electricalOpen = electricalBlockers.find((b) => b.status === "open");
+  check("the 0x1290 immediate software-defect blocker is CLOSED (hardware acceptance 2026-09-20 confirmed live, non-NA total_voltage/current on the fixed firmware build)",
+    !!electricalClosed && !!electricalClosed.closed_date);
+  check("the 0x1290 non-blocking technical-debt entry stays OPEN (exact FC03 response length still hardware-unresolved) and says so explicitly",
+    !!electricalOpen && /non-blocking/i.test(electricalOpen.issue));
   const block1290 = readPlan.blocks.find((b) => b.address === "0x1290");
-  check("0x1290's generated block has strict_length=false, matching the blocker's own description of the floor-check fix",
+  check("0x1290's generated block has strict_length=false, matching the closed blocker's own description of the floor-check fix",
     !!block1290 && block1290.strict_length === false, block1290 && JSON.stringify(block1290.strict_length));
 }
 

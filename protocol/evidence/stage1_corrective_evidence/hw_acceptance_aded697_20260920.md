@@ -114,28 +114,113 @@ requires a new firmware build and flash to take effect. All gates
 `test/run_all.sh`, `git diff --check`, secret scan) pass with the fix applied; see this
 session's own commit for the exact diff.
 
-## 5. Verdict
+## 5. Second retest attempt (same day) — deployment mismatch, working-tree reversion
 
-**Stage 3 NOT CLOSED.** A confirmed software defect was found and fixed this round, but the
-fix has not yet been deployed to hardware. A new build + flash + a third hardware-acceptance
-pass (repeating the deployment gate and, at minimum, re-confirming total_voltage/current read
-live values and topology_state returns to CONFIRMED) is required before Stage 3 can close.
+A second retest attempt was made the same day, still against HEAD `3e4de6f`. The deployment
+gate **FAILED**: `total_voltage`/`current`/`power`/`charging_power`/`discharging_power`/
+`charging_current`/`discharging_current` all still `NA`, `topology_state=MISMATCH`,
+`reason=VOLTAGE_SUM_DIFFERS` — the identical pre-fix symptom, on a genuinely fresh boot
+(uptime 282s→302s, monotonic).
 
-Everything else observed this round (deployment gate, Phase A continuous capture, 0x1504,
-0x1114/0x1118/0x12D0/0x12A0 projection arithmetic, UART) is a clean PASS and does not need to
-be re-verified from scratch on the next attempt — only the 0x1290 fix and its downstream
-topology effect need re-confirmation.
+Root cause of *this* failure was traced to the local working tree, not the device: 12 tracked
+files — `components/jk_poll_scheduler/jk_poll_scheduler_core.h`, `protocol/generated/read_plan.yaml`,
+`protocol/generated/read_plan_decode.h`, and 9 other generated artifacts — had been silently
+reverted outside of git (no stash, no reflog checkout) to content byte-identical to commit
+`aded697` (the pre-fix commit), with owner-only `-rwx------` file modes suggesting an external
+tool wrote them. The transferred `jk_poll_scheduler_core.h`/`read_plan.yaml`/`read_plan_decode.h`
+therefore did not contain the `strict_length` fix at all. A diagnostic patch of the reversion
+was saved to `/tmp/jk-bms-stale-external-reversion-20260920.patch` (outside the repo, never
+committed), and all 12 files were restored with `git restore --source=HEAD` — verified by
+SHA-256 (`jk_poll_scheduler_core.h`=`c25a029c...`, `read_plan.yaml`=`af802fa0...`,
+`read_plan_decode.h`=`04cb71e8...`), file mode (`100644`), and direct content grep
+(`bool strict_length`, `const bool length_ok = strict_length ? ...`, the `0x1290` kBlocks row
+ending `false`). No tests/generators/compile/flash/commit were run at that point — restore-only.
 
-## Minimal deployment manifest for the next flash
+## 6. Third retest attempt — PASS, fix confirmed live
 
-Files changed by this round's fix (re-transfer exactly these plus their already-unchanged
-dependents the build already pulls in):
+Files re-transferred fresh from the restored HEAD `3e4de6f`; SHA-256 verified on the device
+side before compile (matching the same three hashes above). Clean build, compile, flash.
+
+**Deployment gate: PASSED.**
+
+| Check | Result |
+|---|---|
+| ESP uptime at connect | 172s — fresh boot |
+| `total_voltage` | `55.147 V` — live, non-NA |
+| `current` | `0.000 A` — live, non-NA |
+| `power`/`charging_power`/`discharging_power`/`charging_current`/`discharging_current` | all published, non-NA (`0.00 W`/`0.00 W`/`0.00 W`/`0.000 A`/`-0.000 A`) |
+| `topology_state` | `CONFIRMED` |
+| `topology_reason` | `OK` |
+
+**20+ minute continuous single-EventSource observation** (wall-clock: 2026-09-20T17:45:05Z →
+2026-09-20T18:12:22Z, ~27.5 min, exceeding the 20-min requirement):
+
+| Metric | Result |
+|---|---|
+| First/last ESP uptime | 148s → 1860.7s (monotonic, consistent with elapsed wall-clock; zero reboots) |
+| Reconnects / transport errors | 0 / 0 |
+| `total_voltage` updates | 104, **0 NA** |
+| `current` updates | 104, **0 NA** |
+| `total_voltage` min/max/last | 55.137 V / 55.154 V / 55.145 V |
+| `current` min/max/last | 0.000 A / 0.370 A / 0.000 A |
+| `power` max (at the `current`=0.37A sample) | 20.4055 W |
+| BMS health | `LIVE` throughout |
+| `topology_state` / `reason` | `CONFIRMED` / `OK` throughout |
+
+**Consistency checks:**
+- `total_voltage` (55.15 V) vs `active_cells_voltage_sum` (55.143–55.148 V) — within ~2–7 mV,
+  inside the topology resolver's own tolerance (topology stayed `CONFIRMED` the entire window).
+- `power = total_voltage × current` verified exactly at the peak-current sample:
+  `55.15 × 0.37 = 20.4055 W` = observed `power` = observed `charging_power` (current positive →
+  charging, matching the project's documented sign convention); `discharging_current`/
+  `discharging_power` correctly `0` at that same sample.
+- No response-length mismatch, no short-response, no Modbus warning observed for 0x1290 or any
+  other block across the full window.
+
+**Regression spot-check — all PASS:**
+- `rcv_time=5.0 h`, `rfv_time=1.0 h` — present.
+- 0x1114 (`heating_active=OFF`), 0x1118 (`smart_sleep_timeout_hours=24 h`) — present.
+- 0x12D0 projection (`bat_temp_sensor_1_present=ON`), 0x12A0 alarm (`alarm_wire_res=OFF`) — present.
+- Both UART hex `text_sensor`s: 16 uppercase space-separated bytes each, distinct values
+  (`FF 67 00...` vs `FF 0F 00...`) — unchanged from the first attempt.
+- Cell voltages/resistances live (`cell 1` = 3.447 V / 0.056 mΩ).
+- Cells tab header: "Батарея 16S · напруга та опір"; DOM-level check confirmed channel 16's
+  history button `disabled=false, display=flex` and channel 17's `disabled=true, hidden=true,
+  display=none` — exactly the required 16-visible/17–32-hidden+disabled boundary.
+- Diagnostics panel: `ОСТАННЯ КОМАНДА` → Команда `—`, Результат `—`. `РЕЗУЛЬТАТИ ЗАПИСУ`:
+  ПІДТВЕРДЖЕНО `0`, РОЗБІЖНІСТЬ `0`, ТАЙМ-АУТ `0`, ПОМИЛКА `0`.
+- Zero POST requests, zero BMS writes, zero OK/confirm clicks performed this session (only
+  passive tab navigation and read-only SSE).
+
+## 7. Blocker disposition
+
+The immediate 0x1290 software-defect blocker (opened 2026-09-20) is **CLOSED** per its own
+closure_criterion option (b): a subsequent hardware-acceptance session on the fixed firmware
+build confirmed `total_voltage`/`current` read live, non-NA values repeatedly (104/104) and
+without regression.
+
+The deeper question — the exact FC03 wire response byte length for 0x1290 (register_count 10
+vs 12, never directly captured) — remains genuinely open and is **not** claimed proven by this
+result: the floor-check accepting the response proves functional recovery, not the exact byte
+count. A new, narrow, explicitly **non-blocking** technical-debt entry was opened for this at
+the same address, so the gap stays tracked without gating Stage 3 or any later stage.
+
+## 8. Final verdict
+
+**Stage 3 CLOSED — READY FOR STAGE 4.**
+
+Deployment gate PASSED, ≥20-minute continuous observation PASSED with zero NA/zero errors,
+voltage/current/power consistency PASSED, regression spot-check PASSED, write-safety proof
+PASSED (0/0/0/0, Last command `—`, zero POST/writes). The full `test/run_all.sh` gate, secret
+scan, `git diff --check`, and the metadata/pipeline/fingerprint checks all pass with this
+round's evidence-only changes; see this session's own commit for the exact diff.
+
+## Minimal deployment manifest (historical — already applied and hardware-confirmed)
+
+Files changed by the software fix (already transferred, compiled, flashed, and confirmed live
+in §6 above — kept here for the record, not as a pending action):
 
 - `components/jk_poll_scheduler/jk_poll_scheduler_core.h`
-- `protocol/generated/read_plan.yaml` (generated — re-run `node tools/protocol/generate_read_plan.js` before transfer, don't hand-copy)
-- `protocol/generated/read_plan_decode.h` (generated, same as above)
-- `protocol/generated/read_plan.json` (generated, audit-only, not compiled, but keep in sync)
-
-No other component or YAML file changed. A full clean build from the current tree (same
-procedure as this round's reflash) picks all of these up automatically via the existing
-`packages: { register_reads: !include protocol/generated/read_plan.yaml }` include.
+- `protocol/generated/read_plan.yaml` (generated)
+- `protocol/generated/read_plan_decode.h` (generated)
+- `protocol/generated/read_plan.json` (generated, audit-only, not compiled)
