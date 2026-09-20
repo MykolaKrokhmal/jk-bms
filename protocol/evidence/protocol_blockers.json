@@ -69,8 +69,10 @@
       "evidence_needed": "Not evidentiary -- architectural, same as 0x12D0's own entry: a generalized read-plan-level field-projection mechanism (parallel to EXACT_DECIMAL_FIELDS/__legacy_companion) extended to arbitrary bit sub-ranges and recognized by build_stage3_status_map.js's classifier.",
       "owner": "stage2-pdf-locator-followup",
       "closure_criterion": "The generalized bit/byte projection mechanism is designed and implemented (or an alternative architectural resolution is deliberately chosen and documented), each of these 23 parameters gets a real, evidenced projection under it, and build_stage3_status_map.js correctly classifies each as implemented_read.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 continuation pass (2026-09-20, user-directed): the generalized read-only projection architecture (registers.canonical.json's projection_of field + tools/protocol/lib/semantic-checks.js's PROJECTION_* invariants) resolves the architectural OVERLAPPING_MASKS gap this blocker previously named. All 22 individually-numbered alarm bits (bit0-bit21) plus AlarmBatUVP (bit12, already counted among the 22) now have real, evidenced canonical fields projecting from alarms_bitmask's own already-fetched payload -- zero new Modbus traffic, alarms_bitmask itself completely unchanged. TemperatureSensorAnomaly and PCLModuleAnomaly are explicitly NOT included -- their own manifest rows have bit_unspecified=true, no source states which bit either occupies, and no bit was guessed or freed up for them; they remain genuinely blocked (see their own separate blocker entry).",
+      "closed_date": "2026-09-20"
     },
     {
       "parameter_id": "ChargingFloatMode,Disable temp-sensor,DisablePCLModule,GPS Heartbeat,HeatEN,LCD Always On,Port Switch,SmartSleep,TimedStoredData",
@@ -151,8 +153,10 @@
       "evidence_needed": "Not evidentiary -- architectural. Needed: a generalized read-plan-level field-projection mechanism (parallel to tools/protocol/generate_read_plan.js's existing EXACT_DECIMAL_FIELDS/__legacy_companion pattern, which already publishes a second entity from an already-covered field's own bytes without a second overlapping canonical field) extended to (a) arbitrary bit/byte sub-ranges, not just decimal-precision companions, and (b) recognized by tools/protocol/authoring/build_stage3_status_map.js's classifier as a legitimate wire-position match, so these parameters can classify implemented_read once the projection exists -- today the status-map only ever reads registers.canonical.json's own field list.",
       "owner": "stage3-architecture-followup",
       "closure_criterion": "The generalized bit/byte projection mechanism is designed and implemented (or an alternative architectural resolution is deliberately chosen and documented), each of these 7 parameters gets a real, evidenced projection under it, and build_stage3_status_map.js correctly classifies each as implemented_read.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "resolution": "Stage 3 continuation pass (2026-09-20, user-directed): the generalized read-only projection architecture (registers.canonical.json's new projection_of field + tools/protocol/lib/semantic-checks.js's PROJECTION_* invariants) resolves the architectural OVERLAPPING_MASKS gap this blocker previously named. All 7 parameters now have real, evidenced canonical fields projecting from sensor_heating_mask's own already-fetched payload (heating_active, bat_temp_sensor_1-5_present, mos_temp_sensor_status_bit_raw) -- zero new Modbus traffic, sensor_heating_mask itself completely unchanged. MOSTempSensorPresent's own field (mos_temp_sensor_status_bit_raw) uses deliberately neutral naming and verification_status reflects the true evidence shape (single-source polarity, per its own field-level note) -- not silently upgraded to the same confidence as its dual-source siblings.",
+      "closed_date": "2026-09-20"
     },
     {
       "parameter_id": "PCLModuleSta",
@@ -231,8 +235,10 @@
       "evidence_needed": "Not evidentiary. Needed: a new decode primitive (e.g. decode_hex_string(), parallel to decode_ascii()/decode_exact_decimal()) that formats N raw bytes as a hex string (\"AA BB CC ...\"), safe for arbitrary binary content, plus the corresponding wire_type/domain plumbing through generate.js/generate_read_plan.js and its own unit tests -- a real, reviewable engineering task, not a one-line fix.",
       "owner": "stage3-architecture-followup",
       "closure_criterion": "decode_hex_string() (or equivalent) is implemented and unit-tested, this field gets a real canonical entry using it, and it classifies implemented_read.",
-      "status": "open",
-      "opened_date": "2026-09-20"
+      "status": "closed",
+      "opened_date": "2026-09-20",
+      "resolution": "Stage 3 continuation pass (2026-09-20, user-directed): decode_hex_string() (components/jk_poll_scheduler/jk_poll_scheduler_core.h) implements a safe, deterministic, bounds-checked byte-to-hex-string projection -- uppercase hex, space-separated, no ASCII assumption, never truncates on embedded 0x00, never loses 0xFF, fixed 16-byte length, unit-tested. A real canonical field now exists using it (wire_type HEX), published as a text_sensor, read-only, no write path. This is a raw, undecoded hex dump -- per-bit protocol semantics are still NOT claimed (dynamic_dependency.resolved=false, matching this project's own policy against inventing bitmask meanings).",
+      "closed_date": "2026-09-20"
     },
     {
       "parameter_id": "UARTMPRTOLEnable[0-15]",
@@ -241,8 +247,10 @@
       "evidence_needed": "Not evidentiary. Needed: a new decode primitive (e.g. decode_hex_string(), parallel to decode_ascii()/decode_exact_decimal()) that formats N raw bytes as a hex string (\"AA BB CC ...\"), safe for arbitrary binary content, plus the corresponding wire_type/domain plumbing through generate.js/generate_read_plan.js and its own unit tests -- a real, reviewable engineering task, not a one-line fix.",
       "owner": "stage3-architecture-followup",
       "closure_criterion": "decode_hex_string() (or equivalent) is implemented and unit-tested, this field gets a real canonical entry using it, and it classifies implemented_read.",
-      "status": "open",
-      "opened_date": "2026-09-20"
+      "status": "closed",
+      "opened_date": "2026-09-20",
+      "resolution": "Stage 3 continuation pass (2026-09-20, user-directed): decode_hex_string() (components/jk_poll_scheduler/jk_poll_scheduler_core.h) implements a safe, deterministic, bounds-checked byte-to-hex-string projection -- uppercase hex, space-separated, no ASCII assumption, never truncates on embedded 0x00, never loses 0xFF, fixed 16-byte length, unit-tested. A real canonical field now exists using it (wire_type HEX), published as a text_sensor, read-only, no write path. This is a raw, undecoded hex dump -- per-bit protocol semantics are still NOT claimed (dynamic_dependency.resolved=false, matching this project's own policy against inventing bitmask meanings).",
+      "closed_date": "2026-09-20"
     }
   ]
 }

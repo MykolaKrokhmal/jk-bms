@@ -70,7 +70,7 @@
                 "key", "parent_register_id", "field_width_bits", "byte_offset", "mask", "shift", "signedness",
                 "wire_type", "scale", "offset", "canonical_unit", "uk_display_unit", "en_display_unit",
                 "decimal_precision", "minimum", "maximum", "step", "reserved_values", "nullable",
-                "packed_siblings", "overlap_rule", "access", "effective_access", "write_safety_class",
+                "packed_siblings", "overlap_rule", "projection_of", "access", "effective_access", "write_safety_class",
                 "esphome_domain", "esphome_read_entity_id", "esphome_configured_name", "esphome_write_entity_id", "backend_key",
                 "frontend_label_uk", "frontend_label_en", "ui_section", "ui_order", "ui_group", "editor_kind",
                 "dynamic_dependency", "enum_map", "unknown_code_policy", "evidence", "verification_status", "exclusion_reason",
@@ -85,7 +85,7 @@
                 "mask": { "type": ["string", "null"], "pattern": "^0x[0-9A-F]+$" },
                 "shift": { "type": ["integer", "null"], "minimum": 0, "maximum": 31 },
                 "signedness": { "type": "string", "enum": ["signed", "unsigned"] },
-                "wire_type": { "type": "string", "enum": ["U8", "S8", "U16", "S16", "U32", "S32", "F32", "ASCII", "BIT"] },
+                "wire_type": { "type": "string", "enum": ["U8", "S8", "U16", "S16", "U32", "S32", "F32", "ASCII", "BIT", "HEX"] },
                 "scale": { "type": "number" },
                 "offset": { "type": "number" },
                 "canonical_unit": { "type": "string" },
@@ -99,6 +99,10 @@
                 "nullable": { "type": "boolean" },
                 "packed_siblings": { "type": "array", "items": { "type": "string" } },
                 "overlap_rule": { "type": ["string", "null"] },
+                "projection_of": {
+                  "type": ["string", "null"],
+                  "description": "Generalized read-only projection architecture (2026-09-20). null for an ordinary physical field (owns its own wire coverage). A non-null value names a SIBLING field on the same register that this field is a read-only VIEW of -- no separate Modbus read, no write capability ever, mask must be a subset of the parent's own mask, and the parent itself must not also be a projection (no chains). See tools/protocol/lib/semantic-checks.js's own PROJECTION_* checks for the full invariant set."
+                },
                 "access": { "type": "string", "enum": ["r", "rw", "w"] },
                 "effective_access": { "type": "string", "enum": ["r", "rw", "unsupported", "w"] },
                 "write_safety_class": {

@@ -341,6 +341,82 @@ static void test_decode_bool_ignores_other_bits() {
 }
 
 // ---------------------------------------------------------------------
+// decode_hex_string (2026-09-20, UART raw-bitmask arrays -- UART1MPRTOLEnable/
+// UARTMPRTOLEnable[0-15]): safe, deterministic byte-to-hex projection,
+// no ASCII assumption, bounds-checked, exactly 16 bytes.
+// ---------------------------------------------------------------------
+
+static void test_decode_hex_string_00_and_ff() {
+  const uint8_t data[16] = {0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+                             0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF};
+  char out[64];
+  decode_hex_string(data, 16, out, sizeof(out));
+  check(std::strcmp(out, "00 FF 00 FF 00 FF 00 FF 00 FF 00 FF 00 FF 00 FF") == 0,
+        "decode_hex_string renders alternating 0x00/0xFF bytes correctly, uppercase, space-separated");
+}
+
+static void test_decode_hex_string_embedded_nul_not_truncated() {
+  // The whole point of decode_hex_string over decode_ascii: an embedded
+  // 0x00 byte in the MIDDLE of the array must NOT stop output early --
+  // decode_ascii() would silently truncate here; this must not.
+  const uint8_t data[16] = {0x41, 0x42, 0x00, 0x43, 0x44, 0x00, 0x00, 0x45,
+                             0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D};
+  char out[64];
+  decode_hex_string(data, 16, out, sizeof(out));
+  check(std::strcmp(out, "41 42 00 43 44 00 00 45 46 47 48 49 4A 4B 4C 4D") == 0,
+        "decode_hex_string does not truncate at an embedded 0x00 byte (unlike decode_ascii)");
+  check(std::strlen(out) == 47, "decode_hex_string's output for 16 bytes is exactly 47 chars (16*2 hex digits + 15 separators), proving no early stop");
+}
+
+static void test_decode_hex_string_exactly_16_bytes() {
+  const uint8_t data[16] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+  char out[64];
+  decode_hex_string(data, 16, out, sizeof(out));
+  // Count space-separated tokens -- must be exactly 16, not more, not fewer.
+  int tokenCount = 1;
+  for (const char *p = out; *p; p++) if (*p == ' ') tokenCount++;
+  check_eq(tokenCount, 16, "decode_hex_string produces exactly 16 hex tokens for a 16-byte input");
+}
+
+static void test_decode_hex_string_bounds_checked_small_buffer() {
+  // A buffer too small for the full 47-char+NUL output must never be
+  // overrun -- decode_hex_string must truncate safely, not write past
+  // out_capacity.
+  const uint8_t data[16] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22,
+                             0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00};
+  char out[8];  // far too small for the full output
+  decode_hex_string(data, 16, out, sizeof(out));
+  check(std::strlen(out) < sizeof(out), "decode_hex_string never writes past a too-small out_capacity (output length stays under the buffer size)");
+  bool nulFound = false;
+  for (size_t i = 0; i < sizeof(out); i++) if (out[i] == '\0') { nulFound = true; break; }
+  check(nulFound, "decode_hex_string's small-buffer output is still NUL-terminated within the buffer bounds");
+}
+
+static void test_decode_hex_string_deterministic() {
+  const uint8_t data[16] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+                             0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10};
+  char out1[64];
+  char out2[64];
+  decode_hex_string(data, 16, out1, sizeof(out1));
+  decode_hex_string(data, 16, out2, sizeof(out2));
+  check(std::strcmp(out1, out2) == 0, "decode_hex_string is deterministic -- identical input always produces identical output");
+  check(std::strcmp(out1, "01 23 45 67 89 AB CD EF FE DC BA 98 76 54 32 10") == 0,
+        "decode_hex_string's exact expected string matches for a known 16-byte input");
+}
+
+static void test_decode_hex_string_uppercase_only() {
+  const uint8_t data[16] = {0xab, 0xcd, 0xef, 0x01, 0x02, 0x03, 0x04, 0x05,
+                             0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d};
+  char out[64];
+  decode_hex_string(data, 16, out, sizeof(out));
+  bool hasLowercase = false;
+  for (const char *p = out; *p; p++) {
+    if (*p >= 'a' && *p <= 'f') hasLowercase = true;
+  }
+  check(!hasLowercase, "decode_hex_string's canonical format is uppercase hex only, never lowercase");
+}
+
+// ---------------------------------------------------------------------
 // BlockState transitions
 // ---------------------------------------------------------------------
 
@@ -579,6 +655,13 @@ int main() {
   test_decode_bool_bit_set();
   test_decode_bool_bit_clear();
   test_decode_bool_ignores_other_bits();
+
+  test_decode_hex_string_00_and_ff();
+  test_decode_hex_string_embedded_nul_not_truncated();
+  test_decode_hex_string_exactly_16_bytes();
+  test_decode_hex_string_bounds_checked_small_buffer();
+  test_decode_hex_string_deterministic();
+  test_decode_hex_string_uppercase_only();
 
   test_mark_issued_sets_pending_and_timestamp();
   test_mark_success_bumps_revision_and_clears_pending();

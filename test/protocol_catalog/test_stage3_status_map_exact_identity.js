@@ -62,31 +62,25 @@ fs.writeFileSync(OUT_PATH, committedBefore);
 const byId = new Map(statusMap.parameters.map((p) => [p.id, p]));
 
 // ===========================================================================
-// 1. The two originally-proven false positives. AlarmBatUVP (0x12A0) has
-// ALSO changed since this test was first written -- Stage 3 completion
-// pass (2026-09-20) added it to the pre-existing 0x12A0 alarm-bits
-// blocker (it was always the SAME 22-name group's identical architectural
-// situation, just previously omitted from that blocker's own text by a
-// since-fixed classifier bug -- not evidence of a different, weaker
-// evidentiary status). It is now "blocked", not "missing" -- correctly
-// so, since it IS covered by a real, open blocker now.
-// Special Charger (0x1114 bit5) is DIFFERENT now: the Stage 3 completion
-// pass (2026-09-20, user-directed) authored a real, evidenced canonical
-// field for it (and its 8 siblings) and closed the stale 0x1114 blocker
-// that used to force it (and ChargingFloatMode) to "blocked" regardless
-// of field-matching. Special Charger now has a genuine, unique,
-// exact-identity-matched implemented field -- it is SUPPOSED to resolve
-// implemented_read now, via the exact same mechanism this file's own
-// classifier fix established; this is graduation, not regression. See
-// test_0x1114_bit_cluster.js for the full authoring-round regression
-// coverage of that batch.
+// 1. The two originally-proven false positives have BOTH now graduated to
+// genuinely implemented -- not a regression of the classifier fix, but
+// the classifier working correctly against later, deliberate catalog
+// changes. Special Charger (0x1114 bit5): the Stage 3 completion pass
+// (2026-09-20) authored a real, evidenced canonical field for it and
+// closed the stale 0x1114 blocker that used to force it to "blocked"
+// regardless of field-matching (see test_0x1114_bit_cluster.js).
+// AlarmBatUVP (0x12A0 bit12): the Stage 3 continuation pass (same day)
+// authored the generalized projection architecture, giving it (and its
+// 21 siblings) a real projection field, and closed the 0x12A0 blocker
+// that used to cover it (see test_overlapping_masks_architectural_
+// blocker.js and test_projection_decoder.js for that batch's own
+// coverage). Both now resolve implemented_read via the exact same
+// exact-identity mechanism this file's own classifier fix established.
 // ===========================================================================
 check("Special Charger (0x1114 bit5) is implemented_read (now has its own real, evidenced canonical field -- Stage 3 completion pass, 2026-09-20; the 0x1114 blocker that used to force it to 'blocked' is closed)",
   byId.get("Special Charger") && byId.get("Special Charger").status === "implemented_read");
-check("AlarmBatUVP (0x12A0 bit12) is NOT implemented_read (was the confirmed false positive, still correctly not implemented)",
-  byId.get("AlarmBatUVP") && byId.get("AlarmBatUVP").status !== "implemented_read");
-check("AlarmBatUVP (0x12A0 bit12) classifies as blocked (Stage 3 completion pass, 2026-09-20: now named in the 0x12A0 alarm-bits blocker, alongside its 22 siblings -- same architectural OVERLAPPING_MASKS reason)",
-  byId.get("AlarmBatUVP") && byId.get("AlarmBatUVP").status === "blocked");
+check("AlarmBatUVP (0x12A0 bit12) is implemented_read (now has its own real, evidenced projection field -- Stage 3 continuation pass, 2026-09-20; the 0x12A0 blocker that used to force it to 'blocked' is closed)",
+  byId.get("AlarmBatUVP") && byId.get("AlarmBatUVP").status === "implemented_read");
 
 // ===========================================================================
 // 2. 0x1114 bit9 (ChargingFloatMode) itself is the ONE canonical-
@@ -116,19 +110,20 @@ const manifest = loadJson("protocol/generated/bms_v1_1_manifest.json");
 const multiFieldAddrs = new Set(canonical.registers.filter((r) => r.fields.length > 1).map((r) => r.address));
 check("registers.canonical.json has multi-field (packed) registers to test against", multiFieldAddrs.size > 0, `count=${multiFieldAddrs.size}`);
 
-function fieldMatches(pAddr, field, registerWidthBits) {
-  if (pAddr.bit_unspecified) return false;
-  if (pAddr.bit !== null && pAddr.bit !== undefined) return field.wire_type === "BIT" && field.shift === pAddr.bit;
-  if (pAddr.byte_half === "high") return field.field_width_bits === 8 && field.wire_type !== "BIT" && field.byte_offset === 0 && field.mask === "0xFF00";
-  if (pAddr.byte_half === "low") return field.field_width_bits === 8 && field.wire_type !== "BIT" && field.byte_offset === 1 && field.mask === "0x00FF";
-  return field.field_width_bits === registerWidthBits;
-}
+// Delegates to the REAL production classifier function (not a
+// reimplementation) -- a local reimplementation here previously drifted
+// out of sync with the real matcher's compound byte_half+bit address
+// handling (added 2026-09-20 for the 0x12D0 cluster), causing false
+// "infection" reports for legitimate, correctly-matching projection
+// fields. Requiring the real function guarantees this check can never
+// silently diverge from the actual classifier's own behavior again.
+const { fieldOccupiesManifestParamWirePosition } = require("../../tools/protocol/authoring/build_stage3_status_map.js");
 
 let infectionFound = [];
 for (const p of manifest.parameters) {
   if (!multiFieldAddrs.has(p.address.base_address)) continue;
   const regs = canonical.registers.filter((r) => r.address === p.address.base_address);
-  const hasExactMatch = regs.some((r) => r.fields.some((f) => fieldMatches(p.address, f, r.register_width_bits)));
+  const hasExactMatch = regs.some((r) => r.fields.some((f) => fieldOccupiesManifestParamWirePosition(p.address, f, r.register_width_bits)));
   if (hasExactMatch) continue; // legitimate own-field match, not infection
   const mapped = byId.get(p.id);
   if (mapped && ["implemented_read", "implemented_write_confirmed", "implemented_other"].includes(mapped.status)) {
@@ -162,17 +157,18 @@ for (const [id, addr] of exactMatchFixtures) {
 // ===========================================================================
 // 5. Blocker precedence: a parameter named in an open blocker classifies
 // as "blocked" regardless of whether it also happens to have an
-// exact-identity-matching implemented field. ChargingFloatMode used to be
-// this file's real-data fixture for this property, but its own 0x1114
-// blocker closed as of the Stage 3 completion pass (2026-09-20) -- "Alarm
-// Mask" (0x12A0, still an open blocker as of this writing, with its own
-// unique implemented whole-register field) replaces it as the current
-// real fixture. See test_stage3_status_map_collision_hardening.js's
-// synthetic fixtures for a version of this property that never depends
-// on which real parameter happens to still be blocked.
+// exact-identity-matching implemented field. ChargingFloatMode, then
+// "Alarm Mask", both used to be this file's real-data fixture for this
+// property in turn, but each one's own blocker has since closed (Stage 3
+// completion/continuation passes, 2026-09-20) -- HeatStartTemp (0x111C,
+// still a genuinely open, single-source-evidence blocker, with its own
+// unique implemented field heating_activation_temperature) replaces them
+// as the current real fixture. See test_stage3_status_map_collision_
+// hardening.js's synthetic fixtures for a version of this property that
+// never depends on which real parameter happens to still be blocked.
 // ===========================================================================
-check("blocker precedence is checked before field-matching (Alarm Mask fixture: exact-match implemented field + open blocker -> blocked, not implemented_read)",
-  byId.get("Alarm Mask") && byId.get("Alarm Mask").status === "blocked");
+check("blocker precedence is checked before field-matching (HeatStartTemp fixture: exact-match implemented field + open blocker -> blocked, not implemented_read)",
+  byId.get("HeatStartTemp") && byId.get("HeatStartTemp").status === "blocked");
 
 // ===========================================================================
 // 6. Absence of any canonical field for a manifest parameter can never

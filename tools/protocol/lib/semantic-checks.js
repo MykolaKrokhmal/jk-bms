@@ -165,7 +165,7 @@ function check(registerDoc, nonRegisterDoc, repoRoot) {
             `field "${f.key}" mask ${f.mask} does not equal the expected mask 0x${(expectedMask >>> 0).toString(16).toUpperCase()} ` +
             `derived from field_width_bits=${f.field_width_bits} and shift=${f.shift}`));
         }
-        coverage.push([maskNum, f.key]);
+        coverage.push([maskNum, f.key, f.projection_of || null]);
       } else if (f.field_width_bits === width && reg.fields.length === 1) {
         // single full-width field with no mask — fine, whole register is one field
       }
@@ -362,14 +362,64 @@ function check(registerDoc, nonRegisterDoc, repoRoot) {
           continue;
         }
       }
+
+      // --- read-only projection validation (2026-09-20, user-directed
+      // generalized projection architecture -- closes the OVERLAPPING_MASKS
+      // architectural blocker previously found at 0x12D0/0x12A0). A field
+      // with projection_of set is a READ-ONLY VIEW into an already-owned
+      // physical field's own already-fetched payload -- it does NOT own any
+      // wire traffic of its own, never appears as its own Modbus block, and
+      // can NEVER carry write capability, regardless of what its own
+      // evidence would otherwise permit. Overlap with its declared parent
+      // is the ONLY overlap this schema permits anywhere (enforced in the
+      // overlap-detection loop below, which now consults projection_of);
+      // every other invariant is checked here.
+      if (f.projection_of !== null && f.projection_of !== undefined) {
+        const parent = reg.fields.find((pf) => pf.key === f.projection_of);
+        if (!parent) {
+          errors.push(issue("PROJECTION_PARENT_NOT_FOUND", `fields[${f.key}]`,
+            `field "${f.key}" declares projection_of "${f.projection_of}", which does not exist as a field on the SAME register ${reg.address} -- a projection's parent must be a sibling field, not a cross-register or nonexistent reference`));
+        } else {
+          if (parent.projection_of !== null && parent.projection_of !== undefined) {
+            errors.push(issue("PROJECTION_OF_PROJECTION", `fields[${f.key}]`,
+              `field "${f.key}" projects from "${f.projection_of}", which is ITSELF a projection (of "${parent.projection_of}") -- projection chains are not allowed, a projection's parent must be a physical field`));
+          }
+          if (f.mask !== null && parent.mask !== null) {
+            const ownMask = parseHex(f.mask);
+            const parentMask = parseHex(parent.mask);
+            if ((ownMask & ~parentMask) !== 0) {
+              errors.push(issue("PROJECTION_MASK_NOT_SUBSET_OF_PARENT", `fields[${f.key}]`,
+                `field "${f.key}"'s mask ${f.mask} is not fully contained within its declared parent "${f.projection_of}"'s own mask ${parent.mask} -- a projection may only view bits its parent's own physical read already covers`));
+            }
+          }
+        }
+        if (f.effective_access !== "r") {
+          errors.push(issue("PROJECTION_EFFECTIVE_ACCESS_NOT_R", `fields[${f.key}]`,
+            `field "${f.key}" is a projection (projection_of "${f.projection_of}") but effective_access is "${f.effective_access}", not "r" -- a projection can never carry write capability, independent of its own evidence status`));
+        }
+        if (f.esphome_write_entity_id !== null) {
+          errors.push(issue("PROJECTION_WRITE_ENTITY_PRESENT", `fields[${f.key}]`,
+            `field "${f.key}" is a projection but declares esphome_write_entity_id "${f.esphome_write_entity_id}" -- a projection must never own a write entity`));
+        }
+      }
     }
 
-    // overlap detection across this register's fields
+    // overlap detection across this register's fields -- a projection's
+    // mask is EXPECTED and REQUIRED to overlap its own declared parent's
+    // mask (that overlap is the entire point: it is the same physical bits,
+    // read once, viewed twice); any OTHER overlap (two physical fields, two
+    // sibling projections of the same parent, a projection overlapping a
+    // field it does not declare as its parent) is still a real error.
     for (let i = 0; i < coverage.length; i += 1) {
       for (let j = i + 1; j < coverage.length; j += 1) {
         if ((coverage[i][0] & coverage[j][0]) !== 0) {
-          errors.push(issue("OVERLAPPING_MASKS", `registers[${reg.register_id}]`,
-            `fields "${coverage[i][1]}" and "${coverage[j][1]}" in register ${reg.address} have overlapping masks`));
+          const [, keyI, projOfI] = coverage[i];
+          const [, keyJ, projOfJ] = coverage[j];
+          const isDeclaredProjectionPair = projOfI === keyJ || projOfJ === keyI;
+          if (!isDeclaredProjectionPair) {
+            errors.push(issue("OVERLAPPING_MASKS", `registers[${reg.register_id}]`,
+              `fields "${keyI}" and "${keyJ}" in register ${reg.address} have overlapping masks, and neither declares the other as its projection_of parent`));
+          }
         }
       }
     }

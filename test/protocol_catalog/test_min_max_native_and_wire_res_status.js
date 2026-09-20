@@ -162,8 +162,8 @@ check("no OK/input control exists for either new sensor (grep for a companion nu
     block && block.fields.length === 1 && block.fields[0].key === "cell_wire_resistance_status_mask");
   check("[computed] 0x128C cadence is still 15000ms (telemetry_15s poll_group, unchanged)",
     block && block.cadence_ms === 15000);
-  check("[computed] read plan block_count is 101 (100 as of this task, +1 later: 0x1118, authored in the Stage 3 completion pass, 2026-09-20 -- unrelated to this task's own 0x128C scope)",
-    readPlan.block_count === 101);
+  check("[computed] read plan block_count is 103 (100 as of this task, +3 later: 0x1118/0x14B4/0x14C4, authored in the Stage 3 continuation pass, 2026-09-20 -- unrelated to this task's own 0x128C scope)",
+    readPlan.block_count === 103);
 }
 
 // ===========================================================================

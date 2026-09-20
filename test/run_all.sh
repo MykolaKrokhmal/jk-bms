@@ -263,8 +263,16 @@ echo "=== Stage 3: 0x1114 read-only bit-cluster (HeatEN..TimedStoredData + Charg
 node test/protocol_catalog/test_0x1114_bit_cluster.js
 
 echo
-echo "=== Stage 3: 0x1114 read-only bit-cluster (HeatEN..TimedStoredData + ChargingFloatMode unblocked) ==="
-node test/protocol_catalog/test_0x1114_bit_cluster.js
+echo "=== Stage 3: generalized projection architecture (schema-level, synthetic fixtures) ==="
+node test/protocol_catalog/test_projection_architecture.js
+
+echo
+echo "=== Stage 3: projection decoder (0x12D0/0x12A0, real generated read plan, executable) ==="
+node test/protocol_catalog/test_projection_decoder.js
+
+echo
+echo "=== Stage 3: projection status-map/UI/safety consolidated coverage ==="
+node test/protocol_catalog/test_projection_status_ui_safety.js
 
 echo
 echo "=== Stage 2: settings UI mapping completeness (265/265) ==="

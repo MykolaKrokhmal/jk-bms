@@ -49,7 +49,7 @@ namespace jk_poll_scheduler {
 // 1. Generic field decode.
 // ---------------------------------------------------------------------
 
-enum class WireType : uint8_t { U8, S8, U16, S16, U32, S32, F32, ASCII, BIT };
+enum class WireType : uint8_t { U8, S8, U16, S16, U32, S32, F32, ASCII, BIT, HEX };
 
 // Bit width of the VALUE itself (not the register it's packed into) --
 // used only to know how many bits to sign-extend from after mask+shift.
@@ -264,6 +264,34 @@ inline void decode_ascii(const uint8_t *data, uint8_t payload_bytes, char *out, 
   const size_t n = payload_bytes < out_capacity - 1 ? payload_bytes : out_capacity - 1;
   for (size_t i = 0; i < n; i++) out[i] = char(data[i]);
   out[n] = '\0';
+}
+
+// Decodes a WireType::HEX field (2026-09-20, UART raw-bitmask arrays --
+// UART1MPRTOLEnable/UARTMPRTOLEnable[0-15]): a SAFE, deterministic
+// byte-to-hex-string projection of arbitrary binary data. Unlike
+// decode_ascii() above, this makes NO assumption that the bytes are
+// printable text: every byte (including 0x00 and 0xFF) is rendered as
+// exactly two uppercase hex digits, space-separated, for a fixed,
+// predictable output length -- never truncated at an embedded NUL byte
+// (decode_ascii() would silently stop there; that is exactly why a
+// genuine raw bitmask array must NOT go through decode_ascii()). Canonical
+// format: uppercase hex, space-separated, e.g. "00 FF 01 02 ...". The
+// caller's buffer must be large enough for payload_bytes*3 characters
+// (2 hex digits + 1 separator per byte, no separator after the last byte,
+// so a slight over-allocation) plus a NUL terminator; this function never
+// writes past out_capacity, silently truncating (never overrunning) if
+// the buffer is too small for the full payload -- bounds-checked, no
+// out-of-bounds write under any input.
+inline void decode_hex_string(const uint8_t *data, uint8_t payload_bytes, char *out, size_t out_capacity) {
+  static const char kHexDigits[] = "0123456789ABCDEF";
+  size_t pos = 0;
+  for (uint8_t i = 0; i < payload_bytes; i++) {
+    if (pos + 2 >= out_capacity) break;  // leave room for at least the NUL terminator
+    out[pos++] = kHexDigits[(data[i] >> 4) & 0x0F];
+    out[pos++] = kHexDigits[data[i] & 0x0F];
+    if (i + 1 < payload_bytes && pos + 1 < out_capacity) out[pos++] = ' ';
+  }
+  out[pos < out_capacity ? pos : out_capacity - 1] = '\0';
 }
 
 // ---------------------------------------------------------------------

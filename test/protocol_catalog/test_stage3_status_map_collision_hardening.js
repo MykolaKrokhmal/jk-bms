@@ -347,7 +347,7 @@ const NO_LOCATORS = new Map();
 // 11. Given zero production collisions (checks 10 above), the collision-
 // hardening pass ITSELF reshuffled no real classification -- its own
 // baseline was, and remains, 182/50/18/10/4/1. The baseline asserted
-// here has since moved to 196/40/18/6/4/1 (Stage 3 completion pass,
+// here has since moved to 228/8/18/6/4/1 (Stage 3 completion pass,
 // 2026-09-20), through several deliberate, real, later catalog/blocker
 // changes: the 0x1114 bit-cluster batch (+10 implemented_read, -9
 // blocked, -1 missing), AlarmBatUVP joining the pre-existing 0x12A0
@@ -364,10 +364,10 @@ const NO_LOCATORS = new Map();
   const path = require("path");
   const ROOT = path.join(__dirname, "..", "..");
   const statusMap = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "stage3_status_map.json"), "utf8"));
-  const expected = { implemented_read: 196, blocked: 40, implemented_write_confirmed: 18, missing: 6, reserved: 4, derived_not_a_register: 1 };
+  const expected = { implemented_read: 228, blocked: 8, implemented_write_confirmed: 18, missing: 6, reserved: 4, derived_not_a_register: 1 };
   const countsMatch = Object.keys(expected).length === Object.keys(statusMap.counts).length &&
     Object.entries(expected).every(([k, v]) => statusMap.counts[k] === v);
-  check("real generated stage3_status_map.json counts match the current baseline (196/40/18/6/4/1, sum 265, updated by the 0x1114 batch, AlarmBatUVP, LCDBuzzerTrigger/DRY2Trigger closures, the UART architectural blocker, and the new 0x1118 register)",
+  check("real generated stage3_status_map.json counts match the current baseline (228/8/18/6/4/1, sum 265, updated by the 0x1114 batch, AlarmBatUVP, LCDBuzzerTrigger/DRY2Trigger closures, the UART hex-decoder implementation, the new 0x1118 register, and the 0x12D0/0x12A0 generalized projection architecture)",
     countsMatch, JSON.stringify(statusMap.counts));
   check("no AMBIGUOUS note appears anywhere in the real generated status map (production has zero collisions)",
     !statusMap.parameters.some((p) => /AMBIGUOUS/.test(p.note)));

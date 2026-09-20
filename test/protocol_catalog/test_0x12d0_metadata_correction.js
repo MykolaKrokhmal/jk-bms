@@ -60,8 +60,8 @@ check("reg_0x12D0 register_width_bits is still 16 (packed UINT16, not split into
   reg && reg.register_width_bits === 16);
 check("reg_0x12D0 word_count is still 1 (one 16-bit register on the wire, unchanged)",
   reg && reg.word_count === 1);
-check("reg_0x12D0 still has exactly one field (sensor_heating_mask) -- no new field added this batch",
-  reg && reg.fields.length === 1 && reg.fields[0].key === "sensor_heating_mask");
+check("reg_0x12D0 has 8 fields (RAW sensor_heating_mask, unchanged, as fields[0] + 7 projections added Stage 3 continuation pass 2026-09-20)",
+  reg && reg.fields.length === 8 && reg.fields[0].key === "sensor_heating_mask");
 check("sensor_heating_mask field_width_bits is still 16 (RAW, unsplit -- mask param 0xFFFF, shift 0)",
   field && field.field_width_bits === 16 && field.mask === "0xFFFF" && field.shift === 0);
 check("sensor_heating_mask esphome_read_entity_id is still \"sensor_heating_mask\" (not renamed this batch)",
@@ -149,53 +149,66 @@ for (const obj of [reg, field]) {
 }
 
 // ===========================================================================
-// 4. No new canonical field or runtime entity anywhere in the catalog for
-// any of the 8 individual manifest parameters this register maps to.
+// 4. UPDATED (Stage 3 continuation pass, 2026-09-20, user-directed
+// generalized projection architecture): 7 of the 8 individual manifest
+// parameters this register maps to NOW have real, evidenced canonical
+// PROJECTION fields (this was the metadata-only batch's own explicit
+// deferral, later resolved once the OVERLAPPING_MASKS architectural gap
+// was closed). "mos_temp_sensor_present" specifically is STILL absent --
+// deliberately: MOSTempSensorPresent's own field uses neutral naming
+// (mos_temp_sensor_status_bit_raw), never asserting the "present"
+// semantic its own single-source-only polarity evidence doesn't fully
+// support. TempSensorAbsent's own aggregate key
+// ("temp_sensor_absent_mask") is STILL absent too -- no evidenced
+// formula, genuinely unresolved, its own separate blocker stays open.
 // ===========================================================================
 const allKeys = new Set(canonical.registers.flatMap((r) => r.fields).map((f) => f.key));
-const forbiddenNewKeys = [
-  "mos_temp_sensor_present", "bat_temp_sensor_1_present", "bat_temp_sensor_2_present",
+const nowImplementedKeys = [
+  "heating_active", "bat_temp_sensor_1_present", "bat_temp_sensor_2_present",
   "bat_temp_sensor_3_present", "bat_temp_sensor_4_present", "bat_temp_sensor_5_present",
-  "heating_status", "temp_sensor_absent_mask",
+  "mos_temp_sensor_status_bit_raw",
 ];
-for (const k of forbiddenNewKeys) {
-  check(`no new canonical field "${k}" was created this batch`, !allKeys.has(k));
+for (const k of nowImplementedKeys) {
+  check(`canonical projection field "${k}" now exists (Stage 3 continuation pass, 2026-09-20)`, allKeys.has(k));
 }
-check("no new sensor_heating_mask-adjacent entity id appears in batterylifepo4.yaml (e.g. no new bit-derived binary_sensor)",
-  !/id: (mos_temp_sensor_present|bat_temp_sensor_[1-5]_present|heating_status)\b/.test(yaml));
+check("no 'mos_temp_sensor_present' key exists -- MOSTempSensorPresent deliberately uses neutral naming instead (single-source polarity)",
+  !allKeys.has("mos_temp_sensor_present"));
+check("no 'temp_sensor_absent_mask' aggregate key exists -- no evidenced formula, genuinely unresolved",
+  !allKeys.has("temp_sensor_absent_mask"));
+check("every new projection field declares projection_of: 'sensor_heating_mask' (never its own Modbus read)",
+  nowImplementedKeys.every((k) => {
+    const f = canonical.registers.flatMap((r) => r.fields).find((ff) => ff.key === k);
+    return f && f.projection_of === "sensor_heating_mask";
+  }));
 
 // ===========================================================================
-// 5. read-plan: block for 0x12D0 is unchanged (still 1 field, same
-// register_count/cadence) -- confirms zero new bus traffic, not assumed.
+// 5. read-plan: block for 0x12D0 now carries the RAW field + all 7
+// projections, decoded from the SAME payload -- register_count/cadence
+// unchanged, confirming zero new bus traffic for this specific block
+// (block_count itself DID grow this round, but from wholly separate new
+// registers -- 0x1118, 0x14B4, 0x14C4 -- never from 0x12D0 splitting).
 // ===========================================================================
 const block = readPlan.blocks.find((b) => b.address === "0x12D0");
-check("0x12D0 read-plan block still has exactly 1 field (sensor_heating_mask) -- no split, no new field",
-  block && block.fields.length === 1 && block.fields[0].key === "sensor_heating_mask");
-check("read plan block_count is 101 (100 as of this batch, +1 later: 0x1118, authored in the Stage 3 completion pass, 2026-09-20 -- unrelated to this batch's own 0x12D0 scope)",
-  readPlan.block_count === 101);
+check("0x12D0 read-plan block now has exactly 8 fields (RAW sensor_heating_mask + 7 projections), all decoded from the SAME single payload",
+  block && block.fields.length === 8 && block.fields.some((f) => f.key === "sensor_heating_mask"));
+check("0x12D0 block's own register_count/payload_bytes are unchanged (1 register, 2 bytes) -- projections add zero new bus traffic",
+  block && block.register_count === 1 && block.payload_bytes === 2);
 
 // ===========================================================================
-// 6. All 8 manifest-level parameters at 0x12D0 remain covered by an OPEN
-// blocker -- none closed by this metadata-only batch. UPDATED (Stage 3
-// completion pass, 2026-09-20): the original single 8-name blocker was
-// split into two, once real evidence made the actual blocking reasons
-// precise instead of generic -- 7 names (architectural OVERLAPPING_MASKS
-// constraint, see that blocker's own issue text) + TempSensorAbsent alone
-// (no evidenced aggregation formula, a genuinely separate reason). Both
-// stay open; this test now checks coverage across BOTH entries, not a
-// single one.
+// 6. 7 of the 8 manifest-level parameters at 0x12D0 are now implemented
+// (blocker closed); TempSensorAbsent alone remains genuinely blocked
+// (its own separate entry, no evidenced aggregation formula).
 // ===========================================================================
-const expectedOpenIds = new Set([
-  "BATTempSensor1Present", "BATTempSensor2Present", "BATTempSensor3Present",
-  "BATTempSensor4Present", "BATTempSensor5Present", "Heating",
-  "MOSTempSensorPresent", "TempSensorAbsent",
-]);
-const blockerEntries = blockers.blockers.filter((b) => b.address === "0x12D0");
+const expectedOpenIds = new Set(["TempSensorAbsent"]);
+const blockerEntries = blockers.blockers.filter((b) => b.address === "0x12D0" && b.status === "open");
 check("at least one 0x12D0 blocker entry exists and all are status=open",
   blockerEntries.length > 0 && blockerEntries.every((b) => b.status === "open"));
 const coveredIds = new Set(blockerEntries.flatMap((b) => b.parameter_id.split(",").map((s) => s.trim())));
-check("the 0x12D0 blocker entries together still name all 8 expected manifest parameters",
-  [...expectedOpenIds].every((id) => coveredIds.has(id)), JSON.stringify([...coveredIds]));
+check("the remaining open 0x12D0 blocker names exactly TempSensorAbsent (the other 7 are resolved and closed)",
+  [...expectedOpenIds].every((id) => coveredIds.has(id)) && coveredIds.size === 1, JSON.stringify([...coveredIds]));
+const closedBlockers = blockers.blockers.filter((b) => b.address === "0x12D0" && b.status === "closed");
+check("a closed 0x12D0 blocker exists covering the 7 now-implemented parameters",
+  closedBlockers.some((b) => b.parameter_id.includes("Heating") && b.parameter_id.includes("BATTempSensor1Present")));
 
 console.log(`\n${checks} checks run, ${failures} failed.`);
 process.exit(failures ? 1 : 0);

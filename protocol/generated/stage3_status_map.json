@@ -1,12 +1,12 @@
 {
   "$comment": "GENERATED -- Stage 3 (typed-petting-puzzle plan) preflight deliverable: wire-position-based status of every one of the 265 manifest parameters against the CURRENT registers.canonical.json and CURRENT open protocol_blockers.json entries. 'Wire-position' means bit/byte-half/whole-register slot identity, not proven semantic identity -- a status is implemented_* only when exactly one canonical field occupies a parameter's own wire position; more than one such field yields status=missing with an explicit AMBIGUOUS note rather than a guess (see tools/protocol/authoring/build_stage3_status_map.js's own header comment). NOT a mechanical manifest-count-vs-canonical-count comparison -- packed fields, aliases, and derived entities have a different structure between the two catalogs. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_stage3_status_map.js. Because this reads the CURRENT canonical/blocker state (which Stage 3 itself will change), this file's own committed content reflects one snapshot in the stage's history -- re-run this generator (and its own --check) after each canonical/blocker change within Stage 3, exactly like every other generator in this pipeline.",
   "manifest_source_sha256": "23b07669074e51b20cc1e915f202c1dd2b14f911e0da641a2091a44dc14a3ba7",
-  "canonical_source_sha256": "fe39da2a841793f8d4e4edba09a4da9fa61a06da159aff5c78ffdac661d24f62",
-  "blockers_source_sha256": "a8761b36c31bfafbd0a5c40f3eb4f318aad68bf05c50671636d19cef82b658d3",
+  "canonical_source_sha256": "7c1be47cdb097d9fca056e58fe90dd3decc0819e961377683d7e2d0293a5630b",
+  "blockers_source_sha256": "fa8a4f1f5e3f76da4cf9f2b7d5e5d1e021985cd1590753895f3f36e19316ee6c",
   "parameter_count": 265,
   "counts": {
-    "implemented_read": 196,
-    "blocked": 40,
+    "implemented_read": 228,
+    "blocked": 8,
     "implemented_write_confirmed": 18,
     "missing": 6,
     "derived_not_a_register": 1,
@@ -106,8 +106,8 @@
       "base_address": "0x12D0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "ChargerPlugged",
@@ -306,8 +306,8 @@
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "CellWireResSta",
@@ -346,176 +346,176 @@
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmMosOTP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmCellQuantity",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmCurSensorErr",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmCellOVP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmBatOVP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmChOCP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmChSCP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmChOTP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmChUTP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmCPUAuxCommuErr",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmCellUVP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmBatUVP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmDchOCP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmDchSCP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmDchOTP",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmChargeMOS",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "AlarmDischargeMOS",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "GPSDisconneted",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "ModifyPWDInTime",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "DischargeOnFailed",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "BatteryOverTempAlarm",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "TemperatureSensorAnomaly",
@@ -538,48 +538,48 @@
       "base_address": "0x12D0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "BATTempSensor1Present",
       "base_address": "0x12D0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "BATTempSensor2Present",
       "base_address": "0x12D0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "BATTempSensor3Present",
       "base_address": "0x12D0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "BATTempSensor4Present",
       "base_address": "0x12D0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "BATTempSensor5Present",
       "base_address": "0x12D0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "TimeDcOCPR",
@@ -2106,16 +2106,16 @@
       "base_address": "0x14B4",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "UARTMPRTOLEnable[0-15]",
       "base_address": "0x14C4",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "UART2MPRTOLNbr",

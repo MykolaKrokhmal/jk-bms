@@ -421,6 +421,26 @@ const DERIVED_BOOLEAN_OVERRIDE = {
   balancing: { entityId: "balancing_control_raw", cadenceMs: 75000 },
 };
 
+// A genuinely different, narrower case from DERIVED_BOOLEAN_OVERRIDE above:
+// DERIVED_BOOLEAN_OVERRIDE exists for fields whose real semantics are an
+// AMBIGUOUS numeric-threshold comparison this generator cannot safely
+// derive on its own (charging_active etc. -- routed to a plain numeric
+// "_raw" sensor instead, deliberately not claiming a boolean at all).
+// WHOLE_VALUE_BOOLEAN_FIELDS (2026-09-20, generalized projection
+// architecture) is the OPPOSITE case: a field whose own evidence directly
+// confirms its wire value is ALWAYS exactly 0 or 1 (never a genuine
+// multi-value threshold) despite not being a single-bit WireType::BIT
+// field (e.g. heating_active: a whole LOW BYTE of a packed register,
+// PDF-confirmed "1=On/0=Off" -- see 0x12D0's own safety_notes). For these,
+// decode_bool()'s `(raw & mask) != 0` is exactly as safe and correct as
+// it is for a real BIT field (the mask already selects only that field's
+// own byte/bit span) -- an explicit, evidence-backed opt-in list, never a
+// generic "any non-BIT binary_sensor is fine" relaxation, which would
+// silently swallow a genuine ambiguous-threshold field.
+const WHOLE_VALUE_BOOLEAN_FIELDS = new Set([
+  "heating_active", // 0x12D0 low byte, PDF p.12 + V2 workbook row 13: confirmed always 0 or 1
+]);
+
 const READ_DOMAIN_OVERRIDE = {
   charging_float_mode: "binary_sensor",
   // 0x1114 cluster (Stage 3 completion pass, 2026-09-20): 8 genuinely
@@ -438,6 +458,48 @@ const READ_DOMAIN_OVERRIDE = {
   smart_sleep_enabled: "binary_sensor",
   disable_pcl_module: "binary_sensor",
   timed_stored_data: "binary_sensor",
+  // 0x12D0 projections (Stage 3 completion pass, 2026-09-20, generalized
+  // projection architecture): heating_active is a whole-byte 0/1 boolean
+  // (see WHOLE_VALUE_BOOLEAN_FIELDS above); the 5 bat_temp_sensor_N_present
+  // fields are real single bits, same reasoning as the 0x1114 cluster.
+  // mos_temp_sensor_status_bit_raw is deliberately NOT listed here -- its
+  // own polarity is single-source only, so it stays on the default
+  // "sensor" domain (raw numeric), never asserting a confirmed boolean.
+  heating_active: "binary_sensor",
+  bat_temp_sensor_1_present: "binary_sensor",
+  bat_temp_sensor_2_present: "binary_sensor",
+  bat_temp_sensor_3_present: "binary_sensor",
+  bat_temp_sensor_4_present: "binary_sensor",
+  bat_temp_sensor_5_present: "binary_sensor",
+  // 0x12A0 alarm-bit projections (Stage 3 continuation pass, 2026-09-20):
+  // 22 real single-bit alarm flags, PDF-confirmed "1=Fault/0=Normal" on
+  // every row -- genuine booleans, same reasoning as every entry above.
+  alarm_wire_res: "binary_sensor",
+  alarm_mos_otp: "binary_sensor",
+  alarm_cell_quantity: "binary_sensor",
+  alarm_cur_sensor_err: "binary_sensor",
+  alarm_cell_ovp: "binary_sensor",
+  alarm_bat_ovp: "binary_sensor",
+  alarm_ch_ocp: "binary_sensor",
+  alarm_ch_scp: "binary_sensor",
+  alarm_ch_otp: "binary_sensor",
+  alarm_ch_utp: "binary_sensor",
+  alarm_cpu_aux_commu_err: "binary_sensor",
+  alarm_cell_uvp: "binary_sensor",
+  alarm_bat_uvp: "binary_sensor",
+  alarm_dch_ocp: "binary_sensor",
+  alarm_dch_scp: "binary_sensor",
+  alarm_dch_otp: "binary_sensor",
+  alarm_charge_mos: "binary_sensor",
+  alarm_discharge_mos: "binary_sensor",
+  gps_disconnected: "binary_sensor",
+  modify_pwd_in_time: "binary_sensor",
+  discharge_on_failed: "binary_sensor",
+  battery_over_temp_alarm: "binary_sensor",
+  // UART raw hex arrays (2026-09-20): wire_type HEX, decode_hex_string()
+  // always produces a std::string, same reasoning as ASCII above.
+  uart1_mprtol_enable: "text_sensor",
+  uart_mprtol_enable_0_15: "text_sensor",
   device_model: "text_sensor",
   setup_passcode: "text_sensor",
   // Stage 3 batch 1 (typed-petting-puzzle plan): two more ASCII-wire-type
@@ -560,7 +622,7 @@ const EXTRA_ENTITY_YAML = {
   alarms_bitmask: "    on_value:\n      - component.update: alarms\n",
 };
 
-const WIRE_TYPE_ENUM = new Set(["U8", "S8", "U16", "S16", "U32", "S32", "F32", "ASCII", "BIT"]);
+const WIRE_TYPE_ENUM = new Set(["U8", "S8", "U16", "S16", "U32", "S32", "F32", "ASCII", "BIT", "HEX"]);
 
 // ---------------------------------------------------------------------------
 // Build the field list: filter, resolve entity id/domain/cadence per field.
@@ -573,11 +635,13 @@ for (const { field: f, register: r } of allRegisterFields) {
   }
 
   const override = DERIVED_BOOLEAN_OVERRIDE[f.key];
-  if (f.esphome_domain === "binary_sensor" && f.wire_type !== "BIT" && !override) {
+  if (f.esphome_domain === "binary_sensor" && f.wire_type !== "BIT" && !override && !WHOLE_VALUE_BOOLEAN_FIELDS.has(f.key)) {
     throw new Error(
       `READ_PLAN_UNHANDLED_DERIVED_BOOLEAN: field "${f.key}" is esphome_domain=binary_sensor with a non-BIT ` +
-      `wire_type (${f.wire_type}) and has no DERIVED_BOOLEAN_OVERRIDE entry -- refusing to guess its threshold ` +
-      `comparison. Add an explicit override (verified against batterylifepo4.yaml's real lambda) before regenerating.`
+      `wire_type (${f.wire_type}) and has no DERIVED_BOOLEAN_OVERRIDE or WHOLE_VALUE_BOOLEAN_FIELDS entry -- refusing ` +
+      `to guess its threshold comparison. Add an explicit override (verified against batterylifepo4.yaml's real ` +
+      `lambda) or a WHOLE_VALUE_BOOLEAN_FIELDS entry (only if evidence confirms the wire value is always exactly 0 ` +
+      `or 1) before regenerating.`
     );
   }
 
@@ -592,11 +656,11 @@ for (const { field: f, register: r } of allRegisterFields) {
   // time (confirmed the hard way: hardware_version/software_version were
   // shipped without an override entry in Stage 3 batch 1 and broke a real
   // compile). Catch it here instead, at generation time.
-  if (f.wire_type === "ASCII" && domain !== "text_sensor") {
+  if ((f.wire_type === "ASCII" || f.wire_type === "HEX") && domain !== "text_sensor") {
     throw new Error(
-      `READ_PLAN_ASCII_WRONG_DOMAIN: field "${f.key}" has wire_type ASCII but resolved read domain "${domain}" ` +
-      `(expected "text_sensor") -- decode_ascii() always produces a std::string, which will not compile against ` +
-      `a non-text_sensor platform's publish_state(float). Add an entry for "${f.key}": "text_sensor" to ` +
+      `READ_PLAN_ASCII_WRONG_DOMAIN: field "${f.key}" has wire_type ${f.wire_type} but resolved read domain "${domain}" ` +
+      `(expected "text_sensor") -- decode_ascii()/decode_hex_string() always produce a std::string, which will not compile ` +
+      `against a non-text_sensor platform's publish_state(float). Add an entry for "${f.key}": "text_sensor" to ` +
       `READ_DOMAIN_OVERRIDE before regenerating.`
     );
   }
@@ -688,9 +752,13 @@ const WIRE_REGISTER_COUNT_BYTES = 2; // one Modbus holding register = 2 bytes, a
 // gap-aware and is deliberately NOT resolved by this function).
 
 function blockClassOf(register) {
-  const isAscii = register.fields.every((f) => f.wire_type === "ASCII") ||
-    (register.fields[0] && register.fields[0].wire_type === "ASCII");
-  return isAscii ? BLOCK_CLASS.ASCII_CONTIGUOUS : BLOCK_CLASS.ORDINARY_ONE_REGISTER;
+  // HEX (2026-09-20, UART raw-bitmask decoder) is the same shape as ASCII
+  // for classification purposes: one multi-byte-array field spanning the
+  // whole register, no per-bit/per-byte gap concept -- register_count =
+  // word_count, undoubled, same as ASCII_CONTIGUOUS.
+  const isContiguousByteArray = register.fields.every((f) => f.wire_type === "ASCII" || f.wire_type === "HEX") ||
+    (register.fields[0] && (register.fields[0].wire_type === "ASCII" || register.fields[0].wire_type === "HEX"));
+  return isContiguousByteArray ? BLOCK_CLASS.ASCII_CONTIGUOUS : BLOCK_CLASS.ORDINARY_ONE_REGISTER;
 }
 
 // Both ORDINARY_ONE_REGISTER and ASCII_CONTIGUOUS request EXACTLY the
@@ -871,7 +939,7 @@ function buildDecodeHeader() {
   lines.push("namespace jk_read_plan {");
   lines.push("");
 
-  const wireTypeMap = { U8: "U8", S8: "S8", U16: "U16", S16: "S16", U32: "U32", S32: "S32", F32: "F32", ASCII: "ASCII", BIT: "BIT" };
+  const wireTypeMap = { U8: "U8", S8: "S8", U16: "U16", S16: "S16", U32: "U32", S32: "S32", F32: "F32", ASCII: "ASCII", BIT: "BIT", HEX: "HEX" };
 
   lines.push(`constexpr std::size_t kFieldCount = ${blocks.reduce((n, b) => n + b.fields.length, 0)};`);
   lines.push("constexpr jk_poll_scheduler::FieldDecode kFields[kFieldCount] = {");
@@ -1160,6 +1228,8 @@ function buildServicerInterval() {
         const fieldIndex = blocks.slice(0, i).reduce((n, bb) => n + bb.fields.length, 0) + j;
         if (f.wire_type === "ASCII") {
           L(`          { char buf[17]; jk_poll_scheduler::decode_ascii(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
+        } else if (f.wire_type === "HEX") {
+          L(`          { char buf[64]; jk_poll_scheduler::decode_hex_string(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
         } else if (EXACT_DECIMAL_FIELDS.has(f.key)) {
           // Primary entity for a Stage 3 precision-fix field: exact
           // fixed-point decimal, never float -- see decode_exact_decimal's
@@ -1179,7 +1249,7 @@ function buildServicerInterval() {
             L(`          id(g_cell_connected_mask_raw) = jk_poll_scheduler::decode_raw_u32(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes);`);
             L(`          id(g_cell_connected_mask_valid) = true;`);
           }
-        } else if (f.wire_type === "BIT" && f.domain === "binary_sensor") {
+        } else if (f.domain === "binary_sensor" && (f.wire_type === "BIT" || WHOLE_VALUE_BOOLEAN_FIELDS.has(f.key))) {
           // decode_bool() publishes a real bool, matching a binary_sensor
           // entity's publish_state(bool) overload. A BIT-width field whose
           // real semantic is NOT a boolean (e.g. port_switch: 1-bit but a

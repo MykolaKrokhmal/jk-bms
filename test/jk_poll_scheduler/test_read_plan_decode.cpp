@@ -219,6 +219,35 @@ static void test_manufacturer_device_id_is_ascii() {
   check(std::strncmp(out, "JK-PB", 5) == 0, "generated device_model field decodes ASCII bytes correctly");
 }
 
+static void test_uart_arrays_decode_as_hex() {
+  // UART1MPRTOLEnable (0x14B4) and UARTMPRTOLEnable[0-15] (0x14C4)
+  // (2026-09-20, UART raw-bitmask arrays): two genuinely separate
+  // registers, each UINT8[16], decoded via decode_hex_string() (never
+  // decode_ascii() -- these are raw bitmasks, not text).
+  const auto *b1 = find_block(0x14B4);
+  check(b1 != nullptr, "0x14B4 (uart1_mprtol_enable) block exists");
+  const auto *b2 = find_block(0x14C4);
+  check(b2 != nullptr, "0x14C4 (uart_mprtol_enable_0_15) block exists -- a SEPARATE block/address from 0x14B4, not an alias");
+  if (!b1 || !b2) return;
+  check(b1->payload_bytes == 16, "0x14B4 block is the full 16-byte payload");
+  check(b2->payload_bytes == 16, "0x14C4 block is the full 16-byte payload");
+
+  const auto *f1 = find_field(*b1, "uart1_mprtol_enable");
+  const auto *f2 = find_field(*b2, "uart_mprtol_enable_0_15");
+  check(f1 != nullptr, "uart1_mprtol_enable field exists");
+  check(f2 != nullptr, "uart_mprtol_enable_0_15 field exists");
+  if (!f1 || !f2) return;
+  check(f1->wire_type == WireType::HEX, "uart1_mprtol_enable decodes as HEX, not ASCII");
+  check(f2->wire_type == WireType::HEX, "uart_mprtol_enable_0_15 decodes as HEX, not ASCII");
+
+  const uint8_t data[16] = {0x00, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+                             0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E};
+  char out[64];
+  decode_hex_string(data, b1->payload_bytes, out, sizeof(out));
+  check(std::strcmp(out, "00 FF 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E") == 0,
+        "generated uart1_mprtol_enable field decodes raw bytes as hex correctly, including 0x00/0xFF");
+}
+
 static void test_bespoke_excluded_keys_absent_from_generated_table() {
   check(find_block(0x1200) == nullptr, "no block exists at 0x1200 (cell_voltage_1 stays on the bespoke 1Hz reader)");
   for (size_t i = 0; i < jk_read_plan::kFieldCount; i++) {
@@ -249,6 +278,7 @@ int main() {
   test_charging_float_mode_is_bit_type();
   test_derived_boolean_raw_entities_use_raw_id_not_active_key();
   test_manufacturer_device_id_is_ascii();
+  test_uart_arrays_decode_as_hex();
   test_bespoke_excluded_keys_absent_from_generated_table();
   test_electrical_metrics_scan_custom_block();
 

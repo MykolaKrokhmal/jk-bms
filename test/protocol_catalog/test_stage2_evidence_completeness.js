@@ -140,6 +140,40 @@ const MANUALLY_RESOLVED_ID_TO_KEY = {
   // gaps -- manually confirmed against PDF p.12 this round, closed.
   LCDBuzzerTrigger: "lcd_buzzer_trigger",
   DRY2Trigger: "dry_contact_2_trigger_source",
+  // 0x12D0/0x12A0 generalized projection architecture (Stage 3
+  // continuation pass, 2026-09-20): same matcher-lookback limitation
+  // (each shares one PDF row/table region with siblings) -- manually
+  // confirmed against PDF p.11-12 (0x12D0) and p.10-11 (0x12A0) + the V2
+  // workbook this round.
+  Heating: "heating_active",
+  "Alarm Mask": "alarms_bitmask",
+  AlarmWireRes: "alarm_wire_res",
+  AlarmMosOTP: "alarm_mos_otp",
+  AlarmCellQuantity: "alarm_cell_quantity",
+  AlarmCurSensorErr: "alarm_cur_sensor_err",
+  AlarmCellOVP: "alarm_cell_ovp",
+  AlarmBatOVP: "alarm_bat_ovp",
+  AlarmChOCP: "alarm_ch_ocp",
+  AlarmChSCP: "alarm_ch_scp",
+  AlarmChOTP: "alarm_ch_otp",
+  AlarmChUTP: "alarm_ch_utp",
+  AlarmCPUAuxCommuErr: "alarm_cpu_aux_commu_err",
+  AlarmCellUVP: "alarm_cell_uvp",
+  AlarmDchOCP: "alarm_dch_ocp",
+  AlarmDchSCP: "alarm_dch_scp",
+  AlarmDchOTP: "alarm_dch_otp",
+  AlarmChargeMOS: "alarm_charge_mos",
+  AlarmDischargeMOS: "alarm_discharge_mos",
+  GPSDisconneted: "gps_disconnected",
+  ModifyPWDInTime: "modify_pwd_in_time",
+  DischargeOnFailed: "discharge_on_failed",
+  BatteryOverTempAlarm: "battery_over_temp_alarm",
+  MOSTempSensorPresent: "mos_temp_sensor_status_bit_raw",
+  BATTempSensor1Present: "bat_temp_sensor_1_present",
+  BATTempSensor2Present: "bat_temp_sensor_2_present",
+  BATTempSensor3Present: "bat_temp_sensor_3_present",
+  BATTempSensor4Present: "bat_temp_sensor_4_present",
+  BATTempSensor5Present: "bat_temp_sensor_5_present",
 };
 
 const uncategorized = [];
@@ -163,8 +197,8 @@ check("every non-reserved, non-calculated parameter (260 of 265) is either PDF-r
 check("resolved + blocked + manually-resolved accounts for all 260 non-reserved/non-calculated parameters",
   resolvedCount + blockedCount + manuallyResolvedCount === 260,
   `resolved=${resolvedCount} blocked=${blockedCount} manually-resolved=${manuallyResolvedCount} total=${resolvedCount + blockedCount + manuallyResolvedCount}`);
-check("exactly 20 parameters are in the manually-resolved-and-implemented bucket (Stage 3 batch 1's 3 blocker closures + MaxVolCellNbr 2026-09-18 + BalanSta/SOCSOH/Charge 2026-09-19 + the 9-parameter 0x1114 bit cluster + TIMSmartSleep/DataDomainEnable0/LCDBuzzerTrigger/DRY2Trigger, 2026-09-20)",
-  manuallyResolvedCount === 20, `actual=${manuallyResolvedCount}`);
+check("exactly 49 parameters are in the manually-resolved-and-implemented bucket (20 from earlier this round [0x1114 cluster, 0x1118, LCDBuzzerTrigger/DRY2Trigger, and pre-existing entries] + 29 new: 0x12D0's 7 projections + 0x12A0's 22 alarm-bit projections, Stage 3 continuation pass 2026-09-20)",
+  manuallyResolvedCount === 49, `actual=${manuallyResolvedCount}`);
 
 // The 3 newly-authored reserved rows must each have a REAL canonical.json
 // entry (not just a manifest classification) -- cross-checked against the

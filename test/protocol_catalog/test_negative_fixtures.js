@@ -60,7 +60,7 @@ function baseField(overrides = {}) {
     byte_offset: 0, mask: null, shift: 0, signedness: "unsigned", wire_type: "U32",
     scale: 0.001, offset: 0, canonical_unit: "V", uk_display_unit: "В", en_display_unit: "V",
     decimal_precision: 3, minimum: 0, maximum: 6, step: 0.001, reserved_values: [], nullable: true,
-    packed_siblings: [], overlap_rule: null, access: "rw", effective_access: "r",
+    packed_siblings: [], overlap_rule: null, projection_of: null, access: "rw", effective_access: "r",
     write_safety_class: "normal", esphome_domain: "number", esphome_read_entity_id: "example_field",
     esphome_configured_name: null, esphome_write_entity_id: null, backend_key: "example_field",
     frontend_label_uk: "Приклад", frontend_label_en: "Example", ui_section: "settings", ui_order: 10,
