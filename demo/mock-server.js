@@ -521,32 +521,46 @@ function handleRegisterWritePreflight(query, res) {
   res.end(JSON.stringify(preflightRegisterWrite(entry, valueRaw)));
 }
 
-// KNOWN, DELIBERATE DIVERGENCE FROM PRODUCTION (2026-09-21, post-reboot
-// hardware-acceptance audit -- documented honestly, not hidden): the real
-// RegisterWriteHandler (batterylifepo4.yaml) was rearchitected this round
-// to respond {"ok":true,"status":"accepted","request_id":N} synchronously
-// and only allocate a real tx_id later, asynchronously, on the main
-// loop's own 100ms mailbox-consumer interval (see jk_write_tx_core.h's
-// "HTTP-task-to-main-loop handoff mailboxes" module comment for why).
-// This simulator function still responds with the OLDER, pre-
-// rearchitecture {"ok":true,"tx_id":N,"status":"pending"} shape,
-// synchronously. This is safe for jk_bms.js's own existing behavior
-// (postCommand()/writeTransaction() never parse the POST response body
-// at all -- correlation is entirely via write_tx_snapshot, so neither
-// contract shape actually changes what the frontend does), so no
-// simulator test asserting against jk_bms.js's real behavior is
-// misleading. It DOES mean this simulator can never exercise the new
-// GET /settings/register-write/status endpoint or the new main-loop-
-// only rejection reasons (bms not live / topology not confirmed) --
-// updating the simulator to match the new async contract is a real,
-// legitimate follow-on this round did not reach, not something papered
-// over by a fixture change.
+// Async accepted/request_id/status-poll contract (2026-09-21, second
+// corrective pass): removes the divergence a prior round's own comment
+// here documented honestly -- this simulator now implements the SAME
+// contract the real, rearchitected RegisterWriteHandler/
+// RegisterWriteStatusHandler/main-loop consumer (batterylifepo4.yaml) and
+// jk_write_tx_core.h's RegisterWriteResultTable implement: POST responds
+// {"ok":true,"status":"accepted","key":...,"request_id":N} SYNCHRONOUSLY
+// (never a real tx_id yet -- that would be a fabricated one, exactly what
+// the real handler's own honest-contract comment forbids); a real tx_id
+// only appears later, asynchronously, once a simulated ~100ms main-loop
+// consumer delay elapses and GET /settings/register-write/status?
+// request_id=N is polled. Single-flight (one staged-or-being-processed
+// request_id at a time) and the full main-loop-only re-validation set
+// (bms_health/topology_state/encode/freshness) are both simulated, so a
+// simulator test can genuinely exercise every rejection reason production
+// can produce -- not just the HTTP-time ones a synchronous mock could
+// reach.
+let registerWriteNextRequestId = 0;
+let registerWritePendingRequestId = 0; // 0 = none in flight -- mirrors g_register_write_pending_request_id
+const REGISTER_WRITE_RESULT_TTL_MS = 30000; // mirrors kRegisterWriteResultTtlMs
+const registerWriteResults = new Map(); // request_id(number) -> {accepted, txId, reason, publishedAtMs}
+
+function publishRegisterWriteResult(requestId, accepted, txId, reason) {
+  registerWriteResults.set(requestId, { accepted, txId: txId || 0, reason: reason || "", publishedAtMs: Date.now() });
+  if (registerWritePendingRequestId === requestId) registerWritePendingRequestId = 0;
+}
+
 function handleRegisterWrite(query, res) {
   const key = query.get("key") || "";
   const valueRaw = query.get("value");
   const submitPolicyArg = query.get("submit_policy") || "";
   const respondJson = (code, obj) => { res.writeHead(code, { "Content-Type": "application/json" }); res.end(JSON.stringify(obj)); };
 
+  // Every check in THIS function mirrors RegisterWriteHandler's own
+  // httpd-task-safe checks (key lookup, submit_policy, well-formed
+  // value) -- pure/no-shared-state, same as production. Everything that
+  // needs the main loop's own re-validation (bms_health/topology_state/
+  // encode-with-real-range/freshness/single-flight-on-the-real-slots) is
+  // deferred to the simulated main-loop consumer below, exactly like
+  // production defers it to its own interval: 100ms consumer.
   if (!key) return respondJson(400, { ok: false, error: "missing key" });
   if (submitPolicyArg !== "live") return respondJson(400, { ok: false, error: "submit_policy must be 'live'" });
   if (valueRaw === null || valueRaw === undefined || String(valueRaw).trim() === "") return respondJson(400, { ok: false, error: "missing value" });
@@ -557,43 +571,103 @@ function handleRegisterWrite(query, res) {
   if (!entry) return respondJson(404, { ok: false, error: "unknown key" });
   if (entry.submit_policy !== "live") return respondJson(403, { ok: false, error: "authorization_required", write_safety_class: entry.write_safety_class });
 
-  const enc = encodeNumericFieldMock(value, entry.signedness === "signed", entry.scale, entry.offset, entry.minimum, entry.maximum, entry.field_width_bits);
-  if (enc.status !== 0) return respondJson(400, { ok: false, error: "encode_rejected", status: enc.status });
+  // RegisterWriteHandler's own real encode/range check ALSO runs at HTTP
+  // time (a pure function, no shared/component state touched -- safe on
+  // any task, batterylifepo4.yaml's own comment: "no point burning the
+  // single-flight slot on a value that could never succeed"). The main-
+  // loop consumer below redoes this SAME check unconditionally -- this is
+  // intentional, documented redundancy in production, not a shortcut this
+  // simulator invented.
+  const httpEnc = encodeNumericFieldMock(value, entry.signedness === "signed", entry.scale, entry.offset, entry.minimum, entry.maximum, entry.field_width_bits);
+  if (httpEnc.status !== 0) return respondJson(400, { ok: false, error: "encode_rejected", status: httpEnc.status });
 
-  const addr = parseHexAddr(entry.address);
-  const mask = parseHexAddr(entry.mask === null ? "0xFFFFFFFF" : entry.mask);
-  // Re-check RAW immediately before queueing -- preflight is advisory,
-  // never a lock (same requirement/comment as RegisterWriteHandler
-  // itself, batterylifepo4.yaml).
-  const cache = rawWordCache[addr];
-  const now = Date.now();
-  if (entry.write_uses_read_modify_write) {
-    if (!cache) return respondJson(409, { ok: false, error: "no read-plan block for this register" });
-    if (now - cache.lastSuccessMs > entry.freshness_budget_ms) return respondJson(409, { ok: false, error: "stale" });
+  // Single-flight mailbox: one staged-or-being-processed request at a
+  // time, mirroring RegisterWriteRequestMailbox's own CAS-guarded state
+  // machine -- a second POST while one is still unconsumed is REJECTED
+  // outright, never queued/overwritten.
+  if (registerWritePendingRequestId !== 0) {
+    return respondJson(409, {
+      ok: false, error: "pending",
+      reason: "a write request is already staged and not yet consumed by the main loop",
+    });
   }
-  const mergedRaw = cache ? mergeFieldIntoRawMock(cache.raw, mask, entry.shift, enc.encodedRaw) : enc.encodedRaw;
 
-  const idBefore = wtxNextId;
-  runGenericWriteTx(addr, `__register_write_raw_${addr}`, String(mergedRaw), false, (statusCode) => {
-    if (statusCode === 4 && rawWordCache[addr]) { rawWordCache[addr].raw = mergedRaw; rawWordCache[addr].lastSuccessMs = Date.now(); }
-    else if (statusCode === 4) rawWordCache[addr] = { raw: mergedRaw, lastSuccessMs: Date.now() };
-  });
-  const idAfter = wtxNextId;
-  if (idAfter === idBefore) return respondJson(503, { ok: false, error: "write not queued" });
-  // status !== 9 excludes publishRejected's own short-lived notification
-  // slot -- this mock's wtxSlots array carries BOTH real transaction slots
-  // and rejection notifications (for the SSE snapshot's sake) in one
-  // array, unlike the real firmware, which keeps rejections in a wholly
-  // separate g_wtx_rejected_* ring buffer (batterylifepo4.yaml's
-  // begin_write_tx script) that this same txId/addr match could never
-  // accidentally hit there. Without this exclusion, a rejected (single-
-  // flight-busy) write's own notification slot -- which legitimately
-  // shares this write's txId and addr -- would be misread as acceptance.
-  const slot = wtxSlots.find((s) => s.inUse && s.txId === idAfter && s.addr === addr && s.status !== 9);
-  if (!slot) {
-    return respondJson(409, { ok: false, error: "pending", reason: "a transaction for this register is already in flight, or every transaction slot is busy" });
+  const requestId = ++registerWriteNextRequestId;
+  registerWritePendingRequestId = requestId;
+  respondJson(200, { ok: true, status: "accepted", key, request_id: requestId });
+
+  // Simulated main-loop consumer -- a real, asynchronous delay (not
+  // resolved synchronously within this same POST handler call) so a
+  // client polling GET .../status genuinely observes "pending" at least
+  // once before resolution, exactly like the real ~100ms interval: main
+  // loop cadence. Re-validates everything from scratch, trusting nothing
+  // already checked above (same reasoning as the real consumer's own
+  // module comment in batterylifepo4.yaml).
+  setTimeout(() => {
+    if (entities["text_sensor-bms_health"] && entities["text_sensor-bms_health"].state !== "LIVE") {
+      publishRegisterWriteResult(requestId, false, 0, "bms not live");
+      return;
+    }
+    if (entities["text_sensor-topology_state"] && entities["text_sensor-topology_state"].state !== "CONFIRMED") {
+      publishRegisterWriteResult(requestId, false, 0, "topology not confirmed");
+      return;
+    }
+    const enc = encodeNumericFieldMock(value, entry.signedness === "signed", entry.scale, entry.offset, entry.minimum, entry.maximum, entry.field_width_bits);
+    if (enc.status !== 0) { publishRegisterWriteResult(requestId, false, 0, "value rejected by encode/range check"); return; }
+
+    const addr = parseHexAddr(entry.address);
+    const mask = parseHexAddr(entry.mask === null ? "0xFFFFFFFF" : entry.mask);
+    const cache = rawWordCache[addr];
+    const now = Date.now();
+    if (entry.write_uses_read_modify_write) {
+      if (!cache) { publishRegisterWriteResult(requestId, false, 0, "no read-plan block for this register"); return; }
+      if (now - cache.lastSuccessMs > entry.freshness_budget_ms) { publishRegisterWriteResult(requestId, false, 0, "stale"); return; }
+    }
+    const mergedRaw = cache ? mergeFieldIntoRawMock(cache.raw, mask, entry.shift, enc.encodedRaw) : enc.encodedRaw;
+
+    const idBefore = wtxNextId;
+    runGenericWriteTx(addr, `__register_write_raw_${addr}`, String(mergedRaw), false, (statusCode) => {
+      if (statusCode === 4 && rawWordCache[addr]) { rawWordCache[addr].raw = mergedRaw; rawWordCache[addr].lastSuccessMs = Date.now(); }
+      else if (statusCode === 4) rawWordCache[addr] = { raw: mergedRaw, lastSuccessMs: Date.now() };
+    });
+    const idAfter = wtxNextId;
+    if (idAfter === idBefore) { publishRegisterWriteResult(requestId, false, 0, "write not queued"); return; }
+    // status !== 9 excludes publishRejected's own short-lived notification
+    // slot -- this mock's wtxSlots array carries BOTH real transaction
+    // slots and rejection notifications (for the SSE snapshot's sake) in
+    // one array, unlike the real firmware, which keeps rejections in a
+    // wholly separate g_wtx_rejected_* ring buffer that this same
+    // txId/addr match could never accidentally hit there.
+    const slot = wtxSlots.find((s) => s.inUse && s.txId === idAfter && s.addr === addr && s.status !== 9);
+    if (!slot) {
+      publishRegisterWriteResult(requestId, false, 0, "a transaction for this register is already in flight, or every transaction slot is busy");
+      return;
+    }
+    publishRegisterWriteResult(requestId, true, idAfter, "");
+  }, 100);
+}
+
+// GET /settings/register-write/status?request_id=N -- the async
+// contract's own status poll, matching RegisterWriteStatusHandler's real
+// JSON shapes exactly: pending/accepted/rejected/expired/unknown.
+function handleRegisterWriteStatus(query, res) {
+  const respondJson = (code, obj) => { res.writeHead(code, { "Content-Type": "application/json" }); res.end(JSON.stringify(obj)); };
+  const requestIdRaw = query.get("request_id");
+  const requestId = requestIdRaw !== null ? Number(requestIdRaw) : NaN;
+  if (!Number.isInteger(requestId) || requestId <= 0) {
+    return respondJson(400, { resolved: false, error: "missing or invalid request_id" });
   }
-  respondJson(200, { ok: true, key, tx_id: idAfter, status: "pending" });
+
+  const result = registerWriteResults.get(requestId);
+  if (result) {
+    if (Date.now() - result.publishedAtMs > REGISTER_WRITE_RESULT_TTL_MS) {
+      return respondJson(200, { status: "expired", request_id: requestId });
+    }
+    if (result.accepted) return respondJson(200, { status: "accepted", request_id: requestId, tx_id: result.txId });
+    return respondJson(200, { status: "rejected", request_id: requestId, reason: result.reason });
+  }
+  if (registerWritePendingRequestId === requestId) return respondJson(200, { status: "pending", request_id: requestId });
+  return respondJson(200, { status: "unknown", request_id: requestId });
 }
 
 /* ============================================================
@@ -1754,6 +1828,7 @@ const server = http.createServer((req, res) => {
   // module comment above handleRegisterWrite/handleRegisterWritePreflight.
   if (p === "/settings/register-write" && req.method === "POST") return handleRegisterWrite(url.searchParams, res);
   if (p === "/settings/register-write/preflight" && req.method === "GET") return handleRegisterWritePreflight(url.searchParams, res);
+  if (p === "/settings/register-write/status" && req.method === "GET") return handleRegisterWriteStatus(url.searchParams, res);
 
   // ---- dev-only scenario control (never called by production jk_bms.js) ----
   if (p === "/demo/state" && req.method === "GET") {
