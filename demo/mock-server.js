@@ -416,13 +416,45 @@ function mergeFieldIntoRawMock(oldRaw, mask, shift, encodedRaw) {
 }
 function parseHexAddr(s) { return parseInt(s, 16); }
 
+// Width-aware register-container semantics (2026-09-21 hardware-acceptance
+// corrective pass): a JS mirror of jk_write_tx_core.h's own
+// container_mask_for_word_count/validate_field_geometry/
+// format_hex_fixed_width/hex_digits_for_word_count -- kept in exact sync
+// with the real production functions (same statuses, same formulas,
+// same fail-closed cases) so this simulator can never again silently
+// paper over the class of bug a real device just found (preservation_mask
+// reported as the unbounded 32-bit complement of a 16-bit field's own
+// mask). See that header's own module comment for the full root-cause
+// writeup.
+function containerMaskForWordCount(wordCount) {
+  if (wordCount === 1) return { ok: true, containerMask: 0x0000FFFF };
+  if (wordCount === 2) return { ok: true, containerMask: 0xFFFFFFFF };
+  return { ok: false, containerMask: 0 };
+}
+function validateFieldGeometry(rawMask, shift, containerMask) {
+  if (rawMask === 0) return { status: "ZERO_MASK", fieldMask: 0, preservationMask: 0 };
+  if (((rawMask & ~containerMask) >>> 0) !== 0) return { status: "MASK_EXCEEDS_CONTAINER", fieldMask: 0, preservationMask: 0 };
+  if (shift >= 32 || (((1 << shift) >>> 0) & rawMask) === 0) return { status: "SHIFT_MASK_MISMATCH", fieldMask: 0, preservationMask: 0 };
+  return { status: "OK", fieldMask: rawMask, preservationMask: (containerMask & ~rawMask) >>> 0 };
+}
+function hexDigitsForWordCount(wordCount) { return wordCount === 2 ? 8 : 4; }
+function formatHexFixedWidth(value, hexDigits) {
+  return `0x${(value >>> 0).toString(16).toUpperCase().padStart(hexDigits, "0")}`;
+}
+
 function preflightRegisterWrite(entry, valueRaw) {
-  const mask = parseHexAddr(entry.mask === null ? "0xFFFFFFFF" : entry.mask);
+  const rawMask = parseHexAddr(entry.mask === null ? "0xFFFFFFFF" : entry.mask);
   const addr = parseHexAddr(entry.address);
   const cache = rawWordCache[addr];
   const now = Date.now();
   const fresh = !!cache && now - cache.lastSuccessMs <= entry.freshness_budget_ms;
   const isCredential = entry.write_safety_class === "credential";
+
+  const width = containerMaskForWordCount(entry.word_count);
+  const geom = width.ok ? validateFieldGeometry(rawMask, entry.shift, width.containerMask) : { status: "UNSUPPORTED_WORD_COUNT", fieldMask: 0, preservationMask: 0 };
+  const geometryOk = width.ok && geom.status === "OK";
+  const hexDigits = hexDigitsForWordCount(entry.word_count);
+
   let hasValue = valueRaw !== null && valueRaw !== undefined && String(valueRaw).trim() !== "";
   let enc = { status: 1, encodedRaw: 0 };
   if (hasValue) {
@@ -430,14 +462,31 @@ function preflightRegisterWrite(entry, valueRaw) {
     if (!Number.isFinite(value)) hasValue = false;
     else enc = encodeNumericFieldMock(value, entry.signedness === "signed", entry.scale, entry.offset, entry.minimum, entry.maximum, entry.field_width_bits);
   }
+
   let rejectReason = null;
-  if (!cache) rejectReason = "no read-plan block for this register";
+  // Geometry is a structural property of the registry entry itself, not
+  // request-dependent -- checked first, matching RegisterWritePreflightHandler.
+  if (!width.ok) rejectReason = "unsupported word_count";
+  else if (geom.status === "ZERO_MASK") rejectReason = "invalid field mask (zero)";
+  else if (geom.status === "MASK_EXCEEDS_CONTAINER") rejectReason = "field mask exceeds register width";
+  else if (geom.status === "SHIFT_MASK_MISMATCH") rejectReason = "shift inconsistent with field mask";
+  else if (!cache) rejectReason = "no read-plan block for this register";
   else if (!fresh) rejectReason = "raw snapshot unavailable or stale";
   else if (!hasValue) rejectReason = "value missing or not a finite number";
   else if (enc.status !== 0) rejectReason = "value rejected by encode/range check";
   else if (entry.submit_policy !== "live") rejectReason = "authorization_required";
-  const canPreviewMerge = hasValue && enc.status === 0 && !!cache && fresh;
-  const mergedRaw = canPreviewMerge ? mergeFieldIntoRawMock(cache.raw, mask, entry.shift, enc.encodedRaw) : null;
+
+  const canPreviewMerge = geometryOk && hasValue && enc.status === 0 && !!cache && fresh;
+  const mergedRaw = canPreviewMerge ? (mergeFieldIntoRawMock(cache.raw, geom.fieldMask, entry.shift, enc.encodedRaw) & width.containerMask) >>> 0 : null;
+  const encodedTargetBits = canPreviewMerge ? (((enc.encodedRaw << entry.shift) >>> 0) & geom.fieldMask) >>> 0 : null;
+  const showPreservation = geometryOk && !isCredential && !!cache;
+  const siblingBitsBefore = showPreservation ? (cache.raw & geom.preservationMask) >>> 0 : null;
+  // sibling_bits_expected_after is deliberately derived FROM mergedRaw,
+  // never copied from siblingBitsBefore -- see the production handler's
+  // own comment for why a direct copy would make this field trivially
+  // true instead of an honest proof.
+  const siblingBitsExpectedAfter = canPreviewMerge && !isCredential ? (mergedRaw & geom.preservationMask) >>> 0 : null;
+
   const activeSlot = wtxSlots.find((s) => s.inUse && s.addr === addr) || null;
   return {
     key: entry.key,
@@ -449,13 +498,13 @@ function preflightRegisterWrite(entry, valueRaw) {
     current_raw: isCredential || !cache ? null : cache.raw,
     raw_age_ms: cache ? now - cache.lastSuccessMs : null,
     generation: cache ? cache.lastSuccessMs : 0,
-    mask: `0x${mask.toString(16).toUpperCase().padStart(4, "0")}`,
+    mask: formatHexFixedWidth(rawMask, hexDigits),
     shift: entry.shift,
-    encoded_target_bits: canPreviewMerge && !isCredential ? `0x${(((enc.encodedRaw << entry.shift) >>> 0) & mask).toString(16).toUpperCase().padStart(4, "0")}` : null,
+    encoded_target_bits: canPreviewMerge && !isCredential ? formatHexFixedWidth(encodedTargetBits, hexDigits) : null,
     merged_raw: canPreviewMerge && !isCredential ? mergedRaw : null,
-    preservation_mask: isCredential || !cache ? null : `0x${(~mask >>> 0).toString(16).toUpperCase().padStart(4, "0")}`,
-    sibling_bits_before: isCredential || !cache ? null : (cache.raw & ~mask) >>> 0,
-    sibling_bits_expected_after: isCredential || !cache ? null : (cache.raw & ~mask) >>> 0,
+    preservation_mask: showPreservation ? formatHexFixedWidth(geom.preservationMask, hexDigits) : null,
+    sibling_bits_before: siblingBitsBefore,
+    sibling_bits_expected_after: siblingBitsExpectedAfter,
     ready: rejectReason === null,
     reject_reason: rejectReason,
     active_transaction: activeSlot ? { tx_id: activeSlot.txId, status: activeSlot.status } : null,

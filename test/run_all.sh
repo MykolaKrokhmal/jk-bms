@@ -64,6 +64,12 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
 "$BUILD_DIR/test_jk_write_tx_rmw_core"
 
 echo
+echo "=== jk_write_tx_core width-aware preflight-geometry unit tests (2026-09-21 hardware-acceptance corrective pass) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
+  "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_preflight_geometry.cpp" -o "$BUILD_DIR/test_jk_write_tx_preflight_geometry"
+"$BUILD_DIR/test_jk_write_tx_preflight_geometry"
+
+echo
 echo "=== jk_write_tx_core RMW (Stage 4) end-to-end integration test (real generated read_plan_decode.h) ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT" -I "$REPO_ROOT/components/jk_write_tx" -I "$REPO_ROOT/components/jk_poll_scheduler" \
   "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_rmw_end_to_end.cpp" -o "$BUILD_DIR/test_jk_write_tx_rmw_end_to_end"

@@ -27,6 +27,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 
 namespace jk_write_tx {
@@ -359,5 +360,120 @@ inline uint32_t merge_field_into_raw(uint32_t old_raw, uint32_t mask, uint8_t sh
 inline bool verify_sibling_bits_preserved(uint32_t old_raw, uint32_t readback_raw, uint32_t mask) {
   return (old_raw & ~mask) == (readback_raw & ~mask);
 }
+
+// ---------------------------------------------------------------------------
+// Width-aware register-container semantics (2026-09-21, hardware-acceptance
+// corrective pass): a real, LIVE preflight against gps_heartbeat found
+// RegisterWritePreflightHandler (batterylifepo4.yaml) reporting
+// preservation_mask as the UNBOUNDED 32-bit complement of a 16-bit field's
+// own mask ("0xFFFFFFFB" truncated by a too-small hex buffer down to the
+// nonsensical "0xFFFFF") -- this project's every generic write-registry
+// entry with word_count=1 is a REAL 16-bit Modbus holding register; a raw
+// `~mask` computed over the full 32-bit uint32_t silently claims bits 16-31
+// exist and are "preserved siblings" of a register that is physically only
+// 16 bits wide. This isn't only a display bug: sibling_bits_expected_after
+// was also being copied directly from sibling_bits_before instead of ever
+// being derived from merged_raw, so the preflight could never actually
+// prove sibling preservation from the SAME arithmetic a real write performs
+// (it only asserted the input was unchanged, trivially true).
+//
+// This module fixes both, fail-closed, and pure/hardware-independent like
+// everything else in this file -- see
+// test/jk_write_tx/test_jk_write_tx_preflight_geometry.cpp. It intentionally
+// does NOT change begin_write_tx_rmw/merge_field_into_raw/the real write
+// execution path at all: for every currently-eligible RMW field, mask
+// itself already never sets a bit outside the register's own real width
+// (the generator only ever emits masks derived from real
+// field_width_bits/shift within a real 16- or 32-bit register), so the
+// ACTUAL merge arithmetic a write performs was never wrong -- only this
+// diagnostic endpoint's OWN preservation_mask/sibling_bits_expected_after
+// fields, and their hex string formatting, were.
+
+// Only word_count 1 (a single 16-bit Modbus holding register) and 2 (a
+// 32-bit register pair, big-endian high-word-first per this project's own
+// byte_order/word_order convention) are real container widths this
+// project's generated write registry has ever produced. Any other
+// word_count reaching this function is a genuine data/generation
+// inconsistency -- fail closed (UNSUPPORTED_WORD_COUNT) rather than
+// silently defaulting to a 32-bit container that may not physically exist.
+enum class ContainerWidthStatus : uint8_t { OK = 0, UNSUPPORTED_WORD_COUNT = 1 };
+
+struct ContainerWidthResult {
+  ContainerWidthStatus status = ContainerWidthStatus::UNSUPPORTED_WORD_COUNT;
+  uint32_t container_mask = 0;  // all bits the register PHYSICALLY has, e.g. 0x0000FFFF for word_count=1
+};
+
+inline ContainerWidthResult container_mask_for_word_count(uint8_t word_count) {
+  ContainerWidthResult r;
+  if (word_count == 1) {
+    r.status = ContainerWidthStatus::OK;
+    r.container_mask = 0x0000FFFFu;
+  } else if (word_count == 2) {
+    r.status = ContainerWidthStatus::OK;
+    r.container_mask = 0xFFFFFFFFu;
+  }
+  return r;
+}
+
+// Validates a field's own declared mask/shift against its container's real
+// physical width, fail-closed on any of: a zero mask (nothing to write),
+// a mask claiming a bit outside the container (the exact class of bug this
+// pass fixes -- the caller must never silently narrow raw_mask to fit, that
+// would hide a real authoring error), or a shift that does not actually
+// land on a set bit of the mask (this project's generator always derives
+// shift and mask from the SAME field_width_bits/byte_offset, so a mismatch
+// here means real corruption upstream, not a normal/expected case).
+enum class FieldGeometryStatus : uint8_t {
+  OK = 0,
+  ZERO_MASK = 1,
+  MASK_EXCEEDS_CONTAINER = 2,
+  SHIFT_MASK_MISMATCH = 3,
+};
+
+struct FieldGeometryResult {
+  FieldGeometryStatus status = FieldGeometryStatus::ZERO_MASK;
+  uint32_t field_mask = 0;         // == raw_mask, once validated -- never silently narrowed
+  uint32_t preservation_mask = 0;  // container_mask & ~field_mask -- every OTHER real, physical bit
+};
+
+inline FieldGeometryResult validate_field_geometry(uint32_t raw_mask, uint8_t shift, uint32_t container_mask) {
+  FieldGeometryResult r;
+  if (raw_mask == 0) {
+    r.status = FieldGeometryStatus::ZERO_MASK;
+    return r;
+  }
+  if ((raw_mask & ~container_mask) != 0) {
+    r.status = FieldGeometryStatus::MASK_EXCEEDS_CONTAINER;
+    return r;
+  }
+  if (shift >= 32 || ((uint64_t(1) << shift) & raw_mask) == 0) {
+    r.status = FieldGeometryStatus::SHIFT_MASK_MISMATCH;
+    return r;
+  }
+  r.status = FieldGeometryStatus::OK;
+  r.field_mask = raw_mask;
+  r.preservation_mask = container_mask & ~raw_mask;
+  return r;
+}
+
+// Formats `value` as "0x" followed by EXACTLY `hex_digits` hex digits
+// (never fewer -- zero-padded -- and never silently truncated: `buf_size`
+// must be at least hex_digits+3; this is asserted by the caller always
+// passing a real, sized buffer, never re-derived here). Replaces the
+// previous fixed `char hexbuf[8]` + literal "0x%04X" pattern, which
+// silently truncated any value needing more than 4 hex digits (exactly
+// the bug this pass fixes) -- callers must size their buffer for the
+// widest field they will ever format with it (a word_count=2 entry needs
+// 8 digits: "0xFFFFFFFF" + NUL = 11 bytes minimum).
+inline void format_hex_fixed_width(char *buf, size_t buf_size, uint32_t value, int hex_digits) {
+  std::snprintf(buf, buf_size, "0x%0*X", hex_digits, unsigned(value));
+}
+
+// hex_digits for a value that is itself bounded by container_mask (mask,
+// preservation_mask, encoded_target_bits, merged_raw-as-hex if ever
+// needed): 4 digits for a 16-bit container (word_count=1), 8 for a 32-bit
+// one (word_count=2) -- the exact "0xFFFB not 0xFFFFFFFB for a 16-bit
+// register" contract this pass establishes.
+inline int hex_digits_for_word_count(uint8_t word_count) { return word_count == 2 ? 8 : 4; }
 
 }  // namespace jk_write_tx

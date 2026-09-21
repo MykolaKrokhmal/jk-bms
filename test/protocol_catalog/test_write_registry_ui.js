@@ -501,7 +501,11 @@ async function main() {
         status: 200,
         body: {
           ready: true, current_raw: 516, merged_raw: 512, sibling_bits_before: 512, sibling_bits_expected_after: 512,
-          preservation_mask: "0xFFFFFFFB", encoded_target_bits: "0x0000", reject_reason: null,
+          // width-correct for gps_heartbeat (word_count=1, a real 16-bit
+          // register): 4 hex digits, never the unbounded 32-bit
+          // "0xFFFFFFFB" -- see jk_write_tx_core.h's own module comment
+          // (2026-09-21 hardware-acceptance corrective pass).
+          preservation_mask: "0xFFFB", encoded_target_bits: "0x0000", reject_reason: null,
         },
       };
     }

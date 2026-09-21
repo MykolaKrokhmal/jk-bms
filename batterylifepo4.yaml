@@ -640,6 +640,25 @@ esphome:
               const char *policy_str =
                   e.submit_policy == jk_write_registry::SubmitPolicy::LIVE ? "live" : "authorization_required";
 
+              // Width-aware register-container semantics (2026-09-21
+              // hardware-acceptance corrective pass -- see
+              // jk_write_tx_core.h's own module comment on this section
+              // for the full root-cause writeup): every generic write-
+              // registry entry's mask/preservation_mask must be bounded
+              // to the register's REAL physical width (word_count=1 -> a
+              // real 16-bit Modbus holding register, word_count=2 -> a
+              // real 32-bit pair) -- never the unbounded 32-bit
+              // container a raw `~mask` implicitly assumed before this
+              // pass, which is what produced a nonsensical, truncated
+              // "0xFFFFF" for a genuinely 16-bit register's preservation
+              // mask on real hardware.
+              const auto width = jk_write_tx::container_mask_for_word_count(e.word_count);
+              const auto geom = width.status == jk_write_tx::ContainerWidthStatus::OK
+                                     ? jk_write_tx::validate_field_geometry(e.mask, e.shift, width.container_mask)
+                                     : jk_write_tx::FieldGeometryResult{};
+              const bool geometry_ok =
+                  width.status == jk_write_tx::ContainerWidthStatus::OK && geom.status == jk_write_tx::FieldGeometryStatus::OK;
+
               const int block_idx = jk_poll_scheduler::find_block_index_for_address(jk_read_plan::kBlocks, e.address);
               const uint32_t now = millis();
               uint32_t last_success = 0;
@@ -669,7 +688,15 @@ esphome:
               }
 
               std::string reject_reason;
-              if (block_idx < 0) reject_reason = "no read-plan block for this register";
+              // Geometry is a structural property of the registry entry
+              // itself (never request-dependent) -- checked first, fail
+              // closed, before any of the request/freshness-specific
+              // reasons below even matter.
+              if (width.status != jk_write_tx::ContainerWidthStatus::OK) reject_reason = "unsupported word_count";
+              else if (geom.status == jk_write_tx::FieldGeometryStatus::ZERO_MASK) reject_reason = "invalid field mask (zero)";
+              else if (geom.status == jk_write_tx::FieldGeometryStatus::MASK_EXCEEDS_CONTAINER) reject_reason = "field mask exceeds register width";
+              else if (geom.status == jk_write_tx::FieldGeometryStatus::SHIFT_MASK_MISMATCH) reject_reason = "shift inconsistent with field mask";
+              else if (block_idx < 0) reject_reason = "no read-plan block for this register";
               else if (!fresh) reject_reason = "raw snapshot unavailable or stale";
               else if (!has_value) reject_reason = "value missing or not a finite number";
               else if (enc.status != jk_write_tx::EncodeStatus::OK) reject_reason = "value rejected by encode/range check";
@@ -681,18 +708,33 @@ esphome:
               }
 
               const bool ready = reject_reason.empty();
-              // A merge preview only needs a valid encode + a real, fresh
-              // raw snapshot to merge into -- independent of submit_policy
-              // (an authorization_required field still shows what a write
-              // WOULD merge, per the plan's own "show risk explanation"
-              // requirement; only the final ready/reject_reason gates the
-              // POST itself).
-              const bool can_preview_merge = has_value && enc.status == jk_write_tx::EncodeStatus::OK && block_idx >= 0 && fresh;
+              // A merge preview only needs valid geometry + a valid encode
+              // + a real, fresh raw snapshot to merge into -- independent
+              // of submit_policy (an authorization_required field still
+              // shows what a write WOULD merge, per the plan's own "show
+              // risk explanation" requirement; only the final ready/
+              // reject_reason gates the POST itself).
+              const bool can_preview_merge =
+                  geometry_ok && has_value && enc.status == jk_write_tx::EncodeStatus::OK && block_idx >= 0 && fresh;
               const uint32_t merged_raw =
-                  can_preview_merge ? jk_write_tx::merge_field_into_raw(old_raw, e.mask, e.shift, enc.encoded_raw) : 0;
-              const uint32_t encoded_target_bits = (enc.encoded_raw << e.shift) & e.mask;
-              const uint32_t preservation_mask = ~e.mask;
-              const uint32_t sibling_bits = old_raw & preservation_mask;
+                  can_preview_merge
+                      ? (jk_write_tx::merge_field_into_raw(old_raw, geom.field_mask, e.shift, enc.encoded_raw) & width.container_mask)
+                      : 0;
+              const uint32_t encoded_target_bits = can_preview_merge ? ((enc.encoded_raw << e.shift) & geom.field_mask) : 0;
+              // sibling_bits_before reflects the CURRENT physical state
+              // (needs only geometry + a real cached raw word, no
+              // requested value at all); sibling_bits_expected_after is
+              // deliberately computed FROM merged_raw, never copied
+              // directly from sibling_bits_before -- the entire point of
+              // this field is to prove, via the SAME arithmetic a real
+              // write performs, that the requested write does not
+              // disturb any bit outside its own mask (this project's own
+              // "проверь real preservation from the real merge, not a
+              // trivially-true self-comparison" requirement).
+              const bool show_preservation = geometry_ok && !is_credential && block_idx >= 0;
+              const uint32_t sibling_bits_before = show_preservation ? (old_raw & geom.preservation_mask) : 0;
+              const uint32_t sibling_bits_expected_after =
+                  can_preview_merge ? (merged_raw & geom.preservation_mask) : 0;
 
               std::string json;
               json.reserve(768);
@@ -700,8 +742,13 @@ esphome:
               json += "\"key\":\""; json += key; json += "\",";
               json += "\"write_safety_class\":\""; json += e.write_safety_class; json += "\",";
               json += "\"submit_policy\":\""; json += policy_str; json += "\",";
-              char hexbuf[8];
-              snprintf(hexbuf, sizeof(hexbuf), "0x%04X", unsigned(e.address));
+              // Address is always a real 16-bit Modbus register address in
+              // this protocol -- always exactly 4 hex digits, independent
+              // of word_count (word_count describes how many CONSECUTIVE
+              // 16-bit registers the write spans, starting at this
+              // address, not this field's own width).
+              char hexbuf[12];  // "0xFFFFFFFF" + NUL = 11 bytes minimum; 12 for margin.
+              jk_write_tx::format_hex_fixed_width(hexbuf, sizeof(hexbuf), e.address, 4);
               json += "\"address\":\""; json += hexbuf; json += "\",";
               json += "\"write_function\":\"write_multiple_registers_fc16\",";
               json += "\"word_count\":"; json += std::to_string(e.word_count); json += ",";
@@ -716,20 +763,33 @@ esphome:
               json += raw_age_ms == 0xFFFFFFFFu ? std::string("null") : std::to_string(raw_age_ms);
               json += ",";
               json += "\"generation\":"; json += std::to_string(generation); json += ",";
-              json += "\"mask\":\""; snprintf(hexbuf, sizeof(hexbuf), "0x%04X", unsigned(e.mask)); json += hexbuf; json += "\",";
+              // mask/preservation_mask/encoded_target_bits are all bounded
+              // by this field's own real container width: 4 hex digits
+              // for word_count=1 (a real 16-bit register), 8 for
+              // word_count=2 (a real 32-bit pair) -- see
+              // hex_digits_for_word_count()'s own comment. An unsupported
+              // word_count (already rejected above) falls back to 4
+              // digits here purely for a non-crashing diagnostic display,
+              // never presented as ready.
+              const int hex_digits = jk_write_tx::hex_digits_for_word_count(e.word_count);
+              json += "\"mask\":\""; jk_write_tx::format_hex_fixed_width(hexbuf, sizeof(hexbuf), e.mask, hex_digits); json += hexbuf; json += "\",";
               json += "\"shift\":"; json += std::to_string(e.shift); json += ",";
               if (can_preview_merge && !is_credential) {
-                json += "\"encoded_target_bits\":\""; snprintf(hexbuf, sizeof(hexbuf), "0x%04X", unsigned(encoded_target_bits)); json += hexbuf; json += "\",";
+                json += "\"encoded_target_bits\":\""; jk_write_tx::format_hex_fixed_width(hexbuf, sizeof(hexbuf), encoded_target_bits, hex_digits); json += hexbuf; json += "\",";
                 json += "\"merged_raw\":"; json += std::to_string(merged_raw); json += ",";
               } else {
                 json += "\"encoded_target_bits\":null,\"merged_raw\":null,";
               }
-              if (is_credential || block_idx < 0) {
-                json += "\"preservation_mask\":null,\"sibling_bits_before\":null,\"sibling_bits_expected_after\":null,";
+              if (show_preservation) {
+                json += "\"preservation_mask\":\""; jk_write_tx::format_hex_fixed_width(hexbuf, sizeof(hexbuf), geom.preservation_mask, hex_digits); json += hexbuf; json += "\",";
+                json += "\"sibling_bits_before\":"; json += std::to_string(sibling_bits_before); json += ",";
               } else {
-                json += "\"preservation_mask\":\""; snprintf(hexbuf, sizeof(hexbuf), "0x%04X", unsigned(preservation_mask)); json += hexbuf; json += "\",";
-                json += "\"sibling_bits_before\":"; json += std::to_string(sibling_bits); json += ",";
-                json += "\"sibling_bits_expected_after\":"; json += std::to_string(sibling_bits); json += ",";
+                json += "\"preservation_mask\":null,\"sibling_bits_before\":null,";
+              }
+              if (can_preview_merge && !is_credential) {
+                json += "\"sibling_bits_expected_after\":"; json += std::to_string(sibling_bits_expected_after); json += ",";
+              } else {
+                json += "\"sibling_bits_expected_after\":null,";
               }
               json += "\"ready\":"; json += (ready ? "true" : "false"); json += ",";
               json += "\"reject_reason\":"; json += (reject_reason.empty() ? std::string("null") : ("\"" + reject_reason + "\"")); json += ",";
