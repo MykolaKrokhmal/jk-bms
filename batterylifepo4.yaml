@@ -123,10 +123,57 @@ esphome:
     # comment for why write_registry.json (JSON on flash) is never read by
     # the firmware itself.
     - protocol/generated/write_registry_table.h
+    # Reset/crash observability + fail-closed HTTP-task-to-main-loop
+    # handoff (2026-09-21, post-reboot hardware-acceptance audit): a
+    # real ESP uptime drop from ~1842s to ~18s occurred immediately after
+    # a single POST to /settings/register-write, with zero HTTP response
+    # bytes ever received. Direct source evidence (fetched and grepped
+    # against ESPHome 2026.8.2 / ESP-IDF 5.5.5's own real, pinned source)
+    # confirms the PREVIOUS RegisterWriteHandler called
+    # begin_write_tx_rmw/queue_command directly from the ESP-IDF httpd
+    # server's own FreeRTOS task, which then mutated
+    # modbus_controller's unsynchronized one_shot_command_items_
+    # std::vector concurrently with the main loop's own use of the SAME
+    # vector -- a genuine, evidenced cross-task data race. See this
+    # project's own audit report for the full write-up;
+    # jk_write_tx_core.h's own "HTTP-task-to-main-loop handoff mailboxes"
+    # module comment for the fix; jk_reset_diag_core.h/jk_reset_diag_rtc.h
+    # for the new reset-reason/crash-stage diagnostics.
+    - components/jk_diag/jk_reset_diag_core.h
+    - components/jk_diag/jk_reset_diag_rtc.h
   on_boot:
     priority: -100
     then:
       - lambda: |-
+          // Reset/crash observability (2026-09-21, post-reboot hardware-
+          // acceptance audit) -- captured FIRST, before anything else in
+          // this boot sequence, so a crash-stage marker from a reset that
+          // happened mid-write-request is read before any new activity
+          // (including a fresh write) could possibly overwrite it.
+          // ESP32-only (see jk_reset_diag_rtc.h's own #ifdef USE_ESP32) --
+          // this device always builds against esp32:framework:type:esp-idf,
+          // so no non-ESP32 fallback path exists or is needed here.
+          {
+            const auto diag = jk_diag::read_and_reset_boot_diagnostics();
+            std::string reason_text = jk_diag::reset_reason_name(diag.reset_reason_code);
+            id(reset_reason)->publish_state(reason_text);
+            id(reset_count_since_power_on)->publish_state(float(diag.reset_count_since_power_on));
+            if (diag.rtc_trustworthy) {
+              std::string stage_text = jk_diag::write_crash_stage_name(diag.last_write_crash_stage);
+              id(last_write_crash_stage)->publish_state(stage_text);
+              if (diag.last_write_crash_stage != jk_diag::STAGE_IDLE) {
+                ESP_LOGW("jk_reset_diag", "Reboot reason=%s: a write-registry HTTP request was in flight at stage=%s when this device last reset -- see the diagnostic entities for detail.",
+                         reason_text.c_str(), stage_text.c_str());
+              }
+            } else {
+              // Never claim a stage survived a reset type RTC memory
+              // cannot be trusted across (POWERON/BROWNOUT/PWR_GLITCH/
+              // UNKNOWN) -- explicit, honest "not available" rather than
+              // silently showing a stale/garbage value.
+              id(last_write_crash_stage)->publish_state(std::string("not available for this reset type"));
+            }
+          }
+
           // Single combined endpoint (not one per metric) so the UI does one
           // fetch instead of nine. The buffer is a ring — hist_index is the
           // *next write* slot, so readout starts one past it (oldest sample
@@ -426,26 +473,41 @@ esphome:
           id(web_server_base_id)->add_handler(new ActiveGroupHandler());
 
           // Stage 4 production-integration gap fix (2026-09-21, user-
-          // directed): the actual production write endpoint. Every
-          // generated write-registry `number:` entity (write_registry.yaml)
-          // is `internal: true` by design (Stage 4's own generator never
-          // exposes a bare entity as a public control surface) -- which
+          // directed), REARCHITECTED 2026-09-21 (post-reboot hardware-
+          // acceptance audit): the actual production write endpoint.
+          // Every generated write-registry `number:` entity
+          // (write_registry.yaml) is `internal: true` by design -- which
           // means ESPHome's generic `/number/<id>/set` REST route cannot
-          // reach any of them, and until now nothing else could either: no
-          // firmware-readable table of write-registry keys existed for a
-          // generic handler to look up (write_registry.json is JSON that
-          // only ever lives on the BUILD machine, never read by this
-          // firmware at runtime). This handler is that missing endpoint --
-          // same web_server_base_id/auth layer as every handler above,
-          // looks up ONLY in the compiled jk_write_registry::kEntries
-          // table (protocol/generated/write_registry_table.h -- never a
-          // hand-duplicated address/mask/range), and drives the SAME
-          // encode/merge/RMW code path the generated `number:` entities
-          // themselves already use (jk_write_tx::encode_numeric_field,
-          // begin_write_tx_rmw/write_bms_u32/write_bms_u16) -- nothing
-          // here reimplements write mechanics, it only makes them
-          // reachable by string key with a JSON status response instead
-          // of by ESPHome entity id.
+          // reach any of them, and until now nothing else could either.
+          //
+          // FAIL-CLOSED REARCHITECTURE (real, evidenced cross-task hazard
+          // found via a real device reboot immediately following a single
+          // write POST -- see jk_write_tx_core.h's own "HTTP-task-to-
+          // main-loop handoff mailboxes" module comment for the full,
+          // source-cited root-cause writeup): this handler used to call
+          // begin_write_tx_rmw/write_bms_u32/write_bms_u16 (which reach
+          // modbus_controller::queue_command(), confirmed unsynchronized
+          // against the main loop's own use of the same command vector)
+          // DIRECTLY from handleRequest() -- which real, cited ESPHome/
+          // ESP-IDF source confirms runs on the httpd server's own
+          // FreeRTOS task, never the main loop. It no longer does. This
+          // handler now does ONLY safe, task-local work: rate limiting
+          // (a coarse, tolerant-of-a-torn-read timestamp comparison),
+          // parsing, a constexpr table lookup, and a PURE encode/range
+          // check (no shared mutable state) -- then atomically stages the
+          // validated intent into jk_write_tx::g_register_write_request_
+          // mailbox (safe from any task) and returns an HONEST
+          // "accepted, here is a request_id" response. It NEVER returns a
+          // tx_id (a real transaction does not exist yet -- see the new
+          // GET .../status endpoint below) and NEVER itself calls
+          // begin_write_tx_rmw/write_bms_u32/write_bms_u16/queue_command/
+          // publish_state or any other ESPHome/Modbus component method --
+          // only the new main-loop `interval:` consumer below does that,
+          // where it is safe, and where it independently RE-validates
+          // everything this handler already checked (registry key,
+          // submit_policy, value encoding/range, freshness/geometry,
+          // topology/health, single-flight, generation) rather than
+          // trusting this handler's own now-possibly-stale judgment.
           //
           // Body: application/x-www-form-urlencoded (same content-type
           // decision as ActiveGroupHandler above, confirmed against the
@@ -464,6 +526,8 @@ esphome:
               return request->url_to(url_buf) == "/settings/register-write";
             }
             void handleRequest(AsyncWebServerRequest *request) override {
+              jk_diag::mark_write_crash_stage(jk_diag::STAGE_HANDLER_ENTERED);
+
               const uint32_t now = millis();
               const uint32_t last = id(g_register_write_last_request_ms);
               if (last != 0 && now - last < 100U) {
@@ -472,6 +536,7 @@ esphome:
                 httpd_resp_set_type(*request, "application/json");
                 httpd_resp_set_hdr(*request, "Accept-Ranges", "none");
                 httpd_resp_send(*request, body, HTTPD_RESP_USE_STRLEN);
+                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
                 return;
               }
               id(g_register_write_last_request_ms) = now;
@@ -482,26 +547,31 @@ esphome:
 
               if (key.empty()) {
                 request->send(400, "application/json", "{\"ok\":false,\"error\":\"missing key\"}");
+                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
                 return;
               }
               if (submit_policy_arg != "live") {
                 request->send(400, "application/json", "{\"ok\":false,\"error\":\"submit_policy must be 'live'\"}");
+                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
                 return;
               }
               if (value_raw.empty()) {
                 request->send(400, "application/json", "{\"ok\":false,\"error\":\"missing value\"}");
+                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
                 return;
               }
               char *value_end = nullptr;
               const double value = std::strtod(value_raw.c_str(), &value_end);
               if (value_end == value_raw.c_str() || *value_end != '\0' || !std::isfinite(value)) {
                 request->send(400, "application/json", "{\"ok\":false,\"error\":\"value must be a finite number\"}");
+                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
                 return;
               }
 
               const int idx = jk_write_registry::find_entry_index(key.c_str());
               if (idx < 0) {
                 request->send(404, "application/json", "{\"ok\":false,\"error\":\"unknown key\"}");
+                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
                 return;
               }
               const auto &e = jk_write_registry::kEntries[idx];
@@ -515,83 +585,118 @@ esphome:
                 httpd_resp_set_type(*request, "application/json");
                 httpd_resp_set_hdr(*request, "Accept-Ranges", "none");
                 httpd_resp_send(*request, body, HTTPD_RESP_USE_STRLEN);
+                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
                 return;
               }
 
+              // Pure function, no shared/component state touched -- safe
+              // on any task. A failure here means the mailbox is never
+              // even offered a request (no point burning the single-
+              // flight slot on a value that could never succeed); the
+              // main-loop consumer redoes this SAME check anyway, since a
+              // client could theoretically race a preflight/POST against
+              // itself with different values.
               const auto enc = jk_write_tx::encode_numeric_field(value, e.is_signed, e.scale, e.offset,
                                                                    e.minimum, e.maximum, e.field_width_bits);
               if (enc.status != jk_write_tx::EncodeStatus::OK) {
                 char body[128];
                 snprintf(body, sizeof(body), "{\"ok\":false,\"error\":\"encode_rejected\",\"status\":%d}", int(enc.status));
                 request->send(400, "application/json", body);
+                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
                 return;
               }
 
-              // Re-check RAW immediately before queueing -- a preflight GET
-              // is advisory only, never a lock (spec requirement). Both
-              // checks below call the SAME jk_poll_scheduler::
-              // find_block_index_for_address / jk_write_tx::raw_is_fresh
-              // functions begin_write_tx_rmw itself calls one statement
-              // later in this SAME synchronous lambda invocation (no time
-              // can elapse between this check and that one) -- this is not
-              // a second, divergent implementation, it exists only so this
-              // handler can report an honest rejection reason instead of a
-              // silent no-op, since the shared script itself returns void.
-              if (e.uses_rmw) {
-                const int block_idx = jk_poll_scheduler::find_block_index_for_address(jk_read_plan::kBlocks, e.address);
-                if (block_idx < 0) {
-                  request->send(409, "application/json", "{\"ok\":false,\"error\":\"no read-plan block for this register\"}");
-                  return;
-                }
-                if (!jk_write_tx::raw_is_fresh(id(g_rp_last_success_ms)[block_idx], now, e.freshness_budget_ms)) {
-                  request->send(409, "application/json", "{\"ok\":false,\"error\":\"stale\"}");
-                  return;
-                }
-              }
+              jk_diag::mark_write_crash_stage(jk_diag::STAGE_VALIDATION_COMPLETE);
 
-              // Single-flight/queued-vs-rejected detection: jk_write_tx::
-              // begin() (called inside begin_write_tx_rmw/write_bms_u32/
-              // write_bms_u16, all synchronously) always bumps
-              // g_write_tx_next_id by exactly 1 once it is reached, whether
-              // it accepts (new slot) or rejects (single-flight/all slots
-              // busy -- recorded in the existing rejected-ring buffer). The
-              // RMW pre-check above already covers "never reached begin()
-              // at all". This reuses that real, already-tested counter
-              // rather than adding a second, parallel accept/reject signal.
-              const uint32_t next_before = id(g_write_tx_next_id);
-              if (e.uses_rmw) {
-                id(begin_write_tx_rmw)->execute(int(e.address), int(e.word_count), int(e.mask), int(e.shift),
-                                                 int(enc.encoded_raw), int(e.freshness_budget_ms));
-              } else if (e.word_count >= 2) {
-                id(write_bms_u32)->execute(int(e.address), int(enc.encoded_raw));
-              } else {
-                id(write_bms_u16)->execute(int(e.address), int(enc.encoded_raw));
-              }
-              const uint32_t next_after = id(g_write_tx_next_id);
-
-              if (next_after == next_before) {
-                request->send(503, "application/json", "{\"ok\":false,\"error\":\"write not queued\"}");
-                return;
-              }
-
-              int accepted_idx = -1;
-              for (int i = 0; i < 6; i++) {
-                if (id(g_wtx_tx_id)[i] == next_after && id(g_wtx_address)[i] == e.address) { accepted_idx = i; break; }
-              }
-              if (accepted_idx < 0) {
+              // Atomic, lock-free, safe from any task -- see
+              // jk_write_tx_core.h's own module comment. Rejects
+              // (request_id==0) if a request is already staged/being
+              // consumed -- single-flight at the mailbox itself, on top
+              // of (not a replacement for) the main-loop consumer's own
+              // jk_write_tx::begin() single-flight check on the real
+              // transaction slots.
+              const uint32_t request_id = jk_write_tx::try_stage_write_request(
+                  jk_write_tx::g_register_write_request_mailbox, key.c_str(), value, now,
+                  jk_write_tx::g_register_write_next_request_id);
+              if (request_id == 0) {
                 request->send(409, "application/json",
-                               "{\"ok\":false,\"error\":\"pending\",\"reason\":\"a transaction for this register is already "
-                               "in flight, or every transaction slot is busy\"}");
+                               "{\"ok\":false,\"error\":\"pending\",\"reason\":\"a write request is already staged and "
+                               "not yet consumed by the main loop\"}");
+                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
                 return;
               }
+              jk_diag::mark_write_crash_stage(jk_diag::STAGE_HANDOFF_QUEUED);
 
-              char body[160];
-              snprintf(body, sizeof(body), "{\"ok\":true,\"key\":\"%s\",\"tx_id\":%u,\"status\":\"pending\"}",
-                       key.c_str(), unsigned(next_after));
+              // Honest accepted/request_id contract -- NEVER a tx_id
+              // here: the real jk_write_tx transaction does not exist
+              // yet. The client must poll GET .../status?request_id=N
+              // (below) until the main-loop consumer resolves it, then
+              // switch to the existing write_tx_snapshot-based
+              // correlation using the real tx_id it receives from there.
+              char body[128];
+              snprintf(body, sizeof(body), "{\"ok\":true,\"status\":\"accepted\",\"key\":\"%s\",\"request_id\":%u}",
+                       key.c_str(), unsigned(request_id));
               request->send(200, "application/json", body);
+              // Deliberately NOT reset to STAGE_IDLE here -- the marker
+              // must keep reading HANDOFF_QUEUED until the main-loop
+              // consumer itself advances it, so a reboot between this
+              // response and the main loop ever consuming the mailbox is
+              // still visible next boot as "handed off but never
+              // consumed."
             }
           };
           id(web_server_base_id)->add_handler(new RegisterWriteHandler());
+
+          // GET status poll for the accepted/request_id contract above.
+          // Read-only, safe from any task (jk_write_tx::try_read_write_
+          // result() is lock-free and never blocks). Never queues
+          // anything, never mutates any BMS/transaction state.
+          class RegisterWriteStatusHandler : public AsyncWebHandler {
+           public:
+            bool canHandle(AsyncWebServerRequest *request) const override {
+              if (request->method() != HTTP_GET) return false;
+              char url_buf[AsyncWebServerRequest::URL_BUF_SIZE];
+              return request->url_to(url_buf) == "/settings/register-write/status";
+            }
+            void handleRequest(AsyncWebServerRequest *request) override {
+              const std::string request_id_raw = request->arg("request_id");
+              char *end = nullptr;
+              const unsigned long requested_id = std::strtoul(request_id_raw.c_str(), &end, 10);
+              if (request_id_raw.empty() || end == request_id_raw.c_str() || *end != '\0' || requested_id == 0) {
+                request->send(400, "application/json", "{\"resolved\":false,\"error\":\"missing or invalid request_id\"}");
+                return;
+              }
+              jk_write_tx::RegisterWriteResultMailbox result;
+              const bool have_result = jk_write_tx::try_read_write_result(jk_write_tx::g_register_write_result_mailbox, result);
+              if (!have_result || result.request_id != uint32_t(requested_id)) {
+                // Not necessarily an error -- the main loop may simply not
+                // have consumed/finished this request_id yet (this
+                // project's own `interval:` consumer runs every 100ms).
+                // The client is expected to keep polling.
+                char body[64];
+                snprintf(body, sizeof(body), "{\"resolved\":false,\"request_id\":%lu}", requested_id);
+                request->send(200, "application/json", body);
+                return;
+              }
+              std::string json;
+              json.reserve(192);
+              json += "{\"resolved\":true,\"request_id\":"; json += std::to_string(result.request_id);
+              json += ",\"accepted\":"; json += (result.accepted ? "true" : "false");
+              if (result.accepted) {
+                json += ",\"tx_id\":"; json += std::to_string(result.tx_id);
+                json += ",\"reason\":null}";
+              } else {
+                json += ",\"tx_id\":null,\"reason\":\"";
+                for (const char *p = result.reason; *p != '\0'; ++p) {
+                  if (*p == '"' || *p == '\\') json += '\\';
+                  json += *p;
+                }
+                json += "\"}";
+              }
+              request->send(200, "application/json", json.c_str());
+            }
+          };
+          id(web_server_base_id)->add_handler(new RegisterWriteStatusHandler());
 
           // Stage 4 production-integration gap fix (2026-09-21, user-
           // directed): read-only preflight, sharing this handler's own
@@ -2632,6 +2737,130 @@ interval:
             id(setup_passcode_tx_status_code)->publish_state(8.0f);  // readback_timeout
           }
 
+  # Stage 4 fail-closed rearchitecture (2026-09-21, post-reboot hardware-
+  # acceptance audit): the ONLY place a write-registry HTTP request
+  # actually reaches begin_write_tx_rmw/write_bms_u32/write_bms_u16 (which
+  # in turn reach modbus_controller::queue_command()) -- safe here
+  # because this lambda runs on the main loop, the SAME task every other
+  # ESPHome/Modbus component call in this file already assumes, unlike
+  # RegisterWriteHandler's own handleRequest() (the ESP-IDF httpd
+  # server's own FreeRTOS task -- confirmed via this project's own real-
+  # source audit, see jk_write_tx_core.h's "HTTP-task-to-main-loop
+  # handoff mailboxes" module comment for the full root-cause writeup).
+  # 100ms cadence: fast enough that a client polling GET .../status sees
+  # a result within roughly one polling round-trip, without adding
+  # meaningful main-loop overhead (this body is a no-op early return on
+  # every tick with nothing staged, which is the overwhelming majority of
+  # ticks).
+  - interval: 100ms
+    then:
+      - lambda: |-
+          jk_write_tx::RegisterWriteRequestMailbox req;
+          if (!jk_write_tx::try_take_write_request(jk_write_tx::g_register_write_request_mailbox, req)) return;
+
+          jk_diag::mark_write_crash_stage(jk_diag::STAGE_MAIN_LOOP_EXECUTION_STARTED);
+          const uint32_t now = millis();
+
+          // Full, independent re-validation -- this consumer trusts
+          // NOTHING the HTTP handler already checked (that check ran on a
+          // different task, at a possibly-meaningfully-earlier instant
+          // given this interval's own 100ms cadence and normal scheduling
+          // jitter): registry key, submit_policy=live, topology/BMS
+          // health prerequisites (NEW -- the previous handler never
+          // checked these at all), value encoding/range, and fresh RAW/
+          // read-plan-block geometry. "Current generation" is handled
+          // structurally, not by comparing a client-supplied snapshot:
+          // jk_write_tx::raw_is_fresh() below is evaluated AT THIS EXACT
+          // CONSUMPTION INSTANT against the read-plan block's real,
+          // live g_rp_last_success_ms -- strictly more conservative than
+          // trusting whatever generation the client last saw in its own
+          // preflight, which could itself be stale by the time this runs.
+          // "Reboot invalidates a pending request" needs no extra code at
+          // all: the mailbox is pure RAM (deliberately never RTC/flash-
+          // persisted), so a reboot always resets it to EMPTY -- there is
+          // structurally no such thing as a request surviving a reboot to
+          // be wrongly resumed.
+          std::string reject_reason;
+          const int idx = jk_write_registry::find_entry_index(req.key);
+          const jk_write_registry::Entry *e_ptr = nullptr;
+          if (idx < 0) {
+            reject_reason = "unknown key";
+          } else {
+            e_ptr = &jk_write_registry::kEntries[idx];
+            if (e_ptr->submit_policy != jk_write_registry::SubmitPolicy::LIVE) reject_reason = "authorization_required";
+          }
+          if (reject_reason.empty() && id(bms_health).state != "LIVE") reject_reason = "bms not live";
+          if (reject_reason.empty() && id(topology_state).state != "CONFIRMED") reject_reason = "topology not confirmed";
+
+          jk_write_tx::EncodeResult enc;
+          if (reject_reason.empty()) {
+            enc = jk_write_tx::encode_numeric_field(req.value, e_ptr->is_signed, e_ptr->scale, e_ptr->offset,
+                                                     e_ptr->minimum, e_ptr->maximum, e_ptr->field_width_bits);
+            if (enc.status != jk_write_tx::EncodeStatus::OK) reject_reason = "value rejected by encode/range check";
+          }
+
+          if (reject_reason.empty() && e_ptr->uses_rmw) {
+            const int block_idx = jk_poll_scheduler::find_block_index_for_address(jk_read_plan::kBlocks, e_ptr->address);
+            if (block_idx < 0) {
+              reject_reason = "no read-plan block for this register";
+            } else if (!jk_write_tx::raw_is_fresh(id(g_rp_last_success_ms)[block_idx], now, e_ptr->freshness_budget_ms)) {
+              reject_reason = "stale";
+            }
+          }
+
+          if (!reject_reason.empty()) {
+            ESP_LOGW("jk_write_tx", "register-write request_id=%u key=%s rejected by main-loop consumer: %s",
+                     unsigned(req.request_id), req.key, reject_reason.c_str());
+            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_mailbox, req.request_id, false, 0,
+                                               reject_reason.c_str());
+            jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+            return;
+          }
+
+          jk_diag::mark_write_crash_stage(jk_diag::STAGE_TRANSACTION_ALLOCATED);
+
+          // Single-flight/queued-vs-rejected detection -- unchanged
+          // mechanism from the previous handler, just relocated to where
+          // it is now actually safe to run: jk_write_tx::begin() (called
+          // inside begin_write_tx_rmw/write_bms_u32/write_bms_u16, all
+          // synchronously) always bumps g_write_tx_next_id by exactly 1
+          // once it is reached, whether it accepts (new slot) or rejects
+          // (single-flight/all slots busy -- recorded in the existing
+          // rejected-ring buffer).
+          const uint32_t next_before = id(g_write_tx_next_id);
+          if (e_ptr->uses_rmw) {
+            id(begin_write_tx_rmw)->execute(int(e_ptr->address), int(e_ptr->word_count), int(e_ptr->mask), int(e_ptr->shift),
+                                             int(enc.encoded_raw), int(e_ptr->freshness_budget_ms));
+          } else if (e_ptr->word_count >= 2) {
+            id(write_bms_u32)->execute(int(e_ptr->address), int(enc.encoded_raw));
+          } else {
+            id(write_bms_u16)->execute(int(e_ptr->address), int(enc.encoded_raw));
+          }
+          jk_diag::mark_write_crash_stage(jk_diag::STAGE_MODBUS_COMMAND_QUEUED);
+          const uint32_t next_after = id(g_write_tx_next_id);
+
+          if (next_after == next_before) {
+            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_mailbox, req.request_id, false, 0,
+                                               "write not queued");
+            jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+            return;
+          }
+
+          int accepted_idx = -1;
+          for (int i = 0; i < 6; i++) {
+            if (id(g_wtx_tx_id)[i] == next_after && id(g_wtx_address)[i] == e_ptr->address) { accepted_idx = i; break; }
+          }
+          if (accepted_idx < 0) {
+            jk_write_tx::publish_write_result(
+                jk_write_tx::g_register_write_result_mailbox, req.request_id, false, 0,
+                "a transaction for this register is already in flight, or every transaction slot is busy");
+            jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+            return;
+          }
+
+          jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_mailbox, req.request_id, true, next_after, "");
+          jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+
   - interval: 30s
     then:
       - lambda: |-
@@ -2751,6 +2980,21 @@ sensor:
     id: system_uptime
     name: "system uptime"
     update_interval: 30s
+
+  # Reset/crash observability (2026-09-21, post-reboot hardware-
+  # acceptance audit) -- a RESETS-SINCE-POWER-ON counter, published once
+  # at boot by jk_diag::read_and_reset_boot_diagnostics(). NOT a true
+  # persistent-across-power-cycles boot count: it lives entirely in RTC
+  # (slow) memory, which does not survive a genuine power-on/brownout
+  # (see jk_diag::reset_reason_preserves_rtc_memory()'s own comment) --
+  # by design, so this costs zero flash writes/wear. Resets to 1 whenever
+  # power was actually lost; increments across any SW/PANIC/watchdog/
+  # deep-sleep reset within the same power session.
+  - platform: template
+    id: reset_count_since_power_on
+    name: "reset count since power on"
+    accuracy_decimals: 0
+    update_interval: never
 
   # V2 — raw seconds since the last validly-decoded BMS response, for the
   # Diagnostics screen ("last BMS update Xs ago"). bms_health (text_sensor)
@@ -5442,6 +5686,30 @@ text_sensor:
   - platform: template
     id: write_tx_snapshot
     name: "write transaction snapshot"
+    update_interval: never
+
+  # Reset/crash observability (2026-09-21, post-reboot hardware-
+  # acceptance audit) -- published exactly once, at boot, by the
+  # jk_diag::read_and_reset_boot_diagnostics() call at the very top of
+  # on_boot (see that lambda's own comment). reset_reason is always a
+  # real, human-readable name (jk_diag::reset_reason_name(), desktop-
+  # tested against every real ESP-IDF 5.5.5 esp_reset_reason_t value).
+  - platform: template
+    id: reset_reason
+    name: "reset reason"
+    update_interval: never
+
+  # last_write_crash_stage: the write-registry HTTP handoff stage marker
+  # (jk_diag::WriteCrashStage) that survived from the PREVIOUS boot
+  # session, ONLY when this boot's own reset reason is one RTC memory is
+  # confirmed to survive (jk_diag::reset_reason_preserves_rtc_memory()) --
+  # otherwise explicitly "not available for this reset type", never a
+  # stale or fabricated value. STAGE_IDLE means no write request was in
+  # flight at the moment of the previous reset; any other stage is a
+  # genuine forensic finding.
+  - platform: template
+    id: last_write_crash_stage
+    name: "last write crash stage"
     update_interval: never
 
   # Stable UI title. Change only this substitution if the BMS is renamed in

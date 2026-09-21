@@ -521,6 +521,26 @@ function handleRegisterWritePreflight(query, res) {
   res.end(JSON.stringify(preflightRegisterWrite(entry, valueRaw)));
 }
 
+// KNOWN, DELIBERATE DIVERGENCE FROM PRODUCTION (2026-09-21, post-reboot
+// hardware-acceptance audit -- documented honestly, not hidden): the real
+// RegisterWriteHandler (batterylifepo4.yaml) was rearchitected this round
+// to respond {"ok":true,"status":"accepted","request_id":N} synchronously
+// and only allocate a real tx_id later, asynchronously, on the main
+// loop's own 100ms mailbox-consumer interval (see jk_write_tx_core.h's
+// "HTTP-task-to-main-loop handoff mailboxes" module comment for why).
+// This simulator function still responds with the OLDER, pre-
+// rearchitecture {"ok":true,"tx_id":N,"status":"pending"} shape,
+// synchronously. This is safe for jk_bms.js's own existing behavior
+// (postCommand()/writeTransaction() never parse the POST response body
+// at all -- correlation is entirely via write_tx_snapshot, so neither
+// contract shape actually changes what the frontend does), so no
+// simulator test asserting against jk_bms.js's real behavior is
+// misleading. It DOES mean this simulator can never exercise the new
+// GET /settings/register-write/status endpoint or the new main-loop-
+// only rejection reasons (bms not live / topology not confirmed) --
+// updating the simulator to match the new async contract is a real,
+// legitimate follow-on this round did not reach, not something papered
+// over by a fixture change.
 function handleRegisterWrite(query, res) {
   const key = query.get("key") || "";
   const valueRaw = query.get("value");

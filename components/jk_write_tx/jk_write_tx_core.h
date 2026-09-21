@@ -25,6 +25,7 @@
 // several minutes) next happened to report.
 
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -475,5 +476,182 @@ inline void format_hex_fixed_width(char *buf, size_t buf_size, uint32_t value, i
 // one (word_count=2) -- the exact "0xFFFB not 0xFFFFFFFB for a 16-bit
 // register" contract this pass establishes.
 inline int hex_digits_for_word_count(uint8_t word_count) { return word_count == 2 ? 8 : 4; }
+
+// ---------------------------------------------------------------------------
+// HTTP-task-to-main-loop handoff mailboxes (2026-09-21, post-reboot
+// hardware-acceptance audit). Real, direct source evidence (this
+// project's own audit report -- fetched and grepped against ESPHome
+// 2026.8.2 / ESP-IDF 5.5.5's actual pinned source, not assumed) confirms
+// two facts together make the PREVIOUS production path unsafe:
+//   1. AsyncWebServer's HTTP handlers (esphome/components/web_server_idf/
+//      web_server_idf.cpp: AsyncWebServer::request_handler_() calls
+//      handler->handleRequest(request) directly) execute on the ESP-IDF
+//      httpd server's OWN FreeRTOS task, registered via
+//      httpd_register_uri_handler() -- never on ESPHome's main loop task.
+//   2. modbus_controller::queue_command() (esphome/components/
+//      modbus_controller/modbus_controller.cpp) mutates a plain,
+//      unsynchronized std::vector (one_shot_command_items_) that the
+//      main loop's own update()/sweep cycle ALSO mutates -- no mutex
+//      anywhere in that class.
+// Calling begin_write_tx_rmw/begin_write_tx (which reaches queue_command)
+// directly from a handleRequest() therefore mutates that vector from two
+// different FreeRTOS tasks with no synchronization at all -- a real,
+// evidenced data race on a non-atomic STL container, a well-established
+// crash mechanism (heap/vector corruption -> hard fault/abort -> ESP-IDF
+// panic handler -> esp_restart()) consistent with (though, absent a
+// captured crash log, not provably THE exclusive cause of) this
+// project's own observed reboot.
+//
+// ESPHome's own codebase already establishes the framework-sanctioned
+// fix for exactly this class of problem: esphome/core/scheduler.cpp's
+// set_timer_common_() always takes a real mutex (LockGuard{this->lock_})
+// before touching shared state, and esphome/core/component.h's
+// enable_loop_soon_any_context() is explicitly documented "Thread and
+// ISR-safe... defers the actual [mutation] to the main loop, making it
+// safe to call from ISR handlers, timer callbacks, other threads" --
+// ESPHome's own AsyncEventSource (SSE) implementation uses the identical
+// pattern for its own cross-task problem ("Httpd task: set up the live
+// httpd_req_t and park the session [under pending_mutex_]; main loop
+// does the rest.").
+//
+// These two single-slot mailboxes are this project's own version of
+// that same pattern: the HTTP handler (any task) only ever does safe,
+// task-local work (constexpr table lookup, pure encode/validate
+// functions, and a lock-free atomic publish into the REQUEST mailbox);
+// only the main loop (a normal interval:, the one place ESPHome's own
+// component/Modbus APIs are safe to call) ever reads a staged request,
+// re-validates it fully, and actually dispatches the write -- publishing
+// its outcome into the RESULT mailbox, which the HTTP status-poll
+// handler (any task) reads back, lock-free, for the client. Pure
+// std::atomic<uint8_t> state machines, no FreeRTOS/ESP-IDF dependency --
+// desktop-testable, see test/jk_write_tx/test_jk_write_tx_mailbox.cpp.
+// ---------------------------------------------------------------------------
+
+constexpr std::size_t kRegisterWriteKeyMaxLen = 40;
+constexpr std::size_t kRegisterWriteReasonMaxLen = 64;
+
+inline void copy_bounded_cstr(char *dst, std::size_t dst_size, const char *src) {
+  std::size_t n = 0;
+  while (src != nullptr && src[n] != '\0' && n + 1 < dst_size) {
+    dst[n] = src[n];
+    n++;
+  }
+  dst[n] = '\0';
+}
+
+// Request mailbox: HTTP task (producer, any number of callers, though
+// this project only ever has one) -> main loop (sole consumer).
+struct RegisterWriteRequestMailbox {
+  // 0 = EMPTY (free for a new request), 1 = STAGED (a producer published
+  // a request, not yet consumed), 2 = BUSY (a producer or the consumer
+  // currently holds exclusive field access -- never externally visible
+  // for more than the few instructions it takes to copy fields).
+  std::atomic<uint8_t> state{0};
+  uint32_t request_id = 0;
+  char key[kRegisterWriteKeyMaxLen] = {0};
+  double value = 0.0;
+  uint32_t submitted_at_ms = 0;
+};
+
+// Producer side (safe from ANY task/context, including concurrent
+// producers on different tasks -- this project's own real deployment is
+// single-producer, but the counter itself is a real std::atomic so this
+// never relies on that as a hidden safety assumption). Attempts to
+// atomically claim the single mailbox slot. Returns 0 (rejected -- a
+// request is already staged/being consumed; single-flight, the caller
+// must report this to its own client rather than overwrite or queue a
+// second one) or the newly assigned request_id (always > 0) on success.
+inline uint32_t try_stage_write_request(RegisterWriteRequestMailbox &mbox, const char *key, double value,
+                                         uint32_t now_ms, std::atomic<uint32_t> &next_id_counter) {
+  uint8_t expected = 0;  // EMPTY
+  if (!mbox.state.compare_exchange_strong(expected, 2, std::memory_order_acquire)) {
+    return 0;
+  }
+  const uint32_t id = next_id_counter.fetch_add(1, std::memory_order_relaxed) + 1;
+  mbox.request_id = id;
+  copy_bounded_cstr(mbox.key, sizeof(mbox.key), key);
+  mbox.value = value;
+  mbox.submitted_at_ms = now_ms;
+  mbox.state.store(1, std::memory_order_release);  // STAGED -- publish to the consumer
+  return id;
+}
+
+// Consumer side (main loop ONLY): if a request is staged, atomically
+// claims and copies it out, leaving the slot empty for the next
+// producer. Returns false (out left untouched) if nothing is staged.
+inline bool try_take_write_request(RegisterWriteRequestMailbox &mbox, RegisterWriteRequestMailbox &out) {
+  uint8_t expected = 1;  // STAGED
+  if (!mbox.state.compare_exchange_strong(expected, 2, std::memory_order_acquire)) {
+    return false;
+  }
+  out.request_id = mbox.request_id;
+  copy_bounded_cstr(out.key, sizeof(out.key), mbox.key);
+  out.value = mbox.value;
+  out.submitted_at_ms = mbox.submitted_at_ms;
+  mbox.state.store(0, std::memory_order_release);  // EMPTY -- free for the next producer
+  return true;
+}
+
+// Result mailbox: main loop (sole writer) -> HTTP status-poll handler
+// (any number of readers, any task).
+struct RegisterWriteResultMailbox {
+  // 0 = EMPTY (no result published yet, or none pending), 1 = READY (a
+  // result is fully published and safe to read), 2 = BUSY (the writer is
+  // mid-publish -- a reader observing this must treat it exactly like
+  // EMPTY, never block).
+  std::atomic<uint8_t> state{0};
+  uint32_t request_id = 0;
+  bool accepted = false;
+  uint32_t tx_id = 0;
+  char reason[kRegisterWriteReasonMaxLen] = {0};
+};
+
+// Writer side (main loop ONLY -- single writer, so no CAS-retry loop is
+// needed; always safe to overwrite whatever the previous result was, a
+// slow poller simply never observes a superseded one).
+inline void publish_write_result(RegisterWriteResultMailbox &mbox, uint32_t request_id, bool accepted,
+                                  uint32_t tx_id, const char *reason) {
+  mbox.state.store(2, std::memory_order_relaxed);  // BUSY -- tell any concurrent reader to back off
+  mbox.request_id = request_id;
+  mbox.accepted = accepted;
+  mbox.tx_id = tx_id;
+  copy_bounded_cstr(mbox.reason, sizeof(mbox.reason), reason);
+  mbox.state.store(1, std::memory_order_release);  // READY
+}
+
+// Reader side (safe from ANY task/context, read-only, never blocks):
+// returns true and fills `out` only if a fully-published result was
+// observed with NO concurrent write in progress during the copy (a
+// seqlock-style before/after state re-check -- catches the rare case
+// where the main loop starts publishing a NEWER result while a reader is
+// mid-copy of the current one; the reader simply reports "not ready yet"
+// and the caller polls again on its next tick, rather than ever
+// returning a torn mix of two different results).
+inline bool try_read_write_result(const RegisterWriteResultMailbox &mbox, RegisterWriteResultMailbox &out) {
+  if (mbox.state.load(std::memory_order_acquire) != 1) return false;
+  out.request_id = mbox.request_id;
+  out.accepted = mbox.accepted;
+  out.tx_id = mbox.tx_id;
+  copy_bounded_cstr(out.reason, sizeof(out.reason), mbox.reason);
+  return mbox.state.load(std::memory_order_acquire) == 1;
+}
+
+// This project's own single instances of the two mailboxes above. C++17
+// `inline` variables (not merely `inline` functions) so this header can
+// define real, single-definition-across-the-program storage safely even
+// if ever included from more than one translation unit -- ESPHome's own
+// generated build currently bundles everything into one, but this makes
+// that an implementation detail this header does not depend on. The
+// production HTTP handlers (batterylifepo4.yaml) reference these
+// directly as jk_write_tx::g_register_write_request_mailbox /
+// g_register_write_result_mailbox / g_register_write_next_request_id --
+// deliberately NOT declared via ESPHome's own `globals:` YAML component,
+// since that component's codegen instantiates every entry before this
+// header's own custom struct types are ever #included (see this
+// project's established precedent for jk_write_tx::Slot's own storage,
+// noted earlier in this file).
+inline RegisterWriteRequestMailbox g_register_write_request_mailbox;
+inline RegisterWriteResultMailbox g_register_write_result_mailbox;
+inline std::atomic<uint32_t> g_register_write_next_request_id{0};
 
 }  // namespace jk_write_tx
