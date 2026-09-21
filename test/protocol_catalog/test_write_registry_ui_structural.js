@@ -84,8 +84,45 @@ check("submitRegisterWrite() rejects submission when preflight did not report re
   /body\.ready !== true/.test(jsSource));
 check("submitRegisterWrite() blocks a resubmit while this key's transaction is already active (single-flight)",
   /activeTransactionKeys\.has\(entry\.key\)/.test(jsSource));
-check("live rows pass a real `address` to writeTransaction() (authoritative write_tx_snapshot correlation, not entity-state polling)",
+check("live rows pass a real `address` to runRegisterWriteTransaction() (authoritative write_tx_snapshot correlation, not entity-state polling)",
   /address:\s*entry\.address,[\s\S]{0,200}label:\s*`\$\{writeRegistryFieldLabel/.test(jsSource));
+
+// --- async accepted/request_id/status-poll contract (2026-09-21 second
+// corrective pass) -- proves the OLD synchronous tx_id-in-the-POST-
+// response contract is genuinely gone, not merely unused.
+check("postRegisterWrite() is defined (the dedicated async POST, never reusing postCommand())",
+  /async function postRegisterWrite\s*\(/.test(jsSource));
+check("fetchRegisterWriteStatus() is defined (the GET .../status poll primitive)",
+  /async function fetchRegisterWriteStatus\s*\(/.test(jsSource));
+check("pollRegisterWriteStatus() is defined and bounded (a real timeout budget constant, not an unbounded loop)",
+  /function pollRegisterWriteStatus\s*\(/.test(jsSource) && /REGISTER_WRITE_POLL_TIMEOUT_MS/.test(jsSource));
+check("runRegisterWriteTransaction() is defined (the dedicated async register-write state machine)",
+  /function runRegisterWriteTransaction\s*\(/.test(jsSource));
+check("submitRegisterWrite() calls runRegisterWriteTransaction(), not the generic writeTransaction()",
+  (() => {
+    const fnMatch = jsSource.match(/async function submitRegisterWrite\s*\([^)]*\)\s*\{[\s\S]*?\n  \}/);
+    if (!fnMatch) return false;
+    const body = fnMatch[0];
+    return body.includes("runRegisterWriteTransaction({") && !/[^.]\bwriteTransaction\(\{/.test(body);
+  })());
+check("postRegisterWrite() sends an empty POST body (every parameter travels in the query string)",
+  /body:\s*""/.test(jsSource));
+check("runRegisterWriteTransaction() parses status:\"accepted\" and a real request_id from the POST response, never a tx_id",
+  /body\.status !== "accepted" \|\| !\(Number\(body\.request_id\) > 0\)/.test(jsSource));
+check("runRegisterWriteTransaction() polls GET /settings/register-write/status with the real request_id",
+  /\/settings\/register-write\/status\?request_id=/.test(jsSource));
+check("runRegisterWriteTransaction() correlates the write_tx_snapshot by the EXACT accepted tx_id, never \"tx_id > startTxId\"",
+  /entry\.tx_id !== acceptedTxId/.test(jsSource) && !/tx_id\s*>\s*acceptedTxId/.test(jsSource));
+check("runRegisterWriteTransaction() surfaces a rejected status poll immediately with the real backend reason",
+  /statusBody\.status === "rejected"[\s\S]{0,600}writeRegistry\.rejected/.test(jsSource));
+check("runRegisterWriteTransaction() treats \"expired\" as a distinct terminal outcome",
+  /statusBody\.status === "expired"/.test(jsSource));
+check("runRegisterWriteTransaction() treats an unrecognized/\"unknown\" status as fail-closed, never a fabricated tx_id",
+  /statusBody\.status !== "accepted" \|\| !\(Number\(statusBody\.tx_id\) > 0\)/.test(jsSource));
+check("a poll that never resolves within the bounded timeout is a distinct TIMEOUT outcome (never hangs forever)",
+  /statusBody\.status === "timeout"/.test(jsSource));
+check("setup_passcode/unverifiable fields are only ever shown as sent AFTER the status poll's own real acceptance, never on the POST's bare accepted response",
+  /if \(cfg\.unverifiable\) \{[\s\S]{0,600}finish\(TX_STATE\.SENT_UNVERIFIED/.test(jsSource));
 
 // --- authorization-required/blocked rows never render an active editor ---
 check("authorization-required rows render a disabled input (never an active editor)",

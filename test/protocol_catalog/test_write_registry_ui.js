@@ -281,6 +281,30 @@ async function fakeFetch(url, opts) {
   return { ok: result.status >= 200 && result.status < 300, status: result.status, json: async () => result.body };
 }
 
+// Queues the async accepted/request_id contract's TWO responses at once
+// (2026-09-21 corrective pass): the POST's own synchronous
+// {ok:true,status:"accepted",request_id} and the GET status poll's
+// eventual {status:"accepted",tx_id}. pollRegisterWriteStatus() issues
+// its FIRST poll attempt synchronously (no setTimeout delay before the
+// very first fetch), so queuing both up front lets a single
+// flushMicrotasks() carry a scenario all the way through accept ->
+// real-tx_id, exactly like the old single-hop mock did — no advanceTime()
+// needed for the happy path. request_id and tx_id are deliberately kept
+// as the SAME number here purely for this test's own readability (they
+// are two genuinely distinct namespaces in production); every assertion
+// against a snapshot's tx_id below still refers to the real value queued
+// here, never a hand-picked different one.
+function queueRegisterWriteAccepted(key, requestId, txId, { onPost } = {}) {
+  queueFetch(
+    (url, method) => method === "POST" && url.includes("/settings/register-write?") && url.includes(`key=${key}`),
+    (url) => { if (onPost) onPost(url); return { status: 200, body: { ok: true, status: "accepted", key, request_id: requestId } }; }
+  );
+  queueFetch(
+    (url, method) => method === "GET" && url.includes("/settings/register-write/status") && url.includes(`request_id=${requestId}`),
+    () => ({ status: 200, body: { status: "accepted", request_id: requestId, tx_id: txId } })
+  );
+}
+
 let currentConfirmResult = true;
 
 function loadRealClosures() {
@@ -326,8 +350,19 @@ function loadRealClosures() {
     // itself, not `window`, so these must be mirrored at top level too.
     fetch: (...args) => fakeFetch(...args),
     confirm: () => currentConfirmResult,
+    __getFakeNow: () => fakeNow,
   };
   vm.createContext(sandbox);
+  // pollRegisterWriteStatus()'s bounded timeout (2026-09-21 corrective
+  // pass) is a real wall-clock deadline (Date.now() + budget), correctly
+  // independent of how many poll attempts occurred -- but that means this
+  // test's fake clock (which only backs window.setTimeout/clearTimeout,
+  // above) must ALSO back Date.now(), or the timeout could never be
+  // exercised without a real multi-second sleep. Only the bare, no-arg
+  // Date.now() is overridden -- `new Date(ms)` (used elsewhere in
+  // jk_bms.js for real timestamp formatting, always with an explicit
+  // argument) is left completely untouched.
+  vm.runInContext("Date.now = function () { return __getFakeNow(); };", sandbox);
   vm.runInContext(source, sandbox, { filename: "jk_bms.js" });
   const hooks = window.__JK_BMS_TEST_HOOKS__;
   if (!hooks.renderWriteRegistry) {
@@ -427,10 +462,7 @@ async function main() {
   );
   let postCount = 0;
   let lastPostUrl = "";
-  queueFetch(
-    (url, method) => method === "POST" && url.includes("/settings/register-write"),
-    (url) => { postCount += 1; lastPostUrl = url; return { status: 200, body: { ok: true, key: "gps_heartbeat", tx_id: 1, status: "pending" } }; }
-  );
+  queueRegisterWriteAccepted("gps_heartbeat", 1, 1, { onPost: (url) => { postCount += 1; lastPostUrl = url; } });
   currentConfirmResult = true;
   fakeClick(liveButton);
   await flushMicrotasks();
@@ -510,7 +542,7 @@ async function main() {
       };
     }
   );
-  queueFetch((url, method) => method === "POST", () => ({ status: 200, body: { ok: true, key: "gps_heartbeat", tx_id: 2, status: "pending" } }));
+  queueRegisterWriteAccepted("gps_heartbeat", 2, 2);
   currentConfirmResult = true;
   let capturedConfirmMessage = "";
   const realConfirm = currentConfirmResult;
@@ -556,7 +588,7 @@ async function main() {
   resetFetchQueue();
   liveInput.value = "1";
   queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
-  queueFetch((url, method) => method === "POST", () => ({ status: 200, body: { ok: true, key: "gps_heartbeat", tx_id: 3, status: "pending" } }));
+  queueRegisterWriteAccepted("gps_heartbeat", 3, 3);
   currentConfirmResult = true;
   fakeClick(liveButton);
   await flushMicrotasks();
@@ -570,7 +602,7 @@ async function main() {
   resetFetchQueue();
   liveInput.value = "1";
   queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
-  queueFetch((url, method) => method === "POST", () => ({ status: 200, body: { ok: true, key: "gps_heartbeat", tx_id: 4, status: "pending" } }));
+  queueRegisterWriteAccepted("gps_heartbeat", 4, 4);
   fakeClick(liveButton);
   await flushMicrotasks();
   check("F: checking->pending transition happened (button disabled)", liveButton.disabled === true);
@@ -583,7 +615,7 @@ async function main() {
   resetFetchQueue();
   liveInput.value = "1";
   queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
-  queueFetch((url, method) => method === "POST", () => ({ status: 200, body: { ok: true, key: "gps_heartbeat", tx_id: 5, status: "pending" } }));
+  queueRegisterWriteAccepted("gps_heartbeat", 5, 5);
   fakeClick(liveButton);
   await flushMicrotasks();
   publishSnapshot(liveEntry.address, 5, 6); // WRITE_UNCERTAIN
@@ -599,7 +631,7 @@ async function main() {
   liveInput.value = "1";
   queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
   let postCount2 = 0;
-  queueFetch((url, method) => method === "POST", () => { postCount2 += 1; return { status: 200, body: { ok: true, key: "gps_heartbeat", tx_id: 6, status: "pending" } }; });
+  queueRegisterWriteAccepted("gps_heartbeat", 6, 6, { onPost: () => { postCount2 += 1; } });
   fakeClick(liveButton);
   await flushMicrotasks();
   fakeClick(liveButton); // duplicate while pending
@@ -607,6 +639,101 @@ async function main() {
   check("F: duplicate click during pending never creates a second POST", postCount2 === 1, `postCount2=${postCount2}`);
   publishSnapshot(liveEntry.address, 6, 4);
   await flushMicrotasks();
+
+  // =========================================================================
+  // H. Async contract correctness (2026-09-21 corrective pass) --
+  // exact tx_id correlation, immediate main-loop rejection, expired/
+  // unknown terminal handling, bounded poll timeout, and no duplicate/
+  // retried POST at the HTTP-rejection layer.
+  // =========================================================================
+
+  // H1. Exact tx_id correlation: an UNRELATED, newer tx_id for a
+  // DIFFERENT transaction at the SAME address must never falsely confirm
+  // THIS one -- the exact hazard "tx_id > startTxId" correlation had.
+  resetFetchQueue();
+  liveInput.value = "1";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
+  queueRegisterWriteAccepted("gps_heartbeat", 8, 8);
+  fakeClick(liveButton);
+  await flushMicrotasks();
+  check("H1: pending after accepted with a real tx_id", liveButton.disabled === true);
+  publishSnapshot(liveEntry.address, 9, 4); // an unrelated NEWER tx_id at the same address
+  await flushMicrotasks();
+  check("H1: an unrelated NEWER tx_id at the same address does not falsely confirm this transaction",
+    liveButton.disabled === true && activeTransactionKeys.has("gps_heartbeat"));
+  publishSnapshot(liveEntry.address, 8, 4); // the REAL matching tx_id
+  await flushMicrotasks();
+  check("H1: the exact matching tx_id correctly confirms", liveButton.disabled === false && !activeTransactionKeys.has("gps_heartbeat"));
+
+  // H2. A main-loop rejection (from the status poll, real reason from the
+  // backend) is shown immediately -- never waits for a snapshot that will
+  // never arrive for a request the main loop already refused.
+  resetFetchQueue();
+  liveInput.value = "1";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
+  queueFetch((url, method) => method === "POST" && url.includes("key=gps_heartbeat"), () => ({ status: 200, body: { ok: true, status: "accepted", key: "gps_heartbeat", request_id: 10 } }));
+  queueFetch((url, method) => method === "GET" && url.includes("request_id=10"), () => ({ status: 200, body: { status: "rejected", request_id: 10, reason: "bms not live" } }));
+  fakeClick(liveButton);
+  await flushMicrotasks();
+  check("H2: a main-loop rejection is shown immediately (button re-enabled, no longer active)",
+    liveButton.disabled === false && !activeTransactionKeys.has("gps_heartbeat"));
+  const gpsMsg = liveRow.querySelector(".write-registry-status");
+  check("H2: the real backend reason text is shown, not a generic message", gpsMsg.textContent.includes("bms not live"), gpsMsg.textContent);
+
+  // H3. "expired" is a terminal error, never treated as still-pending.
+  resetFetchQueue();
+  liveInput.value = "1";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
+  queueFetch((url, method) => method === "POST" && url.includes("key=gps_heartbeat"), () => ({ status: 200, body: { ok: true, status: "accepted", key: "gps_heartbeat", request_id: 11 } }));
+  queueFetch((url, method) => method === "GET" && url.includes("request_id=11"), () => ({ status: 200, body: { status: "expired", request_id: 11 } }));
+  fakeClick(liveButton);
+  await flushMicrotasks();
+  check("H3: an expired status poll result terminates the transaction (button re-enabled)",
+    liveButton.disabled === false && !activeTransactionKeys.has("gps_heartbeat"));
+
+  // H4. "unknown" is also a terminal error, never an eternal false pending.
+  resetFetchQueue();
+  liveInput.value = "1";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
+  queueFetch((url, method) => method === "POST" && url.includes("key=gps_heartbeat"), () => ({ status: 200, body: { ok: true, status: "accepted", key: "gps_heartbeat", request_id: 12 } }));
+  queueFetch((url, method) => method === "GET" && url.includes("request_id=12"), () => ({ status: 200, body: { status: "unknown", request_id: 12 } }));
+  fakeClick(liveButton);
+  await flushMicrotasks();
+  check("H4: an unknown status poll result terminates the transaction (button re-enabled)",
+    liveButton.disabled === false && !activeTransactionKeys.has("gps_heartbeat"));
+
+  // H5. A status poll that never resolves within the bounded timeout
+  // budget terminates as TIMEOUT, never hangs forever -- no status
+  // response is ever queued, so every poll attempt hits the shim's
+  // unmatched-fetch throw, caught internally by pollRegisterWriteStatus()
+  // and retried, exactly like a real dropped/hanging poll.
+  resetFetchQueue();
+  liveInput.value = "1";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
+  queueFetch((url, method) => method === "POST" && url.includes("key=gps_heartbeat"), () => ({ status: 200, body: { ok: true, status: "accepted", key: "gps_heartbeat", request_id: 13 } }));
+  fakeClick(liveButton);
+  await flushMicrotasks();
+  check("H5: still pending immediately after accept, before the poll timeout budget elapses", liveButton.disabled === true);
+  for (let i = 0; i < 40 && liveButton.disabled; i += 1) {
+    advanceTime(300); // REGISTER_WRITE_POLL_INTERVAL_MS -- interleaved with flushMicrotasks so each retry's own fetch/json chain resolves before the next tick is scheduled
+    await flushMicrotasks();
+  }
+  check("H5: a status poll that never resolves times out (button re-enabled), never hangs forever",
+    liveButton.disabled === false && !activeTransactionKeys.has("gps_heartbeat"));
+
+  // H6. A rejection at POST/HTTP time itself (e.g. the single-flight 409)
+  // is also shown immediately, and is never silently retried.
+  resetFetchQueue();
+  liveInput.value = "1";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
+  let h6PostCount = 0;
+  queueFetch((url, method) => method === "POST" && url.includes("key=gps_heartbeat"),
+    () => { h6PostCount += 1; return { status: 409, body: { ok: false, error: "pending", reason: "a write request is already staged and not yet consumed by the main loop" } }; });
+  fakeClick(liveButton);
+  await flushMicrotasks();
+  check("H6: an immediate HTTP-time rejection (409) is shown right away (button re-enabled, no longer active)",
+    liveButton.disabled === false && !activeTransactionKeys.has("gps_heartbeat"));
+  check("H6: exactly one POST was issued, never retried", h6PostCount === 1, `h6PostCount=${h6PostCount}`);
 
   // =========================================================================
   // G. SSE/draft stability
@@ -647,7 +774,7 @@ async function main() {
   thirdInput.setSelectionRange(0, 1);
   resetFetchQueue();
   queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 0, merged_raw: 64, sibling_bits_before: 0, reject_reason: null } }));
-  queueFetch((url, method) => method === "POST", () => ({ status: 200, body: { ok: true, key: "smart_sleep_enabled", tx_id: 7, status: "pending" } }));
+  queueRegisterWriteAccepted("smart_sleep_enabled", 7, 7);
   fakeClick(thirdButton);
   await flushMicrotasks();
   check("pre-switch: the third field's transaction is pending", activeTransactionKeys.has("smart_sleep_enabled") && thirdButton.disabled === true);

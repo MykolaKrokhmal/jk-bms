@@ -157,18 +157,47 @@ async function main() {
     const snapshotAfterAuth = await request("GET", "/demo/state");
     check("authorization_required POST leaves the complete simulator state unchanged", snapshotBefore.body === snapshotAfterAuth.body);
 
-    // ---- POST live field: accepted, tx_id returned, single-flight enforced ----
+    // ---- POST live field: accepted/request_id returned SYNCHRONOUSLY
+    // (2026-09-21 second corrective pass -- the async accepted/request_id/
+    // status-poll contract, matching production exactly, no divergence).
+    // A real tx_id only appears later, via the status poll, once the
+    // simulated ~100ms main-loop consumer resolves it. ----
     const okResp = await request("POST", `/settings/register-write?key=${live.key}&value=1&submit_policy=live`);
     check("live field POST is accepted (200)", okResp.status === 200, `status=${okResp.status} body=${okResp.body}`);
     const okJson = okResp.json();
-    check("accepted response carries a numeric tx_id", Number.isFinite(okJson.tx_id), JSON.stringify(okJson));
-    check("accepted response status is 'pending'", okJson.status === "pending");
+    check("accepted response status is 'accepted'", okJson.status === "accepted", JSON.stringify(okJson));
+    check("accepted response carries a numeric request_id, never a tx_id", Number.isFinite(okJson.request_id) && okJson.tx_id === undefined, JSON.stringify(okJson));
+    const requestId = okJson.request_id;
 
     const immediateRetry = await request("POST", `/settings/register-write?key=${live.key}&value=0&submit_policy=live`);
-    check("a second POST to the SAME address while the first is pending is rejected (409, single-flight)",
+    check("a second POST to the SAME address while the first is still staged/pending is rejected (409, single-flight)",
       immediateRetry.status === 409, `status=${immediateRetry.status}`);
 
-    // ---- wait for CONFIRMED, then verify preflight reflects the new raw with siblings preserved ----
+    // ---- poll GET /settings/register-write/status until it resolves to
+    // accepted with a real tx_id -- proving the async contract's full
+    // request_id -> status-poll -> real tx_id lifecycle over real HTTP. ----
+    let statusJson = null;
+    for (let i = 0; i < 40; i += 1) {
+      const pollResp = await request("GET", `/settings/register-write/status?request_id=${requestId}`);
+      check(`status poll #${i} responds 200`, pollResp.status === 200, `status=${pollResp.status}`);
+      statusJson = pollResp.json();
+      if (statusJson.status !== "pending") break;
+      await sleep(50);
+    }
+    check("the status poll eventually resolves to 'accepted' (never stays pending forever)", statusJson && statusJson.status === "accepted", JSON.stringify(statusJson));
+    check("the resolved status carries a real, numeric tx_id", statusJson && Number.isFinite(statusJson.tx_id), JSON.stringify(statusJson));
+    const realTxId = statusJson.tx_id;
+
+    // A poll for a request_id that was never issued this session -- fail
+    // closed to "unknown", never treated as pending or resolved.
+    const unknownPoll = await request("GET", `/settings/register-write/status?request_id=999999`);
+    const unknownJson = unknownPoll.json();
+    check("polling an unissued request_id resolves 'unknown'", unknownJson.status === "unknown", JSON.stringify(unknownJson));
+
+    // ---- wait for the real write transaction (tx_id, not request_id) to
+    // reach CONFIRMED, then verify preflight reflects the new raw with
+    // siblings preserved ----
+    check("a real tx_id was obtained before waiting for CONFIRMED", Number.isFinite(realTxId));
     await sleep(2200);
     const pf3 = await request("GET", `/settings/register-write/preflight?key=${live.key}&value=1`);
     const pf3j = pf3.json();
