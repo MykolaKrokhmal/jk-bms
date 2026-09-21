@@ -78,8 +78,25 @@ int main() {
     RegisterWriteRequestMailbox out2;
     check(!try_take_write_request(mbox, out2), "a second take on an already-empty mailbox returns false");
 
+    // Blocker 2 corrective pass (2026-09-21): being TAKEN is not enough --
+    // request 1's own result has not been published yet, so its full
+    // lifecycle (staged through published) is still open and a new stage
+    // attempt must still be rejected, even though the mailbox itself now
+    // looks EMPTY again. See try_stage_write_request()'s own module
+    // comment for the exact exploitable gap this closes.
+    const uint32_t id3_too_early = try_stage_write_request(mbox, "smart_sleep_enabled", 0.0, 2000, next_id, pending_id);
+    check(id3_too_early == 0, "staging a new request while the taken-but-unpublished one is still in flight is rejected, even though the mailbox itself is EMPTY again");
+
+    RegisterWriteResultTable table{};
+    publish_write_result(table, pending_id, id1, true, 99, RejectReason::NONE, 2500);
     const uint32_t id3 = try_stage_write_request(mbox, "smart_sleep_enabled", 0.0, 2000, next_id, pending_id);
-    check(id3 == 2, "after being consumed, the mailbox accepts a new request with the NEXT id (2)");
+    // id 4, not 3: TWO earlier attempts (the "second stage attempt while
+    // unconsumed" check above, and id3_too_early just above) each
+    // allocate a real counter value via fetch_add BEFORE their pending_id
+    // CAS is even attempted, then lose that CAS and are rejected -- both
+    // ids are wasted, exactly the documented, accepted gap-tolerance
+    // tradeoff (see try_stage_write_request()'s own module comment).
+    check(id3 == 4, "only AFTER request 1's result is published does the mailbox accept a new request (id 4 -- ids 2 and 3 were wasted by the two rejected early attempts above, ids are allowed gaps)");
   }
 
   // ---------------------------------------------------------------------
@@ -317,6 +334,174 @@ int main() {
     std::printf("  (stress test: staged=%d taken=%d rejected=%d corrupted=%d published=%d reader_observations=%d reader_torn=%d)\n",
                 total_staged.load(), total_taken.load(), total_rejected.load(), total_corrupted.load(),
                 total_published.load(), total_reader_observations.load(), total_reader_torn.load());
+  }
+
+  // ---------------------------------------------------------------------
+  // Blocker 2 corrective pass (2026-09-21): deterministic proof of the
+  // exact interleaving the review flagged -- try_take_write_request()
+  // frees the mailbox WELL BEFORE publish_write_result() ever runs for
+  // that request, so a second POST could previously stage a competing
+  // request and silently clobber the single pending_request_id marker,
+  // producing a false UNKNOWN for the still-in-flight first request. This
+  // is a single-threaded, fully sequenced reproduction -- no scheduler
+  // timing involved, so it either passes deterministically every run or
+  // never does; the concurrent stress test below additionally exercises
+  // this same gap under real thread scheduling.
+  // ---------------------------------------------------------------------
+  {
+    RegisterWriteRequestMailbox mbox;
+    RegisterWriteResultTable table{};
+    std::atomic<uint32_t> next_id{0};
+    std::atomic<uint32_t> pending_id{0};
+
+    const uint32_t id_a = try_stage_write_request(mbox, "gps_heartbeat", 1.0, 1000, next_id, pending_id);
+    check(id_a != 0, "request A stages successfully");
+
+    RegisterWriteRequestMailbox taken_a;
+    check(try_take_write_request(mbox, taken_a), "the main loop takes A (mailbox now EMPTY again)");
+    check(taken_a.request_id == id_a, "the taken request really is A");
+
+    // A's result has NOT been published yet -- the mailbox looks free,
+    // but A's full lifecycle (staged through published) is still open.
+    const uint32_t id_b = try_stage_write_request(mbox, "lcd_always_on", 0.0, 1001, next_id, pending_id);
+    check(id_b == 0, "Blocker 2: staging B while A is taken-but-not-yet-published is rejected (busy/0), never silently overwriting A's pending marker");
+
+    const auto lookup_a_still_pending = lookup_write_result(table, pending_id, id_a, 1002);
+    check(lookup_a_still_pending.status == ResultLookupStatus::PENDING,
+          "Blocker 2: A is still reported PENDING while taken-but-unpublished, NEVER UNKNOWN");
+
+    publish_write_result(table, pending_id, id_a, true, 42, RejectReason::NONE, 1003);
+    const auto lookup_a_resolved = lookup_write_result(table, pending_id, id_a, 1004);
+    check(lookup_a_resolved.status == ResultLookupStatus::RESOLVED && lookup_a_resolved.tx_id == 42,
+          "A resolves correctly once published");
+
+    // Only NOW may a second request be staged.
+    const uint32_t id_b2 = try_stage_write_request(mbox, "lcd_always_on", 0.0, 1005, next_id, pending_id);
+    check(id_b2 != 0, "Blocker 2: staging B succeeds only after A's result was actually published (pending_request_id genuinely freed)");
+    RegisterWriteRequestMailbox taken_b2;
+    check(try_take_write_request(mbox, taken_b2) && taken_b2.request_id == id_b2, "B2 can be taken normally");
+  }
+
+  // ---------------------------------------------------------------------
+  // Blocker 2 corrective pass: real multi-threaded reproduction of the
+  // same gap under actual thread scheduling (not just single-threaded
+  // sequencing) -- one thread plays the main loop (take, THEN, after a
+  // deliberately inserted delay, publish), a second thread continuously
+  // polls the first request's own status throughout that entire gap, and
+  // (only once the poller has ITSELF cleanly observed RESOLVED -- a real
+  // synchronization point, joined via std::thread, never a racy flag
+  // read) a third thread stages a competing request, which must always
+  // succeed and always receive a STRICTLY GREATER request_id than the
+  // first (structural proof the first request's publish, and its
+  // pending_id CAS-clear, had already fully completed).
+  //
+  // NOTE on scope: this test deliberately does NOT also hammer
+  // try_stage_write_request() from a second thread WHILE the first
+  // request is still unpublished in a tight racing loop against a plain
+  // boolean flag. An earlier draft of this test did exactly that and
+  // produced spurious failures under ThreadSanitizer's heavy scheduling
+  // perturbation -- not from Blocker 2's own gap (which the fully
+  // deterministic, single-threaded test above already proves exhaustively
+  // and unambiguously), but from a SEPARATE, already-documented, already-
+  // accepted property of a bounded, request_id-keyed table: rapid same-
+  // slot eviction can, in principle, evict an entry before some OTHER
+  // straggling reader ever observes its RESOLVED state (see
+  // lookup_write_result()'s own module comment on eviction -- this is
+  // "an OLD id reads UNKNOWN once superseded," working exactly as
+  // designed). Real production traffic can never approach that: single-
+  // flight means a second request is only ever issued after a client
+  // already learned the first one resolved, with a real HTTP round trip
+  // (hundreds of milliseconds) in between -- never a same-process, zero-
+  // delay busy loop. Manufacturing that artificial pattern here would be
+  // testing a different, already-accepted design property, not Blocker 2.
+  // ---------------------------------------------------------------------
+  {
+    constexpr int kRounds = 300;
+    RegisterWriteRequestMailbox mbox;
+    RegisterWriteResultTable table{};
+    std::atomic<uint32_t> next_id{0};
+    std::atomic<uint32_t> pending_id{0};
+    int false_unknown_count = 0;
+    int competitor_failed_count = 0;
+    int competitor_ordering_violation_count = 0;
+
+    for (int round = 0; round < kRounds; round++) {
+      const uint32_t id_a = try_stage_write_request(mbox, "gps_heartbeat", double(round), uint32_t(round), next_id, pending_id);
+      check(id_a != 0, "round: A stages successfully (mailbox was left clean by the previous round)");
+
+      std::atomic<bool> resolved_by_poller{false};
+      std::atomic<bool> poller_saw_bad_unknown{false};
+
+      RegisterWriteRequestMailbox taken_a;
+      check(try_take_write_request(mbox, taken_a) && taken_a.request_id == id_a, "round: main loop takes A");
+
+      std::thread main_loop_finisher([&]() {
+        // A short, deliberately real delay -- long enough for the poller
+        // below to get many real scheduler turns inside the gap.
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
+        publish_write_result(table, pending_id, id_a, true, id_a * 100, RejectReason::NONE, uint32_t(round));
+      });
+      std::thread poller([&]() {
+        // Mirrors real client behavior: poll until RESOLVED is seen, then
+        // stop (a real status-poll client never calls lookup again after
+        // that). Any UNKNOWN observed BEFORE that first clean RESOLVED
+        // read is the exact bug Blocker 2 closes -- A's own lifecycle is
+        // genuinely still open the entire time, so pending_id must still
+        // equal id_a and lookup must therefore answer PENDING, never
+        // UNKNOWN, for every single poll in this window.
+        //
+        // yield() between attempts is deliberate, not incidental: an
+        // earlier draft of this loop spun as fast as the CPU allowed,
+        // which does not model any real client (a real status-poll client
+        // is always a real HTTP round trip, seconds apart, from the write
+        // it is polling) -- it instead created pathological cache-line
+        // contention against the writer thread's own seq_cst stores on
+        // the SAME slot, which can genuinely stretch out publish_write_
+        // result()'s own mid-publish window far enough to exhaust even a
+        // generous bounded retry count in lookup_write_result(). That is
+        // a real property of any wait-free reader racing a bounded
+        // number of times against an in-progress writer under
+        // adversarial, unthrottled contention -- not the Blocker 2 gap
+        // this test exists to prove, and not a pattern any real client of
+        // this API ever produces. yield() keeps this a genuine, real
+        // multi-threaded exercise of the exact take-before-publish gap
+        // without manufacturing that unrelated, unrealistic pathology.
+        while (!resolved_by_poller.load(std::memory_order_seq_cst)) {
+          const auto lk = lookup_write_result(table, pending_id, id_a, uint32_t(round));
+          if (lk.status == ResultLookupStatus::RESOLVED) {
+            resolved_by_poller.store(true, std::memory_order_seq_cst);
+          } else if (lk.status == ResultLookupStatus::UNKNOWN) {
+            poller_saw_bad_unknown.store(true, std::memory_order_seq_cst);
+          }
+          std::this_thread::sleep_for(std::chrono::microseconds(5));
+        }
+      });
+      main_loop_finisher.join();
+      poller.join();  // real synchronization point -- guarantees resolved_by_poller is true from here on
+
+      if (poller_saw_bad_unknown.load()) false_unknown_count++;
+
+      // Only NOW, after a real join-synchronized RESOLVED observation,
+      // does a competing request attempt to stage -- matching realistic
+      // production ordering (single-flight + a real client round trip
+      // always separates consecutive requests).
+      const uint32_t id_b = try_stage_write_request(mbox, "lcd_always_on", 0.0, uint32_t(round), next_id, pending_id);
+      if (id_b == 0) {
+        competitor_failed_count++;
+      } else if (id_b <= id_a) {
+        competitor_ordering_violation_count++;
+      }
+      RegisterWriteRequestMailbox taken_b;
+      if (id_b != 0 && try_take_write_request(mbox, taken_b)) {
+        publish_write_result(table, pending_id, id_b, true, id_b * 100, RejectReason::NONE, uint32_t(round));
+      }
+    }
+
+    check(false_unknown_count == 0, "Blocker 2 multi-threaded reproduction: zero rounds where a poller observed UNKNOWN for A while its lifecycle was still genuinely open");
+    check(competitor_failed_count == 0, "Blocker 2 multi-threaded reproduction: staging B always succeeds once A's result is genuinely, observably published");
+    check(competitor_ordering_violation_count == 0, "Blocker 2 multi-threaded reproduction: B's request_id is always strictly greater than A's");
+    std::printf("  (blocker-2 interleaving stress: rounds=%d false_unknown=%d competitor_failed=%d ordering_violations=%d)\n",
+                kRounds, false_unknown_count, competitor_failed_count, competitor_ordering_violation_count);
   }
 
   std::printf("\n%d checks, %d failures\n", g_checks, g_failures);

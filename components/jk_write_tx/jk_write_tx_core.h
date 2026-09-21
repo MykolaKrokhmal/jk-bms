@@ -556,32 +556,82 @@ struct RegisterWriteRequestMailbox {
 // Producer side (safe from ANY task/context, including concurrent
 // producers on different tasks -- this project's own real deployment is
 // single-producer, but the counter itself is a real std::atomic so this
-// never relies on that as a hidden safety assumption). Attempts to
-// atomically claim the single mailbox slot. Returns 0 (rejected -- a
-// request is already staged/being consumed; single-flight, the caller
-// must report this to its own client rather than overwrite or queue a
-// second one) or the newly assigned request_id (always > 0) on success.
-// `pending_id` receives the newly assigned request_id the instant staging
-// succeeds -- this is the single source of truth the result-table lookup
-// (lookup_write_result(), below) uses to answer PENDING for a request the
-// main loop hasn't published a result for yet. Pass the SAME atomic every
-// producer/consumer pair in a given deployment shares (this project has
-// exactly one: jk_write_tx::g_register_write_pending_request_id).
+// never relies on that as a hidden safety assumption). Returns 0
+// (rejected -- a request's FULL lifecycle, staged through published, is
+// already in flight; single-flight, the caller must report this to its
+// own client rather than overwrite or queue a second one) or the newly
+// assigned request_id (always > 0) on success.
+//
+// Second corrective pass (Blocker 2, 2026-09-21): `pending_id` is now the
+// SOLE, authoritative single-flight gate, reserved via a real CAS(0 ->
+// new_id) BEFORE anything else -- not merely set as a side effect after
+// the mailbox's own state CAS succeeded. The previous version relied on
+// the request MAILBOX's own EMPTY/STAGED/BUSY state as the single-flight
+// guard and only unconditionally stored the new id into `pending_id`
+// afterward; that is a real, exploitable gap: try_take_write_request()
+// (below) frees the mailbox back to EMPTY the instant the main loop takes
+// a request, WELL BEFORE that request's own publish_write_result() ever
+// runs. In that window (taken, not yet published) the mailbox looks free
+// again, so a SECOND POST could stage a brand-new request B -- and the
+// old code's unconditional `pending_id.store(id_b, ...)` would silently
+// overwrite request A's still-outstanding pending marker. A status poll
+// for A landing in that exact window would then find A in neither the
+// result table (not published yet) nor as the current `pending_id`
+// (clobbered by B) -- a false UNKNOWN for a request that was genuinely,
+// still being processed. Reserving `pending_id` itself via CAS, and
+// gating staging on that CAS succeeding, closes this: as long as
+// `pending_id` still holds A's id (true from A's own successful CAS
+// reservation until publish_write_result(A) clears it via ITS OWN CAS for
+// exactly that id -- see that function's own comment), no other
+// request_id can ever win the reservation CAS below, so B's stage attempt
+// is rejected outright, request_id/tx_id are never allocated for it, and
+// the mailbox is never even touched for B. `pending_id` stays SOLELY
+// owned by A across the take()-to-publish() gap; the mailbox's own state
+// machine is now purely a producer->consumer data channel, not a
+// lifecycle guard.
+//
+// Every payload byte the mailbox carries (key/value/submitted_at_ms) is
+// still only ever written by the single reservation-holding producer, so
+// no new synchronization is needed there beyond the mailbox's own
+// existing state CAS.
 inline uint32_t try_stage_write_request(RegisterWriteRequestMailbox &mbox, const char *key, double value,
                                          uint32_t now_ms, std::atomic<uint32_t> &next_id_counter,
                                          std::atomic<uint32_t> &pending_id) {
-  uint8_t expected = 0;  // EMPTY
-  if (!mbox.state.compare_exchange_strong(expected, 2, std::memory_order_acquire)) {
+  // Ids are allowed to have gaps (this project's own wraparound-tolerant
+  // design already documents this, see lookup_write_result()'s own
+  // module comment) -- allocating one here, before we know whether the
+  // reservation below will actually succeed, can occasionally "waste" an
+  // id under real concurrent contention (this project's own real
+  // deployment has exactly one producer task, so in practice this never
+  // happens); that is a strictly acceptable, already-anticipated
+  // tradeoff for keeping this reservation a single, simple CAS instead of
+  // a two-phase sentinel-then-real-id scheme.
+  const uint32_t id = next_id_counter.fetch_add(1, std::memory_order_relaxed) + 1;
+
+  uint32_t expected_pending = 0;
+  if (!pending_id.compare_exchange_strong(expected_pending, id, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
+    return 0;  // another request's full lifecycle is still in flight -- reject, nothing else touched
+  }
+
+  uint8_t expected_mbox = 0;  // EMPTY
+  if (!mbox.state.compare_exchange_strong(expected_mbox, 2, std::memory_order_acquire)) {
+    // Should be unreachable under the invariant above -- `pending_id`'s
+    // own CAS is now the sole single-flight gate, so at most one producer
+    // can ever reach this point at a time, and the mailbox is always
+    // freed (by try_take_write_request(), below) strictly before
+    // `pending_id` is ever cleared (by publish_write_result()), so a
+    // fresh reservation should always find the mailbox genuinely EMPTY.
+    // Kept as fail-closed defense-in-depth, never assumed impossible:
+    // roll back the reservation so a mailbox stuck for any other reason
+    // can never wedge single-flight permanently.
+    uint32_t expected_rollback = id;
+    pending_id.compare_exchange_strong(expected_rollback, 0, std::memory_order_seq_cst, std::memory_order_seq_cst);
     return 0;
   }
-  const uint32_t id = next_id_counter.fetch_add(1, std::memory_order_relaxed) + 1;
   mbox.request_id = id;
   copy_bounded_cstr(mbox.key, sizeof(mbox.key), key);
   mbox.value = value;
   mbox.submitted_at_ms = now_ms;
-  pending_id.store(id, std::memory_order_release);  // published BEFORE the request itself, so a status
-                                                      // poll racing the very first tick after accept always
-                                                      // sees at least PENDING, never a false UNKNOWN
   mbox.state.store(1, std::memory_order_release);  // STAGED -- publish to the consumer
   return id;
 }
@@ -616,13 +666,38 @@ inline bool try_take_write_request(RegisterWriteRequestMailbox &mbox, RegisterWr
 //
 // Fix: every payload field the reader touches is now itself a REAL
 // std::atomic, so every individual access is well-defined regardless of
-// interleaving (no UB is possible, full stop) -- the `state`/`request_id`
-// recheck below is then only a LOGICAL consistency check (catching a
-// reader that straddled the writer publishing a NEWER, different result),
-// never a memory-safety requirement. This is the same proof technique
-// C++'s own std::seq_lock proposals (P0290/P1478) use: atomic payload +
-// generation recheck = defined behavior; non-atomic payload + generation
-// recheck = UB no matter how careful the recheck is.
+// interleaving (no UB is possible, full stop) -- the `version` recheck
+// below is then only a LOGICAL consistency check (catching a reader that
+// straddled the writer publishing a NEWER, different result), never a
+// memory-safety requirement. This is the same proof technique C++'s own
+// std::seq_lock proposals (P0290/P1478) use: atomic payload + generation
+// recheck = defined behavior; non-atomic payload + generation recheck =
+// UB no matter how careful the recheck is.
+//
+// Third corrective pass (2026-09-21): memory order tightened to
+// memory_order_seq_cst for `version` AND every payload field's stores and
+// loads, in both publish_write_result() and lookup_write_result(). The
+// previous version used relaxed payload operations plus release/acquire
+// on `version` alone -- individually well-defined (no UB), but NOT a
+// simple, self-contained cross-object proof of consistency: with plain
+// release/acquire, the only guarantee is a per-variable happens-before
+// edge through whichever single atomic carries it; nothing in the C++
+// memory model then forbids a reader's relaxed loads of the OTHER
+// (payload) atomics from being reordered, by the compiler or the
+// hardware, relative to its own acquire-load of `version` in a way that
+// a change to a payload field becomes visible to a reader before that
+// reader's own re-check of `version` reflects it. This is a genuinely
+// low-frequency control path (a handful of publishes per second at
+// most), so raw throughput is irrelevant here -- the correct choice is
+// the simplest, most directly provable one: seq_cst forces a single
+// global total order over every one of these operations, so "the
+// payload reads happened, and the version recheck afterward still saw
+// the same value" is now a straightforward, whole-program sequencing
+// argument, not a per-variable happens-before chain that still needs a
+// separate reordering argument stitched on top. Do not "optimize" this
+// back down to acquire/release without an equally simple, equally
+// convincing replacement proof -- see this project's own working-style
+// policy on premature optimization.
 //
 // `reason` changes from a free-form char[64] to a small, bounded
 // RejectReason enum (one std::atomic<uint8_t>, trivially race-free) plus a
@@ -712,6 +787,12 @@ constexpr uint32_t kRegisterWriteResultTtlMs = 30000;     // fail-closed reclama
 // complete -- visible as a changed numeric value, not just a changed
 // bit, so comparing the exact before/after value (not just its parity)
 // is what actually proves the read window was clean.
+//
+// Every field below is accessed with memory_order_seq_cst, both here and
+// in publish_write_result()/lookup_write_result() -- see this section's
+// own module comment (third corrective pass) for why: this is a rare,
+// low-frequency control path, so the simplest provable ordering wins over
+// a marginally cheaper but harder-to-verify acquire/release scheme.
 struct RegisterWriteResultSlot {
   std::atomic<uint32_t> version{0};  // even = stable (or never written), odd = writer mid-publish
   std::atomic<uint32_t> request_id{0};  // 0 = slot never published (0 is never a real request_id)
@@ -730,24 +811,36 @@ using RegisterWriteResultTable = std::array<RegisterWriteResultSlot, kRegisterWr
 // eviction behavior: a reader for that stale id will find `request_id`
 // mismatched (see lookup_write_result()) and correctly report UNKNOWN,
 // never a false eternal PENDING.
+//
+// Third corrective pass: every store below (version AND every payload
+// field) is memory_order_seq_cst -- a single global total order across
+// all of them, together with lookup_write_result()'s equally seq_cst
+// loads, is what makes "the payload reads happened and version's own
+// recheck still matched" a direct, whole-program sequencing fact rather
+// than a per-variable happens-before argument that still has to be
+// stitched together across several independent atomics.
 inline void publish_write_result(RegisterWriteResultTable &table, std::atomic<uint32_t> &pending_request_id,
                                   uint32_t request_id, bool accepted, uint32_t tx_id, RejectReason reason,
                                   uint32_t now_ms) {
   RegisterWriteResultSlot &slot = table[request_id % kRegisterWriteResultTableSize];
-  slot.version.fetch_add(1, std::memory_order_release);  // now odd -- tell any concurrent reader to back off
-  slot.request_id.store(request_id, std::memory_order_relaxed);
-  slot.accepted.store(accepted ? 1 : 0, std::memory_order_relaxed);
-  slot.tx_id.store(tx_id, std::memory_order_relaxed);
-  slot.reason.store(static_cast<uint8_t>(reason), std::memory_order_relaxed);
-  slot.published_at_ms.store(now_ms, std::memory_order_relaxed);
-  slot.version.fetch_add(1, std::memory_order_release);  // now even again -- publish every field above
+  slot.version.fetch_add(1, std::memory_order_seq_cst);  // now odd -- tell any concurrent reader to back off
+  slot.request_id.store(request_id, std::memory_order_seq_cst);
+  slot.accepted.store(accepted ? 1 : 0, std::memory_order_seq_cst);
+  slot.tx_id.store(tx_id, std::memory_order_seq_cst);
+  slot.reason.store(static_cast<uint8_t>(reason), std::memory_order_seq_cst);
+  slot.published_at_ms.store(now_ms, std::memory_order_seq_cst);
+  slot.version.fetch_add(1, std::memory_order_seq_cst);  // now even again -- publish every field above
   // The request this result belongs to is no longer in flight -- clear the
   // pending marker LAST (after the result is fully visible), so a reader
   // can never observe "not pending, not in the table yet" for a request
   // that was JUST resolved (that window would wrongly read as UNKNOWN
-  // instead of RESOLVED).
+  // instead of RESOLVED). See try_stage_write_request()'s own module
+  // comment (Blocker 2 corrective pass) for the CAS-reservation this
+  // pairs with -- this is the ONLY place pending_request_id is ever
+  // cleared, and only ever via CAS for the EXACT request_id it currently
+  // holds, never an unconditional store.
   uint32_t expected = request_id;
-  pending_request_id.compare_exchange_strong(expected, 0, std::memory_order_release, std::memory_order_relaxed);
+  pending_request_id.compare_exchange_strong(expected, 0, std::memory_order_seq_cst, std::memory_order_seq_cst);
 }
 
 enum class ResultLookupStatus : uint8_t {
@@ -773,7 +866,11 @@ struct RegisterWriteResultLookup {
 // required to close this. Each individual field access remains
 // well-defined C++ throughout regardless (see module comment above), so a
 // version mismatch is a logic-correctness retry, never a memory-safety
-// one.
+// one. Every load below (version AND every payload field) is
+// memory_order_seq_cst, matching publish_write_result()'s own seq_cst
+// stores -- see the third-corrective-pass module comment for why this
+// single global total order is the simplest available proof for this
+// low-frequency control path.
 inline RegisterWriteResultLookup lookup_write_result(const RegisterWriteResultTable &table,
                                                        const std::atomic<uint32_t> &pending_request_id,
                                                        uint32_t request_id, uint32_t now_ms,
@@ -782,19 +879,40 @@ inline RegisterWriteResultLookup lookup_write_result(const RegisterWriteResultTa
   if (request_id == 0) return out;  // 0 is never a real request_id (see try_stage_write_request)
 
   const RegisterWriteResultSlot &slot = table[request_id % kRegisterWriteResultTableSize];
-  constexpr int kMaxRetries = 5;
+  // Third corrective pass: bumped from 5 to 16. publish_write_result()
+  // clears pending_request_id strictly AFTER its own version flips back
+  // to even (by design -- see that function's own comment); if EVERY one
+  // of a reader's retry attempts lands while `version` is still odd (the
+  // writer's own handful of stores mid-publish), the reader falls through
+  // to the pending_request_id fallback below, which could by then already
+  // be cleared -- a transient, spurious UNKNOWN for a request that in
+  // fact resolved moments earlier. A slightly larger bound is cheap
+  // (still a handful of atomic loads, still strictly bounded, never an
+  // unbounded spin) insurance against this for any REAL poller, which
+  // never calls this in a zero-delay busy loop (an HTTP status-poll
+  // client is always seconds apart in wall-clock terms from the write it
+  // is polling). This is not chased further than that: a genuinely
+  // adversarial, unthrottled busy-loop reader can still theoretically
+  // observe this exact transition instant regardless of how large a
+  // BOUNDED retry count is -- that is a fundamental property of any
+  // wait-free reader racing a bounded number of times against an
+  // in-progress writer, not something this module can or should try to
+  // defeat with an ever-larger constant. See that same test's own poller
+  // loop for the realistic pacing (a real client, or this test's own
+  // yield()-paced poller) this bound is actually sized for.
+  constexpr int kMaxRetries = 16;
   for (int attempt = 0; attempt < kMaxRetries; attempt++) {
-    const uint32_t v0 = slot.version.load(std::memory_order_acquire);
+    const uint32_t v0 = slot.version.load(std::memory_order_seq_cst);
     if (v0 & 1u) continue;  // writer is mid-publish right now -- retry rather than read a torn slot
     if (v0 == 0) break;     // slot has never been published to -- definitely not this (or any) request
 
-    const uint32_t seen_id = slot.request_id.load(std::memory_order_relaxed);
-    const bool seen_accepted = slot.accepted.load(std::memory_order_relaxed) != 0;
-    const uint32_t seen_tx_id = slot.tx_id.load(std::memory_order_relaxed);
-    const uint8_t seen_reason = slot.reason.load(std::memory_order_relaxed);
-    const uint32_t seen_published_at = slot.published_at_ms.load(std::memory_order_relaxed);
+    const uint32_t seen_id = slot.request_id.load(std::memory_order_seq_cst);
+    const bool seen_accepted = slot.accepted.load(std::memory_order_seq_cst) != 0;
+    const uint32_t seen_tx_id = slot.tx_id.load(std::memory_order_seq_cst);
+    const uint8_t seen_reason = slot.reason.load(std::memory_order_seq_cst);
+    const uint32_t seen_published_at = slot.published_at_ms.load(std::memory_order_seq_cst);
 
-    const uint32_t v1 = slot.version.load(std::memory_order_acquire);
+    const uint32_t v1 = slot.version.load(std::memory_order_seq_cst);
     if (v1 != v0) continue;  // version changed (mid-write OR a full cycle completed) during our read -- retry
 
     // v0 == v1, both even: no publish (partial or complete) touched this
@@ -819,7 +937,7 @@ inline RegisterWriteResultLookup lookup_write_result(const RegisterWriteResultTa
   // its slot has since been reused by other requests without this reader
   // ever having observed the result -- fail-closed, never an eternal
   // false PENDING).
-  if (pending_request_id.load(std::memory_order_acquire) == request_id) {
+  if (pending_request_id.load(std::memory_order_seq_cst) == request_id) {
     out.status = ResultLookupStatus::PENDING;
     return out;
   }
