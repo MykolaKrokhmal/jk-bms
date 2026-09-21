@@ -219,7 +219,7 @@ for (let ch = 1; ch <= 32; ch++) {
     // authorization policy (see generate_write_registry.js's own
     // submit_policy="authorization_required" for disruptive-class fields),
     // proven independently by test_stage4_write_registry_equality.js and
-    // test_stage4_write_http_end_to_end.js.
+    // test_stage4_write_http_simulator_end_to_end.js.
     check(`cell_connection_wire_resistance_${ch} is RW-declared and Stage-4 write-software-ready (calibration, not R telemetry, not confused with CellWireRes)`,
       entry.field.access === "rw" && entry.field.effective_access === "rw" && entry.field.write_safety_class === "disruptive");
     check(`cell_connection_wire_resistance_${ch} is implemented (read) this bounded batch`,

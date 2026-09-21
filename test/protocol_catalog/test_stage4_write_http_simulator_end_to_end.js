@@ -1,12 +1,23 @@
 #!/usr/bin/env node
 "use strict";
 
-// Stage 4 (typed-petting-puzzle plan §5) HTTP end-to-end proof, real
-// production code paths: the mock backend (demo/mock-server.js), driven
-// by the REAL generated register_catalog.json/write_registry.json --
-// never a reimplementation.
+// SIMULATOR TEST -- NOT proof of the real production firmware HTTP write
+// route. Renamed and re-labeled 2026-09-21 (user-directed deployment-gate
+// audit, issue #4): this exercises demo/mock-server.js, a hand-written
+// Node HTTP+SSE simulator of ESPHome's own web_server_base -- it shares
+// none of batterylifepo4.yaml's actual C++ (RegisterWriteHandler/
+// RegisterWritePreflightHandler, jk_write_tx::encode_numeric_field/
+// begin_write_tx_rmw, the AsyncWebServerRequest shim). It IS driven by the
+// REAL generated register_catalog.json/write_registry.json (never a
+// reimplemented catalog), so it is a genuine, useful proof that the
+// eligibility/rejection RULES are internally consistent -- it is not, and
+// was never meant to be, evidence that the real ESP32 firmware's own HTTP
+// route exists, compiles, or behaves the same way. That evidence can only
+// come from an ESPHome compile + real hardware session (see this
+// project's own explicit prohibition on compiling/flashing during a
+// read-only audit round).
 //
-// Proves, over real HTTP against a spawned mock server:
+// Proves, over real HTTP against a spawned SIMULATOR (not firmware):
 //   - a "live" Stage 4 field (write_safety_class=normal, e.g.
 //     gps_heartbeat) is ACCEPTED and reaches a real CONFIRMED state --
 //     the write mechanism genuinely functions end to end, independent of
