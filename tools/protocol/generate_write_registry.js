@@ -16,6 +16,20 @@
  *     write_bms_u32/write_bms_u16 for a full-width field (no merge needed),
  *     begin_write_tx_rmw for a packed field (real read-modify-write). No
  *     per-field YAML is hand-authored -- this generator is the one source.)
+ *   - protocol/generated/write_registry_table.h  (Stage 4 production-
+ *     integration gap fix, 2026-09-21, user-directed: a COMPILED C++
+ *     lookup table -- namespace jk_write_registry, array kEntries[] --
+ *     the SAME per-field metadata as write_registry.json, but as data a
+ *     firmware HTTP handler can actually iterate/binary-search by string
+ *     key at runtime. Until this existed, the only production write path
+ *     was one `number:` entity per field, individually `internal: true`,
+ *     reachable only by ESPHome's own generic `/number/<id>/set` REST
+ *     route -- which does not exist for an internal entity, and which a
+ *     generic key+value POST handler could never look up anyway (no
+ *     firmware-readable table of keys existed). This header is that
+ *     table -- see batterylifepo4.yaml's RegisterWriteHandler/
+ *     RegisterWritePreflightHandler for the two production HTTP handlers
+ *     that consume it.)
  *
  * ELIGIBILITY (Phase 2 rule 5 -- ALL of the following, never any subset):
  *   1. field.access === "rw"
@@ -75,6 +89,7 @@ const CANONICAL_PATH = path.join(ROOT, "protocol", "registers.canonical.json");
 const BLOCKERS_PATH = path.join(ROOT, "protocol", "evidence", "protocol_blockers.json");
 const OUT_JSON = path.join(ROOT, "protocol", "generated", "write_registry.json");
 const OUT_YAML = path.join(ROOT, "protocol", "generated", "write_registry.yaml");
+const OUT_HEADER = path.join(ROOT, "protocol", "generated", "write_registry_table.h");
 
 const canonicalDoc = loadJson(CANONICAL_PATH);
 const blockersDoc = loadJson(BLOCKERS_PATH);
@@ -114,6 +129,19 @@ function isEligible(reg, field) {
   // generator itself never writes, so it stays a stable, non-circular
   // exclusion signal.
   if (ownerAuthorized) return false;
+  // Fail LOUDLY, never silently, if a field otherwise eligible for a real
+  // write path lives on a register with no write_function -- this should
+  // already be structurally impossible (semantic-checks.js's own
+  // WRITE_ENABLED_FIELD_WITHOUT_REGISTER_WRITE_FUNCTION invariant blocks
+  // effective_access="rw" without one), so reaching this point means that
+  // upstream guard was bypassed or this generator drifted from it --
+  // exactly the class of metadata/runtime contradiction this round's own
+  // audit found (write_registry.json write_function=null while the
+  // runtime dispatched a real FC16). A generator that silently emitted a
+  // "live" entity here would reproduce that exact bug.
+  if (!reg.write_function) {
+    throw new Error(`GENERATE_WRITE_REGISTRY_MISSING_WRITE_FUNCTION: field "${field.key}" on register ${reg.address} is otherwise eligible but its register has no write_function -- refusing to generate an entity for it`);
+  }
   return true;
 }
 
@@ -225,6 +253,83 @@ for (const e of registryEntries) {
 }
 
 // ---------------------------------------------------------------------------
+// Build the compiled C++ lookup table (write_registry_table.h). One entry
+// per eligible field, key-searchable at runtime by the production HTTP
+// handlers (batterylifepo4.yaml) -- see this file's own module comment for
+// why this exists as a THIRD generated artifact alongside the audit JSON
+// and the ESPHome `number:` package, rather than the handler re-parsing
+// write_registry.json at runtime (the firmware never reads JSON off its own
+// flash for a hot request path -- a compiled array is this project's
+// established convention, exactly like read_plan_decode.h's kFields).
+// ---------------------------------------------------------------------------
+function cppStringEscape(s) { return String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"'); }
+
+const headerLines = [];
+headerLines.push(`// ${HEADER}`);
+headerLines.push("//");
+headerLines.push("// Data table only -- consumed by RegisterWriteHandler/RegisterWritePreflightHandler");
+headerLines.push("// (batterylifepo4.yaml), which look up a request's string `key` against kEntries via");
+headerLines.push("// find_entry_index(), then drive the SAME jk_write_tx::encode_numeric_field() /");
+headerLines.push("// merge_field_into_raw() / begin_write_tx_rmw / write_bms_u32 / write_bms_u16 paths the");
+headerLines.push("// generated write_registry.yaml `number:` entities already use -- this table never");
+headerLines.push("// duplicates the write MECHANISM, only makes its per-field metadata string-key-");
+headerLines.push("// addressable. Never hand-edit -- edit protocol/registers.canonical.json and");
+headerLines.push("// tools/protocol/generate_write_registry.js, then regenerate.");
+headerLines.push("#pragma once");
+headerLines.push("");
+headerLines.push("#include <cstdint>");
+headerLines.push("#include <cstddef>");
+headerLines.push("#include <cstring>");
+headerLines.push("");
+headerLines.push("namespace jk_write_registry {");
+headerLines.push("");
+headerLines.push("enum class SubmitPolicy : uint8_t { LIVE = 0, AUTHORIZATION_REQUIRED = 1 };");
+headerLines.push("");
+headerLines.push("struct Entry {");
+headerLines.push("  const char *key;");
+headerLines.push("  uint16_t address;");
+headerLines.push("  uint8_t word_count;");
+headerLines.push("  bool uses_rmw;");
+headerLines.push("  uint32_t mask;          // 0xFFFFFFFF for a full-width (non-RMW) field");
+headerLines.push("  uint8_t shift;");
+headerLines.push("  bool is_signed;");
+headerLines.push("  double scale;");
+headerLines.push("  double offset;");
+headerLines.push("  double minimum;");
+headerLines.push("  double maximum;");
+headerLines.push("  uint8_t field_width_bits;");
+headerLines.push("  uint32_t freshness_budget_ms;");
+headerLines.push("  SubmitPolicy submit_policy;");
+headerLines.push("  const char *write_safety_class;");
+headerLines.push("};");
+headerLines.push("");
+headerLines.push(`constexpr std::size_t kEntryCount = ${registryEntries.length};`);
+headerLines.push("constexpr Entry kEntries[kEntryCount] = {");
+for (const e of registryEntries) {
+  const maskInt = e.mask === null ? 0xFFFFFFFF : (parseHex(e.mask) >>> 0);
+  const policy = e.submit_policy === "live" ? "SubmitPolicy::LIVE" : "SubmitPolicy::AUTHORIZATION_REQUIRED";
+  headerLines.push(
+    `    {"${cppStringEscape(e.key)}", ${parseHex(e.address)}, ${e.word_count}, ${e.write_uses_read_modify_write}, ` +
+    `${maskInt}u, ${e.shift}, ${e.signedness === "signed"}, ${e.scale}, ${e.offset}, ${e.minimum}, ${e.maximum}, ` +
+    `${e.field_width_bits}, ${e.freshness_budget_ms}u, ${policy}, "${cppStringEscape(e.write_safety_class)}"},`
+  );
+}
+headerLines.push("};");
+headerLines.push("");
+headerLines.push("// Linear scan -- at most 42 entries in this project's whole write registry (far smaller");
+headerLines.push("// than kFields' own ~155-entry scan in jk_poll_scheduler_core.h's find_block_index_for_");
+headerLines.push("// address, already accepted there for the same reason: this only runs on an actual write");
+headerLines.push("// or preflight request, never on a hot poll-scheduler path.");
+headerLines.push("inline int find_entry_index(const char *key) {");
+headerLines.push("  for (std::size_t i = 0; i < kEntryCount; i++) {");
+headerLines.push("    if (std::strcmp(kEntries[i].key, key) == 0) return int(i);");
+headerLines.push("  }");
+headerLines.push("  return -1;");
+headerLines.push("}");
+headerLines.push("");
+headerLines.push("}  // namespace jk_write_registry");
+
+// ---------------------------------------------------------------------------
 // Write / check.
 // ---------------------------------------------------------------------------
 function atomicWrite(targetPath, content) {
@@ -237,10 +342,11 @@ function atomicWrite(targetPath, content) {
 
 const jsonContent = JSON.stringify(outJsonDoc, null, 2) + "\n";
 const yamlContent = yamlLines.join("\n") + "\n";
+const headerContent = headerLines.join("\n") + "\n";
 
 if (CHECK) {
   let drift = false;
-  for (const [target, content] of [[OUT_JSON, jsonContent], [OUT_YAML, yamlContent]]) {
+  for (const [target, content] of [[OUT_JSON, jsonContent], [OUT_YAML, yamlContent], [OUT_HEADER, headerContent]]) {
     const existing = fs.existsSync(target) ? fs.readFileSync(target, "utf8") : null;
     if (existing !== content) {
       console.log(`DRIFT  ${path.relative(ROOT, target)}`);
@@ -257,6 +363,8 @@ if (CHECK) {
 
 atomicWrite(OUT_JSON, jsonContent);
 atomicWrite(OUT_YAML, yamlContent);
+atomicWrite(OUT_HEADER, headerContent);
 console.log(`wrote ${path.relative(ROOT, OUT_JSON)}`);
 console.log(`wrote ${path.relative(ROOT, OUT_YAML)}`);
+console.log(`wrote ${path.relative(ROOT, OUT_HEADER)}`);
 console.log(`${registryEntries.length} eligible fields (${outJsonDoc.live_count} live, ${outJsonDoc.authorization_required_count} authorization-required).`);

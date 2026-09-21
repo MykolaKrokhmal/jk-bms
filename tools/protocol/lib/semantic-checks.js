@@ -628,6 +628,30 @@ function check(registerDoc, nonRegisterDoc, repoRoot) {
         errors.push(issue("OWNER_OVERRIDE_ON_UNSUPPORTED_CLASS", `fields[${f.key}]`,
           `field "${f.key}" has an authorized owner_write_override but write_safety_class "unsupported" -- an override can accept an evidence-gap risk, never invent a write mechanism the protocol doesn't have`));
       }
+
+      // Stage 4 production-integration audit (2026-09-21, user-directed):
+      // a field can never be effective_access "rw" unless its OWN physical
+      // register carries a real, PDF/workbook-evidenced write_function --
+      // "the field is writable" is meaningless if the register it lives on
+      // was never actually confirmed writable at the wire level. Catches
+      // exactly the class of bug found this round: 0x1114/0x1118 had 10
+      // effective-rw fields while their own register's write_function was
+      // still null (a metadata gap between field-level access-policy and
+      // register-level wire-function evidence).
+      if (f.effective_access === "rw" && !reg.write_function) {
+        errors.push(issue("WRITE_ENABLED_FIELD_WITHOUT_REGISTER_WRITE_FUNCTION", `fields[${f.key}]`,
+          `field "${f.key}" has effective_access "rw" but its own register ${reg.address} has no write_function -- a field cannot be writable if its physical register was never confirmed to have a real write mechanism`));
+      }
+      // The converse, packed-specific guard: a packed (write_uses_read_
+      // modify_write=true) field additionally requires declared_access
+      // "rw" at the REGISTER level (not just field level) -- a packed
+      // write always issues a real FC16 against the whole physical
+      // register (merge included), so the register's own declared access
+      // must agree the whole register is writable, not just this one bit.
+      if (f.write_uses_read_modify_write === true && f.access === "rw" && reg.declared_access !== "rw") {
+        errors.push(issue("PACKED_WRITE_WITHOUT_REGISTER_DECLARED_ACCESS", `fields[${f.key}]`,
+          `field "${f.key}" is a packed RW field but its own register ${reg.address} has declared_access "${reg.declared_access}", not "rw" -- a packed write always touches the whole physical register and needs the register itself declared writable`));
+      }
     }
   }
 

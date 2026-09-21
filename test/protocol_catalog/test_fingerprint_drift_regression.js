@@ -102,6 +102,12 @@ const FILES_TO_COPY = [
   "tools/protocol/generate_write_registry.js",
   "protocol/generated/write_registry.json",
   "protocol/generated/write_registry.yaml",
+  // Stage 4 production-integration gap fix (2026-09-21): the compiled C++
+  // write-registry lookup table -- generate_write_registry.js's --check
+  // (run transitively by fingerprint.js's accept step) now also verifies
+  // this file, same "adding a new generated file means updating this
+  // list too" pattern as every entry above it.
+  "protocol/generated/write_registry_table.h",
   "tools/protocol/authoring/build_stage4_rw_inventory.js",
   "protocol/generated/stage4_rw_inventory.json",
   "protocol/evidence/build_claim_matrix.js",

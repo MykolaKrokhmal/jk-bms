@@ -521,6 +521,32 @@ negativeCase("owner_override_on_unsupported_class", "OWNER_OVERRIDE_ON_UNSUPPORT
     authorized: true, authorized_by: "fixture", date: "2026-01-01", rationale: "fixture",
   };
 });
+// Stage 4 production-integration audit (2026-09-21) negative fixtures.
+negativeCase("write_enabled_field_without_register_write_function", "WRITE_ENABLED_FIELD_WITHOUT_REGISTER_WRITE_FUNCTION", (doc) => {
+  doc.registers[0].write_function = null;
+  doc.registers[0].fields[0].effective_access = "rw";
+  doc.registers[0].fields[0].owner_write_override = {
+    authorized: true, authorized_by: "fixture", date: "2026-01-01", rationale: "fixture",
+  };
+});
+negativeCase("packed_write_without_register_declared_access", "PACKED_WRITE_WITHOUT_REGISTER_DECLARED_ACCESS", (doc) => {
+  // A genuinely packed field (has a sibling) whose register declared_access
+  // is still "r" -- the register itself was never confirmed writable, even
+  // though this one bit claims access="rw".
+  doc.registers[0].declared_access = "r";
+  const reg = baseRegister({ register_width_bits: 16, word_count: 1, word_order: "single_word", declared_access: "r" }, {
+    key: "field_a", field_width_bits: 8, byte_offset: 0, mask: "0xFF00", shift: 8,
+    esphome_read_entity_id: "field_a", esphome_write_entity_id: null, backend_key: "field_a",
+    packed_siblings: ["field_b"], write_uses_read_modify_write: true, access: "rw",
+  });
+  const fieldB = baseField({
+    key: "field_b", parent_register_id: reg.register_id, field_width_bits: 8, byte_offset: 1,
+    mask: "0x00FF", shift: 0, esphome_read_entity_id: "field_b", esphome_write_entity_id: null,
+    backend_key: "field_b", packed_siblings: ["field_a"], write_uses_read_modify_write: true, access: "rw",
+  });
+  reg.fields.push(fieldB);
+  doc.registers = [reg];
+});
 negativeCase("project_version_locator_drift", "VERSION_CONTEXT_PROJECT_MISMATCH", (doc) => {
   doc.version_context.esphome_project_version = "0.0.0";
 });
