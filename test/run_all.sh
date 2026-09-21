@@ -70,6 +70,18 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
 "$BUILD_DIR/test_jk_write_tx_preflight_geometry"
 
 echo
+echo "=== jk_write_tx_core HTTP-task-to-main-loop handoff mailbox unit + concurrency-stress tests (2026-09-21 post-reboot fail-closed rearchitecture) ==="
+g++ -std=c++17 -Wall -Wextra -pthread -I "$REPO_ROOT/components/jk_write_tx" \
+  "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_mailbox.cpp" -o "$BUILD_DIR/test_jk_write_tx_mailbox"
+"$BUILD_DIR/test_jk_write_tx_mailbox"
+
+echo
+echo "=== jk_reset_diag_core unit tests (2026-09-21 post-reboot observability pass) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_diag" \
+  "$REPO_ROOT/test/jk_diag/test_jk_reset_diag_core.cpp" -o "$BUILD_DIR/test_jk_reset_diag_core"
+"$BUILD_DIR/test_jk_reset_diag_core"
+
+echo
 echo "=== jk_write_tx_core RMW (Stage 4) end-to-end integration test (real generated read_plan_decode.h) ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT" -I "$REPO_ROOT/components/jk_write_tx" -I "$REPO_ROOT/components/jk_poll_scheduler" \
   "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_rmw_end_to_end.cpp" -o "$BUILD_DIR/test_jk_write_tx_rmw_end_to_end"
@@ -178,6 +190,7 @@ node test/protocol_catalog/test_stage4_write_http_simulator_end_to_end.js
 node test/protocol_catalog/test_stage4_register_write_simulator_end_to_end.js
 node test/protocol_catalog/test_write_registry_ui_structural.js
 node test/protocol_catalog/test_write_registry_ui.js
+node test/protocol_catalog/test_register_write_handoff_structural.js
 
 echo
 echo "=== protocol catalog: generation atomicity + simulated-failure detection ==="
