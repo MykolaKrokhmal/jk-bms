@@ -401,6 +401,53 @@ function check(registerDoc, nonRegisterDoc, repoRoot) {
           errors.push(issue("PROJECTION_WRITE_ENTITY_PRESENT", `fields[${f.key}]`,
             `field "${f.key}" is a projection but declares esphome_write_entity_id "${f.esphome_write_entity_id}" -- a projection must never own a write entity`));
         }
+        if (f.write_uses_read_modify_write === true) {
+          errors.push(issue("PROJECTION_DECLARES_RMW", `fields[${f.key}]`,
+            `field "${f.key}" is a projection but declares write_uses_read_modify_write=true -- a projection never has a write path of its own to merge into`));
+        }
+      }
+
+      // --- Stage 4 write_uses_read_modify_write geometry invariant
+      // (typed-petting-puzzle plan §5 Phase 2, rules 1-3). This flag must
+      // be MECHANICALLY DERIVED from register/field geometry, never
+      // hand-guessed: true iff this field does NOT occupy the whole
+      // physical register alone (it has packed_siblings and/or its own
+      // field_width_bits is narrower than the register's own
+      // register_width_bits) -- such a field's write MUST go through a
+      // real read-modify-write merge, never a blind full-register write
+      // (rule 2: a packed field's own mask can therefore never equal the
+      // register's full-width mask -- if it did, it wouldn't actually be
+      // packed). false iff this field alone spans the entire register
+      // (no siblings, exact width match) -- a full-width write may safely
+      // replace the whole register with no merge step, and must not be
+      // marked RMW without that being mechanically true (rule 3: no
+      // guessed/asserted RMW on a field that doesn't need it). Checked
+      // bidirectionally so neither a false positive nor a false negative
+      // can silently drift from the real geometry.
+      {
+        // A projection never owns a write path of its own to merge into
+        // (see PROJECTION_DECLARES_RMW above) -- it derives false
+        // regardless of its own narrow width/siblings, which describe its
+        // READ view into the parent's payload, not anything it could ever
+        // write.
+        const isProjection = f.projection_of !== null && f.projection_of !== undefined;
+        const derivedRmw = !isProjection && ((f.packed_siblings && f.packed_siblings.length > 0) || f.field_width_bits !== reg.register_width_bits);
+        if (typeof f.write_uses_read_modify_write !== "boolean") {
+          errors.push(issue("WRITE_RMW_FLAG_MISMATCH", `fields[${f.key}]`,
+            `field "${f.key}" has no boolean write_uses_read_modify_write (fail-closed: an unknown/missing value must never silently default)`));
+        } else if (f.write_uses_read_modify_write !== derivedRmw) {
+          errors.push(issue("WRITE_RMW_FLAG_MISMATCH", `fields[${f.key}]`,
+            `field "${f.key}" has write_uses_read_modify_write=${f.write_uses_read_modify_write}, but geometry derives ${derivedRmw} ` +
+            `(packed_siblings=${JSON.stringify(f.packed_siblings)}, field_width_bits=${f.field_width_bits}, register_width_bits=${reg.register_width_bits}) -- ` +
+            `this flag must be mechanically derived from geometry, never hand-set`));
+        }
+        if (f.write_uses_read_modify_write === true && f.mask !== null) {
+          const fullRegMask = reg.register_width_bits >= 32 ? 0xFFFFFFFF : ((1 << reg.register_width_bits) - 1);
+          if ((parseHex(f.mask) >>> 0) === (fullRegMask >>> 0)) {
+            errors.push(issue("WRITE_RMW_PACKED_FULL_MASK", `fields[${f.key}]`,
+              `field "${f.key}" is marked write_uses_read_modify_write=true but its own mask ${f.mask} covers the ENTIRE ${reg.register_width_bits}-bit register -- a genuinely packed field must own only a strict subset of the register's bits, or it isn't actually packed and a blind full-register write would be safe (and required, per rule 3)`));
+          }
+        }
       }
     }
 
@@ -557,6 +604,29 @@ function check(registerDoc, nonRegisterDoc, repoRoot) {
         ? "rw" : (f.access === "rw" ? "r" : f.effective_access);
       if (f.access === "rw" && f.effective_access !== derivedAccess) {
         errors.push(issue("FORGED_EFFECTIVE_ACCESS", `fields[${f.key}]`, `stored effective_access "${f.effective_access}" differs from derived policy "${derivedAccess}"`));
+      }
+
+      // Stage 4 (typed-petting-puzzle plan §5 Phase 2, rule 5): a real
+      // write path needs a proven safe operating range (minimum+maximum)
+      // or an enum_map -- a writable field with neither is a genuine,
+      // separate evidence gap (the safe VALUES a write may take were never
+      // established, even if the address/type/access were). Never guessed:
+      // generate_write_registry.js independently refuses to generate an
+      // entity for such a field; this is the same rule enforced as a hard
+      // schema-level invariant so it can never be bypassed by a future
+      // generator that forgets to check it.
+      if (f.effective_access === "rw" && f.enum_map === null && (f.minimum === null || f.maximum === null)) {
+        errors.push(issue("WRITE_ENABLED_WITHOUT_RANGE_OR_ENUM", `fields[${f.key}]`,
+          `field "${f.key}" has effective_access "rw" but neither a complete minimum/maximum range nor an enum_map -- a real write path cannot validate what values are safe to send`));
+      }
+
+      // Stage 4 Phase 2: an owner_write_override is risk ACCEPTANCE for an
+      // evidence gap, never a way to write to a field the protocol itself
+      // has no known write mechanism for at all -- unsupported stays
+      // unsupported regardless of who accepts what risk.
+      if (ownerAuthorized && f.write_safety_class === "unsupported") {
+        errors.push(issue("OWNER_OVERRIDE_ON_UNSUPPORTED_CLASS", `fields[${f.key}]`,
+          `field "${f.key}" has an authorized owner_write_override but write_safety_class "unsupported" -- an override can accept an evidence-gap risk, never invent a write mechanism the protocol doesn't have`));
       }
     }
   }

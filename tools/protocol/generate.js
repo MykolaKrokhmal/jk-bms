@@ -138,9 +138,21 @@ function buildRegisterCatalog() {
       // manager now derives from effective_access (Крок G.2/H: "mock генерує
       // metadata для... не лише generic RW addresses" + must not offer write
       // simulation for a field whose real write path was removed).
+      // Stage 4 (typed-petting-puzzle plan §5 Phase 5/6): a disruptive/
+      // topology/credential-class field may have effective_access="rw"
+      // (a real write path is generated and tested) while its REAL
+      // set_action is still a deliberate, logged no-op pending a separate
+      // lab-safe authorization policy (see generate_write_registry.js's
+      // own submit_policy). "generic_authorization_required" keeps the
+      // mock server's write simulation matching that real behavior
+      // exactly -- rejected, not an optimistic echo -- instead of
+      // silently drifting from it the way the plain "generic" bucket
+      // would (which assumes every effective_access=rw field's set_action
+      // actually writes).
       manager:
         f.write_safety_class === "topology" ? "bespoke_topology" :
         f.write_safety_class === "credential" ? "bespoke_passcode" :
+        f.effective_access === "rw" && f.write_safety_class !== "normal" ? "generic_authorization_required" :
         f.effective_access === "rw" ? "generic" : "readonly",
       verification_status: f.verification_status,
       note: r.safety_notes || undefined,

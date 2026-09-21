@@ -71,6 +71,7 @@
                 "wire_type", "scale", "offset", "canonical_unit", "uk_display_unit", "en_display_unit",
                 "decimal_precision", "minimum", "maximum", "step", "reserved_values", "nullable",
                 "packed_siblings", "overlap_rule", "projection_of", "access", "effective_access", "write_safety_class",
+                "write_uses_read_modify_write",
                 "esphome_domain", "esphome_read_entity_id", "esphome_configured_name", "esphome_write_entity_id", "backend_key",
                 "frontend_label_uk", "frontend_label_en", "ui_section", "ui_order", "ui_group", "editor_kind",
                 "dynamic_dependency", "enum_map", "unknown_code_policy", "evidence", "verification_status", "exclusion_reason",
@@ -108,6 +109,10 @@
                 "write_safety_class": {
                   "type": "string",
                   "enum": ["normal", "disruptive", "topology", "credential", "unsupported", "n/a"]
+                },
+                "write_uses_read_modify_write": {
+                  "type": "boolean",
+                  "description": "Stage 4 (risk-tiered RW write-enablement). true: this field does NOT occupy the whole physical register on its own (it has packed_siblings and/or its field_width_bits is narrower than the register's own register_width_bits) -- any write to it MUST read a fresh raw register snapshot, merge only this field's own bits into it, and preserve every other bit (sibling fields, reserved bits) unchanged. false: this field alone occupies the entire physical register (no siblings, field_width_bits == register_width_bits) -- a write may safely replace the whole register with no merge step. Derived mechanically from register/field geometry, never hand-guessed -- see tools/protocol/lib/semantic-checks.js's WRITE_RMW_FLAG_MISMATCH invariant, which fails the build if a stored value here disagrees with the geometry-derived one."
                 },
                 "esphome_domain": {
                   "type": ["string", "null"],

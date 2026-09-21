@@ -61,7 +61,7 @@ function baseField(overrides = {}) {
     scale: 0.001, offset: 0, canonical_unit: "V", uk_display_unit: "В", en_display_unit: "V",
     decimal_precision: 3, minimum: 0, maximum: 6, step: 0.001, reserved_values: [], nullable: true,
     packed_siblings: [], overlap_rule: null, projection_of: null, access: "rw", effective_access: "r",
-    write_safety_class: "normal", esphome_domain: "number", esphome_read_entity_id: "example_field",
+    write_safety_class: "normal", write_uses_read_modify_write: false, esphome_domain: "number", esphome_read_entity_id: "example_field",
     esphome_configured_name: null, esphome_write_entity_id: null, backend_key: "example_field",
     frontend_label_uk: "Приклад", frontend_label_en: "Example", ui_section: "settings", ui_order: 10,
     ui_group: null,
@@ -460,6 +460,66 @@ negativeCase("forged_verification_status", "FORGED_VERIFICATION_STATUS", (doc) =
 });
 negativeCase("forged_effective_rw_policy", "FORGED_EFFECTIVE_ACCESS", (doc) => {
   doc.registers[0].fields[0].effective_access = "rw";
+});
+
+// Stage 4 (typed-petting-puzzle plan §5 Phase 2) negative fixtures.
+negativeCase("write_rmw_flag_mismatch_packed_without_flag", "WRITE_RMW_FLAG_MISMATCH", (doc) => {
+  // A genuinely packed field (has a sibling) but claims write_uses_read_modify_write=false.
+  const reg = baseRegister({ register_width_bits: 16, word_count: 1, word_order: "single_word" }, {
+    key: "field_a", field_width_bits: 8, byte_offset: 0, mask: "0xFF00", shift: 8,
+    esphome_read_entity_id: "field_a", esphome_write_entity_id: null, backend_key: "field_a",
+    packed_siblings: ["field_b"], write_uses_read_modify_write: false, // WRONG: should be true
+    effective_access: "r",
+  });
+  const fieldB = baseField({
+    key: "field_b", parent_register_id: reg.register_id, field_width_bits: 8, byte_offset: 1,
+    mask: "0x00FF", shift: 0, esphome_read_entity_id: "field_b", esphome_write_entity_id: null,
+    backend_key: "field_b", packed_siblings: ["field_a"], write_uses_read_modify_write: false,
+    effective_access: "r",
+  });
+  reg.fields.push(fieldB);
+  doc.registers = [reg];
+});
+negativeCase("write_rmw_flag_mismatch_full_width_with_flag", "WRITE_RMW_FLAG_MISMATCH", (doc) => {
+  // A full-width field (no siblings, full register width) but claims write_uses_read_modify_write=true.
+  doc.registers[0].fields[0].write_uses_read_modify_write = true;
+});
+negativeCase("write_rmw_packed_full_mask", "WRITE_RMW_PACKED_FULL_MASK", (doc) => {
+  // Marked RMW=true but its own mask covers the entire register -- contradiction
+  // (a genuinely packed field cannot own every bit).
+  doc.registers[0].fields[0].write_uses_read_modify_write = true;
+  doc.registers[0].fields[0].packed_siblings = ["nonexistent_sibling_irrelevant_to_this_check"];
+  doc.registers[0].fields[0].mask = "0xFFFFFFFF"; // full 32-bit register width
+});
+negativeCase("projection_declares_rmw", "PROJECTION_DECLARES_RMW", (doc) => {
+  const reg = baseRegister({}, {
+    key: "raw_word", field_width_bits: 32, mask: "0xFFFFFFFF", shift: 0,
+    esphome_read_entity_id: "raw_word", esphome_write_entity_id: null, backend_key: "raw_word",
+    write_uses_read_modify_write: false,
+  });
+  const proj = baseField({
+    key: "proj_field", parent_register_id: reg.register_id, field_width_bits: 1, mask: "0x0001", shift: 0,
+    projection_of: "raw_word", access: "r", effective_access: "r",
+    esphome_read_entity_id: "proj_field", esphome_write_entity_id: null, backend_key: "proj_field",
+    write_uses_read_modify_write: true, // WRONG: a projection never has its own write path
+  });
+  reg.fields.push(proj);
+  doc.registers = [reg];
+});
+negativeCase("write_enabled_without_range_or_enum", "WRITE_ENABLED_WITHOUT_RANGE_OR_ENUM", (doc) => {
+  doc.registers[0].fields[0].effective_access = "rw";
+  doc.registers[0].fields[0].minimum = null;
+  doc.registers[0].fields[0].maximum = null;
+  doc.registers[0].fields[0].enum_map = null;
+  doc.registers[0].fields[0].owner_write_override = {
+    authorized: true, authorized_by: "fixture", date: "2026-01-01", rationale: "fixture",
+  };
+});
+negativeCase("owner_override_on_unsupported_class", "OWNER_OVERRIDE_ON_UNSUPPORTED_CLASS", (doc) => {
+  doc.registers[0].fields[0].write_safety_class = "unsupported";
+  doc.registers[0].fields[0].owner_write_override = {
+    authorized: true, authorized_by: "fixture", date: "2026-01-01", rationale: "fixture",
+  };
 });
 negativeCase("project_version_locator_drift", "VERSION_CONTEXT_PROJECT_MISMATCH", (doc) => {
   doc.version_context.esphome_project_version = "0.0.0";

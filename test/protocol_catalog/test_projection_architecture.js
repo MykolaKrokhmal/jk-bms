@@ -32,7 +32,7 @@ function baseField(overrides) {
     canonical_unit: "", uk_display_unit: "", en_display_unit: "", decimal_precision: 0,
     minimum: 0, maximum: 65535, step: 1, reserved_values: [], nullable: true,
     packed_siblings: [], overlap_rule: null, projection_of: null,
-    access: "r", effective_access: "r", write_safety_class: "n/a",
+    access: "r", effective_access: "r", write_safety_class: "n/a", write_uses_read_modify_write: false,
     esphome_domain: "sensor", esphome_read_entity_id: "x", esphome_configured_name: null,
     esphome_write_entity_id: null, backend_key: null, frontend_label_uk: "t", frontend_label_en: "t",
     ui_section: "diagnostics", ui_order: 1, ui_group: null, editor_kind: "readonly",
