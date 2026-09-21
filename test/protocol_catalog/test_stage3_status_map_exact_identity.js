@@ -77,8 +77,15 @@ const byId = new Map(statusMap.parameters.map((p) => [p.id, p]));
 // coverage). Both now resolve implemented_read via the exact same
 // exact-identity mechanism this file's own classifier fix established.
 // ===========================================================================
-check("Special Charger (0x1114 bit5) is implemented_read (now has its own real, evidenced canonical field -- Stage 3 completion pass, 2026-09-20; the 0x1114 blocker that used to force it to 'blocked' is closed)",
-  byId.get("Special Charger") && byId.get("Special Charger").status === "implemented_read");
+// CORRECTED (Stage 4, typed-petting-puzzle plan §5, 2026-09-20): Special
+// Charger (canonical key special_charger) was promoted from effective_
+// access "r" to "rw" this round (verification_status="confirmed" +
+// write_safety_class="disruptive" triage + a real generated write path) --
+// the classifier now correctly reports "implemented_write_confirmed", not
+// "implemented_read". This is the SAME exact-identity classifier behaving
+// correctly against updated input data, not a regression.
+check("Special Charger (0x1114 bit5) is implemented_write_confirmed (now has its own real, evidenced canonical field AND a real Stage 4 write path -- the 0x1114 blocker that used to force it to 'blocked' is closed)",
+  byId.get("Special Charger") && byId.get("Special Charger").status === "implemented_write_confirmed");
 check("AlarmBatUVP (0x12A0 bit12) is implemented_read (now has its own real, evidenced projection field -- Stage 3 continuation pass, 2026-09-20; the 0x12A0 blocker that used to force it to 'blocked' is closed)",
   byId.get("AlarmBatUVP") && byId.get("AlarmBatUVP").status === "implemented_read");
 

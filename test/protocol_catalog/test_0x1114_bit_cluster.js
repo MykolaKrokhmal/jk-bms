@@ -34,6 +34,7 @@ function check(name, condition, detail = "") {
 const canonical = loadJson("protocol/registers.canonical.json");
 const reg = canonical.registers.find((r) => r.address === "0x1114");
 const fieldByKey = new Map(reg.fields.map((f) => [f.key, f]));
+const writeRegistryKeys = new Set(loadJson("protocol/generated/write_registry.json").entries.map((e) => e.key));
 
 // ===========================================================================
 // 1. All 10 bits exist as real fields on the SAME pre-existing register
@@ -69,22 +70,39 @@ const shifts = Object.values(EXPECTED_SHIFTS);
 check("all 10 shifts are distinct (no bit collision)", new Set(shifts).size === 10);
 
 // ===========================================================================
-// 3. Access semantics: source-declared RW (per direct PDF p.8 citation),
-// Stage 3 effective_access stays "r" for every one of the 9 new fields,
-// via an explicit dynamic_dependency.resolved=false (never a silent
-// write-enablement side effect of "confirmed" evidence).
+// 3. Access semantics: source-declared RW (per direct PDF p.8 citation).
+// CORRECTED (Stage 4, typed-petting-puzzle plan §5, 2026-09-20): Stage 3
+// deliberately kept effective_access "r" for all 9 new fields via
+// dynamic_dependency.resolved=false ("write-enablement is Stage 4's own
+// scope" -- see the field's own dynamic_dependency.rule text). Stage 4
+// did exactly that: write_safety_class triage (disruptive for heat_en/
+// disable_temp_sensor/port_switch/special_charger/disable_pcl_module,
+// normal for the other 4) + a real generated write path
+// (protocol/generated/write_registry.yaml) promoted every one of these 9
+// to effective_access "rw" with dynamic_dependency.resolved=true.
+// charging_float_mode (bit9) is the sole EXCEPTION -- excluded from
+// NEW_KEYS below -- it stays effective_access "r" for an unrelated
+// reason (insufficient independent evidence: its two supporting
+// citations share one derivation group; see
+// tools/protocol/authoring/build_stage4_rw_inventory.js's own header
+// comment for the full reconciliation).
 // ===========================================================================
 const NEW_KEYS = EXPECTED_KEYS.filter((k) => k !== "charging_float_mode");
 for (const key of NEW_KEYS) {
   const f = fieldByKey.get(key);
   check(`"${key}" access="rw" (source-declared, per PDF)`, f && f.access === "rw");
-  check(`"${key}" effective_access="r" (Stage 3 policy, not write-enabled)`, f && f.effective_access === "r");
-  check(`"${key}" has dynamic_dependency.resolved=false (explicit reason effective_access stays "r" despite confirmed evidence)`,
-    f && f.dynamic_dependency && f.dynamic_dependency.resolved === false);
+  check(`"${key}" effective_access="rw" (Stage 4 promoted this round -- real write_safety_class + a real generated write path)`,
+    f && f.effective_access === "rw");
+  check(`"${key}" has dynamic_dependency.resolved=true (Stage 4 built the real write path this field's own dynamic_dependency named as the blocker)`,
+    f && f.dynamic_dependency && f.dynamic_dependency.resolved === true);
   check(`"${key}" verification_status="confirmed" (real derived value, not forged/understated)`,
     f && f.verification_status === "confirmed");
   check(`"${key}" implementation_status="implemented"`, f && f.implementation_status === "implemented");
+  check(`"${key}" has a real protocol/generated/write_registry.json entry`,
+    writeRegistryKeys.has(key));
 }
+check(`"charging_float_mode" (bit9) stays effective_access="r" -- unrelated evidence gap, not Stage 4 scope`,
+  fieldByKey.get("charging_float_mode") && fieldByKey.get("charging_float_mode").effective_access === "r");
 
 // ===========================================================================
 // 4. Port Switch (bit3) semantic: explicit 2-state MODE selector, NOT a
@@ -164,7 +182,12 @@ const MANIFEST_ID_BY_KEY = {
 };
 for (const [key, manifestId] of Object.entries(MANIFEST_ID_BY_KEY)) {
   const s = statusById.get(manifestId);
-  check(`status-map: "${manifestId}" (${key}) is implemented_read`, s && s.status === "implemented_read", JSON.stringify(s));
+  // CORRECTED (Stage 4, 2026-09-20): the 9 promoted keys now correctly
+  // classify implemented_write_confirmed (real effective_access=rw + a
+  // real write path); charging_float_mode is the sole holdout, still
+  // implemented_read (unrelated evidence gap -- see section 3 above).
+  const expectedStatus = key === "charging_float_mode" ? "implemented_read" : "implemented_write_confirmed";
+  check(`status-map: "${manifestId}" (${key}) is ${expectedStatus}`, s && s.status === expectedStatus, JSON.stringify(s));
 }
 
 const blockers = loadJson("protocol/evidence/protocol_blockers.json");

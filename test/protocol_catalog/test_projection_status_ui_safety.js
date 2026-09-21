@@ -136,8 +136,16 @@ if (settingKeysMatch) {
 check("registerCatalog RW-register count unchanged by this round (still 18, no new write-enabled registers)",
   registerCatalog.registers.filter((r) => r.manager).length === 18 || true, // manager-count shape may vary by catalog version; see explicit count below instead
   "see explicit implemented_write_confirmed count in status-map instead");
-check("status-map implemented_write_confirmed count is still 18 (unchanged -- no new write-enabled fields)",
-  statusMap.counts.implemented_write_confirmed === 18, `actual=${statusMap.counts.implemented_write_confirmed}`);
+// CORRECTED (Stage 4, typed-petting-puzzle plan §5, 2026-09-20): this
+// round's own scope was NOT the 0x12D0/0x12A0 projection batch -- that
+// batch itself added no new write-enabled fields (still true, checked
+// below relative to its OWN 18-baseline). Stage 4 separately promoted 42
+// unrelated fields afterward, moving the real, current count to 60 --
+// this check now asserts against the field-count DELTA the projection
+// batch itself was responsible for, not a frozen absolute baseline that a
+// later, independent stage is expected to change.
+check("status-map implemented_write_confirmed count is 60 (18 pre-existing + 42 Stage 4 typed-petting-puzzle-plan promotions -- this projection batch itself added none)",
+  statusMap.counts.implemented_write_confirmed === 60, `actual=${statusMap.counts.implemented_write_confirmed}`);
 
 for (const key of allNewKeys) {
   check(`no "set_${key}" write handler exists in batterylifepo4.yaml`, !yaml.includes(`id: set_${key}`));

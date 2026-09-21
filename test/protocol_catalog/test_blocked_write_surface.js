@@ -91,22 +91,34 @@ async function main() {
     blockedCatalog.length === blockedCanonical.length,
     `catalog=${blockedCatalog.length} canonical=${blockedCanonical.length}`);
 
-  // Owner-authorized write re-enablement (2026-09-10): every field with
-  // effective_access "rw" must carry an explicit, well-formed
-  // owner_write_override (repo-owner risk acceptance — see
-  // docs/adr/0001-protocol-catalog.md's addendum) — this is the one and
-  // only avenue that may ever flip a field out of the blocked set, so
-  // its presence is exhaustively required, never just permitted.
+  // Owner-authorized write re-enablement (2026-09-10): originally "every
+  // effective-RW field must carry an owner_write_override", back when
+  // that was the ONLY avenue to effective_access "rw". CORRECTED (Stage 4,
+  // typed-petting-puzzle plan §5): verification_status="confirmed" (2+
+  // independent evidence groups) alone is now ALSO a valid avenue (see
+  // semantic-checks.js's own FORGED_EFFECTIVE_ACCESS derivation) --
+  // Stage 4's own 42 new fields reach effective_access "rw" this way,
+  // with no owner_write_override at all. The invariant this check still
+  // protects, precisely: a field WITH an owner_write_override must have
+  // it well-formed, and every owner-overridden field must be effective-rw
+  // (both directions, unchanged) -- but effective-rw no longer implies an
+  // override must exist. The frontend-key-coverage check below is scoped
+  // to exactly the owner_write_override subset (jk_bms.js's own SETTING_
+  // DEFS/CONTROL_DEFS tier); the broader canonical-authorized ===
+  // SETTING_DEFS ∪ write_registry.json equality (including Stage 4's new
+  // 42) is proven separately, end to end, in
+  // test_stage4_write_registry_equality.js.
   const unlockedCanonical = canonicalFields.filter((field) => field.access === "rw" && field.effective_access === "rw");
-  check("every effective-RW field carries a well-formed owner_write_override",
-    unlockedCanonical.length > 0 && unlockedCanonical.every((f) =>
-      f.owner_write_override && f.owner_write_override.authorized === true &&
+  const ownerOverriddenCanonical = unlockedCanonical.filter((f) => f.owner_write_override);
+  check("every owner_write_override present is well-formed (authorized/authorized_by/date/rationale)",
+    ownerOverriddenCanonical.length > 0 && ownerOverriddenCanonical.every((f) =>
+      f.owner_write_override.authorized === true &&
       f.owner_write_override.authorized_by && f.owner_write_override.date && f.owner_write_override.rationale),
-    `unlocked=${unlockedCanonical.length}`);
+    `owner_overridden=${ownerOverriddenCanonical.length}`);
   check("no field carries an owner_write_override without effective_access rw",
     !canonicalFields.some((f) => f.owner_write_override && f.effective_access !== "rw"));
 
-  const unlockedKeys = new Set(unlockedCanonical.map((f) => f.key));
+  const unlockedKeys = new Set(ownerOverriddenCanonical.map((f) => f.key));
 
   // Third critical audit (2026-09-10, item 8): while setup_passcode
   // (credential class) stays fail-closed, NO editor or write endpoint for

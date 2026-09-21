@@ -346,16 +346,17 @@ const NO_LOCATORS = new Map();
 // ===========================================================================
 // 11. Given zero production collisions (checks 10 above), the collision-
 // hardening pass ITSELF reshuffled no real classification -- its own
-// baseline was, and remains, 182/50/18/10/4/1. The baseline asserted
-// here has since moved to 228/8/18/6/4/1 (Stage 3 completion pass,
-// 2026-09-20), through several deliberate, real, later catalog/blocker
-// changes: the 0x1114 bit-cluster batch (+10 implemented_read, -9
-// blocked, -1 missing), AlarmBatUVP joining the pre-existing 0x12A0
-// alarm-bits blocker (+1 blocked, -1 missing), closing the stale
-// LCDBuzzerTrigger/DRY2Trigger locator-only blockers (+2 implemented_read,
-// -2 blocked), and adding a precise architectural blocker for
-// UART1MPRTOLEnable/UARTMPRTOLEnable[0-15] (+2 blocked, -2 missing, moving
-// them out of bare "missing" into a real, documented blocker) -- none of
+// baseline was, and remains, 182/50/18/10/4/1. The baseline moved to
+// 228/8/18/6/4/1 (Stage 3 completion pass, 2026-09-20) through several
+// deliberate, real, later catalog/blocker changes (0x1114 bit-cluster
+// batch, AlarmBatUVP, LCDBuzzerTrigger/DRY2Trigger closures, the UART
+// hex-decoder, the new 0x1118 register, the 0x12D0/0x12A0 projection
+// architecture), then to 186/8/60/6/4/1 (Stage 4, typed-petting-puzzle
+// plan §5, 2026-09-20): 42 fields were promoted from effective_access "r"
+// to "rw" (verification_status="confirmed" + a real generated write path
+// -- see protocol/generated/write_registry.json), so the exact-identity
+// classifier now correctly reports them "implemented_write_confirmed"
+// instead of "implemented_read" (186 = 228 - 42, 60 = 18 + 42) -- none of
 // this is a regression of this file's own collision-hardening property
 // (checks 1-10 above continue to verify independently of this count).
 // ===========================================================================
@@ -364,10 +365,10 @@ const NO_LOCATORS = new Map();
   const path = require("path");
   const ROOT = path.join(__dirname, "..", "..");
   const statusMap = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "stage3_status_map.json"), "utf8"));
-  const expected = { implemented_read: 228, blocked: 8, implemented_write_confirmed: 18, missing: 6, reserved: 4, derived_not_a_register: 1 };
+  const expected = { implemented_read: 186, blocked: 8, implemented_write_confirmed: 60, missing: 6, reserved: 4, derived_not_a_register: 1 };
   const countsMatch = Object.keys(expected).length === Object.keys(statusMap.counts).length &&
     Object.entries(expected).every(([k, v]) => statusMap.counts[k] === v);
-  check("real generated stage3_status_map.json counts match the current baseline (228/8/18/6/4/1, sum 265, updated by the 0x1114 batch, AlarmBatUVP, LCDBuzzerTrigger/DRY2Trigger closures, the UART hex-decoder implementation, the new 0x1118 register, and the 0x12D0/0x12A0 generalized projection architecture)",
+  check("real generated stage3_status_map.json counts match the current baseline (186/8/60/6/4/1, sum 265, Stage 4 promoted 42 fields from implemented_read to implemented_write_confirmed)",
     countsMatch, JSON.stringify(statusMap.counts));
   check("no AMBIGUOUS note appears anywhere in the real generated status map (production has zero collisions)",
     !statusMap.parameters.some((p) => /AMBIGUOUS/.test(p.note)));

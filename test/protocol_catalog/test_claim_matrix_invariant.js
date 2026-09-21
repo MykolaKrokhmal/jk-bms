@@ -39,7 +39,7 @@ function setsEqual(a, b) {
  * below AND the deliberate-mutation self-test can call the identical
  * code path — a checker that only ever runs against known-good fixtures
  * proves nothing about whether it can detect a real break. */
-function evaluateInvariant(registerDoc, claimDoc) {
+function evaluateInvariant(registerDoc, claimDoc, writeRegistryDoc) {
   const fields = loadCanonicalFields(registerDoc);
   const keys = fields.map((f) => f.key);
   const keySet = new Set(keys);
@@ -53,6 +53,15 @@ function evaluateInvariant(registerDoc, claimDoc) {
   // inconsistent — the set worth exact-matching against canonical
   // effective-RW keys is now owner_authorized, not policy_inconsistent.
   const ownerAuthorizedKeys = new Set(claimDoc.fields.filter((f) => f.owner_authorized === true).map((f) => f.key));
+  // Stage 4 (typed-petting-puzzle plan §5): a SECOND, independent avenue
+  // to effective_access "rw" now exists -- verification_status="confirmed"
+  // alone (no owner_write_override), backed by a real, generated write
+  // path recorded in protocol/generated/write_registry.json (see
+  // build_claim_matrix.js's own registryBacked bypass). The exact-set
+  // invariant below now checks effRwKeys against the UNION of both
+  // avenues, never just one.
+  const registryBackedKeys = new Set((writeRegistryDoc ? writeRegistryDoc.entries : []).map((e) => e.key));
+  const authorizedKeys = new Set([...ownerAuthorizedKeys, ...registryBackedKeys]);
 
   return {
     physicalRegisters: registerDoc.registers.length,
@@ -70,8 +79,14 @@ function evaluateInvariant(registerDoc, claimDoc) {
     effRwKeys,
     policyInconsistentKeys,
     ownerAuthorizedKeys,
-    exactSetMatch: setsEqual(effRwKeys, ownerAuthorizedKeys),
-    overridesWellFormed: fields.filter((f) => f.effective_access === "rw").every((f) => {
+    registryBackedKeys,
+    authorizedKeys,
+    exactSetMatch: setsEqual(effRwKeys, authorizedKeys),
+    // Stage 4: scoped to fields that actually carry an owner_write_override
+    // (the original 18) -- a registry-backed field (verification_status
+    // "confirmed" alone) legitimately has none, by design (see
+    // build_claim_matrix.js's own registryBacked comment).
+    overridesWellFormed: fields.filter((f) => f.effective_access === "rw" && f.owner_write_override).every((f) => {
       const o = f.owner_write_override;
       return o && o.authorized === true && typeof o.authorized_by === "string" && o.authorized_by.trim().length > 0
         && typeof o.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(o.date)
@@ -89,15 +104,19 @@ function evaluateInvariant(registerDoc, claimDoc) {
 // --- run against the real, current repository state -------------------------
 const registerDoc = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "registers.canonical.json"), "utf8"));
 const claimDoc = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "claim_matrix.json"), "utf8"));
-const r = evaluateInvariant(registerDoc, claimDoc);
+const writeRegistryDoc = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "write_registry.json"), "utf8"));
+const r = evaluateInvariant(registerDoc, claimDoc, writeRegistryDoc);
 
 check("1. physical register count: canonical registers.length matches claim_matrix.counts.physical_registers",
   r.physicalRegisters === r.claimCounts.physical_registers, `canonical=${r.physicalRegisters} claim=${r.claimCounts.physical_registers}`);
 check("2. logical field count: canonical field count matches claim_matrix.counts.logical_fields",
   r.logicalFields === r.claimCounts.logical_fields, `canonical=${r.logicalFields} claim=${r.claimCounts.logical_fields}`);
 check("3. declared RW count is 96 (documented baseline -- Stage 3 completion pass, 2026-09-20: 9 new RW-declared 0x1114 bit fields (heat_en/disable_temp_sensor/gps_heartbeat/port_switch/lcd_always_on/special_charger/smart_sleep_enabled/disable_pcl_module/timed_stored_data) + 1 new RW-declared 0x1118 field (smart_sleep_timeout_hours), all landing effective_access:'r' via dynamic_dependency.resolved=false -- write path fail-closed, same 'not write-enabled' pattern as every prior RW-declared addition; a further change here must again be a reviewed, deliberate catalog edit. Previous baseline: 86 (Stage 3 cell-channel batch, 2026-09-17).", r.declaredRw === 96, `actual=${r.declaredRw}`);
-check("4. effective RW count is 18 (documented baseline)", r.effectiveRw === 18, `actual=${r.effectiveRw}`);
-check("5. effective R count is 232 (documented baseline -- Stage 3 continuation pass, 2026-09-20: 31 new projection fields (7 at 0x12D0: heating_active, bat_temp_sensor_1-5_present, mos_temp_sensor_status_bit_raw; 22 at 0x12A0: the individual alarm bits; 2 UART hex arrays: uart1_mprtol_enable, uart_mprtol_enable_0_15) added on top of the earlier 201 baseline (0x1114 cluster + 0x1118) this same round.", r.effectiveR === 232, `actual=${r.effectiveR}`);
+check("4. effective RW count is 60 (documented baseline -- Stage 4 typed-petting-puzzle plan §5: the pre-existing 18 owner-authorized fields + 42 newly-confirmed, registry-backed fields promoted this round)", r.effectiveRw === 60, `actual=${r.effectiveRw}`);
+check("4b. of the 60 effective-RW fields, exactly 18 are owner-authorized and 42 are registry-backed (the two authorization avenues never overlap)",
+  r.ownerAuthorizedKeys.size === 18 && r.registryBackedKeys.size === 42 && [...r.ownerAuthorizedKeys].every((k) => !r.registryBackedKeys.has(k)),
+  `owner=${r.ownerAuthorizedKeys.size} registry=${r.registryBackedKeys.size}`);
+check("5. effective R count is 190 (documented baseline -- Stage 4 typed-petting-puzzle plan §5 promoted 42 of the prior 232 to effective_access rw)", r.effectiveR === 190, `actual=${r.effectiveR}`);
 check("6. unsupported count is 4 (documented baseline -- Stage 2 typed-petting-puzzle plan added 3 new intentionally_not_exposed reserved half-registers, 0x12EE/0x130C/0x1506, alongside the pre-existing reserved_0x12d2; a further change here must again be a reviewed, deliberate catalog edit)",
   r.unsupported === 4, `actual=${r.unsupported}`);
 check("6b. declared_r + declared_rw == logical field count", r.declaredR + r.declaredRw === r.logicalFields);
@@ -105,15 +124,15 @@ check("6c. effective_rw + effective_r + unsupported == logical field count", r.e
 check("7. claim_matrix.counts.write_ready is 0 (no field is independently protocol-verified yet)", r.claimCounts.write_ready === 0, `actual=${r.claimCounts.write_ready}`);
 check("8. claim_matrix.counts.write_blocked equals logical field count", r.claimCounts.write_blocked === r.logicalFields, `write_blocked=${r.claimCounts.write_blocked} fields=${r.logicalFields}`);
 check("9. claim_matrix.counts.policy_inconsistent is 0 (owner-override-aware gate: every effective-RW field reconciles)", r.claimCounts.policy_inconsistent === 0, `actual=${r.claimCounts.policy_inconsistent}`);
-check("10. EXACT set equality: canonical effective-RW keys === claim_matrix owner_authorized keys (no extra/missing/duplicate)",
-  r.exactSetMatch, `canonical-only=${[...r.effRwKeys].filter((k) => !r.ownerAuthorizedKeys.has(k))} claim-only=${[...r.ownerAuthorizedKeys].filter((k) => !r.effRwKeys.has(k))}`);
+check("10. EXACT set equality: canonical effective-RW keys === (claim_matrix owner_authorized keys UNION write_registry.json keys), no extra/missing/duplicate",
+  r.exactSetMatch, `canonical-only=${[...r.effRwKeys].filter((k) => !r.authorizedKeys.has(k))} claim-only=${[...r.authorizedKeys].filter((k) => !r.effRwKeys.has(k))}`);
 check("10b. claim_matrix policy_inconsistent key set is empty (no field, override or not, disagrees with its stored effective_access)",
   r.policyInconsistentKeys.size === 0, `inconsistent=${[...r.policyInconsistentKeys]}`);
 check("11. no duplicate keys in canonical source", r.noDuplicateCanonicalKeys);
 check("11b. no duplicate keys in claim_matrix", r.noDuplicateClaimKeys);
 check("12. no unknown keys in claim_matrix (every claim_matrix key exists in canonical)", r.noUnknownClaimKeys);
 check("12b. no missing keys (every canonical key has a claim_matrix entry)", r.noMissingClaimKeys);
-check("13. every effective-RW field's owner_write_override has authorized/authorized_by/date/rationale, all well-formed", r.overridesWellFormed);
+check("13. every effective-RW field that carries an owner_write_override has it well-formed (authorized/authorized_by/date/rationale) -- registry-backed fields legitimately carry none", r.overridesWellFormed);
 check("14. no effective-RW field's verification_status silently implies evidence-verification without either \"confirmed\" or the override", r.noSilentEvidencePromotion);
 
 // --- deliberate-mutation self-test: proves the checker actually detects a break ---

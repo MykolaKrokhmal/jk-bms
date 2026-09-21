@@ -207,19 +207,25 @@ for (let ch = 1; ch <= 32; ch++) {
   const entry = fieldsByKey.get(`cell_connection_wire_resistance_${ch}`);
   check(`cell_connection_wire_resistance_${ch} exists in canonical.json (CellConWireRes${ch - 1}, RW calibration)`, !!entry);
   if (entry) {
-    check(`cell_connection_wire_resistance_${ch} is RW-declared but write-blocked (calibration, not R telemetry, not confused with CellWireRes)`,
-      entry.field.access === "rw" && entry.field.effective_access === "r");
-    // Bounded batch (2026-09-17): read is now implemented (own isolated,
-    // capability-gated, slow-cadence command, batterylifepo4.yaml 0x1088)
-    // -- write stays blocked above regardless, and independently: an
-    // explicit dynamic_dependency.rule (not just effective_access) records
-    // that write-enablement is deliberately deferred to Stage 4, checked
-    // below so a future accidental write-enable is caught even if
-    // effective_access were ever miscomputed.
+    // CORRECTED (Stage 4, typed-petting-puzzle plan §5, 2026-09-20): this
+    // field's write-enablement was deliberately DEFERRED to Stage 4 (not
+    // permanently blocked) -- see the dynamic_dependency.rule text that
+    // used to gate this, now RESOLVED because Stage 4 built the real
+    // generated write path (protocol/generated/write_registry.yaml) and
+    // real read-modify-write mechanism this calibration constant
+    // (write_safety_class="disruptive") needed. It is RW-declared and now
+    // effective_access="rw" (write-software-ready) -- still no ACTIVE
+    // submit control anywhere in the UI without a separate lab-safe
+    // authorization policy (see generate_write_registry.js's own
+    // submit_policy="authorization_required" for disruptive-class fields),
+    // proven independently by test_stage4_write_registry_equality.js and
+    // test_stage4_write_http_end_to_end.js.
+    check(`cell_connection_wire_resistance_${ch} is RW-declared and Stage-4 write-software-ready (calibration, not R telemetry, not confused with CellWireRes)`,
+      entry.field.access === "rw" && entry.field.effective_access === "rw" && entry.field.write_safety_class === "disruptive");
     check(`cell_connection_wire_resistance_${ch} is implemented (read) this bounded batch`,
       entry.field.implementation_status === "implemented");
-    check(`cell_connection_wire_resistance_${ch} records its write-deferral as canonical fact (dynamic_dependency.resolved === false), not just a YAML comment`,
-      !!entry.field.dynamic_dependency && entry.field.dynamic_dependency.resolved === false);
+    check(`cell_connection_wire_resistance_${ch} records its write-enablement as canonical fact (dynamic_dependency.resolved === true), not just a YAML comment`,
+      !!entry.field.dynamic_dependency && entry.field.dynamic_dependency.resolved === true);
   }
 }
 

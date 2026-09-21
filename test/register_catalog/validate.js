@@ -54,7 +54,12 @@ const evidenceSourcesSchema = JSON.parse(fs.readFileSync(path.join(ROOT, "protoc
 const batterylifepo4Src = fs.readFileSync(path.join(ROOT, "batterylifepo4.yaml"), "utf8");
 const yamlSrc = batterylifepo4Src
   + fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.yaml"), "utf8")
-  + fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan_decode.h"), "utf8");
+  + fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan_decode.h"), "utf8")
+  // Stage 4 (typed-petting-puzzle plan §5 Phase 3): the 42 new write-
+  // software-ready fields' `number:` entities live in the generated write
+  // registry package, not hand-authored in batterylifepo4.yaml itself --
+  // same "generated package this file !include's" pattern as read_plan.yaml.
+  + fs.readFileSync(path.join(ROOT, "protocol", "generated", "write_registry.yaml"), "utf8");
 const jsSrc = fs.readFileSync(path.join(ROOT, "jk_bms.js"), "utf8");
 const mockSrc = fs.readFileSync(path.join(ROOT, "demo", "mock-server.js"), "utf8");
 const catalogSrc = fs.readFileSync(path.join(ROOT, "register_catalog.json"), "utf8");

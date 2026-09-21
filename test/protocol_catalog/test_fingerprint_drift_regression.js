@@ -93,6 +93,19 @@ const FILES_TO_COPY = [
   // of fingerprint.js's accept step's broader validation pass.
   "protocol/schema/protocol-blockers.schema.json",
   "protocol/evidence/protocol_blockers.json",
+  // Stage 4 (typed-petting-puzzle plan §5): the generated write registry
+  // -- fingerprint.js's accept step transitively runs pipeline.js check,
+  // which now (optionally) reads write_registry.json, and validate.js
+  // (already listed above) now also scans write_registry.yaml as part of
+  // its cross-file entity-id checks. Same "adding a new generated file
+  // means updating this list too" pattern as read_plan.* above.
+  "tools/protocol/generate_write_registry.js",
+  "protocol/generated/write_registry.json",
+  "protocol/generated/write_registry.yaml",
+  "tools/protocol/authoring/build_stage4_rw_inventory.js",
+  "protocol/generated/stage4_rw_inventory.json",
+  "protocol/evidence/build_claim_matrix.js",
+  "protocol/generated/claim_matrix.json",
 ];
 
 try {

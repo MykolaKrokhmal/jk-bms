@@ -58,6 +58,18 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
 "$BUILD_DIR/test_jk_write_tx_core"
 
 echo
+echo "=== jk_write_tx_core RMW (Stage 4) unit tests ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
+  "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_rmw_core.cpp" -o "$BUILD_DIR/test_jk_write_tx_rmw_core"
+"$BUILD_DIR/test_jk_write_tx_rmw_core"
+
+echo
+echo "=== jk_write_tx_core RMW (Stage 4) end-to-end integration test (real generated read_plan_decode.h) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT" -I "$REPO_ROOT/components/jk_write_tx" -I "$REPO_ROOT/components/jk_poll_scheduler" \
+  "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_rmw_end_to_end.cpp" -o "$BUILD_DIR/test_jk_write_tx_rmw_end_to_end"
+"$BUILD_DIR/test_jk_write_tx_rmw_end_to_end"
+
+echo
 echo "=== jk_history_format unit tests ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_history" \
   "$REPO_ROOT/test/jk_history/test_jk_history_format.cpp" "$REPO_ROOT/components/jk_history/jk_history_format.cpp" \
@@ -129,6 +141,10 @@ echo "=== read plan: generator determinism (--check) ==="
 node tools/protocol/generate_read_plan.js --check
 
 echo
+echo "=== Stage 4: write registry generator determinism (--check) ==="
+node tools/protocol/generate_write_registry.js --check
+
+echo
 echo "=== Stage 2: V1.1 manifest / PDF-locator / settings-UI-mapping generator determinism (--check) ==="
 python3 protocol/evidence/build_v2_manifest.py --workbook protocol/evidence/LiFePO4_BMS_Parameters_registers-V2_verified.xlsx --check
 node tools/protocol/authoring/build_pdf_locators.js --check
@@ -137,6 +153,22 @@ node tools/protocol/authoring/build_settings_ui_mapping.js --check
 echo
 echo "=== Stage 3: exact status-map generator determinism (--check) ==="
 node tools/protocol/authoring/build_stage3_status_map.js --check
+
+echo
+echo "=== Stage 4: authoritative RW inventory generator determinism (--check) ==="
+node tools/protocol/authoring/build_stage4_rw_inventory.js --check
+
+echo
+echo "=== Stage 4: authoritative 97-row RW inventory regression ==="
+node test/protocol_catalog/test_stage4_rw_inventory.js
+
+echo
+echo "=== Stage 4: write registry exact-equality proof ==="
+node test/protocol_catalog/test_stage4_write_registry_equality.js
+
+echo
+echo "=== Stage 4: write registry HTTP end-to-end (spawns its own demo server) ==="
+node test/protocol_catalog/test_stage4_write_http_end_to_end.js
 
 echo
 echo "=== protocol catalog: generation atomicity + simulated-failure detection ==="
