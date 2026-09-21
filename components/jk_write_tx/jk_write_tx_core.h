@@ -564,8 +564,8 @@ struct RegisterWriteRequestMailbox {
 //
 // Second corrective pass (Blocker 2, 2026-09-21): `pending_id` is now the
 // SOLE, authoritative single-flight gate, reserved via a real CAS(0 ->
-// new_id) BEFORE anything else -- not merely set as a side effect after
-// the mailbox's own state CAS succeeded. The previous version relied on
+// new_id) before the mailbox is touched -- not merely set as a side effect
+// after the mailbox's own state CAS succeeded. The previous version relied on
 // the request MAILBOX's own EMPTY/STAGED/BUSY state as the single-flight
 // guard and only unconditionally stored the new id into `pending_id`
 // afterward; that is a real, exploitable gap: try_take_write_request()
@@ -584,8 +584,9 @@ struct RegisterWriteRequestMailbox {
 // reservation until publish_write_result(A) clears it via ITS OWN CAS for
 // exactly that id -- see that function's own comment), no other
 // request_id can ever win the reservation CAS below, so B's stage attempt
-// is rejected outright, request_id/tx_id are never allocated for it, and
-// the mailbox is never even touched for B. `pending_id` stays SOLELY
+// is rejected outright and the mailbox is never touched for B (the atomic
+// counter may consume an unused id, but no request/transaction is created).
+// `pending_id` stays SOLELY
 // owned by A across the take()-to-publish() gap; the mailbox's own state
 // machine is now purely a producer->consumer data channel, not a
 // lifecycle guard.
@@ -606,7 +607,14 @@ inline uint32_t try_stage_write_request(RegisterWriteRequestMailbox &mbox, const
   // happens); that is a strictly acceptable, already-anticipated
   // tradeoff for keeping this reservation a single, simple CAS instead of
   // a two-phase sentinel-then-real-id scheme.
-  const uint32_t id = next_id_counter.fetch_add(1, std::memory_order_relaxed) + 1;
+  // Zero is the protocol's invalid/sentinel request id. Unsigned overflow
+  // itself is well-defined, but fetch_add(UINT32_MAX)+1 produces zero; skip
+  // that single value so even a real counter wrap preserves the public
+  // contract that every successfully staged request_id is non-zero.
+  uint32_t id = 0;
+  do {
+    id = next_id_counter.fetch_add(1, std::memory_order_relaxed) + 1;
+  } while (id == 0);
 
   uint32_t expected_pending = 0;
   if (!pending_id.compare_exchange_strong(expected_pending, id, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
@@ -857,6 +865,43 @@ struct RegisterWriteResultLookup {
   RejectReason reason = RejectReason::NONE;
 };
 
+// One bounded attempt to read a stable result-table slot. Returns true only
+// when this exact request_id has a stable RESOLVED/EXPIRED entry; false means
+// absent, evicted, or temporarily unstable and requires the caller to decide
+// between PENDING, a second table read, and UNKNOWN.
+inline bool try_read_stable_write_result(const RegisterWriteResultTable &table, uint32_t request_id,
+                                         uint32_t now_ms, uint32_t ttl_ms,
+                                         RegisterWriteResultLookup &out) {
+  const RegisterWriteResultSlot &slot = table[request_id % kRegisterWriteResultTableSize];
+  constexpr int kMaxRetries = 5;
+  for (int attempt = 0; attempt < kMaxRetries; attempt++) {
+    const uint32_t v0 = slot.version.load(std::memory_order_seq_cst);
+    if (v0 & 1u) continue;
+    if (v0 == 0) return false;
+
+    const uint32_t seen_id = slot.request_id.load(std::memory_order_seq_cst);
+    const bool seen_accepted = slot.accepted.load(std::memory_order_seq_cst) != 0;
+    const uint32_t seen_tx_id = slot.tx_id.load(std::memory_order_seq_cst);
+    const uint8_t seen_reason = slot.reason.load(std::memory_order_seq_cst);
+    const uint32_t seen_published_at = slot.published_at_ms.load(std::memory_order_seq_cst);
+
+    const uint32_t v1 = slot.version.load(std::memory_order_seq_cst);
+    if (v1 != v0) continue;
+    if (seen_id != request_id) return false;
+
+    if (now_ms - seen_published_at > ttl_ms) {
+      out.status = ResultLookupStatus::EXPIRED;
+      return true;
+    }
+    out.status = ResultLookupStatus::RESOLVED;
+    out.accepted = seen_accepted;
+    out.tx_id = seen_tx_id;
+    out.reason = static_cast<RejectReason>(seen_reason);
+    return true;
+  }
+  return false;
+}
+
 // Reader side (safe from ANY task/context, any number of concurrent
 // readers, read-only, never blocks, bounded retry -- never spins
 // unboundedly). A straddled OR fully-completed-during-our-read publish
@@ -870,78 +915,44 @@ struct RegisterWriteResultLookup {
 // memory_order_seq_cst, matching publish_write_result()'s own seq_cst
 // stores -- see the third-corrective-pass module comment for why this
 // single global total order is the simplest available proof for this
-// low-frequency control path.
-inline RegisterWriteResultLookup lookup_write_result(const RegisterWriteResultTable &table,
-                                                       const std::atomic<uint32_t> &pending_request_id,
-                                                       uint32_t request_id, uint32_t now_ms,
-                                                       uint32_t ttl_ms = kRegisterWriteResultTtlMs) {
+// low-frequency control path. A failed first bounded read is followed by
+// the pending marker check and, if the marker is already clear, a mandatory
+// second bounded read; this closes the publish-completed-at-the-boundary
+// window without relying on a larger retry count or scheduler timing.
+template <typename BetweenPassHook>
+inline RegisterWriteResultLookup lookup_write_result_with_between_pass_hook(
+    const RegisterWriteResultTable &table, const std::atomic<uint32_t> &pending_request_id,
+    uint32_t request_id, uint32_t now_ms, uint32_t ttl_ms, BetweenPassHook between_pass_hook) {
   RegisterWriteResultLookup out;
   if (request_id == 0) return out;  // 0 is never a real request_id (see try_stage_write_request)
 
-  const RegisterWriteResultSlot &slot = table[request_id % kRegisterWriteResultTableSize];
-  // Third corrective pass: bumped from 5 to 16. publish_write_result()
-  // clears pending_request_id strictly AFTER its own version flips back
-  // to even (by design -- see that function's own comment); if EVERY one
-  // of a reader's retry attempts lands while `version` is still odd (the
-  // writer's own handful of stores mid-publish), the reader falls through
-  // to the pending_request_id fallback below, which could by then already
-  // be cleared -- a transient, spurious UNKNOWN for a request that in
-  // fact resolved moments earlier. A slightly larger bound is cheap
-  // (still a handful of atomic loads, still strictly bounded, never an
-  // unbounded spin) insurance against this for any REAL poller, which
-  // never calls this in a zero-delay busy loop (an HTTP status-poll
-  // client is always seconds apart in wall-clock terms from the write it
-  // is polling). This is not chased further than that: a genuinely
-  // adversarial, unthrottled busy-loop reader can still theoretically
-  // observe this exact transition instant regardless of how large a
-  // BOUNDED retry count is -- that is a fundamental property of any
-  // wait-free reader racing a bounded number of times against an
-  // in-progress writer, not something this module can or should try to
-  // defeat with an ever-larger constant. See that same test's own poller
-  // loop for the realistic pacing (a real client, or this test's own
-  // yield()-paced poller) this bound is actually sized for.
-  constexpr int kMaxRetries = 16;
-  for (int attempt = 0; attempt < kMaxRetries; attempt++) {
-    const uint32_t v0 = slot.version.load(std::memory_order_seq_cst);
-    if (v0 & 1u) continue;  // writer is mid-publish right now -- retry rather than read a torn slot
-    if (v0 == 0) break;     // slot has never been published to -- definitely not this (or any) request
+  if (try_read_stable_write_result(table, request_id, now_ms, ttl_ms, out)) return out;
 
-    const uint32_t seen_id = slot.request_id.load(std::memory_order_seq_cst);
-    const bool seen_accepted = slot.accepted.load(std::memory_order_seq_cst) != 0;
-    const uint32_t seen_tx_id = slot.tx_id.load(std::memory_order_seq_cst);
-    const uint8_t seen_reason = slot.reason.load(std::memory_order_seq_cst);
-    const uint32_t seen_published_at = slot.published_at_ms.load(std::memory_order_seq_cst);
+  // Test hook is a no-op in production. It makes the otherwise tiny
+  // publish-boundary interleaving deterministic in the host regression test.
+  between_pass_hook();
 
-    const uint32_t v1 = slot.version.load(std::memory_order_seq_cst);
-    if (v1 != v0) continue;  // version changed (mid-write OR a full cycle completed) during our read -- retry
-
-    // v0 == v1, both even: no publish (partial or complete) touched this
-    // slot anywhere between our two version reads, so every field above
-    // belongs to the SAME, single generation -- a fully consistent,
-    // non-torn snapshot, proven by value equality, not by parity alone.
-    if (seen_id != request_id) break;  // this slot holds a different id -- ours was evicted or never landed here
-    if (now_ms - seen_published_at > ttl_ms) {
-      out.status = ResultLookupStatus::EXPIRED;
-      return out;
-    }
-    out.status = ResultLookupStatus::RESOLVED;
-    out.accepted = seen_accepted;
-    out.tx_id = seen_tx_id;
-    out.reason = static_cast<RejectReason>(seen_reason);
-    return out;
-  }
-
-  // Not found (or evicted) in the result table. Still PENDING only if it
-  // is the one request currently staged/in-flight; otherwise it is
-  // genuinely UNKNOWN (never issued this session, or resolved so long ago
-  // its slot has since been reused by other requests without this reader
-  // ever having observed the result -- fail-closed, never an eternal
-  // false PENDING).
+  // If it is still the single in-flight request, the first miss was honest:
+  // it has not completed publication yet.
   if (pending_request_id.load(std::memory_order_seq_cst) == request_id) {
     out.status = ResultLookupStatus::PENDING;
     return out;
   }
+
+  // pending_id is cleared only AFTER result publication. Therefore a miss
+  // followed by pending_id!=request_id must re-read the table: publication
+  // may have completed in precisely that boundary window. Only this second,
+  // post-pending-check stable miss may be classified UNKNOWN/evicted.
+  if (try_read_stable_write_result(table, request_id, now_ms, ttl_ms, out)) return out;
   return out;  // UNKNOWN (default-constructed)
+}
+
+inline RegisterWriteResultLookup lookup_write_result(const RegisterWriteResultTable &table,
+                                                       const std::atomic<uint32_t> &pending_request_id,
+                                                       uint32_t request_id, uint32_t now_ms,
+                                                       uint32_t ttl_ms = kRegisterWriteResultTtlMs) {
+  return lookup_write_result_with_between_pass_hook(table, pending_request_id, request_id, now_ms, ttl_ms,
+                                                     []() {});
 }
 
 // This project's own single instances of the mailbox/table above. C++17

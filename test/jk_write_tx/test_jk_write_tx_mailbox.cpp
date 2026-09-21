@@ -148,6 +148,40 @@ int main() {
   }
 
   // ---------------------------------------------------------------------
+  // Deterministic publish-boundary lookup: the first bounded table pass
+  // sees an odd version throughout; the between-pass hook completes the
+  // already-started publish and clears pending_id; the mandatory second
+  // table pass must return the stable result, never UNKNOWN.
+  // ---------------------------------------------------------------------
+  {
+    RegisterWriteResultTable table{};
+    std::atomic<uint32_t> pending_id{77};
+    RegisterWriteResultSlot &slot = table[77 % kRegisterWriteResultTableSize];
+    slot.version.store(1, std::memory_order_seq_cst);  // writer is mid-publish
+    int hook_calls = 0;
+
+    const auto lk = lookup_write_result_with_between_pass_hook(
+        table, pending_id, 77, 2001, kRegisterWriteResultTtlMs, [&]() {
+          hook_calls++;
+          slot.request_id.store(77, std::memory_order_seq_cst);
+          slot.accepted.store(1, std::memory_order_seq_cst);
+          slot.tx_id.store(707, std::memory_order_seq_cst);
+          slot.reason.store(static_cast<uint8_t>(RejectReason::NONE), std::memory_order_seq_cst);
+          slot.published_at_ms.store(2000, std::memory_order_seq_cst);
+          slot.version.store(2, std::memory_order_seq_cst);  // stable publication
+          uint32_t expected = 77;
+          pending_id.compare_exchange_strong(expected, 0, std::memory_order_seq_cst,
+                                             std::memory_order_seq_cst);
+        });
+
+    check(hook_calls == 1, "publish-boundary hook runs exactly between the two bounded table passes");
+    check(pending_id.load(std::memory_order_seq_cst) == 0,
+          "the deterministic boundary fixture completes publication and clears pending_id");
+    check(lk.status == ResultLookupStatus::RESOLVED && lk.accepted && lk.tx_id == 707,
+          "mandatory post-pending second pass finds the just-published result, never false UNKNOWN");
+  }
+
+  // ---------------------------------------------------------------------
   // Result table: bounded storage, fail-closed eviction on collision --
   // an OLD request_id whose slot gets reused by a NEWER one must read as
   // UNKNOWN, never an eternal false PENDING/RESOLVED.
@@ -172,19 +206,25 @@ int main() {
   }
 
   // ---------------------------------------------------------------------
-  // Result table: request_id wraparound. A wrapped id (small number,
-  // reused after the counter overflows uint32_t) is handled by the exact
-  // same equality-based lookup as any other id -- no special-cased
-  // ordering logic exists to get this wrong, verified directly.
+  // Request staging: UINT32 wrap skips reserved request_id 0.
   // ---------------------------------------------------------------------
   {
+    RegisterWriteRequestMailbox mbox;
     RegisterWriteResultTable table{};
+    std::atomic<uint32_t> next_id{UINT32_MAX - 1};
     std::atomic<uint32_t> pending_id{0};
-    const uint32_t wrapped_id = 1;  // what next_id_counter.fetch_add(1)+1 would produce right after wrapping past UINT32_MAX
-    publish_write_result(table, pending_id, wrapped_id, true, 555, RejectReason::NONE, 5000);
-    auto lk = lookup_write_result(table, pending_id, wrapped_id, 5001);
-    check(lk.status == ResultLookupStatus::RESOLVED && lk.tx_id == 555,
-          "a small request_id value (as produced right after real uint32 wraparound) resolves normally -- no special-case ordering assumption exists to break");
+
+    const uint32_t max_id = try_stage_write_request(mbox, "gps_heartbeat", 1.0, 5000, next_id, pending_id);
+    check(max_id == UINT32_MAX, "the last pre-wrap request receives UINT32_MAX");
+    RegisterWriteRequestMailbox taken_max;
+    check(try_take_write_request(mbox, taken_max) && taken_max.request_id == UINT32_MAX,
+          "UINT32_MAX is staged and taken normally");
+    publish_write_result(table, pending_id, max_id, true, 555, RejectReason::NONE, 5001);
+
+    const uint32_t wrapped_id = try_stage_write_request(mbox, "lcd_always_on", 0.0, 5002, next_id, pending_id);
+    check(wrapped_id == 1, "counter wrap skips reserved request_id 0 and resumes at 1");
+    check(wrapped_id != 0 && pending_id.load(std::memory_order_seq_cst) == 1 && mbox.request_id == 1,
+          "request_id 0 is never returned, reserved, or staged in the mailbox");
   }
 
   // ---------------------------------------------------------------------
@@ -395,25 +435,8 @@ int main() {
   // first (structural proof the first request's publish, and its
   // pending_id CAS-clear, had already fully completed).
   //
-  // NOTE on scope: this test deliberately does NOT also hammer
-  // try_stage_write_request() from a second thread WHILE the first
-  // request is still unpublished in a tight racing loop against a plain
-  // boolean flag. An earlier draft of this test did exactly that and
-  // produced spurious failures under ThreadSanitizer's heavy scheduling
-  // perturbation -- not from Blocker 2's own gap (which the fully
-  // deterministic, single-threaded test above already proves exhaustively
-  // and unambiguously), but from a SEPARATE, already-documented, already-
-  // accepted property of a bounded, request_id-keyed table: rapid same-
-  // slot eviction can, in principle, evict an entry before some OTHER
-  // straggling reader ever observes its RESOLVED state (see
-  // lookup_write_result()'s own module comment on eviction -- this is
-  // "an OLD id reads UNKNOWN once superseded," working exactly as
-  // designed). Real production traffic can never approach that: single-
-  // flight means a second request is only ever issued after a client
-  // already learned the first one resolved, with a real HTTP round trip
-  // (hundreds of milliseconds) in between -- never a same-process, zero-
-  // delay busy loop. Manufacturing that artificial pattern here would be
-  // testing a different, already-accepted design property, not Blocker 2.
+  // This is supplemental scheduling stress. The deterministic tests above
+  // carry the correctness proof; no sleep/yield timing assumption does.
   // ---------------------------------------------------------------------
   {
     constexpr int kRounds = 300;
@@ -449,23 +472,6 @@ int main() {
         // genuinely still open the entire time, so pending_id must still
         // equal id_a and lookup must therefore answer PENDING, never
         // UNKNOWN, for every single poll in this window.
-        //
-        // yield() between attempts is deliberate, not incidental: an
-        // earlier draft of this loop spun as fast as the CPU allowed,
-        // which does not model any real client (a real status-poll client
-        // is always a real HTTP round trip, seconds apart, from the write
-        // it is polling) -- it instead created pathological cache-line
-        // contention against the writer thread's own seq_cst stores on
-        // the SAME slot, which can genuinely stretch out publish_write_
-        // result()'s own mid-publish window far enough to exhaust even a
-        // generous bounded retry count in lookup_write_result(). That is
-        // a real property of any wait-free reader racing a bounded
-        // number of times against an in-progress writer under
-        // adversarial, unthrottled contention -- not the Blocker 2 gap
-        // this test exists to prove, and not a pattern any real client of
-        // this API ever produces. yield() keeps this a genuine, real
-        // multi-threaded exercise of the exact take-before-publish gap
-        // without manufacturing that unrelated, unrealistic pathology.
         while (!resolved_by_poller.load(std::memory_order_seq_cst)) {
           const auto lk = lookup_write_result(table, pending_id, id_a, uint32_t(round));
           if (lk.status == ResultLookupStatus::RESOLVED) {
