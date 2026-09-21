@@ -1122,6 +1122,19 @@ function buildServicerGlobals() {
   lines.push(`    type: uint8_t[${blocks.length}]`);
   lines.push("  - id: g_rp_revision");
   lines.push(`    type: uint32_t[${blocks.length}]`);
+  lines.push("  # Stage 4 (typed-petting-puzzle plan §5 Phase 4): raw-payload cache, one");
+  lines.push("  # big-endian uint32_t per block, populated on EVERY successful decode");
+  lines.push("  # (right after the length check passes, before the per-block decode");
+  lines.push("  # switch) regardless of block type -- the read-modify-write write path");
+  lines.push("  # needs a FRESH raw physical-register snapshot to merge a packed field's");
+  lines.push("  # own bits into, and this is that snapshot's one shared source, keyed by");
+  lines.push("  # g_rp_last_success_ms/g_rp_revision (same index) for freshness/staleness");
+  lines.push("  # checks. Only meaningful for blocks with payload_bytes<=4 (every RW-");
+  lines.push("  # eligible block in this project is <=32 bits); wider blocks (UART hex");
+  lines.push("  # arrays, the bespoke cell-telemetry block) still populate it harmlessly");
+  lines.push("  # with their own first 4 bytes, simply never consulted for RMW.");
+  lines.push("  - id: g_rp_last_raw_word");
+  lines.push(`    type: uint32_t[${blocks.length}]`);
   lines.push("  # -1 = no read currently outstanding; otherwise the block index whose");
   lines.push("  # response the next completed create_read_command callback belongs to.");
   lines.push("  # A callback for any OTHER index (a late/stale response arriving after");
@@ -1239,6 +1252,12 @@ function buildServicerInterval() {
   L("        return;");
   L("      }");
   L("      const uint8_t *raw = data.data();");
+  L("      // Stage 4 raw-payload cache -- see g_rp_last_raw_word's own globals:");
+  L("      // comment. Populated for every block (cheap, branch-free), consulted");
+  L("      // only by the write path's RMW merge step, which additionally checks");
+  L("      // g_rp_last_success_ms/g_rp_revision (updated a few lines below, same");
+  L("      // tick) for freshness before ever trusting this value.");
+  L("      id(g_rp_last_raw_word)[chosen] = jk_poll_scheduler::read_be(raw, payload_bytes > 4 ? 4 : payload_bytes);");
   L("      switch (chosen) {");
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];

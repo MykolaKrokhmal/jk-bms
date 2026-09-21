@@ -25,7 +25,9 @@
 // several minutes) next happened to report.
 
 #include <array>
+#include <cmath>
 #include <cstdint>
+#include <cstring>
 
 namespace jk_write_tx {
 
@@ -227,6 +229,135 @@ inline TickResult tick(Slot &s, uint32_t now_ms,
   }
 
   return r; // already terminal -- caller frees the slot explicitly once consumed
+}
+
+// ---------------------------------------------------------------------------
+// Stage 4 (typed-petting-puzzle plan §5 Phase 4): real packed read-modify-
+// write encode/merge core. Pure, hardware-independent, unit-tested (see
+// test/jk_write_tx/test_jk_write_tx_rmw_core.cpp) -- exactly the same split
+// as the rest of this file: this module never touches hardware or globals,
+// the generated write-registry YAML servicer (batterylifepo4.yaml) owns
+// fetching the fresh raw snapshot, calling these functions, and issuing the
+// actual FC06/FC16 write with the result.
+//
+// The mandatory sequence this module supports (spec steps 1-13):
+//   1-2 (authorization/state/freshness) -- see raw_is_fresh() below; the
+//       caller itself checks authorization/safety-policy/single-flight
+//       (jk_write_tx::begin()'s own single-flight guard) before ever
+//       reaching this module.
+//   3   (reject stale/unavailable/wrong-generation RAW) -- raw_is_fresh().
+//   4-5 (validate + encode the user value) -- encode_numeric_field().
+//   6   (merged_raw = (old_raw & ~mask) | ((encoded << shift) & mask)) --
+//       merge_field_into_raw().
+//   7   (snapshot old_raw/mask/siblings/generation before write) -- the
+//       caller's own responsibility (capture BEFORE calling begin()), same
+//       pattern as the existing {idx, tx_id, address, generation} capture
+//       jk_write_tx::begin()'s own caller already uses for ACK/readback.
+//   12  (siblings/reserved bits preserved) -- verify_sibling_bits_preserved()
+//       (a readback-time check, mirrors compare_masked() for the TARGET
+//       bits, mirrored here for the COMPLEMENT of mask).
+// ---------------------------------------------------------------------------
+
+// Step 3: a cached raw snapshot is usable for RMW only if it is fresh
+// (updated within freshness_budget_ms of now), belongs to a real successful
+// read (last_success_ms != 0 -- a block that has NEVER once succeeded since
+// boot must never be treated as "just stale", it is genuinely unavailable),
+// and was not captured while some OTHER transaction already owns this
+// physical register (checked by the caller via jk_write_tx::is_pending() on
+// any existing slot for the same address, before ever calling begin()).
+inline bool raw_is_fresh(uint32_t last_success_ms, uint32_t now_ms, uint32_t freshness_budget_ms) {
+  if (last_success_ms == 0) return false; // never once succeeded -- unavailable, not stale
+  if (now_ms < last_success_ms) return false; // clock rolled over/inconsistent -- fail closed, never trust
+  return (now_ms - last_success_ms) <= freshness_budget_ms;
+}
+
+enum class EncodeStatus : uint8_t {
+  OK = 0,
+  NOT_FINITE = 1,       // NaN/Infinity
+  OUT_OF_RANGE = 2,     // outside [minimum, maximum]
+  OVERFLOWS_FIELD = 3,  // encoded integer does not fit in field_width_bits (signed or unsigned)
+};
+
+struct EncodeResult {
+  EncodeStatus status = EncodeStatus::NOT_FINITE;
+  uint32_t encoded_raw = 0; // the field's own bit pattern, right-aligned at bit 0 (NOT yet shifted into place)
+};
+
+// Step 4-5: validate a user-supplied decoded value against this field's own
+// range/scale/signedness, then encode it to its raw integer bit pattern.
+// scale/offset follow this project's existing convention throughout
+// jk_poll_scheduler_core.h's own decode path: decoded = raw * scale +
+// offset, so encoding inverts it: raw = round((decoded - offset) / scale).
+// field_width_bits bounds the overflow check (a 1-bit field's encoded_raw
+// must be 0 or 1, an 8-bit field's [0,255] unsigned or [-128,127] signed,
+// etc.) -- checked AFTER the scale/offset inversion, independent of
+// minimum/maximum (which are this field's own PROTOCOL-level domain bound,
+// a separate, typically tighter check than "does it fit in the wire type").
+inline EncodeResult encode_numeric_field(double decoded_value, bool is_signed, double scale, double offset,
+                                          double minimum, double maximum, uint8_t field_width_bits) {
+  EncodeResult r;
+  if (!std::isfinite(decoded_value)) {
+    r.status = EncodeStatus::NOT_FINITE;
+    return r;
+  }
+  if (decoded_value < minimum || decoded_value > maximum) {
+    r.status = EncodeStatus::OUT_OF_RANGE;
+    return r;
+  }
+  const double raw_d = scale != 0.0 ? std::round((decoded_value - offset) / scale) : 0.0;
+  if (!std::isfinite(raw_d)) {
+    r.status = EncodeStatus::NOT_FINITE;
+    return r;
+  }
+  if (is_signed) {
+    const int64_t raw_i = static_cast<int64_t>(raw_d);
+    const int64_t lo = field_width_bits >= 64 ? INT64_MIN : -(int64_t(1) << (field_width_bits - 1));
+    const int64_t hi = field_width_bits >= 64 ? INT64_MAX : (int64_t(1) << (field_width_bits - 1)) - 1;
+    if (raw_i < lo || raw_i > hi) {
+      r.status = EncodeStatus::OVERFLOWS_FIELD;
+      return r;
+    }
+    // Right-aligned two's-complement bit pattern, masked to field_width_bits.
+    const uint64_t mask = field_width_bits >= 64 ? ~uint64_t(0) : ((uint64_t(1) << field_width_bits) - 1);
+    r.encoded_raw = uint32_t(uint64_t(raw_i) & mask);
+  } else {
+    if (raw_d < 0.0) {
+      r.status = EncodeStatus::OVERFLOWS_FIELD;
+      return r;
+    }
+    const uint64_t raw_u = static_cast<uint64_t>(raw_d);
+    const uint64_t maxu = field_width_bits >= 64 ? ~uint64_t(0) : ((uint64_t(1) << field_width_bits) - 1);
+    if (raw_u > maxu) {
+      r.status = EncodeStatus::OVERFLOWS_FIELD;
+      return r;
+    }
+    r.encoded_raw = uint32_t(raw_u);
+  }
+  r.status = EncodeStatus::OK;
+  return r;
+}
+
+// Step 6: encoded_bits = (encoded_raw << shift) & mask; merged_raw =
+// (old_raw & ~mask) | encoded_bits. For a full-width field (mask ==
+// 0xFFFFFFFF, e.g. every write_uses_read_modify_write=false field), this
+// degenerates to merged_raw == encoded_bits -- the "no unnecessary merge"
+// case the spec calls out for direct full-width writes, produced by the
+// SAME function rather than a separate code path, so both kinds of write
+// share one tested implementation.
+inline uint32_t merge_field_into_raw(uint32_t old_raw, uint32_t mask, uint8_t shift, uint32_t encoded_raw) {
+  const uint32_t encoded_bits = (encoded_raw << shift) & mask;
+  return (old_raw & ~mask) | encoded_bits;
+}
+
+// Step 12 (readback verification, sibling half): the bits OUTSIDE mask in
+// the readback must equal the bits OUTSIDE mask that were present in the
+// pre-write old_raw snapshot -- proof that this write did not disturb any
+// packed sibling or reserved bit. (The bits INSIDE mask matching what was
+// requested is already jk_write_tx::compare_masked()'s own job, called with
+// the SAME mask -- this function is its deliberate complement, not a
+// replacement.)
+inline bool verify_sibling_bits_preserved(uint32_t old_raw, uint32_t readback_raw, uint32_t mask) {
+  return (old_raw & ~mask) == (readback_raw & ~mask);
 }
 
 }  // namespace jk_write_tx

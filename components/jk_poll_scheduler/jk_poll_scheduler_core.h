@@ -488,6 +488,22 @@ int resolve_active_group_block_index(const Block (&blocks)[N], int hint_group, b
   }
   return NO_BLOCK;
 }
+
+// Stage 4 (typed-petting-puzzle plan §5 Phase 4): the generated write path
+// needs to find its own block's read-side cache entry (g_rp_last_raw_word/
+// g_rp_last_success_ms, keyed by block index) from a write registry entry
+// that only knows its own physical register address. A linear scan over
+// kBlocks (at most ~103 entries, this project's whole read plan) is cheap
+// and simple -- this only runs on an actual write, never on the hot read
+// path. Every address in this project's read plan is unique (no two
+// blocks share a physical register), so the first match is the only match.
+template <size_t N>
+int find_block_index_for_address(const Block (&blocks)[N], uint16_t address) {
+  for (size_t i = 0; i < N; i++) {
+    if (blocks[i].address == address) return int(i);
+  }
+  return NO_BLOCK;
+}
 //
 // Elapsed-time math uses subtraction-then-compare throughout (`now_ms -
 // last_attempt_ms`), never `last_attempt_ms + cadence_ms` then compared

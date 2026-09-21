@@ -50,7 +50,9 @@ for (const reg of REGISTER_CATALOG.registers) {
 // never touched). This set makes the mock's behavior match the firmware's:
 // an outright rejection, not an optimistic echo.
 const BLOCKED_REGISTER_KEYS = new Set(
-  REGISTER_CATALOG.registers.filter((r) => r.access === "rw" && r.effective_access !== "rw").map((r) => r.key)
+  REGISTER_CATALOG.registers
+    .filter((r) => (r.access === "rw" && r.effective_access !== "rw") || r.manager === "generic_authorization_required")
+    .map((r) => r.key)
 );
 const PORT = Number(process.env.PORT) || 8321;
 // Bind explicitly to IPv4 so a phone on the local Wi-Fi can open the demo

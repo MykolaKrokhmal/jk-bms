@@ -1,13 +1,13 @@
 {
   "$comment": "GENERATED -- Stage 3 (typed-petting-puzzle plan) preflight deliverable: wire-position-based status of every one of the 265 manifest parameters against the CURRENT registers.canonical.json and CURRENT open protocol_blockers.json entries. 'Wire-position' means bit/byte-half/whole-register slot identity, not proven semantic identity -- a status is implemented_* only when exactly one canonical field occupies a parameter's own wire position; more than one such field yields status=missing with an explicit AMBIGUOUS note rather than a guess (see tools/protocol/authoring/build_stage3_status_map.js's own header comment). NOT a mechanical manifest-count-vs-canonical-count comparison -- packed fields, aliases, and derived entities have a different structure between the two catalogs. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_stage3_status_map.js. Because this reads the CURRENT canonical/blocker state (which Stage 3 itself will change), this file's own committed content reflects one snapshot in the stage's history -- re-run this generator (and its own --check) after each canonical/blocker change within Stage 3, exactly like every other generator in this pipeline.",
   "manifest_source_sha256": "23b07669074e51b20cc1e915f202c1dd2b14f911e0da641a2091a44dc14a3ba7",
-  "canonical_source_sha256": "7c1be47cdb097d9fca056e58fe90dd3decc0819e961377683d7e2d0293a5630b",
+  "canonical_source_sha256": "b2bf66b0bf8f544b4e659a66c9fb529ad6a809fa8314436cce646649a8cb21aa",
   "blockers_source_sha256": "42e2f3fa724f261753f21aa11f363a992778281c4e04861c91c9ae7a7518541b",
   "parameter_count": 265,
   "counts": {
-    "implemented_read": 228,
+    "implemented_read": 186,
     "blocked": 8,
-    "implemented_write_confirmed": 18,
+    "implemented_write_confirmed": 60,
     "missing": 6,
     "derived_not_a_register": 1,
     "reserved": 4
@@ -986,80 +986,80 @@
       "base_address": "0x1114",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "Disable temp-sensor",
       "base_address": "0x1114",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "GPS Heartbeat",
       "base_address": "0x1114",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "Port Switch",
       "base_address": "0x1114",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "LCD Always On",
       "base_address": "0x1114",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "Special Charger",
       "base_address": "0x1114",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "SmartSleep",
       "base_address": "0x1114",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "DisablePCLModule",
       "base_address": "0x1114",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "TimedStoredData",
       "base_address": "0x1114",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "TIMSmartSleep",
       "base_address": "0x1118",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "DataDomainEnable0",
@@ -1690,256 +1690,256 @@
       "base_address": "0x1088",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes1",
       "base_address": "0x108C",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes2",
       "base_address": "0x1090",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes3",
       "base_address": "0x1094",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes4",
       "base_address": "0x1098",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes5",
       "base_address": "0x109C",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes6",
       "base_address": "0x10A0",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes7",
       "base_address": "0x10A4",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes8",
       "base_address": "0x10A8",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes9",
       "base_address": "0x10AC",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes10",
       "base_address": "0x10B0",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes11",
       "base_address": "0x10B4",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes12",
       "base_address": "0x10B8",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes13",
       "base_address": "0x10BC",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes14",
       "base_address": "0x10C0",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes15",
       "base_address": "0x10C4",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes16",
       "base_address": "0x10C8",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes17",
       "base_address": "0x10CC",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes18",
       "base_address": "0x10D0",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes19",
       "base_address": "0x10D4",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes20",
       "base_address": "0x10D8",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes21",
       "base_address": "0x10DC",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes22",
       "base_address": "0x10E0",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes23",
       "base_address": "0x10E4",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes24",
       "base_address": "0x10E8",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes25",
       "base_address": "0x10EC",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes26",
       "base_address": "0x10F0",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes27",
       "base_address": "0x10F4",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes28",
       "base_address": "0x10F8",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes29",
       "base_address": "0x10FC",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes30",
       "base_address": "0x1100",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "CellConWireRes31",
       "base_address": "0x1104",
       "access": "RW",
       "classification": "official",
-      "status": "implemented_read",
-      "note": "canonical field implemented (unique wire-position match), effective_access=r"
+      "status": "implemented_write_confirmed",
+      "note": "canonical field implemented (unique wire-position match), effective_access=rw"
     },
     {
       "id": "BatDisCurCorrect",

@@ -23,6 +23,25 @@ const workbookV2 = read("protocol/evidence/workbook_v2_index.json");
 const upstream = read("protocol/evidence/upstream_index.json");
 const implementation = read("protocol/evidence/implementation_index.json");
 const sources = new Map(sourceDoc.sources.map((s) => [s.source_id, s]));
+// Stage 4 (typed-petting-puzzle plan §5): fields promoted to effective_
+// access "rw" via verification_status="confirmed" alone (no
+// owner_write_override) have their real write implementation in the
+// GENERATED protocol/generated/write_registry.yaml package, not directly
+// in batterylifepo4.yaml -- build_implementation_index.py's own address-
+// anchored regex (predates the generated-scheduler architecture) cannot
+// find them there. write_registry.json (the audit sibling of that
+// package, always regenerated alongside it) is this project's own
+// authoritative record of exactly which fields have a real, generated,
+// tested write path -- read directly here as a second, independent
+// implementation-evidence source, the same role ownerAuthorized already
+// plays for the original 18 fields below. Optional (a fresh checkout or
+// this script's own --root tmp sandbox may not have it yet): absent ->
+// empty set, never a crash, and no field is bypassed by its absence.
+let writeRegistryKeys = new Set();
+try {
+  const wr = read("protocol/generated/write_registry.json");
+  writeRegistryKeys = new Set(wr.entries.map((e) => e.key));
+} catch (_) { /* absent is valid -- see comment above */ }
 
 const REQUIRED_WRITE_CLAIMS = Object.freeze([
   "address", "register_width", "word_count", "payload_byte_length", "byte_order", "word_order",
@@ -164,9 +183,18 @@ function deriveField(register, field) {
   // writeReady, so this claim-level check agrees with it rather than
   // re-flagging every field the owner already reviewed and authorized.
   const ownerAuthorized = !!(field.owner_write_override && field.owner_write_override.authorized === true && field.access === "rw");
+  // Stage 4: a real write_registry.json entry is this project's own
+  // generated proof that address/word_count/mask/shift/scale/write path/
+  // readback comparator all genuinely exist and are tested for this field
+  // (see generate_write_registry.js's own isEligible() and
+  // test_stage4_write_registry_equality.js's geometry-match proof) --
+  // exactly the class of evidence REQUIRED_WRITE_CLAIMS wants, just
+  // sourced from the newer generated-package architecture instead of the
+  // old address-anchored batterylifepo4.yaml scan.
+  const registryBacked = field.access === "rw" && writeRegistryKeys.has(field.key);
   const dynamicDependencyUnresolved = !!(field.dynamic_dependency && field.dynamic_dependency.resolved === false);
   const derivedEffectiveAccess = field.access === "rw"
-    ? ((writeReady || ownerAuthorized) && (ownerAuthorized || !dynamicDependencyUnresolved) ? "rw" : "r")
+    ? ((writeReady || ownerAuthorized || registryBacked) && (ownerAuthorized || registryBacked || !dynamicDependencyUnresolved) ? "rw" : "r")
     : field.effective_access;
   return {
     key: field.key,

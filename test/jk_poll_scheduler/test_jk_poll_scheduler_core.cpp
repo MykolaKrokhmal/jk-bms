@@ -625,6 +625,36 @@ static void test_active_group_end_to_end_boosts_the_hinted_block_once_due() {
   check_eq(chosen_next, 0, "no starvation: with the boost gone, the other block is still picked on its own cadence");
 }
 
+// ---------------------------------------------------------------------
+// find_block_index_for_address (Stage 4, typed-petting-puzzle plan §5
+// Phase 4 -- the generated write path's own address->block-index lookup
+// for the RMW raw-cache).
+// ---------------------------------------------------------------------
+static Block make_block_with_address(uint16_t address) {
+  Block b{};
+  b.address = address;
+  b.ui_group = -1;
+  return b;
+}
+
+static void test_find_block_index_for_address_finds_match() {
+  Block blocks[3] = {make_block_with_address(0x1000), make_block_with_address(0x1504), make_block_with_address(0x1290)};
+  check_eq(find_block_index_for_address(blocks, uint16_t(0x1504)), 1, "finds the block at the matching address");
+}
+
+static void test_find_block_index_for_address_no_match_returns_no_block() {
+  Block blocks[2] = {make_block_with_address(0x1000), make_block_with_address(0x1004)};
+  check_eq(find_block_index_for_address(blocks, uint16_t(0x9999)), NO_BLOCK, "no block at this address -- NO_BLOCK, never a guess");
+}
+
+static void test_find_block_index_for_address_first_match_wins() {
+  // Every real address in this project's read plan is unique, but the
+  // function's own contract (first match) is still worth pinning down
+  // explicitly rather than leaving it as an accident of implementation.
+  Block blocks[2] = {make_block_with_address(0x1504), make_block_with_address(0x1504)};
+  check_eq(find_block_index_for_address(blocks, uint16_t(0x1504)), 0, "first matching index wins, deterministically");
+}
+
 int main() {
   test_decode_u32_full_register_with_scale();
   test_decode_s32_capacity_remaining_negative_wire_sign();
@@ -684,6 +714,10 @@ int main() {
   test_resolve_active_group_rejects_out_of_range_group();
   test_resolve_active_group_matches_todays_real_data_all_unset();
   test_active_group_end_to_end_boosts_the_hinted_block_once_due();
+
+  test_find_block_index_for_address_finds_match();
+  test_find_block_index_for_address_no_match_returns_no_block();
+  test_find_block_index_for_address_first_match_wins();
 
   std::printf("%d checks run, %d failed.\n", g_checks, g_failures);
   return g_failures == 0 ? 0 : 1;

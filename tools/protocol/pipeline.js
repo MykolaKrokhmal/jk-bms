@@ -136,6 +136,14 @@ try {
   copy("protocol/registers.canonical.json");
   copy("protocol/non_register_entities.canonical.json");
   copy("protocol/evidence/sources.json");
+  // Stage 4 (typed-petting-puzzle plan §5): build_claim_matrix.js reads
+  // this as a second, independent implementation-evidence source (see its
+  // own comment) -- copied optionally, matching that script's own
+  // graceful-absence handling, so a checkout that hasn't run
+  // generate_write_registry.js yet still runs the rest of this pipeline.
+  if (fs.existsSync(path.join(ROOT, "protocol/generated/write_registry.json"))) {
+    copy("protocol/generated/write_registry.json");
+  }
   const tempWorkbook = path.join(tmp, "protocol/evidence/workbook_index.json");
   const tempWorkbookV2 = path.join(tmp, "protocol/evidence/workbook_v2_index.json");
   const tempUpstream = path.join(tmp, "protocol/evidence/upstream_index.json");

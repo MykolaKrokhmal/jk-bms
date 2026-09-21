@@ -1,21 +1,21 @@
 {
   "pipeline_version": 1,
-  "release_generation_id": "887b7ff2ec14a0a8",
+  "release_generation_id": "44b1505bf0600eaa",
   "node_version": "v24.2.0",
   "python_version": "3.9.6",
   "file_hashes": {
-    "protocol/evidence/sources.json": "26d10e8ff06361f411fd1c17e7e5547970a62107dab27ae1dcba737d331dfd6f",
+    "protocol/evidence/sources.json": "55da49134a4140424199fb989cadca7f0352bb35d6cfe00ae41ea5c492e6bb87",
     "protocol/evidence/workbook_index.json": "34a3f85f622bde27ee0555ea4e2b3966aced94da10624b0b3b0c560cf7f5a70d",
-    "protocol/evidence/workbook_v2_index.json": "8de0a835ae04f3ca8b65379aeb81539e89cc79f9888edc9b12f3efb4d4fd1feb",
-    "protocol/evidence/upstream_index.json": "5d03ebc8543763713566fdfff60d999324e4a49b111e2377b11a14901c2fb8b6",
-    "protocol/evidence/implementation_index.json": "a36be9a0ca2360ad5c5bc68bc0c7086192b25a094a4277c2cf86292d9aae6d49",
-    "protocol/registers.canonical.json": "7c1be47cdb097d9fca056e58fe90dd3decc0819e961377683d7e2d0293a5630b",
+    "protocol/evidence/workbook_v2_index.json": "f40d9e9b5f3009de840861da16034dd4e219133ae668fc08a963fbdbbb541813",
+    "protocol/evidence/upstream_index.json": "a398a00d5cccdaf008736a9dbb04ee3c9287f5d33386c3faf82a4eab18ba401c",
+    "protocol/evidence/implementation_index.json": "0f92055936317186e6f5ec15917337b24d131aeb2f0eebd2b9cc77c7d6d2a008",
+    "protocol/registers.canonical.json": "b2bf66b0bf8f544b4e659a66c9fb529ad6a809fa8314436cce646649a8cb21aa",
     "protocol/non_register_entities.canonical.json": "65adebfb3d7490ddc6ba8b0351bcd25e921ee27b56693ef7d6f90783b38efcdf",
-    "protocol/generated/claim_matrix.json": "4048b839dc71cd0fe0f0b28c7a3db21199c267c03862aec7999c6a00160f7416",
-    "register_catalog.json": "0b91e8e25a4a14fe3c1ce94d5db35e49b1ddb44a8d2fcc66a5b5089f35ffecd2",
-    "protocol/generated/coverage_report.md": "a290ecd2353ac0f337bf39f39feff68c132a837b1361cbf1d2a3a1f4210ce52e",
-    "protocol/generated/.generation-manifest.json": "189d225f2504ae6333d010e89e53d3864b190cee983dd5f73e1168d661ece7a5",
-    "jk_bms.js": "8779c4b286ae1ca0f44bdebffbf36365f540d10c9c97b6e72d15f32718b99ec8"
+    "protocol/generated/claim_matrix.json": "dc151d5d0e882321c2a5b4001ef00f351da400f55b5058b95a4a7c66d9a7844b",
+    "register_catalog.json": "998a12c237b8404429bbefb1da981ea785c226e42b2114df273de9f7fdb97649",
+    "protocol/generated/coverage_report.md": "6689c2e6590cb8f421869f900a5a837c7f9fc7271da787ccafccff72ebccc06a",
+    "protocol/generated/.generation-manifest.json": "c4d6e9d7afcbe96e0e4e742647cdebf26e239c005a71fea15344b4d752f883e5",
+    "jk_bms.js": "e93401fdc64f99fa60fcafe7cd10b19c980fe5a0cf1257bbbc1647474ffcae4a"
   },
-  "generation_id": "34f0ce226b2956ed"
+  "generation_id": "d36c299818cfab87"
 }

@@ -60,6 +60,16 @@ substitutions:
 # alongside its sensor:/binary_sensor:/text_sensor: entities.
 packages:
   register_reads: !include protocol/generated/read_plan.yaml
+  # Stage 4 (typed-petting-puzzle plan §5 Phase 3): generated write
+  # registry -- one `number:` entity per RW field newly eligible for a
+  # real write path this stage (never the original 18 owner-authorized
+  # fields, which keep their own existing hand-authored entities below;
+  # see generate_write_registry.js's own isEligible() for the exact,
+  # non-overlapping gate). Declares only `number:` entities -- no globals:/
+  # interval: of its own, since every entity dispatches through the
+  # SAME shared scripts (write_bms_u32/u16, begin_write_tx_rmw) already
+  # declared by hand further down this file.
+  write_registry: !include protocol/generated/write_registry.yaml
 
 esphome:
   name: ${name}
@@ -3893,6 +3903,62 @@ script:
       raw: int
     then:
       - script.execute: {id: begin_write_tx, address: !lambda "return address;", word_count: 1, raw: !lambda "return raw;", mask: -1, suppress: 0}
+
+  # Stage 4 (typed-petting-puzzle plan §5 Phase 4): real packed read-modify-
+  # write entry point -- used ONLY by fields whose canonical
+  # write_uses_read_modify_write is true (packed_siblings and/or narrower
+  # than the whole register; see protocol/registers.canonical.json's own
+  # field-level comment). Full-width fields keep using write_bms_u32/u16
+  # above unchanged (mask=-1, no merge needed, per this project's own "no
+  # unnecessary merge" policy for a field that already owns its entire
+  # register). `encoded_raw` here is ALREADY the field's own validated,
+  # range-checked, scaled raw bit pattern (right-aligned at bit 0, not yet
+  # shifted) -- each generated per-field on_value: trigger computes it via
+  # jk_write_tx::encode_numeric_field() with ITS OWN compile-time-known
+  # scale/offset/range/signedness/width before calling this shared script,
+  # so this script itself stays generic over every packed field's geometry
+  # (address/word_count/mask/shift only).
+  #
+  # Sequence (spec steps 2-3, 6-9): find this address's own read-plan block
+  # (jk_poll_scheduler::find_block_index_for_address) to reach its cached
+  # raw snapshot; reject the write outright if no block exists, or if that
+  # snapshot isn't fresh (jk_write_tx::raw_is_fresh against the SAME
+  # freshness_budget_ms this project's read plan already uses for this
+  # block, passed in by the caller so it can differ per field's own
+  # poll_group cadence) -- "unavailable/stale/read_error/wrong length" are
+  # all covered by raw_is_fresh() + the read path's own existing exact/
+  # floor length validation already gating whether last_success_ms ever
+  # advances at all. Then merge (jk_write_tx::merge_field_into_raw) and
+  # hand off to the EXISTING begin_write_tx (steps 7-9, 14-17: single-
+  # flight, ACK/readback, WRITE_UNCERTAIN+recovery, no auto-retry, resume
+  # -- all already implemented and tested there, reused verbatim, never
+  # duplicated).
+  - id: begin_write_tx_rmw
+    parameters:
+      address: int
+      word_count: int
+      mask: int
+      shift: int
+      encoded_raw: int
+      freshness_budget_ms: int
+    then:
+      - lambda: |-
+          const uint16_t addr = uint16_t(address);
+          const int block_idx = jk_poll_scheduler::find_block_index_for_address(jk_read_plan::kBlocks, addr);
+          if (block_idx < 0) {
+            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- no read-plan block owns this address", unsigned(addr));
+            return;
+          }
+          const uint32_t now = millis();
+          const uint32_t last_success = id(g_rp_last_success_ms)[block_idx];
+          if (!jk_write_tx::raw_is_fresh(last_success, now, uint32_t(freshness_budget_ms))) {
+            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- raw snapshot not fresh (last_success_ms=%u now=%u budget=%ums)",
+                     unsigned(addr), unsigned(last_success), unsigned(now), unsigned(freshness_budget_ms));
+            return;
+          }
+          const uint32_t old_raw = id(g_rp_last_raw_word)[block_idx];
+          const uint32_t merged_raw = jk_write_tx::merge_field_into_raw(old_raw, uint32_t(mask), uint8_t(shift), uint32_t(encoded_raw));
+          id(begin_write_tx)->execute(address, word_count, int(merged_raw), mask, 0);
 
   # ---- Topology Resolver — the single source of truth for whether
   # CellCount (BMS *configuration*) can be trusted as the pack's actual
