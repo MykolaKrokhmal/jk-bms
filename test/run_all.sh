@@ -171,6 +171,7 @@ echo "=== Stage 4: write registry HTTP end-to-end (spawns its own demo server) =
 node test/protocol_catalog/test_stage4_write_http_simulator_end_to_end.js
 node test/protocol_catalog/test_stage4_register_write_simulator_end_to_end.js
 node test/protocol_catalog/test_write_registry_ui_structural.js
+node test/protocol_catalog/test_write_registry_ui.js
 
 echo
 echo "=== protocol catalog: generation atomicity + simulated-failure detection ==="
