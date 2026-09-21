@@ -91,26 +91,23 @@ async function main() {
   try {
     await waitForServer(child);
 
-    // --- live fields: accepted via the real HTTP routing/dispatch layer. ---
-    // NOTE on scope: demo/mock-server.js's `entities` map is a hand-curated
-    // fixture list (built for frontend UI development, not auto-generated
-    // from register_catalog.json) that does not yet include Stage 4's 42
-    // new fields -- extending it to fully simulate each one's live SSE
-    // value is a separate, legitimate scope item, not attempted here. What
-    // IS proven, over real HTTP against real production code: the mock's
-    // own REGISTER_BY_KEY (built from the real, current register_catalog.
-    // json, itself generated from registers.canonical.json) correctly
-    // recognizes each live field as manager="generic" and ROUTES it into
-    // the real runGenericWriteTx staged-transaction path (200, not the 409
-    // a "generic_authorization_required"/unknown entity would get) -- the
-    // routing/eligibility decision this test exists to prove. The
-    // encode/merge/freshness math itself is proven directly, against real
-    // production constants, by test_jk_write_tx_rmw_end_to_end.cpp.
+    // --- live fields: the LEGACY generic /number/<id>/set route must now
+    // REJECT every one of them (404) -- corrected 2026-09-21 (deployment-
+    // gate audit issue #1-#4): every generated write_registry.yaml
+    // `number:` entity is internal:true on real hardware, so ESPHome's
+    // generic REST route can never reach any of them there either. A
+    // prior version of this same test asserted the OPPOSITE (200 via this
+    // route) -- that assertion was proving a mock/firmware fidelity GAP
+    // was present, not that production integration worked; see
+    // demo/mock-server.js's own REGISTER_BY_KEY exclusion-filter comment.
+    // The real, now-existing production route for these 5 fields is
+    // /settings/register-write -- see
+    // test_stage4_register_write_simulator_end_to_end.js for its coverage.
     for (const entry of liveEntries) {
-      const requestedValue = entry.maximum; // exercise the boundary the field's own range allows
+      const requestedValue = entry.maximum;
       const resp = await request("POST", `/number/${entry.entity_id}/set?value=${requestedValue}`);
-      check(`live field ${entry.key}: HTTP write is accepted (200) via the real generic write-tx route, not rejected`,
-        resp.status === 200, `status=${resp.status} body=${resp.body.slice(0, 120)}`);
+      check(`live field ${entry.key}: the LEGACY generic /number/.../set route correctly rejects it (404) -- internal:true entities are unreachable that way on real hardware`,
+        resp.status === 404, `status=${resp.status} body=${resp.body.slice(0, 120)}`);
     }
 
     // --- authorization-required fields: rejected outright, state unchanged. ---

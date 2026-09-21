@@ -33,8 +33,31 @@ const ROOT = path.join(__dirname, "..");
 // cell_count and setup_passcode keep their own bespoke handling exactly
 // like the real firmware.
 const REGISTER_CATALOG = require(path.join(ROOT, "register_catalog.json"));
+// Stage 4 production-integration gap fix (2026-09-21): the real firmware's
+// generated write_registry.yaml `number:` entities are ALL internal:true
+// -- ESPHome's generic /number/<id>/set REST route can never reach any of
+// them on real hardware, only the new dedicated /settings/register-write
+// endpoint can (see RegisterWriteHandler, batterylifepo4.yaml). Loaded
+// here (not lower, where the rest of this file's own Stage 4 simulation
+// lives) specifically so WRITE_REGISTRY_LIVE_KEYS exists before the
+// REGISTER_BY_KEY loop below runs.
+const WRITE_REGISTRY = require(path.join(ROOT, "protocol", "generated", "write_registry.json"));
+const WRITE_REGISTRY_BY_KEY = Object.create(null);
+const WRITE_REGISTRY_LIVE_KEYS = new Set();
+for (const e of WRITE_REGISTRY.entries) {
+  WRITE_REGISTRY_BY_KEY[e.key] = e;
+  if (e.submit_policy === "live") WRITE_REGISTRY_LIVE_KEYS.add(e.key);
+}
 const REGISTER_BY_KEY = Object.create(null);
 for (const reg of REGISTER_CATALOG.registers) {
+  // Before this fix, a write-registry-eligible field (manager:"generic" in
+  // register_catalog.json, since Stage 4 promoted its effective_access to
+  // "rw") fell straight through to the legacy generic write-tx simulation
+  // below, letting a test POST /number/set_gps_heartbeat/set succeed in
+  // the mock even though the real entity is internal:true and genuinely
+  // unreachable that way on real hardware -- a real mock/firmware
+  // fidelity gap, not merely a hypothetical one (found this round).
+  if (reg.manager === "generic" && WRITE_REGISTRY_LIVE_KEYS.has(reg.key)) continue;
   if (reg.manager === "generic") REGISTER_BY_KEY[reg.key] = { ...reg, addr: parseInt(reg.address, 16) };
 }
 // Stage 1 Completion Pass (CODEX_STAGE_1_REMEDIATION_RESULT_REVIEW.md P0-4/
@@ -326,6 +349,182 @@ function runGenericWriteTx(addr, wireId, requestedValue, suppress, onTerminal) {
       }, 300);
     }, 300);
   }, 200);
+}
+
+/* ============================================================
+   STAGE 4 PRODUCTION-INTEGRATION SIMULATION (2026-09-21, user-directed
+   deployment-gate audit) -- /settings/register-write and
+   /settings/register-write/preflight. SIMULATOR ONLY: this JS re-derives
+   the encode/merge math from the REAL, generated write_registry.json (the
+   same catalog batterylifepo4.yaml's compiled write_registry_table.h is
+   generated from) and mirrors jk_write_tx_core.h's own
+   encode_numeric_field/merge_field_into_raw formulas and the REAL
+   firmware's physical block-cache model (one raw uint16/uint32 snapshot
+   per physical register, with a freshness budget) -- but it is a
+   reimplementation in JS for demo purposes, never a substitute for
+   compiling and exercising the actual C++ handlers
+   (RegisterWriteHandler/RegisterWritePreflightHandler) against real
+   hardware. Reuses the SAME wtxSlots/runGenericWriteTx state machine as
+   every other register write here (real single-flight is genuinely
+   per-address across every write kind sharing the firmware's one 6-slot
+   pool, so this is the MORE faithful simulation, not a shortcut) --
+   register-write's own job is only computing the merged raw value to
+   hand to it and applying it back to rawWordCache on CONFIRMED.
+   (WRITE_REGISTRY/WRITE_REGISTRY_BY_KEY are declared near the top of this
+   file, alongside REGISTER_BY_KEY's own exclusion filter -- see there.)
+   ============================================================ */
+
+// One raw physical-register snapshot per address this project's write
+// registry ever references, mirroring g_rp_last_raw_word/
+// g_rp_last_success_ms. A CellConWireRes* address (never in this demo's
+// read plan, exactly like real hardware -- see jk_capability_core.h's own
+// "never-before-read" module comment) is deliberately NEVER seeded here,
+// so preflight/POST correctly report it unavailable, not a fabricated 0.
+const rawWordCache = Object.create(null); // address(number) -> {raw, lastSuccessMs}
+function seedRawWord(addrHex, raw) {
+  rawWordCache[parseInt(addrHex, 16)] = { raw, lastSuccessMs: Date.now() };
+}
+// 0x1114: charging_float_mode (bit 9, pre-existing) starts "On" to match
+// this file's own seedEntities() (`binary_sensor-charging_float_mode`,
+// "On") -- every other documented bit starts 0/Off, matching a fresh
+// device default. 0x1118: smart_sleep_timeout_hours (bits 8-15) starts 0.
+seedRawWord("0x1114", 0x0200);
+seedRawWord("0x1118", 0x0000);
+
+// Mirrors jk_write_tx_core.h's encode_numeric_field exactly (same status
+// enum ordering: 0=OK,1=NOT_FINITE,2=OUT_OF_RANGE,3=OVERFLOWS_FIELD).
+function encodeNumericFieldMock(decodedValue, isSigned, scale, offset, minimum, maximum, fieldWidthBits) {
+  if (!Number.isFinite(decodedValue)) return { status: 1, encodedRaw: 0 };
+  if (decodedValue < minimum || decodedValue > maximum) return { status: 2, encodedRaw: 0 };
+  const rawD = scale !== 0 ? Math.round((decodedValue - offset) / scale) : 0;
+  if (!Number.isFinite(rawD)) return { status: 1, encodedRaw: 0 };
+  if (isSigned) {
+    const lo = -(2 ** (fieldWidthBits - 1));
+    const hi = 2 ** (fieldWidthBits - 1) - 1;
+    if (rawD < lo || rawD > hi) return { status: 3, encodedRaw: 0 };
+    const mask = fieldWidthBits >= 32 ? 0xFFFFFFFF : (2 ** fieldWidthBits) - 1;
+    return { status: 0, encodedRaw: (rawD < 0 ? rawD + 2 ** fieldWidthBits : rawD) & mask };
+  }
+  if (rawD < 0) return { status: 3, encodedRaw: 0 };
+  const maxu = fieldWidthBits >= 32 ? 0xFFFFFFFF : (2 ** fieldWidthBits) - 1;
+  if (rawD > maxu) return { status: 3, encodedRaw: 0 };
+  return { status: 0, encodedRaw: rawD };
+}
+function mergeFieldIntoRawMock(oldRaw, mask, shift, encodedRaw) {
+  const encodedBits = ((encodedRaw << shift) >>> 0) & mask;
+  return ((oldRaw & ~mask) >>> 0 | encodedBits) >>> 0;
+}
+function parseHexAddr(s) { return parseInt(s, 16); }
+
+function preflightRegisterWrite(entry, valueRaw) {
+  const mask = parseHexAddr(entry.mask === null ? "0xFFFFFFFF" : entry.mask);
+  const addr = parseHexAddr(entry.address);
+  const cache = rawWordCache[addr];
+  const now = Date.now();
+  const fresh = !!cache && now - cache.lastSuccessMs <= entry.freshness_budget_ms;
+  const isCredential = entry.write_safety_class === "credential";
+  let hasValue = valueRaw !== null && valueRaw !== undefined && String(valueRaw).trim() !== "";
+  let enc = { status: 1, encodedRaw: 0 };
+  if (hasValue) {
+    const value = Number(valueRaw);
+    if (!Number.isFinite(value)) hasValue = false;
+    else enc = encodeNumericFieldMock(value, entry.signedness === "signed", entry.scale, entry.offset, entry.minimum, entry.maximum, entry.field_width_bits);
+  }
+  let rejectReason = null;
+  if (!cache) rejectReason = "no read-plan block for this register";
+  else if (!fresh) rejectReason = "raw snapshot unavailable or stale";
+  else if (!hasValue) rejectReason = "value missing or not a finite number";
+  else if (enc.status !== 0) rejectReason = "value rejected by encode/range check";
+  else if (entry.submit_policy !== "live") rejectReason = "authorization_required";
+  const canPreviewMerge = hasValue && enc.status === 0 && !!cache && fresh;
+  const mergedRaw = canPreviewMerge ? mergeFieldIntoRawMock(cache.raw, mask, entry.shift, enc.encodedRaw) : null;
+  const activeSlot = wtxSlots.find((s) => s.inUse && s.addr === addr) || null;
+  return {
+    key: entry.key,
+    write_safety_class: entry.write_safety_class,
+    submit_policy: entry.submit_policy,
+    address: entry.address,
+    write_function: "write_multiple_registers_fc16",
+    word_count: entry.word_count,
+    current_raw: isCredential || !cache ? null : cache.raw,
+    raw_age_ms: cache ? now - cache.lastSuccessMs : null,
+    generation: cache ? cache.lastSuccessMs : 0,
+    mask: `0x${mask.toString(16).toUpperCase().padStart(4, "0")}`,
+    shift: entry.shift,
+    encoded_target_bits: canPreviewMerge && !isCredential ? `0x${(((enc.encodedRaw << entry.shift) >>> 0) & mask).toString(16).toUpperCase().padStart(4, "0")}` : null,
+    merged_raw: canPreviewMerge && !isCredential ? mergedRaw : null,
+    preservation_mask: isCredential || !cache ? null : `0x${(~mask >>> 0).toString(16).toUpperCase().padStart(4, "0")}`,
+    sibling_bits_before: isCredential || !cache ? null : (cache.raw & ~mask) >>> 0,
+    sibling_bits_expected_after: isCredential || !cache ? null : (cache.raw & ~mask) >>> 0,
+    ready: rejectReason === null,
+    reject_reason: rejectReason,
+    active_transaction: activeSlot ? { tx_id: activeSlot.txId, status: activeSlot.status } : null,
+  };
+}
+
+function handleRegisterWritePreflight(query, res) {
+  const key = query.get("key") || "";
+  const valueRaw = query.get("value");
+  if (!key) { res.writeHead(400, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ready: false, reject_reason: "missing key" })); return; }
+  const entry = WRITE_REGISTRY_BY_KEY[key];
+  if (!entry) { res.writeHead(404, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ready: false, reject_reason: "unknown key" })); return; }
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(preflightRegisterWrite(entry, valueRaw)));
+}
+
+function handleRegisterWrite(query, res) {
+  const key = query.get("key") || "";
+  const valueRaw = query.get("value");
+  const submitPolicyArg = query.get("submit_policy") || "";
+  const respondJson = (code, obj) => { res.writeHead(code, { "Content-Type": "application/json" }); res.end(JSON.stringify(obj)); };
+
+  if (!key) return respondJson(400, { ok: false, error: "missing key" });
+  if (submitPolicyArg !== "live") return respondJson(400, { ok: false, error: "submit_policy must be 'live'" });
+  if (valueRaw === null || valueRaw === undefined || String(valueRaw).trim() === "") return respondJson(400, { ok: false, error: "missing value" });
+  const value = Number(valueRaw);
+  if (!Number.isFinite(value)) return respondJson(400, { ok: false, error: "value must be a finite number" });
+
+  const entry = WRITE_REGISTRY_BY_KEY[key];
+  if (!entry) return respondJson(404, { ok: false, error: "unknown key" });
+  if (entry.submit_policy !== "live") return respondJson(403, { ok: false, error: "authorization_required", write_safety_class: entry.write_safety_class });
+
+  const enc = encodeNumericFieldMock(value, entry.signedness === "signed", entry.scale, entry.offset, entry.minimum, entry.maximum, entry.field_width_bits);
+  if (enc.status !== 0) return respondJson(400, { ok: false, error: "encode_rejected", status: enc.status });
+
+  const addr = parseHexAddr(entry.address);
+  const mask = parseHexAddr(entry.mask === null ? "0xFFFFFFFF" : entry.mask);
+  // Re-check RAW immediately before queueing -- preflight is advisory,
+  // never a lock (same requirement/comment as RegisterWriteHandler
+  // itself, batterylifepo4.yaml).
+  const cache = rawWordCache[addr];
+  const now = Date.now();
+  if (entry.write_uses_read_modify_write) {
+    if (!cache) return respondJson(409, { ok: false, error: "no read-plan block for this register" });
+    if (now - cache.lastSuccessMs > entry.freshness_budget_ms) return respondJson(409, { ok: false, error: "stale" });
+  }
+  const mergedRaw = cache ? mergeFieldIntoRawMock(cache.raw, mask, entry.shift, enc.encodedRaw) : enc.encodedRaw;
+
+  const idBefore = wtxNextId;
+  runGenericWriteTx(addr, `__register_write_raw_${addr}`, String(mergedRaw), false, (statusCode) => {
+    if (statusCode === 4 && rawWordCache[addr]) { rawWordCache[addr].raw = mergedRaw; rawWordCache[addr].lastSuccessMs = Date.now(); }
+    else if (statusCode === 4) rawWordCache[addr] = { raw: mergedRaw, lastSuccessMs: Date.now() };
+  });
+  const idAfter = wtxNextId;
+  if (idAfter === idBefore) return respondJson(503, { ok: false, error: "write not queued" });
+  // status !== 9 excludes publishRejected's own short-lived notification
+  // slot -- this mock's wtxSlots array carries BOTH real transaction slots
+  // and rejection notifications (for the SSE snapshot's sake) in one
+  // array, unlike the real firmware, which keeps rejections in a wholly
+  // separate g_wtx_rejected_* ring buffer (batterylifepo4.yaml's
+  // begin_write_tx script) that this same txId/addr match could never
+  // accidentally hit there. Without this exclusion, a rejected (single-
+  // flight-busy) write's own notification slot -- which legitimately
+  // shares this write's txId and addr -- would be misread as acceptance.
+  const slot = wtxSlots.find((s) => s.inUse && s.txId === idAfter && s.addr === addr && s.status !== 9);
+  if (!slot) {
+    return respondJson(409, { ok: false, error: "pending", reason: "a transaction for this register is already in flight, or every transaction slot is busy" });
+  }
+  respondJson(200, { ok: true, key, tx_id: idAfter, status: "pending" });
 }
 
 /* ============================================================
@@ -734,6 +933,16 @@ function num(id) { return Number(entities[id] ? entities[id].value : 0); }
 
 function tick() {
   const dirty = new Set();
+
+  // Stage 4 production-integration simulation: keep rawWordCache "fresh"
+  // the same way the real read-plan scheduler continuously re-polls
+  // 0x1114 (15s cadence)/0x1118 (300s cadence) in the background --
+  // refreshing every tick (1s) here is a conservative simplification
+  // (always at least as fresh as real hardware would be), not a staleness
+  // bypass: a register never seeded into rawWordCache in the first place
+  // (every CellConWireRes* address -- never in this demo's read plan,
+  // exactly like real hardware) stays permanently absent regardless.
+  for (const addr of Object.keys(rawWordCache)) rawWordCache[addr].lastSuccessMs = Date.now();
   const set = (id, state, value) => {
     const next = String(state);
     if (entities[id] && entities[id].state === next) return;
@@ -1471,6 +1680,11 @@ const server = http.createServer((req, res) => {
 
   const writeMatch = p.match(/^\/(select|number|text)\/([a-z0-9_]+)\/set$/);
   if (writeMatch && req.method === "POST") return handleWrite(writeMatch[1], writeMatch[2], url.searchParams, res);
+
+  // Stage 4 production-integration simulation (2026-09-21) -- see the
+  // module comment above handleRegisterWrite/handleRegisterWritePreflight.
+  if (p === "/settings/register-write" && req.method === "POST") return handleRegisterWrite(url.searchParams, res);
+  if (p === "/settings/register-write/preflight" && req.method === "GET") return handleRegisterWritePreflight(url.searchParams, res);
 
   // ---- dev-only scenario control (never called by production jk_bms.js) ----
   if (p === "/demo/state" && req.method === "GET") {
