@@ -106,6 +106,22 @@ inline bool reset_reason_preserves_rtc_memory(int code) {
   }
 }
 
+// Pure, desktop-testable reset-counter gate (2026-09-21, second
+// corrective pass): extracted out of jk_reset_diag_rtc.h's own
+// read_and_reset_boot_diagnostics() so this exact fail-closed rule is
+// unit-testable without any ESP-IDF headers. The ONLY correct input is
+// `rtc_trustworthy` (== reset_reason_preserves_rtc_memory(code) &&
+// magic_ok) -- the previous version of this project gated on magic_ok
+// ALONE, which wrongly continued the counter for a reset type RTC memory
+// is not documented to survive (POWERON/BROWNOUT/PWR_GLITCH) whenever the
+// magic word merely happened to still read back correctly. See
+// test/jk_diag/test_jk_reset_diag_core.cpp's POWERON/BROWNOUT/
+// PWR_GLITCH-with-accidentally-preserved-magic cases for the exact
+// regression this closes.
+inline uint32_t compute_reset_count_since_power_on(bool rtc_trustworthy, uint32_t prior_count) {
+  return rtc_trustworthy ? (prior_count + 1) : 1;
+}
+
 // Crash-stage marker values for the HTTP write handoff path (Phase 3's
 // mailbox design). Written to RTC_NOINIT_ATTR memory (by the ESP32-only
 // glue, never here) at each real milestone, so a reboot that lands mid-
@@ -116,6 +132,40 @@ inline bool reset_reason_preserves_rtc_memory(int code) {
 // a NEW boot (per reset_reason_preserves_rtc_memory() above) is itself
 // the forensic signal "a write request was in flight when this device
 // last reset."
+// Second corrective pass (2026-09-21): a review found the main-loop
+// consumer was setting STAGE_TRANSACTION_ALLOCATED and
+// STAGE_MODBUS_COMMAND_QUEUED PREMATURELY (before proof the underlying
+// call actually succeeded -- both begin_write_tx_rmw/write_bms_u32/
+// write_bms_u16 can still reject, e.g. single-flight busy), and was
+// resetting straight to STAGE_IDLE on the SUCCESS path immediately after
+// queuing, even though the real transaction (ACK/readback) was still
+// outstanding -- a reboot during that window would wrongly read back as
+// "idle", losing the exact forensic signal this module exists to provide.
+// Every stage value below now means the fact ACTUALLY, ALREADY happened
+// by the time it is set (batterylifepo4.yaml's own call sites were moved
+// to match, not just this enum):
+//   HANDLER_ENTERED            -- the HTTP handler genuinely began.
+//   VALIDATION_COMPLETE        -- key/policy/encode checks genuinely passed.
+//   HANDOFF_QUEUED             -- the request mailbox publish genuinely succeeded.
+//   MAIN_LOOP_EXECUTION_STARTED-- the main loop genuinely took the request.
+//   TRANSACTION_ALLOCATED      -- a real jk_write_tx slot was genuinely found
+//                                  (set only AFTER matching accepted_idx,
+//                                  never merely "about to call begin()").
+//   MODBUS_COMMAND_QUEUED      -- queue_command() genuinely succeeded (set
+//                                  only AFTER TRANSACTION_ALLOCATED's own
+//                                  proof, not merely "the call returned").
+//   TRANSACTION_PENDING        -- the transaction is real and allocated,
+//                                  but its own ACK/readback is still
+//                                  outstanding -- the marker STAYS here
+//                                  (never IDLE) until the existing 250ms
+//                                  write-tx tick loop reaches a terminal
+//                                  status for that slot.
+//   IDLE                       -- no write in flight: either before the
+//                                  first request of a boot session, or
+//                                  after a genuine terminal outcome
+//                                  (CONFIRMED/MISMATCH/TIMEOUT/recovery-
+//                                  completion) or an early, real rejection
+//                                  that never reached TRANSACTION_ALLOCATED.
 enum WriteCrashStage : uint8_t {
   STAGE_IDLE = 0,
   STAGE_HANDLER_ENTERED = 1,
@@ -125,6 +175,7 @@ enum WriteCrashStage : uint8_t {
   STAGE_TRANSACTION_ALLOCATED = 5,
   STAGE_MODBUS_COMMAND_QUEUED = 6,
   STAGE_RESPONSE_SENT = 7,
+  STAGE_TRANSACTION_PENDING = 8,
 };
 
 inline const char *write_crash_stage_name(uint8_t stage) {
@@ -137,6 +188,7 @@ inline const char *write_crash_stage_name(uint8_t stage) {
     case STAGE_TRANSACTION_ALLOCATED: return "TRANSACTION_ALLOCATED";
     case STAGE_MODBUS_COMMAND_QUEUED: return "MODBUS_COMMAND_QUEUED";
     case STAGE_RESPONSE_SENT: return "RESPONSE_SENT";
+    case STAGE_TRANSACTION_PENDING: return "TRANSACTION_PENDING";
     default: return "UNRECOGNIZED_STAGE";
   }
 }

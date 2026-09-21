@@ -84,6 +84,11 @@ esphome:
   # below). Desktop-testable — see test/jk_write_tx/test_jk_write_tx_core.cpp.
   includes:
     - components/jk_write_tx/jk_write_tx_core.h
+    # Second corrective pass (2026-09-21): main-loop-published atomic
+    # snapshots RegisterWritePreflightHandler reads instead of the plain
+    # g_rp_*/g_wtx_* globals directly -- see this header's own module
+    # comment for the full root-cause writeup.
+    - components/jk_write_tx/jk_preflight_snapshot_core.h
     # Final-preparation-plan Stage 1 (§3.2/§3.5): pure, hardware-independent
     # core for the generic block-read scheduler and its physical block
     # cache. Same header-only, zero-I/O pattern as jk_write_tx_core.h
@@ -617,7 +622,7 @@ esphome:
               // transaction slots.
               const uint32_t request_id = jk_write_tx::try_stage_write_request(
                   jk_write_tx::g_register_write_request_mailbox, key.c_str(), value, now,
-                  jk_write_tx::g_register_write_next_request_id);
+                  jk_write_tx::g_register_write_next_request_id, jk_write_tx::g_register_write_pending_request_id);
               if (request_id == 0) {
                 request->send(409, "application/json",
                                "{\"ok\":false,\"error\":\"pending\",\"reason\":\"a write request is already staged and "
@@ -666,32 +671,52 @@ esphome:
                 request->send(400, "application/json", "{\"resolved\":false,\"error\":\"missing or invalid request_id\"}");
                 return;
               }
-              jk_write_tx::RegisterWriteResultMailbox result;
-              const bool have_result = jk_write_tx::try_read_write_result(jk_write_tx::g_register_write_result_mailbox, result);
-              if (!have_result || result.request_id != uint32_t(requested_id)) {
-                // Not necessarily an error -- the main loop may simply not
-                // have consumed/finished this request_id yet (this
-                // project's own `interval:` consumer runs every 100ms).
-                // The client is expected to keep polling.
-                char body[64];
-                snprintf(body, sizeof(body), "{\"resolved\":false,\"request_id\":%lu}", requested_id);
-                request->send(200, "application/json", body);
-                return;
-              }
+              const uint32_t now = millis();
+              // Bounded, request_id-keyed result table (2026-09-21, second
+              // corrective pass -- see jk_write_tx_core.h's own module
+              // comment for why the previous single-slot mailbox was a
+              // genuine C++ data race, not merely a design smell). This
+              // handler's JSON `status` field is the frontend contract:
+              // "pending" (still staged/being processed -- keep polling),
+              // "accepted" (a real tx_id now exists -- switch to tx_id-
+              // based snapshot correlation), "rejected" (main-loop
+              // consumer refused it -- real reason string, terminal),
+              // "expired" (was resolved, but this poll arrived after the
+              // result's TTL -- terminal, outcome unknown to the client),
+              // "unknown" (this request_id was never issued this boot, or
+              // its result-table slot was since reused by other requests
+              // before this client ever polled it -- terminal, fail-
+              // closed, never presented as if still pending).
+              const auto lookup = jk_write_tx::lookup_write_result(
+                  jk_write_tx::g_register_write_result_table, jk_write_tx::g_register_write_pending_request_id,
+                  uint32_t(requested_id), now);
               std::string json;
               json.reserve(192);
-              json += "{\"resolved\":true,\"request_id\":"; json += std::to_string(result.request_id);
-              json += ",\"accepted\":"; json += (result.accepted ? "true" : "false");
-              if (result.accepted) {
-                json += ",\"tx_id\":"; json += std::to_string(result.tx_id);
-                json += ",\"reason\":null}";
-              } else {
-                json += ",\"tx_id\":null,\"reason\":\"";
-                for (const char *p = result.reason; *p != '\0'; ++p) {
-                  if (*p == '"' || *p == '\\') json += '\\';
-                  json += *p;
-                }
-                json += "\"}";
+              switch (lookup.status) {
+                case jk_write_tx::ResultLookupStatus::PENDING:
+                  json += "{\"status\":\"pending\",\"request_id\":"; json += std::to_string(requested_id); json += "}";
+                  break;
+                case jk_write_tx::ResultLookupStatus::RESOLVED:
+                  if (lookup.accepted) {
+                    json += "{\"status\":\"accepted\",\"request_id\":"; json += std::to_string(requested_id);
+                    json += ",\"tx_id\":"; json += std::to_string(lookup.tx_id); json += "}";
+                  } else {
+                    json += "{\"status\":\"rejected\",\"request_id\":"; json += std::to_string(requested_id);
+                    json += ",\"reason\":\"";
+                    for (const char *p = jk_write_tx::reject_reason_text(lookup.reason); *p != '\0'; ++p) {
+                      if (*p == '"' || *p == '\\') json += '\\';
+                      json += *p;
+                    }
+                    json += "\"}";
+                  }
+                  break;
+                case jk_write_tx::ResultLookupStatus::EXPIRED:
+                  json += "{\"status\":\"expired\",\"request_id\":"; json += std::to_string(requested_id); json += "}";
+                  break;
+                case jk_write_tx::ResultLookupStatus::UNKNOWN:
+                default:
+                  json += "{\"status\":\"unknown\",\"request_id\":"; json += std::to_string(requested_id); json += "}";
+                  break;
               }
               request->send(200, "application/json", json.c_str());
             }
@@ -764,6 +789,13 @@ esphome:
               const bool geometry_ok =
                   width.status == jk_write_tx::ContainerWidthStatus::OK && geom.status == jk_write_tx::FieldGeometryStatus::OK;
 
+              // Second corrective pass (2026-09-21): reads ONLY the main-
+              // loop-published atomic snapshot (jk_preflight_snapshot_core.h),
+              // never id(g_rp_last_success_ms)/id(g_rp_last_raw_word)/
+              // id(g_rp_revision) directly -- those are plain, non-atomic
+              // globals the main loop owns; reading them straight from this
+              // httpd-task handler was a genuine C++ data race (see that
+              // header's own module comment for the full writeup).
               const int block_idx = jk_poll_scheduler::find_block_index_for_address(jk_read_plan::kBlocks, e.address);
               const uint32_t now = millis();
               uint32_t last_success = 0;
@@ -771,10 +803,18 @@ esphome:
               uint32_t generation = 0;
               bool fresh = false;
               if (block_idx >= 0) {
-                last_success = id(g_rp_last_success_ms)[block_idx];
-                old_raw = id(g_rp_last_raw_word)[block_idx];
-                generation = id(g_rp_revision)[block_idx];
-                fresh = jk_write_tx::raw_is_fresh(last_success, now, e.freshness_budget_ms);
+                const auto snap = jk_write_tx::read_read_plan_block_snapshot(
+                    jk_write_tx::g_read_plan_block_snapshot_table, size_t(block_idx));
+                // An invalid snapshot (out of bounds, or every retry
+                // observed a torn read under extreme contention) fails
+                // closed to "not fresh", never to a fabricated zero
+                // treated as real data.
+                if (snap.valid) {
+                  last_success = snap.last_success_ms;
+                  old_raw = snap.last_raw_word;
+                  generation = snap.revision;
+                  fresh = jk_write_tx::raw_is_fresh(last_success, now, e.freshness_budget_ms);
+                }
               }
               const uint32_t raw_age_ms = (block_idx >= 0 && last_success != 0 && now >= last_success)
                                                ? (now - last_success) : 0xFFFFFFFFu;
@@ -807,9 +847,16 @@ esphome:
               else if (enc.status != jk_write_tx::EncodeStatus::OK) reject_reason = "value rejected by encode/range check";
               else if (e.submit_policy != jk_write_registry::SubmitPolicy::LIVE) reject_reason = "authorization_required";
 
-              int active_tx_idx = -1;
-              for (int i = 0; i < 6; i++) {
-                if (id(g_wtx_in_use)[i] != 0 && id(g_wtx_address)[i] == e.address) { active_tx_idx = i; break; }
+              // Same corrective pass: reads ONLY the main-loop-published
+              // atomic snapshot table, never id(g_wtx_in_use)/
+              // id(g_wtx_address) directly (see the block-freshness
+              // snapshot's own comment above -- identical reasoning).
+              const int active_tx_idx =
+                  jk_write_tx::find_active_write_tx_snapshot_for_address(jk_write_tx::g_write_tx_snapshot_table, e.address);
+              jk_write_tx::WriteTxSnapshot active_tx_snapshot;
+              if (active_tx_idx >= 0) {
+                active_tx_snapshot =
+                    jk_write_tx::read_write_tx_snapshot_slot(jk_write_tx::g_write_tx_snapshot_table, size_t(active_tx_idx));
               }
 
               const bool ready = reject_reason.empty();
@@ -898,9 +945,9 @@ esphome:
               }
               json += "\"ready\":"; json += (ready ? "true" : "false"); json += ",";
               json += "\"reject_reason\":"; json += (reject_reason.empty() ? std::string("null") : ("\"" + reject_reason + "\"")); json += ",";
-              if (active_tx_idx >= 0) {
-                json += "\"active_transaction\":{\"tx_id\":"; json += std::to_string(id(g_wtx_tx_id)[active_tx_idx]);
-                json += ",\"status\":"; json += std::to_string(id(g_wtx_status)[active_tx_idx]); json += "}";
+              if (active_tx_idx >= 0 && active_tx_snapshot.valid) {
+                json += "\"active_transaction\":{\"tx_id\":"; json += std::to_string(active_tx_snapshot.tx_id);
+                json += ",\"status\":"; json += std::to_string(active_tx_snapshot.status); json += "}";
               } else {
                 json += "\"active_transaction\":null";
               }
@@ -2675,6 +2722,47 @@ interval:
           }
           if (changed) id(publish_write_tx_snapshot)->execute();
 
+          // Second corrective pass (2026-09-21): this project supports up
+          // to 6 CONCURRENT write-tx slots, but the crash-stage marker is
+          // a single, RTC-backed global -- per Task 6's explicit
+          // requirement, a lone global must never paint a false picture
+          // when more than one transaction can be in flight. Rather than
+          // add 6 separate RTC-backed per-slot markers (real complexity
+          // for a diagnostic-only value), this publishes the conservative
+          // AGGREGATE the spec explicitly allows: STAGE_TRANSACTION_PENDING
+          // means "at least one write is genuinely still outstanding
+          // somewhere" (never a specific slot's identity), and the marker
+          // only returns to STAGE_IDLE once EVERY slot has left the
+          // pending set. This also fixes the main-loop consumer's own
+          // premature-IDLE bug on its success path (jk_write_tx_core.h's
+          // own module comment / batterylifepo4.yaml's write-registry
+          // consumer, above): that consumer used to reset straight to
+          // IDLE the instant a transaction was accepted, even though the
+          // real ACK/readback was still outstanding -- this tick,
+          // running every 250ms, is what now keeps the marker honestly at
+          // TRANSACTION_PENDING for that entire outstanding window and
+          // only clears it once every slot the way THIS project's own
+          // is_pending() would define it) has genuinely finished.
+          bool any_pending = false;
+          for (size_t i = 0; i < 6; i++) {
+            if (id(g_wtx_in_use)[i] && jk_write_tx::is_pending(id(g_wtx_status)[i])) any_pending = true;
+            // Same corrective pass: publishes the active-transaction
+            // atomic snapshot RegisterWritePreflightHandler now reads
+            // (jk_preflight_snapshot_core.h), instead of that HTTP-task
+            // handler scanning id(g_wtx_in_use)/id(g_wtx_address)/
+            // id(g_wtx_tx_id)/id(g_wtx_status) directly. This copy is
+            // safe for the identical reason the aggregate check above is:
+            // it runs entirely on the main loop, which already
+            // exclusively owns every one of these plain globals. (No
+            // early `break` here, unlike a plain existence check, since
+            // every slot must still be visited to publish its own
+            // snapshot regardless of any earlier slot's pending state.)
+            jk_write_tx::publish_write_tx_snapshot_slot(jk_write_tx::g_write_tx_snapshot_table, i,
+                                                          id(g_wtx_in_use)[i] != 0, id(g_wtx_address)[i],
+                                                          id(g_wtx_tx_id)[i], id(g_wtx_status)[i]);
+          }
+          jk_diag::mark_write_crash_stage(any_pending ? jk_diag::STAGE_TRANSACTION_PENDING : jk_diag::STAGE_IDLE);
+
       # Setup passcode transaction (see g_passcode_tx_pending's comment,
       # globals) -- same write -> ACK -> forced-readback shape as the
       # generic manager above, kept separate only because it's an 8-word
@@ -2780,44 +2868,53 @@ interval:
           // persisted), so a reboot always resets it to EMPTY -- there is
           // structurally no such thing as a request surviving a reboot to
           // be wrongly resumed.
-          std::string reject_reason;
+          jk_write_tx::RejectReason reject_reason = jk_write_tx::RejectReason::NONE;
           const int idx = jk_write_registry::find_entry_index(req.key);
           const jk_write_registry::Entry *e_ptr = nullptr;
           if (idx < 0) {
-            reject_reason = "unknown key";
+            reject_reason = jk_write_tx::RejectReason::UNKNOWN_KEY;
           } else {
             e_ptr = &jk_write_registry::kEntries[idx];
-            if (e_ptr->submit_policy != jk_write_registry::SubmitPolicy::LIVE) reject_reason = "authorization_required";
+            if (e_ptr->submit_policy != jk_write_registry::SubmitPolicy::LIVE)
+              reject_reason = jk_write_tx::RejectReason::AUTHORIZATION_REQUIRED;
           }
-          if (reject_reason.empty() && id(bms_health).state != "LIVE") reject_reason = "bms not live";
-          if (reject_reason.empty() && id(topology_state).state != "CONFIRMED") reject_reason = "topology not confirmed";
+          if (reject_reason == jk_write_tx::RejectReason::NONE && id(bms_health).state != "LIVE")
+            reject_reason = jk_write_tx::RejectReason::BMS_NOT_LIVE;
+          if (reject_reason == jk_write_tx::RejectReason::NONE && id(topology_state).state != "CONFIRMED")
+            reject_reason = jk_write_tx::RejectReason::TOPOLOGY_NOT_CONFIRMED;
 
           jk_write_tx::EncodeResult enc;
-          if (reject_reason.empty()) {
+          if (reject_reason == jk_write_tx::RejectReason::NONE) {
             enc = jk_write_tx::encode_numeric_field(req.value, e_ptr->is_signed, e_ptr->scale, e_ptr->offset,
                                                      e_ptr->minimum, e_ptr->maximum, e_ptr->field_width_bits);
-            if (enc.status != jk_write_tx::EncodeStatus::OK) reject_reason = "value rejected by encode/range check";
+            if (enc.status != jk_write_tx::EncodeStatus::OK) reject_reason = jk_write_tx::RejectReason::VALUE_REJECTED;
           }
 
-          if (reject_reason.empty() && e_ptr->uses_rmw) {
+          if (reject_reason == jk_write_tx::RejectReason::NONE && e_ptr->uses_rmw) {
             const int block_idx = jk_poll_scheduler::find_block_index_for_address(jk_read_plan::kBlocks, e_ptr->address);
             if (block_idx < 0) {
-              reject_reason = "no read-plan block for this register";
+              reject_reason = jk_write_tx::RejectReason::NO_READ_PLAN_BLOCK;
             } else if (!jk_write_tx::raw_is_fresh(id(g_rp_last_success_ms)[block_idx], now, e_ptr->freshness_budget_ms)) {
-              reject_reason = "stale";
+              reject_reason = jk_write_tx::RejectReason::STALE_RAW;
             }
           }
 
-          if (!reject_reason.empty()) {
+          if (reject_reason != jk_write_tx::RejectReason::NONE) {
             ESP_LOGW("jk_write_tx", "register-write request_id=%u key=%s rejected by main-loop consumer: %s",
-                     unsigned(req.request_id), req.key, reject_reason.c_str());
-            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_mailbox, req.request_id, false, 0,
-                                               reject_reason.c_str());
+                     unsigned(req.request_id), req.key, jk_write_tx::reject_reason_text(reject_reason));
+            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
+                                               jk_write_tx::g_register_write_pending_request_id, req.request_id,
+                                               false, 0, reject_reason, now);
+            // Genuinely IDLE here -- this request never allocated a real
+            // transaction slot, so there is nothing left in flight for
+            // THIS request (a DIFFERENT slot could still be pending from
+            // an earlier request; the 250ms tick loop's own aggregate
+            // check, below, is what stays authoritative for that -- this
+            // call is only ever a best-effort early signal, immediately
+            // superseded by that loop's next tick either way).
             jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
             return;
           }
-
-          jk_diag::mark_write_crash_stage(jk_diag::STAGE_TRANSACTION_ALLOCATED);
 
           // Single-flight/queued-vs-rejected detection -- unchanged
           // mechanism from the previous handler, just relocated to where
@@ -2827,6 +2924,13 @@ interval:
           // once it is reached, whether it accepts (new slot) or rejects
           // (single-flight/all slots busy -- recorded in the existing
           // rejected-ring buffer).
+          //
+          // Second corrective pass (2026-09-21): STAGE_TRANSACTION_ALLOCATED
+          // and STAGE_MODBUS_COMMAND_QUEUED are now set ONLY after real
+          // proof (accepted_idx found below), never before the call that
+          // could still reject -- see jk_reset_diag_core.h's own
+          // WriteCrashStage comment for the exact semantics each stage
+          // now guarantees.
           const uint32_t next_before = id(g_write_tx_next_id);
           if (e_ptr->uses_rmw) {
             id(begin_write_tx_rmw)->execute(int(e_ptr->address), int(e_ptr->word_count), int(e_ptr->mask), int(e_ptr->shift),
@@ -2836,12 +2940,12 @@ interval:
           } else {
             id(write_bms_u16)->execute(int(e_ptr->address), int(enc.encoded_raw));
           }
-          jk_diag::mark_write_crash_stage(jk_diag::STAGE_MODBUS_COMMAND_QUEUED);
           const uint32_t next_after = id(g_write_tx_next_id);
 
           if (next_after == next_before) {
-            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_mailbox, req.request_id, false, 0,
-                                               "write not queued");
+            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
+                                               jk_write_tx::g_register_write_pending_request_id, req.request_id,
+                                               false, 0, jk_write_tx::RejectReason::WRITE_NOT_QUEUED, now);
             jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
             return;
           }
@@ -2851,15 +2955,54 @@ interval:
             if (id(g_wtx_tx_id)[i] == next_after && id(g_wtx_address)[i] == e_ptr->address) { accepted_idx = i; break; }
           }
           if (accepted_idx < 0) {
-            jk_write_tx::publish_write_result(
-                jk_write_tx::g_register_write_result_mailbox, req.request_id, false, 0,
-                "a transaction for this register is already in flight, or every transaction slot is busy");
+            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
+                                               jk_write_tx::g_register_write_pending_request_id, req.request_id,
+                                               false, 0, jk_write_tx::RejectReason::TRANSACTION_UNAVAILABLE, now);
             jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
             return;
           }
 
-          jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_mailbox, req.request_id, true, next_after, "");
-          jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+          // PROOF now exists: a real slot was found (TRANSACTION_ALLOCATED)
+          // and next_after != next_before means queue_command() genuinely
+          // ran without begin() itself rejecting (MODBUS_COMMAND_QUEUED).
+          // Deliberately NOT set to STAGE_IDLE on this success path -- the
+          // real transaction (ACK/readback) is still outstanding; the
+          // 250ms write-tx tick loop's own aggregate check (above in this
+          // file) is what now owns advancing the marker to
+          // STAGE_TRANSACTION_PENDING (within its next 250ms tick) and,
+          // eventually, back to STAGE_IDLE once every slot genuinely
+          // reaches a terminal status.
+          jk_diag::mark_write_crash_stage(jk_diag::STAGE_TRANSACTION_ALLOCATED);
+          jk_diag::mark_write_crash_stage(jk_diag::STAGE_MODBUS_COMMAND_QUEUED);
+
+          jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
+                                             jk_write_tx::g_register_write_pending_request_id, req.request_id, true,
+                                             next_after, jk_write_tx::RejectReason::NONE, now);
+
+  # Second corrective pass (2026-09-21): publishes the read-plan block
+  # freshness/raw/generation snapshot RegisterWritePreflightHandler now
+  # reads (jk_preflight_snapshot_core.h), instead of that HTTP-task
+  # handler reading id(g_rp_last_success_ms)/id(g_rp_last_raw_word)/
+  # id(g_rp_revision) directly (a genuine cross-task data race -- see
+  # that header's own module comment). This copy itself is always safe:
+  # it runs entirely on the main loop, the SAME task that already
+  # exclusively owns those three plain globals (the read-plan scheduler's
+  # own decode callbacks are the only writers, and they too run on the
+  # main loop, within ESPHome's own Modbus response dispatch). 100ms
+  # cadence matches the write-registry consumer above -- frequent enough
+  # that a preflight request sees data at most one tick stale, negligible
+  # main-loop cost (jk_read_plan::kBlockCount plain array reads + atomic
+  # publishes, no I/O).
+  - interval: 100ms
+    then:
+      - lambda: |-
+          static_assert(jk_read_plan::kBlockCount <= jk_write_tx::kMaxReadPlanBlocksForPreflightSnapshot,
+                         "jk_preflight_snapshot_core.h's fixed cap must be raised to cover every real read-plan block");
+          for (std::size_t i = 0; i < jk_read_plan::kBlockCount; i++) {
+            jk_write_tx::publish_read_plan_block_snapshot(
+                jk_write_tx::g_read_plan_block_snapshot_table, i,
+                id(g_rp_last_success_ms)[i], id(g_rp_last_raw_word)[i], id(g_rp_revision)[i]);
+          }
 
   - interval: 30s
     then:

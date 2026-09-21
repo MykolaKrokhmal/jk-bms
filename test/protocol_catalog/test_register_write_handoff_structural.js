@@ -74,8 +74,8 @@ const statusBlock = extractBlock(
 check("RegisterWriteStatusHandler only handles GET", statusBlock.includes("request->method() != HTTP_GET"));
 check("RegisterWriteStatusHandler never calls begin_write_tx_rmw/write_bms_u32/write_bms_u16",
   !statusBlock.includes("begin_write_tx_rmw)->execute") && !statusBlock.includes("write_bms_u32)->execute") && !statusBlock.includes("write_bms_u16)->execute"));
-check("RegisterWriteStatusHandler only reads via try_read_write_result, never stages/publishes",
-  statusBlock.includes("try_read_write_result(") && !statusBlock.includes("try_stage_write_request(") && !statusBlock.includes("publish_write_result("));
+check("RegisterWriteStatusHandler only reads via lookup_write_result, never stages/publishes",
+  statusBlock.includes("lookup_write_result(") && !statusBlock.includes("try_stage_write_request(") && !statusBlock.includes("publish_write_result("));
 
 // ---------------------------------------------------------------------
 // 3. Main-loop consumer (the ONLY place the dangerous calls happen):
@@ -105,8 +105,8 @@ for (const call of ["begin_write_tx_rmw)->execute", "write_bms_u32)->execute", "
 // and the NEW topology/health prerequisite checks are all present in the
 // consumer, with request_id correlation used for their rejection.
 // ---------------------------------------------------------------------
-check("the consumer independently re-checks the registry key (unknown key rejection)", consumerBlock.includes("\"unknown key\""));
-check("the consumer independently re-checks submit_policy=live (authorization_required rejection)", consumerBlock.includes("\"authorization_required\""));
+check("the consumer independently re-checks the registry key (unknown key rejection)", consumerBlock.includes("RejectReason::UNKNOWN_KEY"));
+check("the consumer independently re-checks submit_policy=live (authorization_required rejection)", consumerBlock.includes("RejectReason::AUTHORIZATION_REQUIRED"));
 check("the consumer checks BMS health is LIVE (NEW prerequisite, not present in the pre-rearchitecture handler)",
   consumerBlock.includes('id(bms_health).state != "LIVE"'));
 check("the consumer checks topology is CONFIRMED (NEW prerequisite, not present in the pre-rearchitecture handler)",
@@ -114,7 +114,10 @@ check("the consumer checks topology is CONFIRMED (NEW prerequisite, not present 
 check("the consumer re-validates value encoding/range via encode_numeric_field", consumerBlock.includes("encode_numeric_field("));
 check("the consumer re-checks fresh RAW via raw_is_fresh", consumerBlock.includes("raw_is_fresh("));
 check("the consumer enforces single-flight via the existing g_wtx_in_use/g_wtx_address scan", consumerBlock.includes("g_wtx_tx_id)[i] == next_after"));
-check("a rejected request publishes a real reason string, never a fabricated tx_id", consumerBlock.includes("publish_write_result(jk_write_tx::g_register_write_result_mailbox, req.request_id, false, 0,"));
+check("a rejected request publishes via the result table with tx_id=0, never a fabricated tx_id",
+  (consumerBlock.match(/publish_write_result\(jk_write_tx::g_register_write_result_table,[\s\S]{0,260}?false, 0,/g) || []).length >= 3);
+check("an accepted request publishes the real next_after tx_id, never 0", consumerBlock.includes("req.request_id, true,\n                                             next_after, jk_write_tx::RejectReason::NONE"));
+check("the consumer uses jk_write_tx::RejectReason enum values, never free-form ad hoc strings", consumerBlock.includes("jk_write_tx::RejectReason::"));
 
 // ---------------------------------------------------------------------
 // 9. No auto-retry anywhere in the new production code (handler, status
@@ -144,6 +147,27 @@ check("crash-stage markers are written at TRANSACTION_ALLOCATED", yaml.includes(
 check("crash-stage markers are written at MODBUS_COMMAND_QUEUED", yaml.includes("jk_diag::STAGE_MODBUS_COMMAND_QUEUED"));
 check("last_write_crash_stage is never published as trustworthy without the rtc_trustworthy gate",
   yaml.includes("diag.rtc_trustworthy") && yaml.includes("not available for this reset type"));
+
+// ---------------------------------------------------------------------
+// Second corrective pass (2026-09-21): crash-stage marker timing. The
+// success path must NOT reset to STAGE_IDLE immediately after queuing --
+// a real transaction is still outstanding -- and TRANSACTION_ALLOCATED/
+// MODBUS_COMMAND_QUEUED must be set only AFTER proof (i.e. after
+// accepted_idx is found), never before the call that could still reject.
+// ---------------------------------------------------------------------
+{
+  const successTailStart = consumerBlock.lastIndexOf("jk_diag::mark_write_crash_stage(jk_diag::STAGE_TRANSACTION_ALLOCATED)");
+  const successTail = consumerBlock.slice(successTailStart);
+  check("STAGE_TRANSACTION_ALLOCATED/STAGE_MODBUS_COMMAND_QUEUED are set together, after accepted_idx proof, immediately before the final accepted publish",
+    successTailStart !== -1 &&
+    successTail.indexOf("jk_diag::STAGE_MODBUS_COMMAND_QUEUED") < successTail.indexOf("publish_write_result") &&
+    successTail.indexOf("publish_write_result") < successTail.indexOf("true,"));
+  check("the success path never calls mark_write_crash_stage(STAGE_IDLE) (the marker is left at MODBUS_COMMAND_QUEUED/TRANSACTION_PENDING until the write-tx tick loop resolves it)",
+    !successTail.includes("STAGE_IDLE"));
+}
+check("jk_diag::STAGE_TRANSACTION_PENDING exists as a distinct stage (2026-09-21 corrective pass)", yaml.includes("jk_diag::STAGE_TRANSACTION_PENDING"));
+check("the 250ms write-tx tick loop publishes a conservative aggregate pending/idle marker across all slots",
+  yaml.includes("any_pending") && yaml.includes("jk_write_tx::is_pending(id(g_wtx_status)[i])"));
 
 // ---------------------------------------------------------------------
 // Includes wiring: the new headers are actually included, in the right

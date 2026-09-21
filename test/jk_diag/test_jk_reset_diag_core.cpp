@@ -77,6 +77,57 @@ int main() {
   // STAGE_HANDLER_ENTERED (e.g. a bad request never even reaching
   // validation).
   check(STAGE_HANDOFF_QUEUED != STAGE_MODBUS_COMMAND_QUEUED, "the two most safety-relevant stages are genuinely distinct values");
+  check(std::strcmp(write_crash_stage_name(STAGE_TRANSACTION_PENDING), "TRANSACTION_PENDING") == 0,
+        "STAGE_TRANSACTION_PENDING name (2026-09-21 second corrective pass: the write-tx tick loop's own aggregate pending marker)");
+
+  // ---------------------------------------------------------------------
+  // Second corrective pass (2026-09-21): compute_reset_count_since_power_on()
+  // fail-closed gating. The PREVIOUS version of this project's
+  // read_and_reset_boot_diagnostics() gated the counter increment on
+  // `magic_ok` ALONE, which is wrong: a reset type RTC memory is not
+  // documented to survive (POWERON/BROWNOUT/PWR_GLITCH) can still, by
+  // chance/hardware quirk, leave the magic word reading back correctly
+  // even though the rest of RTC memory's content is not actually
+  // guaranteed trustworthy. The counter must ALWAYS restart at 1 for such
+  // a reset, regardless of what the magic word reads as.
+  // ---------------------------------------------------------------------
+  {
+    // A genuinely trustworthy continuation: SW reset, magic matched.
+    const bool sw_trustworthy = reset_reason_preserves_rtc_memory(RESET_SW) && /*magic_ok=*/true;
+    check(compute_reset_count_since_power_on(sw_trustworthy, 5) == 6,
+          "SW reset with matching magic genuinely continues the counter (5 -> 6)");
+
+    // POWERON with an ACCIDENTALLY-preserved magic value: magic_ok=true,
+    // but reset_reason_preserves_rtc_memory(POWERON) is false -- the
+    // counter must still fail closed to 1, never continue as if this were
+    // a real continuation.
+    const bool poweron_trustworthy = reset_reason_preserves_rtc_memory(RESET_POWERON) && /*magic_ok=*/true;
+    check(!poweron_trustworthy, "POWERON is never trustworthy even with a matching magic value");
+    check(compute_reset_count_since_power_on(poweron_trustworthy, 5) == 1,
+          "POWERON with an accidentally-preserved magic value still fails closed to 1, never continues from 5");
+
+    // BROWNOUT with an accidentally-preserved magic value: same fail-
+    // closed requirement -- VDD_RTC itself may have dropped, so RTC
+    // content (including a coincidentally-matching magic) cannot be
+    // trusted for this reset type at all.
+    const bool brownout_trustworthy = reset_reason_preserves_rtc_memory(RESET_BROWNOUT) && /*magic_ok=*/true;
+    check(!brownout_trustworthy, "BROWNOUT is never trustworthy even with a matching magic value");
+    check(compute_reset_count_since_power_on(brownout_trustworthy, 42) == 1,
+          "BROWNOUT with an accidentally-preserved magic value still fails closed to 1, never continues from 42");
+
+    // PWR_GLITCH with an accidentally-preserved magic value: identical
+    // reasoning to BROWNOUT -- VDD_RTC may have glitched.
+    const bool pwrglitch_trustworthy = reset_reason_preserves_rtc_memory(RESET_PWR_GLITCH) && /*magic_ok=*/true;
+    check(!pwrglitch_trustworthy, "PWR_GLITCH is never trustworthy even with a matching magic value");
+    check(compute_reset_count_since_power_on(pwrglitch_trustworthy, 7) == 1,
+          "PWR_GLITCH with an accidentally-preserved magic value still fails closed to 1, never continues from 7");
+
+    // A trustworthy reset type but a magic MISMATCH (first boot of a new
+    // image, or genuinely fresh RTC content) must also fail closed to 1.
+    const bool sw_wrong_magic = reset_reason_preserves_rtc_memory(RESET_SW) && /*magic_ok=*/false;
+    check(compute_reset_count_since_power_on(sw_wrong_magic, 99) == 1,
+          "SW reset with a magic MISMATCH fails closed to 1, never continues from 99 (different/first image)");
+  }
 
   std::printf("\n%d checks, %d failures\n", g_checks, g_failures);
   return g_failures == 0 ? 0 : 1;

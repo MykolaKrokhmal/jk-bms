@@ -561,8 +561,15 @@ struct RegisterWriteRequestMailbox {
 // request is already staged/being consumed; single-flight, the caller
 // must report this to its own client rather than overwrite or queue a
 // second one) or the newly assigned request_id (always > 0) on success.
+// `pending_id` receives the newly assigned request_id the instant staging
+// succeeds -- this is the single source of truth the result-table lookup
+// (lookup_write_result(), below) uses to answer PENDING for a request the
+// main loop hasn't published a result for yet. Pass the SAME atomic every
+// producer/consumer pair in a given deployment shares (this project has
+// exactly one: jk_write_tx::g_register_write_pending_request_id).
 inline uint32_t try_stage_write_request(RegisterWriteRequestMailbox &mbox, const char *key, double value,
-                                         uint32_t now_ms, std::atomic<uint32_t> &next_id_counter) {
+                                         uint32_t now_ms, std::atomic<uint32_t> &next_id_counter,
+                                         std::atomic<uint32_t> &pending_id) {
   uint8_t expected = 0;  // EMPTY
   if (!mbox.state.compare_exchange_strong(expected, 2, std::memory_order_acquire)) {
     return 0;
@@ -572,6 +579,9 @@ inline uint32_t try_stage_write_request(RegisterWriteRequestMailbox &mbox, const
   copy_bounded_cstr(mbox.key, sizeof(mbox.key), key);
   mbox.value = value;
   mbox.submitted_at_ms = now_ms;
+  pending_id.store(id, std::memory_order_release);  // published BEFORE the request itself, so a status
+                                                      // poll racing the very first tick after accept always
+                                                      // sees at least PENDING, never a false UNKNOWN
   mbox.state.store(1, std::memory_order_release);  // STAGED -- publish to the consumer
   return id;
 }
@@ -592,51 +602,231 @@ inline bool try_take_write_request(RegisterWriteRequestMailbox &mbox, RegisterWr
   return true;
 }
 
-// Result mailbox: main loop (sole writer) -> HTTP status-poll handler
-// (any number of readers, any task).
-struct RegisterWriteResultMailbox {
-  // 0 = EMPTY (no result published yet, or none pending), 1 = READY (a
-  // result is fully published and safe to read), 2 = BUSY (the writer is
-  // mid-publish -- a reader observing this must treat it exactly like
-  // EMPTY, never block).
-  std::atomic<uint8_t> state{0};
-  uint32_t request_id = 0;
-  bool accepted = false;
-  uint32_t tx_id = 0;
-  char reason[kRegisterWriteReasonMaxLen] = {0};
+// ---------------------------------------------------------------------------
+// Result mailbox REPLACEMENT (2026-09-21, second corrective pass): a code
+// review of the mailbox above (RegisterWriteResultMailbox / publish_write_
+// result / try_read_write_result) found it is NOT a valid C++ seqlock,
+// despite the "before/after state re-check" comment claiming otherwise.
+// [intro.races] makes concurrent read+write of a NON-atomic object (here:
+// request_id, accepted, tx_id, reason[]) undefined behavior REGARDLESS of
+// whether the reader later discards the value on a state mismatch -- the
+// UB happens at the moment of the racing access itself, not at the point
+// the (possibly torn) result is used. A single atomic `state` guard around
+// non-atomic payload fields does not make those fields' accesses atomic.
+//
+// Fix: every payload field the reader touches is now itself a REAL
+// std::atomic, so every individual access is well-defined regardless of
+// interleaving (no UB is possible, full stop) -- the `state`/`request_id`
+// recheck below is then only a LOGICAL consistency check (catching a
+// reader that straddled the writer publishing a NEWER, different result),
+// never a memory-safety requirement. This is the same proof technique
+// C++'s own std::seq_lock proposals (P0290/P1478) use: atomic payload +
+// generation recheck = defined behavior; non-atomic payload + generation
+// recheck = UB no matter how careful the recheck is.
+//
+// `reason` changes from a free-form char[64] to a small, bounded
+// RejectReason enum (one std::atomic<uint8_t>, trivially race-free) plus a
+// static lookup table for display text -- this project's own rejection
+// reasons are already a small, fixed, enumerable set (see every call site
+// in batterylifepo4.yaml's main-loop write consumer), so this is a strict
+// simplification, not a loss of information, and it sidesteps the
+// "can a char array ever be made atomic" question entirely.
+//
+// Design: a bounded table of N independent slots, keyed by
+// `request_id % N` (a real ring, not a single shared slot -- multiple
+// requests resolved in quick succession no longer fight over one slot
+// before a client gets to poll each). Production has exactly ONE writer
+// (the main loop's 100ms consumer) and any number of concurrent,
+// non-blocking readers (HTTP status-poll handler, any task) -- this
+// module's stress test (test/jk_write_tx/test_jk_write_tx_mailbox.cpp)
+// exercises both a single writer with many concurrent reader threads AND
+// (for defense in depth) verifies the per-field atomics remain race-free
+// even if that single-writer assumption were ever relaxed.
+//
+// "Pending vs unknown" (a genuinely NEW request_id that hasn't reached the
+// result table yet, vs one that never existed or was evicted) is resolved
+// via the existing single-flight design: this project's request mailbox
+// only ever has ONE request staged-or-being-processed at a time, so a
+// single atomic "which request_id is currently in flight" value
+// (g_register_write_pending_request_id) is sufficient -- set the instant a
+// request is staged, cleared the instant its result is published. No
+// separate "was this id ever issued" bookkeeping is needed.
+// ---------------------------------------------------------------------------
+
+// Small, fixed, enumerable rejection reasons -- every one of these already
+// exists verbatim as a string literal at a publish_write_result() call site
+// in batterylifepo4.yaml's main-loop write consumer; this enum simply gives
+// each one a race-free, atomically-representable identity. Add a new value
+// here (never repurpose an existing one -- old firmware/clients may still
+// be polling an in-flight request_id across an OTA) if a new rejection
+// case is ever introduced.
+enum class RejectReason : uint8_t {
+  NONE = 0,  // accepted -- no rejection
+  UNKNOWN_KEY = 1,
+  AUTHORIZATION_REQUIRED = 2,
+  BMS_NOT_LIVE = 3,
+  TOPOLOGY_NOT_CONFIRMED = 4,
+  VALUE_REJECTED = 5,
+  NO_READ_PLAN_BLOCK = 6,
+  STALE_RAW = 7,
+  WRITE_NOT_QUEUED = 8,
+  TRANSACTION_UNAVAILABLE = 9,  // in-flight for this address already, or every slot busy
 };
 
-// Writer side (main loop ONLY -- single writer, so no CAS-retry loop is
-// needed; always safe to overwrite whatever the previous result was, a
-// slow poller simply never observes a superseded one).
-inline void publish_write_result(RegisterWriteResultMailbox &mbox, uint32_t request_id, bool accepted,
-                                  uint32_t tx_id, const char *reason) {
-  mbox.state.store(2, std::memory_order_relaxed);  // BUSY -- tell any concurrent reader to back off
-  mbox.request_id = request_id;
-  mbox.accepted = accepted;
-  mbox.tx_id = tx_id;
-  copy_bounded_cstr(mbox.reason, sizeof(mbox.reason), reason);
-  mbox.state.store(1, std::memory_order_release);  // READY
+inline const char *reject_reason_text(RejectReason reason) {
+  switch (reason) {
+    case RejectReason::NONE: return "";
+    case RejectReason::UNKNOWN_KEY: return "unknown key";
+    case RejectReason::AUTHORIZATION_REQUIRED: return "authorization_required";
+    case RejectReason::BMS_NOT_LIVE: return "bms not live";
+    case RejectReason::TOPOLOGY_NOT_CONFIRMED: return "topology not confirmed";
+    case RejectReason::VALUE_REJECTED: return "value rejected by encode/range check";
+    case RejectReason::NO_READ_PLAN_BLOCK: return "no read-plan block for this register";
+    case RejectReason::STALE_RAW: return "stale";
+    case RejectReason::WRITE_NOT_QUEUED: return "write not queued";
+    case RejectReason::TRANSACTION_UNAVAILABLE:
+      return "a transaction for this register is already in flight, or every transaction slot is busy";
+    default: return "unknown reason";
+  }
 }
 
-// Reader side (safe from ANY task/context, read-only, never blocks):
-// returns true and fills `out` only if a fully-published result was
-// observed with NO concurrent write in progress during the copy (a
-// seqlock-style before/after state re-check -- catches the rare case
-// where the main loop starts publishing a NEWER result while a reader is
-// mid-copy of the current one; the reader simply reports "not ready yet"
-// and the caller polls again on its next tick, rather than ever
-// returning a torn mix of two different results).
-inline bool try_read_write_result(const RegisterWriteResultMailbox &mbox, RegisterWriteResultMailbox &out) {
-  if (mbox.state.load(std::memory_order_acquire) != 1) return false;
-  out.request_id = mbox.request_id;
-  out.accepted = mbox.accepted;
-  out.tx_id = mbox.tx_id;
-  copy_bounded_cstr(out.reason, sizeof(out.reason), mbox.reason);
-  return mbox.state.load(std::memory_order_acquire) == 1;
+constexpr std::size_t kRegisterWriteResultTableSize = 8;  // power of two -- cheap modulo via bitmask
+constexpr uint32_t kRegisterWriteResultTtlMs = 30000;     // fail-closed reclamation, see lookup_write_result()
+
+// One slot of the bounded result table. EVERY field a reader touches is a
+// real std::atomic -- see this section's module comment for why that is
+// the actual, load-bearing fix (not a recheck alone).
+//
+// `version` is a MONOTONIC counter, not a binary ready/busy flag -- this
+// is deliberate and closes a real ABA gap a binary flag cannot: with only
+// a 2-state flag, a reader could observe READY, get preempted, and then
+// observe READY again after the writer completed one or more ENTIRE
+// publish cycles in between (state went READY -> EMPTY -> ... -> READY
+// again) -- the reader's "still READY" recheck cannot distinguish "no
+// write happened" from "a write happened and finished" in that window,
+// which is exactly how a reader could assemble a torn mix of two
+// different generations' fields while every individual field access
+// stays technically well-defined. A counter that increments by exactly 1
+// at write-start (odd = writer active) and by exactly 1 again at
+// write-end (even = stable) makes ANY interleaved cycle -- partial or
+// complete -- visible as a changed numeric value, not just a changed
+// bit, so comparing the exact before/after value (not just its parity)
+// is what actually proves the read window was clean.
+struct RegisterWriteResultSlot {
+  std::atomic<uint32_t> version{0};  // even = stable (or never written), odd = writer mid-publish
+  std::atomic<uint32_t> request_id{0};  // 0 = slot never published (0 is never a real request_id)
+  std::atomic<uint8_t> accepted{0};  // 0/1 -- std::atomic<bool> is valid too, uint8_t keeps ABI explicit
+  std::atomic<uint32_t> tx_id{0};
+  std::atomic<uint8_t> reason{0};  // RejectReason, stored as its underlying type for atomic storage
+  std::atomic<uint32_t> published_at_ms{0};
+};
+
+using RegisterWriteResultTable = std::array<RegisterWriteResultSlot, kRegisterWriteResultTableSize>;
+
+// Writer side (main loop ONLY). No CAS/exclusion needed for a single
+// writer -- overwriting whatever a slot previously held (a superseded
+// result, or one for a completely different, older request_id that
+// collided on this slot index) is exactly the intended, bounded-storage
+// eviction behavior: a reader for that stale id will find `request_id`
+// mismatched (see lookup_write_result()) and correctly report UNKNOWN,
+// never a false eternal PENDING.
+inline void publish_write_result(RegisterWriteResultTable &table, std::atomic<uint32_t> &pending_request_id,
+                                  uint32_t request_id, bool accepted, uint32_t tx_id, RejectReason reason,
+                                  uint32_t now_ms) {
+  RegisterWriteResultSlot &slot = table[request_id % kRegisterWriteResultTableSize];
+  slot.version.fetch_add(1, std::memory_order_release);  // now odd -- tell any concurrent reader to back off
+  slot.request_id.store(request_id, std::memory_order_relaxed);
+  slot.accepted.store(accepted ? 1 : 0, std::memory_order_relaxed);
+  slot.tx_id.store(tx_id, std::memory_order_relaxed);
+  slot.reason.store(static_cast<uint8_t>(reason), std::memory_order_relaxed);
+  slot.published_at_ms.store(now_ms, std::memory_order_relaxed);
+  slot.version.fetch_add(1, std::memory_order_release);  // now even again -- publish every field above
+  // The request this result belongs to is no longer in flight -- clear the
+  // pending marker LAST (after the result is fully visible), so a reader
+  // can never observe "not pending, not in the table yet" for a request
+  // that was JUST resolved (that window would wrongly read as UNKNOWN
+  // instead of RESOLVED).
+  uint32_t expected = request_id;
+  pending_request_id.compare_exchange_strong(expected, 0, std::memory_order_release, std::memory_order_relaxed);
 }
 
-// This project's own single instances of the two mailboxes above. C++17
+enum class ResultLookupStatus : uint8_t {
+  PENDING = 0,   // still staged or being processed by the main loop
+  RESOLVED = 1,  // accepted/tx_id or a RejectReason is valid
+  EXPIRED = 2,   // was resolved, but the TTL elapsed before this poll
+  UNKNOWN = 3,   // never issued, or evicted by a newer request reusing this slot
+};
+
+struct RegisterWriteResultLookup {
+  ResultLookupStatus status = ResultLookupStatus::UNKNOWN;
+  bool accepted = false;
+  uint32_t tx_id = 0;
+  RejectReason reason = RejectReason::NONE;
+};
+
+// Reader side (safe from ANY task/context, any number of concurrent
+// readers, read-only, never blocks, bounded retry -- never spins
+// unboundedly). A straddled OR fully-completed-during-our-read publish
+// cycle is detected by comparing the EXACT version value before and after
+// the field reads (not merely whether it is "still ready") -- see this
+// struct's own comment for why a monotonic counter, not a binary flag, is
+// required to close this. Each individual field access remains
+// well-defined C++ throughout regardless (see module comment above), so a
+// version mismatch is a logic-correctness retry, never a memory-safety
+// one.
+inline RegisterWriteResultLookup lookup_write_result(const RegisterWriteResultTable &table,
+                                                       const std::atomic<uint32_t> &pending_request_id,
+                                                       uint32_t request_id, uint32_t now_ms,
+                                                       uint32_t ttl_ms = kRegisterWriteResultTtlMs) {
+  RegisterWriteResultLookup out;
+  if (request_id == 0) return out;  // 0 is never a real request_id (see try_stage_write_request)
+
+  const RegisterWriteResultSlot &slot = table[request_id % kRegisterWriteResultTableSize];
+  constexpr int kMaxRetries = 5;
+  for (int attempt = 0; attempt < kMaxRetries; attempt++) {
+    const uint32_t v0 = slot.version.load(std::memory_order_acquire);
+    if (v0 & 1u) continue;  // writer is mid-publish right now -- retry rather than read a torn slot
+    if (v0 == 0) break;     // slot has never been published to -- definitely not this (or any) request
+
+    const uint32_t seen_id = slot.request_id.load(std::memory_order_relaxed);
+    const bool seen_accepted = slot.accepted.load(std::memory_order_relaxed) != 0;
+    const uint32_t seen_tx_id = slot.tx_id.load(std::memory_order_relaxed);
+    const uint8_t seen_reason = slot.reason.load(std::memory_order_relaxed);
+    const uint32_t seen_published_at = slot.published_at_ms.load(std::memory_order_relaxed);
+
+    const uint32_t v1 = slot.version.load(std::memory_order_acquire);
+    if (v1 != v0) continue;  // version changed (mid-write OR a full cycle completed) during our read -- retry
+
+    // v0 == v1, both even: no publish (partial or complete) touched this
+    // slot anywhere between our two version reads, so every field above
+    // belongs to the SAME, single generation -- a fully consistent,
+    // non-torn snapshot, proven by value equality, not by parity alone.
+    if (seen_id != request_id) break;  // this slot holds a different id -- ours was evicted or never landed here
+    if (now_ms - seen_published_at > ttl_ms) {
+      out.status = ResultLookupStatus::EXPIRED;
+      return out;
+    }
+    out.status = ResultLookupStatus::RESOLVED;
+    out.accepted = seen_accepted;
+    out.tx_id = seen_tx_id;
+    out.reason = static_cast<RejectReason>(seen_reason);
+    return out;
+  }
+
+  // Not found (or evicted) in the result table. Still PENDING only if it
+  // is the one request currently staged/in-flight; otherwise it is
+  // genuinely UNKNOWN (never issued this session, or resolved so long ago
+  // its slot has since been reused by other requests without this reader
+  // ever having observed the result -- fail-closed, never an eternal
+  // false PENDING).
+  if (pending_request_id.load(std::memory_order_acquire) == request_id) {
+    out.status = ResultLookupStatus::PENDING;
+    return out;
+  }
+  return out;  // UNKNOWN (default-constructed)
+}
+
+// This project's own single instances of the mailbox/table above. C++17
 // `inline` variables (not merely `inline` functions) so this header can
 // define real, single-definition-across-the-program storage safely even
 // if ever included from more than one translation unit -- ESPHome's own
@@ -644,14 +834,15 @@ inline bool try_read_write_result(const RegisterWriteResultMailbox &mbox, Regist
 // that an implementation detail this header does not depend on. The
 // production HTTP handlers (batterylifepo4.yaml) reference these
 // directly as jk_write_tx::g_register_write_request_mailbox /
-// g_register_write_result_mailbox / g_register_write_next_request_id --
-// deliberately NOT declared via ESPHome's own `globals:` YAML component,
-// since that component's codegen instantiates every entry before this
-// header's own custom struct types are ever #included (see this
-// project's established precedent for jk_write_tx::Slot's own storage,
-// noted earlier in this file).
+// g_register_write_result_table / g_register_write_pending_request_id /
+// g_register_write_next_request_id -- deliberately NOT declared via
+// ESPHome's own `globals:` YAML component, since that component's codegen
+// instantiates every entry before this header's own custom struct types
+// are ever #included (see this project's established precedent for
+// jk_write_tx::Slot's own storage, noted earlier in this file).
 inline RegisterWriteRequestMailbox g_register_write_request_mailbox;
-inline RegisterWriteResultMailbox g_register_write_result_mailbox;
+inline RegisterWriteResultTable g_register_write_result_table;
+inline std::atomic<uint32_t> g_register_write_pending_request_id{0};
 inline std::atomic<uint32_t> g_register_write_next_request_id{0};
 
 }  // namespace jk_write_tx

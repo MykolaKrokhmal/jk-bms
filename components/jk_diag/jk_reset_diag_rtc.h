@@ -27,6 +27,7 @@
 // value into this exact RTC memory layout.
 #ifdef USE_ESP32
 
+#include <atomic>
 #include <cstdint>
 
 #include "esp_attr.h"
@@ -37,12 +38,31 @@
 namespace jk_diag {
 
 RTC_NOINIT_ATTR uint32_t g_rtc_magic;
-RTC_NOINIT_ATTR uint8_t g_rtc_write_crash_stage;
+// Second corrective pass (2026-09-21): a plain, non-atomic uint8_t here
+// was flagged as a genuine cross-task data race -- mark_write_crash_stage()
+// is called from BOTH the httpd task (RegisterWriteHandler) and the main
+// loop, so two different FreeRTOS tasks really can write this concurrently
+// (e.g. a NEW request's HANDLER_ENTERED landing on the httpd task at the
+// same instant the main loop is still finishing a PRIOR request's own
+// terminal marker write) -- "an aligned uint8_t store" is not a
+// synchronization argument in C++, it merely happens to not tear on this
+// specific architecture, which is not the same thing as being race-free
+// or free of UB under [intro.races]. std::atomic<uint8_t> is trivially
+// copyable/standard-layout and lock-free on every ESP32 target this
+// project builds for (Xtensa and RISC-V single-byte loads/stores are
+// natively atomic), so placing it in RTC_NOINIT_ATTR storage is exactly
+// as valid as the plain uint8_t it replaces -- same section, same size,
+// now with real atomicity instead of an implicit, unstated assumption.
+RTC_NOINIT_ATTR std::atomic<uint8_t> g_rtc_write_crash_stage;
 // Resets-since-power-on counter, NOT a true persistent-across-power-
 // cycles boot count: RTC_NOINIT_ATTR memory does not survive a genuine
 // power-on/brownout (see the module comment above), so this counter
 // itself resets to 1 whenever power was actually lost. Kept in RTC SRAM
-// only -- zero flash writes, zero flash wear, by construction.
+// only -- zero flash writes, zero flash wear, by construction. Written
+// only once per boot, from a single task (on_boot, priority -100, before
+// the write-registry handlers/main-loop consumer are ever reachable) --
+// genuinely single-threaded at every access, so plain uint32_t (not
+// atomic) remains correct here, unlike the crash-stage marker above.
 RTC_NOINIT_ATTR uint32_t g_rtc_reset_count;
 
 constexpr uint32_t kRtcMagic = 0x4A4B4253u;  // ASCII "JKBS", this project's own guard value
@@ -67,25 +87,37 @@ inline BootDiagnostics read_and_reset_boot_diagnostics() {
   out.reset_reason_code = static_cast<int>(esp_reset_reason());
   const bool magic_ok = g_rtc_magic == kRtcMagic;
   out.rtc_trustworthy = reset_reason_preserves_rtc_memory(out.reset_reason_code) && magic_ok;
-  out.last_write_crash_stage = out.rtc_trustworthy ? g_rtc_write_crash_stage : STAGE_IDLE;
-  out.reset_count_since_power_on = magic_ok ? (g_rtc_reset_count + 1) : 1;
+  out.last_write_crash_stage = out.rtc_trustworthy ? g_rtc_write_crash_stage.load(std::memory_order_relaxed) : STAGE_IDLE;
+  // Second corrective pass (2026-09-21): previously gated ONLY on
+  // magic_ok, which wrongly incremented the counter for a reset type RTC
+  // memory does NOT actually survive (POWERON/BROWNOUT/PWR_GLITCH) if the
+  // magic word merely happened to still read back correctly by chance
+  // (uninitialized RTC SRAM after certain glitch conditions can retain
+  // its previous contents even though the hardware gives no guarantee it
+  // will) -- see test/jk_diag/test_jk_reset_diag_core.cpp's new
+  // POWERON/BROWNOUT/PWR_GLITCH-with-accidentally-preserved-magic cases.
+  // Fail closed: the counter only ever continues a genuine prior session
+  // when BOTH the magic matches AND this exact reset reason is one RTC
+  // memory is documented to survive -- i.e. exactly `rtc_trustworthy`,
+  // never `magic_ok` alone.
+  out.reset_count_since_power_on = compute_reset_count_since_power_on(out.rtc_trustworthy, g_rtc_reset_count);
 
   g_rtc_magic = kRtcMagic;
-  g_rtc_write_crash_stage = STAGE_IDLE;
+  g_rtc_write_crash_stage.store(STAGE_IDLE, std::memory_order_relaxed);
   g_rtc_reset_count = out.reset_count_since_power_on;
   return out;
 }
 
 // Called at each real milestone of the HTTP write handoff path (Phase 3's
-// mailbox consumer). A plain SRAM store -- no flash access, negligible
-// cost, safe to call from either the httpd task or the main loop (each
-// call is a single aligned uint8_t store; this project accepts the
-// theoretical torn-read risk of an extremely rare concurrent read during
-// a future crash's own forensic dump, since the alternative -- gating
-// this with the same atomic machinery as the write mailboxes -- would
-// add real complexity for a value that is diagnostic-only and never
-// itself gates a safety decision).
-inline void mark_write_crash_stage(WriteCrashStage stage) { g_rtc_write_crash_stage = static_cast<uint8_t>(stage); }
+// mailbox consumer). Genuinely called from two different FreeRTOS tasks
+// (the httpd task via RegisterWriteHandler, and the main loop via the
+// 100ms write consumer) -- a real std::atomic store (not merely "an
+// aligned uint8_t", see g_rtc_write_crash_stage's own declaration comment
+// above) is what actually makes this race-free under the C++ memory
+// model, not an informal argument about torn reads.
+inline void mark_write_crash_stage(WriteCrashStage stage) {
+  g_rtc_write_crash_stage.store(static_cast<uint8_t>(stage), std::memory_order_relaxed);
+}
 
 }  // namespace jk_diag
 
