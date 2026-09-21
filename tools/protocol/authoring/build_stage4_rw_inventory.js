@@ -338,17 +338,103 @@ function atomicWrite(targetPath, content) {
 
 const jsonContent = JSON.stringify(outDoc, null, 2) + "\n";
 
+// ---------------------------------------------------------------------------
+// Stage 4 production-integration gap fix (2026-09-21, user-directed): the
+// frontend (jk_bms.js) has no awareness of the write registry at all --
+// this generates that catalog into a dedicated, marked block (distinct
+// from tools/protocol/generate.js's own PROTOCOL_CATALOG block -- see
+// that generator's own injectIntoJkBmsJs for the identical, established
+// marker-replace pattern this mirrors) so the UI's live/authorization-
+// required/blocked rows are catalog-driven, never hand-duplicated. Reuses
+// write_registry.json (already loaded above as writeRegistry) for the 42
+// live/authorization-required entries, and this file's OWN just-computed
+// `rows` for the 37 blocked entries (never re-implements the eligibility
+// logic a second time -- the blocked_reason/blocker_closure_criterion
+// this file already derived is the single source).
+// ---------------------------------------------------------------------------
+const JS_BEGIN = "  // >>> BEGIN GENERATED WRITE REGISTRY (Stage 4, production-integration gap fix, 2026-09-21) — DO NOT EDIT BY HAND.";
+const JS_END = "  // <<< END GENERATED WRITE REGISTRY";
+const JK_BMS_JS_PATH = path.join(ROOT, "jk_bms.js");
+
+function jsLiteral(v) { return v === null || v === undefined ? "null" : JSON.stringify(v); }
+
+function buildLiveOrAuthLine(e) {
+  return `      { key: ${jsLiteral(e.key)}, address: ${parseInt(e.address, 16)}, minimum: ${jsLiteral(e.minimum)}, ` +
+    `maximum: ${jsLiteral(e.maximum)}, step: ${jsLiteral(e.step)}, scale: ${jsLiteral(e.scale)}, ` +
+    `writeSafetyClass: ${jsLiteral(e.write_safety_class)}, submitPolicy: ${jsLiteral(e.submit_policy)} },`;
+}
+function buildBlockedLine(row) {
+  return `      { key: ${jsLiteral(row.canonical_key)}, address: ${parseInt(row.address, 16)}, ` +
+    `writeSafetyClass: ${jsLiteral(row.write_safety_class)}, reason: ${jsLiteral(row.blocked_reason)}, ` +
+    `closureCriterion: ${jsLiteral(row.blocker_closure_criterion)} },`;
+}
+
+const liveEntries = writeRegistry.entries.filter((e) => e.submit_policy === "live");
+const authRequiredEntries = writeRegistry.entries.filter((e) => e.submit_policy === "authorization_required");
+const blockedRows = rows.filter((r) => r.stage4_state === "blocked" && r.canonical_key);
+
+function buildJsInjectionBlock() {
+  return [
+    JS_BEGIN,
+    "  // Regenerate with: node tools/protocol/authoring/build_stage4_rw_inventory.js",
+    "  // Source of truth: protocol/generated/write_registry.json + protocol/generated/stage4_rw_inventory.json",
+    "  // `node tools/protocol/authoring/build_stage4_rw_inventory.js --check` fails if this block drifts from that source.",
+    `  // ${HEADER}`,
+    "  const WRITE_REGISTRY = Object.freeze({",
+    "    // submitPolicy \"live\": a real, immediate POST to /settings/register-write is allowed.",
+    "    live: Object.freeze([",
+    liveEntries.map(buildLiveOrAuthLine).join("\n"),
+    "    ]),",
+    "    // submitPolicy \"authorization_required\": visible, editor disabled, submit blocked client-side",
+    "    // AND server-side (RegisterWriteHandler rejects it with 403 regardless of what the UI does).",
+    "    authorizationRequired: Object.freeze([",
+    authRequiredEntries.map(buildLiveOrAuthLine).join("\n"),
+    "    ]),",
+    "    // No write path exists at all -- no editor, a concrete reason shown (see stage4_rw_inventory.json",
+    "    // for the full authoritative classification these reasons are drawn from).",
+    "    blocked: Object.freeze([",
+    blockedRows.map(buildBlockedLine).join("\n"),
+    "    ]),",
+    "  });",
+    JS_END,
+  ].join("\n");
+}
+
+function injectIntoJkBmsJs(currentSource) {
+  const beginIdx = currentSource.indexOf(JS_BEGIN);
+  const endIdx = currentSource.indexOf(JS_END);
+  if (beginIdx === -1 || endIdx === -1) {
+    throw new Error(
+      "jk_bms.js is missing the GENERATED WRITE REGISTRY markers. This generator only ever REPLACES the " +
+      "content between an existing BEGIN/END marker pair (a deliberate one-time manual edit) — it does not " +
+      "insert new markers itself."
+    );
+  }
+  const endOfEndLine = currentSource.indexOf("\n", endIdx);
+  const before = currentSource.slice(0, beginIdx);
+  const after = currentSource.slice(endOfEndLine);
+  return before + buildJsInjectionBlock() + after;
+}
+
+const currentJkBmsJs = fs.readFileSync(JK_BMS_JS_PATH, "utf8");
+const nextJkBmsJs = injectIntoJkBmsJs(currentJkBmsJs);
+
 if (CHECK) {
   const existing = fs.existsSync(OUT_PATH) ? fs.readFileSync(OUT_PATH, "utf8") : null;
-  if (existing !== jsonContent) {
-    console.log(`build_stage4_rw_inventory.js --check: DRIFT -- ${path.relative(ROOT, OUT_PATH)} does not match a fresh regeneration.`);
-    process.exit(1);
+  let drift = existing !== jsonContent;
+  if (drift) console.log(`build_stage4_rw_inventory.js --check: DRIFT -- ${path.relative(ROOT, OUT_PATH)} does not match a fresh regeneration.`);
+  if (currentJkBmsJs !== nextJkBmsJs) {
+    console.log("build_stage4_rw_inventory.js --check: DRIFT -- jk_bms.js's GENERATED WRITE REGISTRY block does not match a fresh regeneration.");
+    drift = true;
   }
+  if (drift) process.exit(1);
   console.log("build_stage4_rw_inventory.js --check: no drift.");
   process.exit(0);
 }
 
 atomicWrite(OUT_PATH, jsonContent);
+atomicWrite(JK_BMS_JS_PATH, nextJkBmsJs);
 console.log(`wrote ${path.relative(ROOT, OUT_PATH)}`);
+console.log(`wrote ${path.relative(ROOT, JK_BMS_JS_PATH)} (GENERATED WRITE REGISTRY block)`);
 console.log(`${rows.length} rows: ${JSON.stringify(counts_by_state)}`);
 console.log(`unmatched=${unmatchedCount} ambiguous=${ambiguousCount} duplicated=${duplicated.length}`);
