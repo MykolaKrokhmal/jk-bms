@@ -185,7 +185,7 @@ function loadRealClosures() {
 
 function main() {
   const { hooks, body } = loadRealClosures();
-  const { renderSettingsCatalog, updateSettingsCatalogValue, ingestPayload, state, entityByWireId, LEGACY_COMPANION_SUPPRESSED, SETTINGS_CATALOG_ROWS } = hooks;
+  const { renderSettingsCatalog, updateSettingsCatalogValue, ingestPayload, state, entityByWireId, LEGACY_COMPANION_SUPPRESSED, SETTINGS_CATALOG_ROWS, setLanguage } = hooks;
   const routesDoc = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "protocol_entity_routes.json"), "utf8"));
   const routesByKey = new Map(routesDoc.routes.map((r) => [r.key, r]));
 
@@ -336,12 +336,12 @@ function main() {
   updateSettingsCatalogValue(precharge);
   check("generated read-plan entity (precharge_status) routes correctly", rowValueText(precharge) === "0", rowValueText(precharge));
 
-  const totalVoltageRawId = manifestIdFor("total_voltage_raw"); // bespoke-reader (0x1290 block)
-  check("sanity: total_voltage_raw is a real bespoke-reader row", !!totalVoltageRawId);
-  ingestPayload({ id: "sensor/total voltage raw", value: 55.128, state: "55.128 V" });
-  updateSettingsCatalogValue(totalVoltageRawId);
-  check("bespoke-reader entity (total_voltage_raw) routes correctly, previously entirely unrouted",
-    rowValueText(totalVoltageRawId).includes("55.128"), rowValueText(totalVoltageRawId));
+  const minVolCellId = manifestIdFor("min_voltage_cell_index_native"); // bespoke-reader (0x1290 block)
+  check("sanity: min_voltage_cell_index_native is a real bespoke-reader row", !!minVolCellId);
+  ingestPayload({ id: "sensor/min voltage cell index (native)", value: 5, state: "5" });
+  updateSettingsCatalogValue(minVolCellId);
+  check("bespoke-reader entity (min_voltage_cell_index_native) routes correctly",
+    rowValueText(minVolCellId) === "5", rowValueText(minVolCellId));
 
   const maxVolCellId = manifestIdFor("max_voltage_cell_index_native");
   ingestPayload({ id: "sensor/max voltage cell index (native)", value: 3, state: "3" });
@@ -421,6 +421,119 @@ function main() {
   ingestPayload({ id: "sensor/can mptl ver", value: 1, state: "1" });
   updateSettingsCatalogValue(canVerId);
   check("can_mptl_ver routes correctly", rowValueText(canVerId) === "1", rowValueText(canVerId));
+
+  // =========================================================================
+  // Settings read-value fix (2026-09-22): the 5 target fields' full
+  // ingest -> state -> DOM path, using the real generated route table's
+  // own domain/entityId/configuredName (never a hand-guessed wire id).
+  // =========================================================================
+  const totalVoltageRawId = manifestIdFor("total_voltage_raw");
+  const currentRawId = manifestIdFor("current_raw");
+  const heatingActiveId = manifestIdFor("heating_active");
+  const chargingActiveId = manifestIdFor("charging_active");
+  const dischargingActiveId = manifestIdFor("discharging_active");
+  for (const [label, id] of [["total_voltage_raw", totalVoltageRawId], ["current_raw", currentRawId], ["heating_active", heatingActiveId], ["charging_active", chargingActiveId], ["discharging_active", dischargingActiveId]]) {
+    check(`Settings read-value fix: ${label} has a real Settings row`, !!id, label);
+  }
+
+  const totalVoltageRawRoute = routesByKey.get("total_voltage_raw");
+  const currentRawRoute = routesByKey.get("current_raw");
+  const heatingActiveRoute = routesByKey.get("heating_active");
+  const chargingActiveRoute = routesByKey.get("charging_active");
+  const dischargingActiveRoute = routesByKey.get("discharging_active");
+
+  check("total_voltage_raw's route is the new public sensor (never total_voltage's own wire id)",
+    totalVoltageRawRoute && totalVoltageRawRoute.domain === "sensor" && totalVoltageRawRoute.entityId === "total_voltage_raw");
+  check("current_raw's route is the new public sensor (never current's own wire id)",
+    currentRawRoute && currentRawRoute.domain === "sensor" && currentRawRoute.entityId === "current_raw");
+  check("charging_active's route is the PUBLIC binary_sensor/charging, never the internal charging_raw",
+    chargingActiveRoute && chargingActiveRoute.domain === "binary_sensor" && chargingActiveRoute.entityId === "charging");
+  check("discharging_active's route is the PUBLIC binary_sensor/discharging, never the internal discharging_raw",
+    dischargingActiveRoute && dischargingActiveRoute.domain === "binary_sensor" && dischargingActiveRoute.entityId === "discharging");
+
+  // total_voltage_raw: numeric payload, 3 decimals, V.
+  ingestPayload({ id: `${totalVoltageRawRoute.domain}/${totalVoltageRawRoute.configuredName}`, value: 55.128, state: "55.128 V" });
+  updateSettingsCatalogValue(totalVoltageRawId);
+  check("total_voltage_raw renders with 3 decimals and V, never '--'",
+    rowValueText(totalVoltageRawId) === "55.128 V", rowValueText(totalVoltageRawId));
+
+  // current_raw: SIGNED numeric payload (discharge, negative), 3 decimals, A.
+  ingestPayload({ id: `${currentRawRoute.domain}/${currentRawRoute.configuredName}`, value: -12.345, state: "-12.345 A" });
+  updateSettingsCatalogValue(currentRawId);
+  check("current_raw renders a signed value with 3 decimals and A, never '--'",
+    rowValueText(currentRawId) === "-12.345 A", rowValueText(currentRawId));
+
+  // heating_active: real ESPHome binary_sensor OFF/ON shape -- proves the
+  // valueKind:"binary" fix (a "numeric" classification would render '--'
+  // forever, since Number.parseFloat("OFF") is NaN).
+  ingestPayload({ id: `${heatingActiveRoute.domain}/${heatingActiveRoute.configuredName}`, value: false, state: "OFF" });
+  updateSettingsCatalogValue(heatingActiveId);
+  check("heating_active OFF renders the localized No, never '--'", rowValueText(heatingActiveId) === "No", rowValueText(heatingActiveId));
+  ingestPayload({ id: `${heatingActiveRoute.domain}/${heatingActiveRoute.configuredName}`, value: true, state: "ON" });
+  updateSettingsCatalogValue(heatingActiveId);
+  check("heating_active ON renders the localized Yes", rowValueText(heatingActiveId) === "Yes", rowValueText(heatingActiveId));
+
+  // charging_active: real ESPHome binary_sensor OFF/ON shape via the
+  // public `charging` entity.
+  ingestPayload({ id: `${chargingActiveRoute.domain}/${chargingActiveRoute.configuredName}`, value: false, state: "OFF" });
+  updateSettingsCatalogValue(chargingActiveId);
+  check("charging_active OFF renders the localized No, never '--'", rowValueText(chargingActiveId) === "No", rowValueText(chargingActiveId));
+  ingestPayload({ id: `${chargingActiveRoute.domain}/${chargingActiveRoute.configuredName}`, value: true, state: "ON" });
+  updateSettingsCatalogValue(chargingActiveId);
+  check("charging_active ON renders the localized Yes", rowValueText(chargingActiveId) === "Yes", rowValueText(chargingActiveId));
+
+  // discharging_active: real ESPHome binary_sensor OFF/ON shape via the
+  // public `discharging` entity.
+  ingestPayload({ id: `${dischargingActiveRoute.domain}/${dischargingActiveRoute.configuredName}`, value: false, state: "OFF" });
+  updateSettingsCatalogValue(dischargingActiveId);
+  check("discharging_active OFF renders the localized No, never '--'", rowValueText(dischargingActiveId) === "No", rowValueText(dischargingActiveId));
+  ingestPayload({ id: `${dischargingActiveRoute.domain}/${dischargingActiveRoute.configuredName}`, value: true, state: "ON" });
+  updateSettingsCatalogValue(dischargingActiveId);
+  check("discharging_active ON renders the localized Yes", rowValueText(dischargingActiveId) === "Yes", rowValueText(dischargingActiveId));
+
+  // Localized EN check: setLanguage("en") then re-assert Yes/No text for
+  // one representative row, proving both UK and EN localization work
+  // through the same binary formatter (not just the default UK locale).
+  setLanguage("en");
+  updateSettingsCatalogValue(heatingActiveId);
+  check("heating_active ON renders localized EN 'Yes' after language switch", rowValueText(heatingActiveId) === "Yes", rowValueText(heatingActiveId));
+  ingestPayload({ id: `${heatingActiveRoute.domain}/${heatingActiveRoute.configuredName}`, value: false, state: "OFF" });
+  updateSettingsCatalogValue(heatingActiveId);
+  check("heating_active OFF renders localized EN 'No'", rowValueText(heatingActiveId) === "No", rowValueText(heatingActiveId));
+  setLanguage("uk");
+
+  // Packed siblings do not overwrite one another: total_voltage_raw and
+  // current_raw are independently routed and independently updated (no
+  // shared canonical key, no shared wire id); heating_active shares its
+  // physical 0x12D0 block with bat_temp_sensor_1_present, but the two are
+  // separate canonical keys/routes -- updating one must not touch the
+  // other's already-resolved value.
+  const batTemp1Id = manifestIdFor("bat_temp_sensor_1_present");
+  const batTemp1Route = routesByKey.get("bat_temp_sensor_1_present");
+  if (batTemp1Id && batTemp1Route) {
+    ingestPayload({ id: `${batTemp1Route.domain}/${batTemp1Route.configuredName}`, value: true, state: "ON" });
+    updateSettingsCatalogValue(batTemp1Id);
+    const batTemp1Before = rowValueText(batTemp1Id);
+    ingestPayload({ id: `${heatingActiveRoute.domain}/${heatingActiveRoute.configuredName}`, value: true, state: "ON" });
+    updateSettingsCatalogValue(heatingActiveId);
+    check("updating heating_active (same 0x12D0 block) does not change its packed sibling bat_temp_sensor_1_present's already-resolved value",
+      rowValueText(batTemp1Id) === batTemp1Before, `before=${batTemp1Before} after=${rowValueText(batTemp1Id)}`);
+  }
+  check("total_voltage_raw's value is unaffected by current_raw's own update (independent routes)",
+    rowValueText(totalVoltageRawId).startsWith("55.128"), rowValueText(totalVoltageRawId));
+
+  // Existing total_voltage/current UI state remains independently
+  // routable: their OWN wire ids (distinct from total_voltage_raw/
+  // current_raw) still resolve to their OWN canonical keys.
+  check("entityByWireId still resolves total_voltage's own wire id to canonical key \"total_voltage\" (unaffected by this fix)",
+    entityByWireId.get("sensor/total voltage") === "total_voltage");
+  check("entityByWireId still resolves current's own wire id to canonical key \"current\" (unaffected by this fix)",
+    entityByWireId.get("sensor/current") === "current");
+  ingestPayload({ id: "sensor/total voltage", value: 55.2, state: "55.200 V" });
+  ingestPayload({ id: "sensor/current", value: 1.5, state: "1.500 A" });
+  check("state.total_voltage is independently populated from its own payload, not from total_voltage_raw's", state.total_voltage && state.total_voltage.state === "55.200 V");
+  check("state.current is independently populated from its own payload, not from current_raw's", state.current && state.current.state === "1.500 A");
+  check("state.total_voltage_raw is unaffected by total_voltage's own, separate payload", state.total_voltage_raw && state.total_voltage_raw.state === "55.128 V");
 
   // =========================================================================
   // Zero rebuild proof: the catalog's own row count never changes across

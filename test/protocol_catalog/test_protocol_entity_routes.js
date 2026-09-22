@@ -120,9 +120,29 @@ for (const r of routesDoc.routes) {
     continue;
   }
   const f = readPlanFieldByKey.get(r.key);
-  if (!f || f.entity_id !== r.entityId || f.domain !== r.domain || f.configured_name !== r.configuredName) {
+  if (!f) {
     noMisroute = false;
-    misroutes.push({ key: r.key, source: "read_plan", route: r, readPlan: f ? { domain: f.domain, entityId: f.entity_id, configuredName: f.configured_name } : "NOT_IN_READ_PLAN" });
+    misroutes.push({ key: r.key, source: "read_plan", route: r, readPlan: "NOT_IN_READ_PLAN" });
+    continue;
+  }
+  // Internal-entity preference rule (Settings read-value fix, 2026-09-22):
+  // a read-plan field marked internal:true routes to its OWN canonical
+  // field's public esphome_domain/esphome_read_entity_id instead, when
+  // populated -- the read-plan entity is structurally unobservable over
+  // /events (ESPHome internal:true), so routing there could never work.
+  const canonicalField = canonicalFieldByKey.get(r.key);
+  const preferCanonical = f.internal && canonicalField && canonicalField.esphome_domain && canonicalField.esphome_read_entity_id;
+  if (preferCanonical) {
+    const expectedConfiguredName = canonicalField.esphome_configured_name || canonicalField.esphome_read_entity_id.replace(/_/g, " ");
+    if (canonicalField.esphome_domain !== r.domain || canonicalField.esphome_read_entity_id !== r.entityId || expectedConfiguredName !== r.configuredName) {
+      noMisroute = false;
+      misroutes.push({ key: r.key, source: "read_plan_internal_override", route: r, canonical: { domain: canonicalField.esphome_domain, entityId: canonicalField.esphome_read_entity_id, expectedConfiguredName } });
+    }
+    continue;
+  }
+  if (f.entity_id !== r.entityId || f.domain !== r.domain || f.configured_name !== r.configuredName) {
+    noMisroute = false;
+    misroutes.push({ key: r.key, source: "read_plan", route: r, readPlan: { domain: f.domain, entityId: f.entity_id, configuredName: f.configured_name } });
   }
 }
 check("every route's domain/entityId/configuredName exactly matches its own authoritative source (read_plan.json for generic-block fields, registers.canonical.json for bespoke-reader fields)",
@@ -191,6 +211,71 @@ check("all 5 known legacy companions (rtc_ticks/odd_run_time/bms_system_ticks/to
   legacySuppressionIntact);
 check("each legacy companion's REAL exact primary key still resolves to itself, not the suppression sentinel",
   KNOWN_LEGACY_COMPANIONS.every((key) => reachableKeys.has(key)));
+
+// ---------------------------------------------------------------------------
+// 5. Settings read-value fix (2026-09-22): the 5 target keys' route table
+// contract, and the generic internal-entity-avoidance invariant.
+// ---------------------------------------------------------------------------
+const routeByKey = new Map(routesDoc.routes.map((r) => [r.key, r]));
+const TARGET_KEYS = ["total_voltage_raw", "current_raw", "heating_active", "charging_active", "discharging_active"];
+check("exactly one unambiguous route exists for each of the 5 target keys",
+  TARGET_KEYS.every((k) => routeByKey.has(k)), JSON.stringify(TARGET_KEYS.filter((k) => !routeByKey.has(k))));
+
+check("total_voltage_raw routes to sensor/total_voltage_raw (its own canonical public entity, never total_voltage's wire id)",
+  (() => { const r = routeByKey.get("total_voltage_raw"); return r && r.domain === "sensor" && r.entityId === "total_voltage_raw"; })());
+check("current_raw routes to sensor/current_raw (its own canonical public entity, never current's wire id)",
+  (() => { const r = routeByKey.get("current_raw"); return r && r.domain === "sensor" && r.entityId === "current_raw"; })());
+check("heating_active routes to its real binary_sensor entity",
+  (() => { const r = routeByKey.get("heating_active"); return r && r.domain === "binary_sensor" && r.entityId === "heating_active"; })());
+check("charging_active routes to the PUBLIC binary_sensor/charging, never the internal charging_raw",
+  (() => { const r = routeByKey.get("charging_active"); return r && r.domain === "binary_sensor" && r.entityId === "charging"; })());
+check("discharging_active routes to the PUBLIC binary_sensor/discharging, never the internal discharging_raw",
+  (() => { const r = routeByKey.get("discharging_active"); return r && r.domain === "binary_sensor" && r.entityId === "discharging"; })());
+check("balancing_active (not individually required, but covered by the generic rule) routes to the PUBLIC binary_sensor/balancing",
+  (() => { const r = routeByKey.get("balancing_active"); return r && r.domain === "binary_sensor" && r.entityId === "balancing"; })());
+
+// Generic invariant: no route in the ENTIRE table points at an
+// internal:true read-plan entity when the same canonical field has a
+// populated public alternative -- proves the rule was applied generically
+// (§3's "apply the rule generically", not just hand-patched for 5 keys).
+const wronglyInternal = [];
+for (const [key, field] of readPlanFieldByKey) {
+  if (!field.internal) continue;
+  const canonicalField = canonicalFieldByKey.get(key);
+  if (!canonicalField || !canonicalField.esphome_domain || !canonicalField.esphome_read_entity_id) continue;
+  const route = routeByKey.get(key);
+  if (!route) continue;
+  if (route.domain === field.domain && route.entityId === field.entity_id) {
+    wronglyInternal.push({ key, route, internalEntity: { domain: field.domain, entityId: field.entity_id } });
+  }
+}
+check("no route points only to an internal:true entity when a canonical public entity exists (applied generically)",
+  wronglyInternal.length === 0, JSON.stringify(wronglyInternal));
+
+// total_voltage_raw/current_raw must never reuse total_voltage/current's
+// own wire identity (distinct canonical entities, distinct wire routes).
+check("total_voltage_raw/current_raw do not steal total_voltage/current's own wire route",
+  (() => {
+    const tvr = routeByKey.get("total_voltage_raw");
+    const cr = routeByKey.get("current_raw");
+    const tv = readPlanFieldByKey.get("total_voltage");
+    const cu = readPlanFieldByKey.get("current");
+    if (!tvr || !cr) return false;
+    const tvClash = tv && tv.domain === tvr.domain && tv.entity_id === tvr.entityId;
+    const cuClash = cu && cu.domain === cr.domain && cu.entity_id === cr.entityId;
+    return !tvClash && !cuClash;
+  })());
+
+// ---------------------------------------------------------------------------
+// 6. Production entityByWireId proof: the two new sensors and the three
+// internal-avoidance rows are ALL reachable in the real, live Map (not
+// just present in the generated table) -- reuses the same hooks/
+// reachableKeys computed above (§3).
+// ---------------------------------------------------------------------------
+check("total_voltage_raw/current_raw/heating_active/charging_active/discharging_active are all reachable in the real, live entityByWireId Map",
+  TARGET_KEYS.every((k) => reachableKeys.has(k)), JSON.stringify(TARGET_KEYS.filter((k) => !reachableKeys.has(k))));
+check("balancing_active is also reachable (generic rule, not a target key but covered)",
+  reachableKeys.has("balancing_active"));
 
 console.log(`\nprotocol entity routes generator/model summary: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);

@@ -4314,9 +4314,11 @@ sensor:
   # dispatched from protocol/generated/read_plan.yaml's own scheduler
   # servicer (see that generated file's own comment for the exact
   # generated call site). This file no longer declares a physical read
-  # for it at all -- only the 7 downstream, purely-computed display
+  # for it at all -- only the 9 downstream, purely-computed display
   # entities below remain (updated via ->update() from that servicer,
-  # exactly matching what the removed on_value: automation used to do).
+  # exactly matching what the removed on_value: automation used to do;
+  # total_voltage_raw/current_raw added 2026-09-22, Settings read-value
+  # fix, same globals, same callback, no new read).
   - platform: template
     id: total_voltage
     name: "total voltage"
@@ -4334,6 +4336,31 @@ sensor:
     unit_of_measurement: "A"
     device_class: current
     state_class: measurement
+    accuracy_decimals: 3
+    lambda: return id(g_current_a);
+
+  # Settings read-value fix (2026-09-22): registers.canonical.json already
+  # declared total_voltage_raw/current_raw as implemented, public entities
+  # (esphome_read_entity_id: "total_voltage_raw"/"current_raw") -- but no
+  # ESPHome entity under those ids was ever actually declared, so their
+  # Settings rows could never show a value regardless of routing
+  # correctness. These mirror the SAME already-decoded globals as
+  # total_voltage/current above (no new Modbus read), published under
+  # their own distinct entity ids so they never share a wire route with
+  # total_voltage/current's own SSE state.
+  - platform: template
+    id: total_voltage_raw
+    name: "total voltage raw"
+    update_interval: never
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    lambda: return id(g_total_voltage_v);
+
+  - platform: template
+    id: current_raw
+    name: "current raw"
+    update_interval: never
+    unit_of_measurement: "A"
     accuracy_decimals: 3
     lambda: return id(g_current_a);
 

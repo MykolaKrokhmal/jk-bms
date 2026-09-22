@@ -71,6 +71,9 @@ function humanize(key) { return key.replace(/_/g, " "); }
 const readPlan = loadJson(READ_PLAN_PATH);
 const canonical = loadJson(CANONICAL_PATH);
 
+const canonicalFieldByKey = new Map();
+for (const reg of canonical.registers) for (const f of reg.fields || []) canonicalFieldByKey.set(f.key, f);
+
 const routes = [];
 const seenKeys = new Set();
 for (const block of readPlan.blocks) {
@@ -80,6 +83,34 @@ for (const block of readPlan.blocks) {
       throw new Error(`PROTOCOL_ENTITY_ROUTES_DUPLICATE_KEY: "${field.key}" appears in more than one read_plan.json block -- refusing to generate an ambiguous route table.`);
     }
     seenKeys.add(field.key);
+    // Internal-entity preference rule (2026-09-22 Settings read-value
+    // correction): a read-plan field marked `internal: true` (e.g. the
+    // DERIVED_BOOLEAN_OVERRIDE raw registers `charging_raw`/
+    // `discharging_raw`/`balancing_raw`/`charging_control_raw`/etc.) is,
+    // by ESPHome's own semantics, structurally never published over
+    // `/events` -- routing a Settings row to it can never work, no matter
+    // how correct the route mechanics are. When the SAME canonical field
+    // already has its own populated, REAL public entity
+    // (esphome_domain/esphome_read_entity_id -- e.g. canonical key
+    // "charging_active" already declares esphome_domain: "binary_sensor",
+    // esphome_read_entity_id: "charging", matching the real, already-
+    // published `charging` binary_sensor that reads this same raw
+    // register through a hand-written derived-boolean lambda in
+    // batterylifepo4.yaml), that public entity is the real observable
+    // production value path and is used instead. Never fabricated: if
+    // canonical.json has no populated public entity for an internal
+    // field, this falls through to the existing read-plan-derived
+    // (internal) route unchanged, exactly as before this fix.
+    const canonicalField = canonicalFieldByKey.get(field.key);
+    if (field.internal && canonicalField && canonicalField.esphome_domain && canonicalField.esphome_read_entity_id) {
+      routes.push({
+        key: field.key,
+        domain: canonicalField.esphome_domain,
+        entityId: canonicalField.esphome_read_entity_id,
+        configuredName: canonicalField.esphome_configured_name || humanize(canonicalField.esphome_read_entity_id),
+      });
+      continue;
+    }
     routes.push({
       key: field.key,
       domain: field.domain,
@@ -99,8 +130,6 @@ for (const block of readPlan.blocks) {
 // esphome_read_entity_id/esphome_domain recorded (no established runtime
 // contract) is skipped entirely here, never given a fabricated route.
 const excludedBespokeKeys = new Set(readPlan.excluded_bespoke_keys || []);
-const canonicalFieldByKey = new Map();
-for (const reg of canonical.registers) for (const f of reg.fields || []) canonicalFieldByKey.set(f.key, f);
 for (const key of excludedBespokeKeys) {
   if (seenKeys.has(key)) continue;
   const field = canonicalFieldByKey.get(key);

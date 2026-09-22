@@ -367,6 +367,17 @@ const CUSTOM_DECODE_BLOCKS = [
       "id(discharging_power)->update();",
       "id(charging_current)->update();",
       "id(discharging_current)->update();",
+      // Settings read-value fix (2026-09-22): total_voltage_raw/current_raw
+      // are the canonical, publicly-routable native-register entities
+      // (registers.canonical.json's own esphome_read_entity_id for these
+      // two bespoke-excluded keys) -- previously modeled in canonical.json
+      // but never actually declared as ESPHome entities, so their Settings
+      // rows could never show a value no matter how correct their route
+      // was. Added to the SAME atomic fan-out as the 7 pre-existing
+      // downstream entities above -- same globals, same successful-decode
+      // callback, no new Modbus read/block/retry/cadence.
+      "id(total_voltage_raw)->update();",
+      "id(current_raw)->update();",
     ].join("\n"),
   },
 ];

@@ -357,6 +357,10 @@ echo "=== Protocol entity routing fix: production ingest->state->DOM behavior (r
 node test/protocol_catalog/test_protocol_entity_routing.js
 
 echo
+echo "=== Settings read-value fix: total_voltage_raw/current_raw public sensors + 0x1290 decode fan-out (generated artifacts) ==="
+node test/protocol_catalog/test_electrical_metrics_public_sensors.js
+
+echo
 echo "=== Stage 3: build_stage3_status_map.js exact-field-identity classifier fix regression ==="
 node test/protocol_catalog/test_stage3_status_map_exact_identity.js
 

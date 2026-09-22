@@ -199,7 +199,8 @@ check("every unmapped row carries a specific blockedReason", unmappedRows.every(
 // cross-check the generator's real output against, not to replace it --
 // the generator itself is the thing under test, run above via --check).
 // ---------------------------------------------------------------------------
-function expectedValueKind(wireType, hasEnumMap) {
+function expectedValueKind(wireType, hasEnumMap, esphomeDomain) {
+  if (esphomeDomain === "binary_sensor") return "binary";
   if (hasEnumMap) return "enum";
   if (wireType === "BIT") return "binary";
   if (wireType === "ASCII") return "text";
@@ -220,7 +221,7 @@ for (const r of doc.rows) {
   }
   const field = canonicalFieldByKey.get(r.canonicalKey);
   const expectedWireType = field ? (field.wire_type || null) : null;
-  const expectedKind = expectedValueKind(expectedWireType, !!(field && field.enum_map));
+  const expectedKind = expectedValueKind(expectedWireType, !!(field && field.enum_map), field ? field.esphome_domain : null);
   if (r.wireType !== expectedWireType || r.valueKind !== expectedKind) {
     valueKindAgreement = false;
     valueKindDisagreements.push({ id: r.id, key: r.canonicalKey, expected: { wireType: expectedWireType, valueKind: expectedKind }, got: { wireType: r.wireType, valueKind: r.valueKind } });
@@ -248,6 +249,30 @@ check("a real BIT field WITH a documented enum_map (port_switch) classifies as v
   (() => { const row = doc.rows.find((r) => r.canonicalKey === "port_switch"); return row && row.wireType === "BIT" && row.valueKind === "enum" && !!row.options; })());
 check("valueKind is never inferred from an unmapped row's own manifest metadata -- always exactly 'unknown'",
   doc.rows.filter((r) => r.canonicalKey === null).every((r) => r.valueKind === "unknown"));
+
+// Settings read-value fix (2026-09-22), global invariant (§4C of the
+// fix's own required proofs): domain-aware value-kind derivation must
+// hold for EVERY mapped row, not just the 4 named rows -- a real
+// ESPHome binary_sensor always publishes an "ON"/"OFF"-shaped payload
+// regardless of its underlying wire_type (several are wire_type U8, not
+// BIT), and routing it through the numeric formatter is a guaranteed
+// permanent "--".
+{
+  const domainMismatches = [];
+  for (const r of doc.rows) {
+    if (!r.canonicalKey) continue;
+    const field = canonicalFieldByKey.get(r.canonicalKey);
+    if (!field || field.esphome_domain !== "binary_sensor") continue;
+    if (r.valueKind !== "binary") domainMismatches.push({ key: r.canonicalKey, valueKind: r.valueKind });
+  }
+  check("every mapped Settings row whose canonical esphome_domain is binary_sensor has valueKind:\"binary\"",
+    domainMismatches.length === 0, JSON.stringify(domainMismatches));
+}
+check("the four named rows (heating_active/charging_active/discharging_active/balancing_active) are valueKind:\"binary\"",
+  ["heating_active", "charging_active", "discharging_active", "balancing_active"].every((k) => {
+    const row = doc.rows.find((r) => r.canonicalKey === k);
+    return row && row.valueKind === "binary";
+  }));
 
 console.log(`\nSettings view-model structural summary: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);

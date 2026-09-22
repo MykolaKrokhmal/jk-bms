@@ -1,7 +1,7 @@
 {
   "$schema": "protocol-entity-routes-generated-v1",
   "generated_by": "tools/protocol/authoring/build_protocol_entity_routes.js",
-  "source_hash": "731f3b67ba61bcd0",
+  "source_hash": "bfdd0e7df97dbcae",
   "route_count": 250,
   "routes": [
     {
@@ -138,15 +138,15 @@
     },
     {
       "key": "balancing",
-      "domain": "sensor",
-      "entityId": "balancing_control_raw",
-      "configuredName": "balancing control raw"
+      "domain": "binary_sensor",
+      "entityId": "balancing_allowed",
+      "configuredName": "balancing allowed"
     },
     {
       "key": "balancing_active",
-      "domain": "sensor",
-      "entityId": "balancing_raw",
-      "configuredName": "balancing raw"
+      "domain": "binary_sensor",
+      "entityId": "balancing",
+      "configuredName": "balancing"
     },
     {
       "key": "bat_temp_sensor_1_present",
@@ -918,15 +918,15 @@
     },
     {
       "key": "charging",
-      "domain": "sensor",
-      "entityId": "charging_control_raw",
-      "configuredName": "charging control raw"
+      "domain": "binary_sensor",
+      "entityId": "charging_allowed",
+      "configuredName": "charging allowed"
     },
     {
       "key": "charging_active",
-      "domain": "sensor",
-      "entityId": "charging_raw",
-      "configuredName": "charging raw"
+      "domain": "binary_sensor",
+      "entityId": "charging",
+      "configuredName": "charging"
     },
     {
       "key": "charging_cycles",
@@ -1068,15 +1068,15 @@
     },
     {
       "key": "discharging",
-      "domain": "sensor",
-      "entityId": "discharging_control_raw",
-      "configuredName": "discharging control raw"
+      "domain": "binary_sensor",
+      "entityId": "discharging_allowed",
+      "configuredName": "discharging allowed"
     },
     {
       "key": "discharging_active",
-      "domain": "sensor",
-      "entityId": "discharging_raw",
-      "configuredName": "discharging raw"
+      "domain": "binary_sensor",
+      "entityId": "discharging",
+      "configuredName": "discharging"
     },
     {
       "key": "dry_contact_1_recovery_value",

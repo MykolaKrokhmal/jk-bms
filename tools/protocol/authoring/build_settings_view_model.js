@@ -142,7 +142,22 @@ function accessLetter(effectiveAccess) {
 // silently corrupting ASCII (hardware_version="15A" -> NaN) and HEX/raw
 // fields. wireType/valueKind let the renderer pick the right formatter
 // per row without guessing from the current SSE payload's own shape.
-function deriveValueKind(wireType, hasEnumMap) {
+//
+// Domain-aware correction (2026-09-22, Settings read-value fix): a field
+// whose canonical `esphome_domain` is "binary_sensor" always renders as
+// a real ESPHome boolean over /events (state: "ON"/"OFF"), regardless of
+// its underlying wire_type -- several fields (heating_active,
+// charging_active, discharging_active, balancing_active) are wire_type
+// U8 (a byte-wide register position), not the BIT wire type, yet publish
+// through a genuine binary_sensor entity. Routing these through the
+// numeric branch calls Number.parseFloat() on "ON"/"OFF", which is
+// always NaN, so the row renders "--" forever regardless of whether a
+// real payload arrived. esphome_domain is checked FIRST, ahead of
+// wire_type, because it is the authoritative description of the real
+// wire shape a payload for this field will actually take -- never
+// inferred from a live payload string.
+function deriveValueKind(wireType, hasEnumMap, esphomeDomain) {
+  if (esphomeDomain === "binary_sensor") return "binary";
   if (hasEnumMap) return "enum";
   if (wireType === "BIT") return "binary";
   if (wireType === "ASCII") return "text";
@@ -311,7 +326,7 @@ for (const p of eligibleParams) {
       access: "RW",
       effectiveAccess: accessLetter(s4.effective_access),
       wireType: field ? (field.wire_type || null) : null,
-      valueKind: deriveValueKind(field ? field.wire_type : null, !!(field && field.enum_map)),
+      valueKind: deriveValueKind(field ? field.wire_type : null, !!(field && field.enum_map), field ? field.esphome_domain : null),
       stage4State: s4.stage4_state,
       uiSection: field ? (field.ui_section || null) : "unmapped",
       uiOrder: field && typeof field.ui_order === "number" ? field.ui_order : null,
@@ -378,7 +393,7 @@ for (const p of eligibleParams) {
     access: "R",
     effectiveAccess: accessLetter(field.effective_access),
     wireType: field.wire_type || null,
-    valueKind: deriveValueKind(field.wire_type, !!field.enum_map),
+    valueKind: deriveValueKind(field.wire_type, !!field.enum_map, field.esphome_domain),
     uiSection: field.ui_section || null,
     uiOrder: typeof field.ui_order === "number" ? field.ui_order : null,
     uiGroup: field.ui_group || null,
