@@ -1,0 +1,87 @@
+{
+  "$id": "service-actions-source.schema.json",
+  "$comment": "Schema for protocol/service_actions.canonical.json -- Stage 5's hand-authored, evidence-based canonical model of the 8 official V1.1 write-only (access=W) service commands at 0x1600-0x1612. Deliberately NOT part of registers.canonical.json: a service action has no read_function, no poll_group/freshness_budget_s, and no readback (it is ACK-only by protocol design, per the manifest's own readback_rule field) -- forcing it through the register schema (which assumes a polled read/write field with a freshness budget) would be exactly the kind of schema-weakening this Stage's own directive forbids. Validated by tools/protocol/lib/mini-schema.js (structural shape only) PLUS a separate semantic-invariant pass in tools/protocol/generate_stage5_service_actions.js (cross-field rules mini-schema cannot express, e.g. 'payload_bytes == word_count*2', 'blocked rows must not carry a resolved payload_value_contract') -- see that generator's own module comment for the full semantic rule list.",
+  "type": "object",
+  "required": ["schema_version", "commands"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "type": "integer", "minimum": 1 },
+    "commands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "key", "manifest_id", "address", "declared_access", "read_function", "write_function",
+          "poll_group", "freshness_budget_s", "readback_rule", "control_kind",
+          "wire_type", "word_count", "payload_bytes", "byte_order", "word_order",
+          "payload_parameterized", "payload_value_contract", "safety_class", "submit_policy",
+          "implementation_state", "blocked_reason", "blocker_closure_criterion", "evidence"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "description": "lowercase_snake_case canonical key, e.g. voltage_calibration" },
+          "manifest_id": { "type": "string", "minLength": 1, "description": "the exact V1.1 manifest name_prog, e.g. VoltageCalibration -- for evidence cross-referencing" },
+          "address": { "type": "string", "pattern": "^0x[0-9A-F]{4}$" },
+          "declared_access": { "type": "string", "enum": ["w"], "description": "always 'w' for this file -- a service action is never r/rw; that would belong in registers.canonical.json instead" },
+          "read_function": { "type": "null", "description": "always null -- a write-only service command has no Modbus read function by definition" },
+          "write_function": {
+            "type": ["string", "null"],
+            "enum": ["write_single_register_fc06", "write_multiple_registers_fc16", null],
+            "description": "null only when the write mechanism itself is not yet unambiguously established (must match a real open blocker)"
+          },
+          "poll_group": { "type": "null", "description": "always null -- never polled, never enters the read plan" },
+          "freshness_budget_s": { "type": "null", "description": "always null -- meaningless for a field that is never read back" },
+          "readback_rule": { "type": "string", "enum": ["ack_only_no_readback"], "description": "the ONLY readback rule this file may ever declare -- a service action is confirmed by ACK alone, per the V1.1 manifest's own readback_rule for every one of these 8 rows" },
+          "control_kind": { "type": "string", "enum": ["service_action"] },
+          "wire_type": { "type": ["string", "null"], "enum": ["UINT16", "UINT32", null] },
+          "word_count": {
+            "type": ["integer", "null"],
+            "enum": [1, 2, null],
+            "description": "number of 16-bit Modbus holding registers this command's payload spans. null when the primary source itself is internally inconsistent about width (e.g. VoltageCalibration/CurrentCalibration: typed UINT16 but declared Length=4 bytes in the same official PDF) -- never resolved by guessing."
+          },
+          "payload_bytes": {
+            "type": ["integer", "null"],
+            "enum": [2, 4, null],
+            "description": "must equal word_count*2 whenever both are non-null (enforced by the generator's semantic pass, not by this structural schema)"
+          },
+          "byte_order": { "type": "string", "enum": ["big_endian"] },
+          "word_order": { "type": ["string", "null"], "enum": ["single_word", null] },
+          "payload_parameterized": {
+            "type": "boolean",
+            "description": "true if the command takes a real caller-supplied value (e.g. Timecalibration's timestamp); false if it is a fixed-payload trigger (e.g. Shutdown) -- independent of whether that payload's exact value is yet established"
+          },
+          "payload_value_contract": {
+            "type": ["string", "null"],
+            "description": "a precise, source-cited description of the EXACT bytes/value this command writes (not merely its wire type/length). null means the exact value is NOT established by any local authoritative source -- the command MUST then have implementation_state=blocked with blocked_reason=PAYLOAD_VALUE_CONTRACT_NOT_ESTABLISHED (enforced by the generator's semantic pass)."
+          },
+          "safety_class": { "type": "string", "enum": ["normal", "disruptive", "topology", "credential", "unsupported", "n/a"] },
+          "submit_policy": { "type": "string", "enum": ["live", "authorization_required"] },
+          "implementation_state": { "type": "string", "enum": ["service-action-software-ready", "blocked"] },
+          "blocked_reason": {
+            "type": ["string", "null"],
+            "description": "required (non-null) when implementation_state=blocked; must be null when implementation_state=service-action-software-ready (enforced by the generator's semantic pass, not expressible in mini-schema alone)"
+          },
+          "blocker_closure_criterion": {
+            "type": ["string", "null"],
+            "description": "required (non-null) when implementation_state=blocked; must be null when implementation_state=service-action-software-ready"
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["source", "citation"],
+              "additionalProperties": false,
+              "properties": {
+                "source": { "type": "string", "enum": ["official_pdf_v1_1", "workbook_v2", "generated_manifest"] },
+                "citation": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
