@@ -1297,6 +1297,8 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 .cell-composite-voltage, .cell-composite-resistance{ min-width:72px; text-align:right; }
 .cell-composite-calibration{ display:flex; align-items:center; gap:8px; flex:1 1 220px; justify-content:flex-end; }
 .cell-composite-calibration-editor{ width:100px; }
+.cell-composite-calibration-unit{ font-size:.85em; color:var(--ink-faint); }
+.cell-composite-calibration-value{ min-width:72px; text-align:right; }
 .cell-composite-write-state{ font-size:.85em; color:var(--ink-faint); }
 .cell-composite-unconfirmed{ color:var(--ink-faint); font-size:.9em; padding:13px 18px; margin:0; }
 @media (max-width:560px){

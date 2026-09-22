@@ -256,7 +256,7 @@ function main() {
   const { hooks, body } = loadRealClosures();
   const {
     renderCellCompositeList, updateCellCompositeVoltage, updateCellCompositeResistance,
-    relocalizeCellCompositeList, activeCellCount, ingestPayload, setLanguage,
+    updateCellCompositeCalibration, relocalizeCellCompositeList, activeCellCount, ingestPayload, setLanguage,
     WRITE_REGISTRY, SETTINGS_VIEW_MODEL,
   } = hooks;
 
@@ -286,6 +286,9 @@ function main() {
   }
   function ingestResistance(n, value) {
     ingestPayload({ id: `sensor/cell ${n} wire resistance`, domain: "sensor", name: `cell ${n} wire resistance`, value, state: `${value.toFixed(3)} mΩ` });
+  }
+  function ingestCalibration(n, value) {
+    ingestPayload({ id: `sensor/cell connection wire resistance ${n}`, domain: "sensor", name: `cell connection wire resistance ${n}`, value, state: `${value}` });
   }
   function rows() { return cellCompositeList.querySelectorAll(".cell-composite-row"); }
   function rowFor(n) { return rows().find((r) => Number(r.dataset.cellIndex) === n); }
@@ -341,6 +344,7 @@ function main() {
   setDisplayCellCount(4);
   ingestVoltage(4, 3.452);
   ingestResistance(4, 0.0401);
+  ingestCalibration(4, 1234);
   renderCellCompositeList();
   const row4 = rowFor(4);
   check("row 4 exists after building N=4", !!row4);
@@ -350,6 +354,18 @@ function main() {
   check("row 4 voltage shows the real ingested value with unit", voltage4 && voltage4.textContent.includes("3.452") && voltage4.textContent.includes("V"), voltage4 && voltage4.textContent);
   const resistance4 = row4.querySelector(".cell-composite-resistance");
   check("row 4 resistance shows the real ingested value with unit", resistance4 && /0\.040/.test(resistance4.textContent) && resistance4.textContent.includes("mΩ"), resistance4 && resistance4.textContent);
+
+  // =========================================================================
+  // Calibration value + unit rendering (authorization_required, today's
+  // real policy) -- item 8 of this round's test list.
+  // =========================================================================
+  const calibInput4 = row4.querySelector(".cell-composite-calibration-editor");
+  check("calibration input for row 4 exists and is disabled (authorizationRequired)", !!calibInput4 && calibInput4.disabled === true);
+  check("calibration input is populated with the real current CellConWireRes4 value, not left blank",
+    calibInput4 && calibInput4.value === "1234", calibInput4 && calibInput4.value);
+  const calibUnit4 = row4.querySelector(".cell-composite-calibration-unit");
+  check("calibration unit element renders the generated localized unit (µΩ, not a hardcoded fallback)",
+    calibUnit4 && calibUnit4.textContent === "µΩ", calibUnit4 && calibUnit4.textContent);
 
   // =========================================================================
   // 13/14. Write-policy branches -- real data has every
@@ -424,7 +440,7 @@ function main() {
       hooks.ingestPayload({ id: "sensor/cell voltage 4", domain: "sensor", name: "cell voltage 4", value: 3.4, state: "3.400 V" });
       hooks.renderCellCompositeList();
       const row = list.querySelectorAll(".cell-composite-row").find((r) => Number(r.dataset.cellIndex) === 4);
-      testFn(row);
+      testFn(row, hooks);
     } finally {
       idRegistry = savedRegistry;
       activeElement = savedActive;
@@ -483,6 +499,98 @@ function main() {
   check("draft value in row 1 still intact after row 3's own updates", draftInput.value === "0.123");
   check("row 1 focus/selection still intact after row 3's own updates",
     draftInput._selectionStart === 0 && draftInput._selectionEnd === 2);
+
+  // =========================================================================
+  // 9. Calibration SSE updates hit only the correct row (authorization-
+  // required today: the input's own .value updates; other rows untouched).
+  // =========================================================================
+  setTopologyState("CONFIRMED");
+  setDisplayCellCount(0); renderCellCompositeList();
+  setDisplayCellCount(8);
+  for (let ch = 1; ch <= 8; ch += 1) { ingestVoltage(ch, 3.4); ingestResistance(ch, 0.05); ingestCalibration(ch, 1000 + ch); }
+  renderCellCompositeList();
+  const calibRow2Before = rowFor(2).querySelector(".cell-composite-calibration-editor").value;
+  ingestCalibration(5, 9999);
+  updateCellCompositeCalibration(5);
+  check("calibration SSE update changes only channel 5's own input value",
+    rowFor(5).querySelector(".cell-composite-calibration-editor").value === "9999",
+    rowFor(5).querySelector(".cell-composite-calibration-editor").value);
+  check("calibration SSE update for channel 5 does not touch channel 2's input value",
+    rowFor(2).querySelector(".cell-composite-calibration-editor").value === calibRow2Before);
+
+  // =========================================================================
+  // 10/11. live dirty/focused draft survives an SSE calibration update;
+  // an untouched live editor follows fresh SSE values -- exercised via the
+  // same source-patched live sandbox used for the write-policy branch
+  // above (today's real data has no live calibration field at all).
+  // =========================================================================
+  runInPatchedSandbox(
+    "live: Object.freeze([",
+    `{ key: "cell_connection_wire_resistance_4", address: 4232, minimum: 0, maximum: 4294967295, step: 1, scale: 1, writeSafetyClass: "disruptive", submitPolicy: "live" },`,
+    (row, hooks) => {
+      const input = row.querySelector(".cell-composite-calibration-editor");
+      // Untouched editor follows a fresh SSE value.
+      hooks.ingestPayload({ id: "sensor/cell connection wire resistance 4", domain: "sensor", name: "cell connection wire resistance 4", value: 555, state: "555" });
+      hooks.updateCellCompositeCalibration(4);
+      check("live branch: an untouched (non-dirty, unfocused) editor follows a fresh SSE value",
+        input.value === "555", input.value);
+      // Now the user types a draft and focuses the field -- a further SSE
+      // update must NOT overwrite it.
+      input.value = "42";
+      input.dataset.dirty = "true";
+      input.focus();
+      hooks.ingestPayload({ id: "sensor/cell connection wire resistance 4", domain: "sensor", name: "cell connection wire resistance 4", value: 777, state: "777" });
+      hooks.updateCellCompositeCalibration(4);
+      check("live branch: a dirty+focused editor's draft survives a further SSE update",
+        input.value === "42", input.value);
+    }
+  );
+
+  // =========================================================================
+  // Structural: the production renderer resolves all three bindings from
+  // SETTINGS_VIEW_MODEL -- no manually synthesized calibration key, no
+  // hardcoded unit fallback.
+  // =========================================================================
+  check("jk_bms.js builds CELL_COMPOSITE_BINDINGS from SETTINGS_VIEW_MODEL (not a hand-built key)",
+    /for \(const row of SETTINGS_VIEW_MODEL\)/.test(source) && /compositeGroup !== "cell"/.test(source));
+
+  // Scoped structural check: the composite renderer's OWN function bodies
+  // (not the rest of jk_bms.js, which legitimately builds cell_voltage_N/
+  // cell_resistance_N/cell_connection_wire_resistance_N keys elsewhere for
+  // unrelated subsystems -- e.g. the pre-existing cellVoltageKeys/
+  // cellResistanceKeys arrays and entityByWireId's own alias table) must
+  // never hand-construct any of the three cell keys.
+  function extractFunctionBody(name) {
+    const re = new RegExp(`function ${name}\\s*\\([^)]*\\)\\s*\\{`);
+    const m = re.exec(source);
+    if (!m) throw new Error(`test shim: function not found: ${name}`);
+    let depth = 1;
+    let i = m.index + m[0].length;
+    const start = i;
+    while (depth > 0 && i < source.length) {
+      if (source[i] === "{") depth += 1;
+      else if (source[i] === "}") depth -= 1;
+      i += 1;
+    }
+    return source.slice(start, i - 1);
+  }
+  const compositeFnBodies = [
+    extractFunctionBody("cellCompositeFieldValue"),
+    extractFunctionBody("cellCompositeFieldText"),
+    extractFunctionBody("renderCellCompositeCalibration"),
+    extractFunctionBody("renderCellCompositeRow"),
+    extractFunctionBody("updateCellCompositeVoltage"),
+    extractFunctionBody("updateCellCompositeResistance"),
+    extractFunctionBody("updateCellCompositeCalibration"),
+  ].join("\n");
+  check("no manually synthesized calibration key (`cell_connection_wire_resistance_${...}`) is required by the composite renderer's own functions",
+    !/cell_connection_wire_resistance_\$\{/.test(compositeFnBodies));
+  check("no manually synthesized `cell_voltage_${...}` / `cell_resistance_${...}` key in the composite renderer's own functions",
+    !/cell_voltage_\$\{/.test(compositeFnBodies) && !/cell_resistance_\$\{/.test(compositeFnBodies));
+  check("the composite renderer's own functions never hardcode 'V'/'mΩ'/'µΩ' as a unit fallback",
+    !/\|\|\s*"V"/.test(compositeFnBodies) && !/\|\|\s*"mΩ"/.test(compositeFnBodies) && !/\|\|\s*"µΩ"/.test(compositeFnBodies));
+  check("cellCompositeFieldValue() reads via row.canonicalKey (the real state[] key), not row.readEntityId (a documentation-only ESPHome id)",
+    /numeric\(row\.canonicalKey\)/.test(compositeFnBodies));
 
   // =========================================================================
   // 16. N transitions: 16->8 removes the tail, keeps the head (draft
