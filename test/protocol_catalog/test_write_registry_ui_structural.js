@@ -136,7 +136,7 @@ check("blocked rows render no input element at all (else branch has no `new_stri
 // --- HTML panel + i18n scaffolding, both languages ---
 check("panel markup declares the writeRegistryList container", jsSource.includes('id="writeRegistryList"'));
 check("panel markup declares the writeRegistryMessage status element", jsSource.includes('id="writeRegistryMessage"'));
-check("build() calls renderWriteRegistry() during boot", /renderWriteRegistry\(\);\s*\n\s*setText\("sysFirmware"/.test(jsSource));
+check("build() calls renderWriteRegistry() during boot", /renderWriteRegistry\(\);\s*\n\s*renderServiceActions\(\);\s*\n\s*setText\("sysFirmware"/.test(jsSource));
 
 for (const lang of ["en", "uk"]) {
   const langBlockMatch = jsSource.match(new RegExp(`${lang}:\\s*\\{[\\s\\S]*?writeRegistry:\\s*\\{([\\s\\S]*?)\\n\\s*\\},\\n\\s*diagnostics:`));

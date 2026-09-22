@@ -197,6 +197,22 @@ node test/protocol_catalog/test_write_registry_ui.js
 node test/protocol_catalog/test_register_write_handoff_structural.js
 
 echo
+echo "=== Stage 5: service-action generator determinism (--check) ==="
+node tools/protocol/authoring/build_stage5_service_actions.js --check
+
+echo
+echo "=== Stage 5: authoritative 8-command inventory/registry regression ==="
+node test/protocol_catalog/test_stage5_service_actions.js
+
+echo
+echo "=== Stage 5: canonical-source negative fixtures (schema + semantic invariants) ==="
+node test/protocol_catalog/test_stage5_service_actions_negative_fixtures.js
+
+echo
+echo "=== Stage 5: service-action panel UI structural regression ==="
+node test/protocol_catalog/test_stage5_service_actions_ui_structural.js
+
+echo
 echo "=== protocol catalog: generation atomicity + simulated-failure detection ==="
 node test/protocol_catalog/test_generation_atomicity.js
 
