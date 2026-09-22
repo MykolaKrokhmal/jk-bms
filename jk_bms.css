@@ -1274,6 +1274,15 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 .write-registry-row input[type="number"]{ width:100px; }
 .write-registry-note{ flex:1 1 220px; font-size:.85em; color:var(--ink-faint); }
 .write-registry-row .request-message{ flex-basis:100%; margin:0; }
+
+/* Stage 5 production-integration (2026-09-22): service-action panel
+   (SERVICE_ACTIONS, generated) -- all 8 write-only V1.1 commands, each
+   either blocked (read-only reason row) or software-ready (no dispatch
+   endpoint yet, note-only). Mirrors write-registry-row's flex rhythm;
+   never an input/button, so no editor-column rules are needed here. */
+.service-action-row{ flex-wrap:wrap; gap:8px 14px; }
+.service-action-label{ font-weight:500; }
+.service-action-note{ flex:1 1 220px; font-size:.85em; color:var(--ink-faint); text-align:right; }
 /* Value column widened 15% (94px -> 108px) across every breakpoint below. */
 .register-editor{ display:grid; grid-template-columns:108px 54px; align-items:center; gap:8px; flex:none; }
 .register-editor.has-unit{ grid-template-columns:108px 54px; }
