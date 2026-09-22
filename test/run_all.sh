@@ -349,6 +349,14 @@ echo "=== Settings correctness fix: value formatting + BIT dropdown DOM behavior
 node test/protocol_catalog/test_settings_value_formatting.js
 
 echo
+echo "=== Protocol entity routing fix: generated route table (generator/model coverage invariants) ==="
+node test/protocol_catalog/test_protocol_entity_routes.js
+
+echo
+echo "=== Protocol entity routing fix: production ingest->state->DOM behavior (real registerEntity/entityByWireId/ingestPayload/Settings catalog) ==="
+node test/protocol_catalog/test_protocol_entity_routing.js
+
+echo
 echo "=== Stage 3: build_stage3_status_map.js exact-field-identity classifier fix regression ==="
 node test/protocol_catalog/test_stage3_status_map_exact_identity.js
 

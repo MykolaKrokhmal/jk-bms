@@ -813,6 +813,14 @@ const blocks = [...blocksByAddress.values()]
       fields: b.fields.map((pf) => ({
         key: pf.field.key,
         entity_id: pf.entityId,
+        // The field's real, live ESPHome `name:` string -- humanize()
+        // is the EXACT same function buildReadPlanYaml() uses to emit
+        // each entity's own `name:` line below, so this can never drift
+        // out of sync with what the compiled firmware actually publishes
+        // on /events (routing fix, 2026-09-22: this is the single value
+        // both read_plan.yaml and jk_bms.js's generated entity-route
+        // table now consume, replacing two independent derivations).
+        configured_name: humanize(pf.entityId),
         domain: pf.domain,
         byte_offset: pf.field.byte_offset || 0,
         // ASCII fields carry mask:null in canonical.json (mask/shift don't
@@ -859,6 +867,12 @@ for (const block of blocks) {
     block.fields.push({
       key: `${pf.key}__legacy_companion`,
       entity_id: legacyEntityId,
+      // Preserves the explicitly-authored legacy_companion_configured_name
+      // from canonical.json when present (an exception to the generic
+      // humanize() rule -- the legacy entity's real historical `name:`
+      // does not always equal humanize(its own entity_id)); falls back to
+      // humanize() only when canonical.json has none recorded yet.
+      configured_name: sourceField.legacy_companion_configured_name || humanize(legacyEntityId),
       domain: "sensor",
       byte_offset: pf.byte_offset,
       mask: pf.mask,

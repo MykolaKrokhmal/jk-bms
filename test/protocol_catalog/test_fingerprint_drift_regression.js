@@ -112,6 +112,12 @@ const FILES_TO_COPY = [
   "protocol/generated/stage4_rw_inventory.json",
   "protocol/evidence/build_claim_matrix.js",
   "protocol/generated/claim_matrix.json",
+  // Protocol-entity routing fix (2026-09-22): the generated route table --
+  // fingerprint.js's accept step transitively runs this generator's
+  // --check too. Same "adding a new generated file means updating this
+  // list too" pattern as every entry above it.
+  "tools/protocol/authoring/build_protocol_entity_routes.js",
+  "protocol/generated/protocol_entity_routes.json",
 ];
 
 try {

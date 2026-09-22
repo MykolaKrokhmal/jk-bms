@@ -1,0 +1,1508 @@
+{
+  "$schema": "protocol-entity-routes-generated-v1",
+  "generated_by": "tools/protocol/authoring/build_protocol_entity_routes.js",
+  "source_hash": "731f3b67ba61bcd0",
+  "route_count": 250,
+  "routes": [
+    {
+      "key": "alarm_bat_ovp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_bat_ovp",
+      "configuredName": "alarm bat ovp"
+    },
+    {
+      "key": "alarm_bat_uvp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_bat_uvp",
+      "configuredName": "alarm bat uvp"
+    },
+    {
+      "key": "alarm_cell_ovp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_cell_ovp",
+      "configuredName": "alarm cell ovp"
+    },
+    {
+      "key": "alarm_cell_quantity",
+      "domain": "binary_sensor",
+      "entityId": "alarm_cell_quantity",
+      "configuredName": "alarm cell quantity"
+    },
+    {
+      "key": "alarm_cell_uvp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_cell_uvp",
+      "configuredName": "alarm cell uvp"
+    },
+    {
+      "key": "alarm_ch_ocp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_ch_ocp",
+      "configuredName": "alarm ch ocp"
+    },
+    {
+      "key": "alarm_ch_otp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_ch_otp",
+      "configuredName": "alarm ch otp"
+    },
+    {
+      "key": "alarm_ch_scp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_ch_scp",
+      "configuredName": "alarm ch scp"
+    },
+    {
+      "key": "alarm_ch_utp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_ch_utp",
+      "configuredName": "alarm ch utp"
+    },
+    {
+      "key": "alarm_charge_mos",
+      "domain": "binary_sensor",
+      "entityId": "alarm_charge_mos",
+      "configuredName": "alarm charge mos"
+    },
+    {
+      "key": "alarm_cpu_aux_commu_err",
+      "domain": "binary_sensor",
+      "entityId": "alarm_cpu_aux_commu_err",
+      "configuredName": "alarm cpu aux commu err"
+    },
+    {
+      "key": "alarm_cur_sensor_err",
+      "domain": "binary_sensor",
+      "entityId": "alarm_cur_sensor_err",
+      "configuredName": "alarm cur sensor err"
+    },
+    {
+      "key": "alarm_dch_ocp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_dch_ocp",
+      "configuredName": "alarm dch ocp"
+    },
+    {
+      "key": "alarm_dch_otp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_dch_otp",
+      "configuredName": "alarm dch otp"
+    },
+    {
+      "key": "alarm_dch_scp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_dch_scp",
+      "configuredName": "alarm dch scp"
+    },
+    {
+      "key": "alarm_discharge_mos",
+      "domain": "binary_sensor",
+      "entityId": "alarm_discharge_mos",
+      "configuredName": "alarm discharge mos"
+    },
+    {
+      "key": "alarm_mos_otp",
+      "domain": "binary_sensor",
+      "entityId": "alarm_mos_otp",
+      "configuredName": "alarm mos otp"
+    },
+    {
+      "key": "alarm_wire_res",
+      "domain": "binary_sensor",
+      "entityId": "alarm_wire_res",
+      "configuredName": "alarm wire res"
+    },
+    {
+      "key": "alarms_bitmask",
+      "domain": "sensor",
+      "entityId": "alarms_bitmask",
+      "configuredName": "alarms bitmask"
+    },
+    {
+      "key": "alternate_battery_voltage",
+      "domain": "sensor",
+      "entityId": "alternate_battery_voltage",
+      "configuredName": "alternate battery voltage"
+    },
+    {
+      "key": "average_cell_voltage",
+      "domain": "sensor",
+      "entityId": "average_cell_voltage",
+      "configuredName": "average cell voltage"
+    },
+    {
+      "key": "balance_current",
+      "domain": "sensor",
+      "entityId": "balance_current",
+      "configuredName": "balance current"
+    },
+    {
+      "key": "balancing",
+      "domain": "sensor",
+      "entityId": "balancing_control_raw",
+      "configuredName": "balancing control raw"
+    },
+    {
+      "key": "balancing_active",
+      "domain": "sensor",
+      "entityId": "balancing_raw",
+      "configuredName": "balancing raw"
+    },
+    {
+      "key": "bat_temp_sensor_1_present",
+      "domain": "binary_sensor",
+      "entityId": "bat_temp_sensor_1_present",
+      "configuredName": "bat temp sensor 1 present"
+    },
+    {
+      "key": "bat_temp_sensor_2_present",
+      "domain": "binary_sensor",
+      "entityId": "bat_temp_sensor_2_present",
+      "configuredName": "bat temp sensor 2 present"
+    },
+    {
+      "key": "bat_temp_sensor_3_present",
+      "domain": "binary_sensor",
+      "entityId": "bat_temp_sensor_3_present",
+      "configuredName": "bat temp sensor 3 present"
+    },
+    {
+      "key": "bat_temp_sensor_4_present",
+      "domain": "binary_sensor",
+      "entityId": "bat_temp_sensor_4_present",
+      "configuredName": "bat temp sensor 4 present"
+    },
+    {
+      "key": "bat_temp_sensor_5_present",
+      "domain": "binary_sensor",
+      "entityId": "bat_temp_sensor_5_present",
+      "configuredName": "bat temp sensor 5 present"
+    },
+    {
+      "key": "battery_capacity",
+      "domain": "sensor",
+      "entityId": "battery_capacity",
+      "configuredName": "battery capacity"
+    },
+    {
+      "key": "battery_current_correction",
+      "domain": "sensor",
+      "entityId": "battery_current_correction",
+      "configuredName": "battery current correction"
+    },
+    {
+      "key": "battery_over_temp_alarm",
+      "domain": "binary_sensor",
+      "entityId": "battery_over_temp_alarm",
+      "configuredName": "battery over temp alarm"
+    },
+    {
+      "key": "battery_voltage_correction",
+      "domain": "sensor",
+      "entityId": "battery_voltage_correction",
+      "configuredName": "battery voltage correction"
+    },
+    {
+      "key": "bms_system_ticks",
+      "domain": "text_sensor",
+      "entityId": "bms_system_ticks_exact",
+      "configuredName": "bms system ticks exact"
+    },
+    {
+      "key": "can_mprtol_nbr",
+      "domain": "sensor",
+      "entityId": "can_mprtol_nbr",
+      "configuredName": "can mprtol nbr"
+    },
+    {
+      "key": "can_mptl_ver",
+      "domain": "sensor",
+      "entityId": "can_mptl_ver",
+      "configuredName": "can mptl ver"
+    },
+    {
+      "key": "capacity_remaining",
+      "domain": "sensor",
+      "entityId": "capacity_remaining",
+      "configuredName": "capacity remaining"
+    },
+    {
+      "key": "cell_connected_mask",
+      "domain": "text_sensor",
+      "entityId": "cell_connected_mask_exact",
+      "configuredName": "cell connected mask exact"
+    },
+    {
+      "key": "cell_connection_wire_resistance_1",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_1",
+      "configuredName": "cell connection wire resistance 1"
+    },
+    {
+      "key": "cell_connection_wire_resistance_10",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_10",
+      "configuredName": "cell connection wire resistance 10"
+    },
+    {
+      "key": "cell_connection_wire_resistance_11",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_11",
+      "configuredName": "cell connection wire resistance 11"
+    },
+    {
+      "key": "cell_connection_wire_resistance_12",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_12",
+      "configuredName": "cell connection wire resistance 12"
+    },
+    {
+      "key": "cell_connection_wire_resistance_13",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_13",
+      "configuredName": "cell connection wire resistance 13"
+    },
+    {
+      "key": "cell_connection_wire_resistance_14",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_14",
+      "configuredName": "cell connection wire resistance 14"
+    },
+    {
+      "key": "cell_connection_wire_resistance_15",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_15",
+      "configuredName": "cell connection wire resistance 15"
+    },
+    {
+      "key": "cell_connection_wire_resistance_16",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_16",
+      "configuredName": "cell connection wire resistance 16"
+    },
+    {
+      "key": "cell_connection_wire_resistance_17",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_17",
+      "configuredName": "cell connection wire resistance 17"
+    },
+    {
+      "key": "cell_connection_wire_resistance_18",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_18",
+      "configuredName": "cell connection wire resistance 18"
+    },
+    {
+      "key": "cell_connection_wire_resistance_19",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_19",
+      "configuredName": "cell connection wire resistance 19"
+    },
+    {
+      "key": "cell_connection_wire_resistance_2",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_2",
+      "configuredName": "cell connection wire resistance 2"
+    },
+    {
+      "key": "cell_connection_wire_resistance_20",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_20",
+      "configuredName": "cell connection wire resistance 20"
+    },
+    {
+      "key": "cell_connection_wire_resistance_21",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_21",
+      "configuredName": "cell connection wire resistance 21"
+    },
+    {
+      "key": "cell_connection_wire_resistance_22",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_22",
+      "configuredName": "cell connection wire resistance 22"
+    },
+    {
+      "key": "cell_connection_wire_resistance_23",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_23",
+      "configuredName": "cell connection wire resistance 23"
+    },
+    {
+      "key": "cell_connection_wire_resistance_24",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_24",
+      "configuredName": "cell connection wire resistance 24"
+    },
+    {
+      "key": "cell_connection_wire_resistance_25",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_25",
+      "configuredName": "cell connection wire resistance 25"
+    },
+    {
+      "key": "cell_connection_wire_resistance_26",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_26",
+      "configuredName": "cell connection wire resistance 26"
+    },
+    {
+      "key": "cell_connection_wire_resistance_27",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_27",
+      "configuredName": "cell connection wire resistance 27"
+    },
+    {
+      "key": "cell_connection_wire_resistance_28",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_28",
+      "configuredName": "cell connection wire resistance 28"
+    },
+    {
+      "key": "cell_connection_wire_resistance_29",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_29",
+      "configuredName": "cell connection wire resistance 29"
+    },
+    {
+      "key": "cell_connection_wire_resistance_3",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_3",
+      "configuredName": "cell connection wire resistance 3"
+    },
+    {
+      "key": "cell_connection_wire_resistance_30",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_30",
+      "configuredName": "cell connection wire resistance 30"
+    },
+    {
+      "key": "cell_connection_wire_resistance_31",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_31",
+      "configuredName": "cell connection wire resistance 31"
+    },
+    {
+      "key": "cell_connection_wire_resistance_32",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_32",
+      "configuredName": "cell connection wire resistance 32"
+    },
+    {
+      "key": "cell_connection_wire_resistance_4",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_4",
+      "configuredName": "cell connection wire resistance 4"
+    },
+    {
+      "key": "cell_connection_wire_resistance_5",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_5",
+      "configuredName": "cell connection wire resistance 5"
+    },
+    {
+      "key": "cell_connection_wire_resistance_6",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_6",
+      "configuredName": "cell connection wire resistance 6"
+    },
+    {
+      "key": "cell_connection_wire_resistance_7",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_7",
+      "configuredName": "cell connection wire resistance 7"
+    },
+    {
+      "key": "cell_connection_wire_resistance_8",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_8",
+      "configuredName": "cell connection wire resistance 8"
+    },
+    {
+      "key": "cell_connection_wire_resistance_9",
+      "domain": "number",
+      "entityId": "cell_connection_wire_resistance_9",
+      "configuredName": "cell connection wire resistance 9"
+    },
+    {
+      "key": "cell_count",
+      "domain": "sensor",
+      "entityId": "cell_count",
+      "configuredName": "cell count"
+    },
+    {
+      "key": "cell_ovp",
+      "domain": "sensor",
+      "entityId": "cell_ovp",
+      "configuredName": "cell ovp"
+    },
+    {
+      "key": "cell_ovpr",
+      "domain": "sensor",
+      "entityId": "cell_ovpr",
+      "configuredName": "cell ovpr"
+    },
+    {
+      "key": "cell_rcv",
+      "domain": "sensor",
+      "entityId": "cell_rcv",
+      "configuredName": "cell rcv"
+    },
+    {
+      "key": "cell_resistance_1",
+      "domain": "sensor",
+      "entityId": "cell_1_wire_resistance",
+      "configuredName": "cell 1 wire resistance"
+    },
+    {
+      "key": "cell_resistance_10",
+      "domain": "sensor",
+      "entityId": "cell_10_wire_resistance",
+      "configuredName": "cell 10 wire resistance"
+    },
+    {
+      "key": "cell_resistance_11",
+      "domain": "sensor",
+      "entityId": "cell_11_wire_resistance",
+      "configuredName": "cell 11 wire resistance"
+    },
+    {
+      "key": "cell_resistance_12",
+      "domain": "sensor",
+      "entityId": "cell_12_wire_resistance",
+      "configuredName": "cell 12 wire resistance"
+    },
+    {
+      "key": "cell_resistance_13",
+      "domain": "sensor",
+      "entityId": "cell_13_wire_resistance",
+      "configuredName": "cell 13 wire resistance"
+    },
+    {
+      "key": "cell_resistance_14",
+      "domain": "sensor",
+      "entityId": "cell_14_wire_resistance",
+      "configuredName": "cell 14 wire resistance"
+    },
+    {
+      "key": "cell_resistance_15",
+      "domain": "sensor",
+      "entityId": "cell_15_wire_resistance",
+      "configuredName": "cell 15 wire resistance"
+    },
+    {
+      "key": "cell_resistance_16",
+      "domain": "sensor",
+      "entityId": "cell_16_wire_resistance",
+      "configuredName": "cell 16 wire resistance"
+    },
+    {
+      "key": "cell_resistance_17",
+      "domain": "sensor",
+      "entityId": "cell_17_wire_resistance",
+      "configuredName": "cell 17 wire resistance"
+    },
+    {
+      "key": "cell_resistance_18",
+      "domain": "sensor",
+      "entityId": "cell_18_wire_resistance",
+      "configuredName": "cell 18 wire resistance"
+    },
+    {
+      "key": "cell_resistance_19",
+      "domain": "sensor",
+      "entityId": "cell_19_wire_resistance",
+      "configuredName": "cell 19 wire resistance"
+    },
+    {
+      "key": "cell_resistance_2",
+      "domain": "sensor",
+      "entityId": "cell_2_wire_resistance",
+      "configuredName": "cell 2 wire resistance"
+    },
+    {
+      "key": "cell_resistance_20",
+      "domain": "sensor",
+      "entityId": "cell_20_wire_resistance",
+      "configuredName": "cell 20 wire resistance"
+    },
+    {
+      "key": "cell_resistance_21",
+      "domain": "sensor",
+      "entityId": "cell_21_wire_resistance",
+      "configuredName": "cell 21 wire resistance"
+    },
+    {
+      "key": "cell_resistance_22",
+      "domain": "sensor",
+      "entityId": "cell_22_wire_resistance",
+      "configuredName": "cell 22 wire resistance"
+    },
+    {
+      "key": "cell_resistance_23",
+      "domain": "sensor",
+      "entityId": "cell_23_wire_resistance",
+      "configuredName": "cell 23 wire resistance"
+    },
+    {
+      "key": "cell_resistance_24",
+      "domain": "sensor",
+      "entityId": "cell_24_wire_resistance",
+      "configuredName": "cell 24 wire resistance"
+    },
+    {
+      "key": "cell_resistance_25",
+      "domain": "sensor",
+      "entityId": "cell_25_wire_resistance",
+      "configuredName": "cell 25 wire resistance"
+    },
+    {
+      "key": "cell_resistance_26",
+      "domain": "sensor",
+      "entityId": "cell_26_wire_resistance",
+      "configuredName": "cell 26 wire resistance"
+    },
+    {
+      "key": "cell_resistance_27",
+      "domain": "sensor",
+      "entityId": "cell_27_wire_resistance",
+      "configuredName": "cell 27 wire resistance"
+    },
+    {
+      "key": "cell_resistance_28",
+      "domain": "sensor",
+      "entityId": "cell_28_wire_resistance",
+      "configuredName": "cell 28 wire resistance"
+    },
+    {
+      "key": "cell_resistance_29",
+      "domain": "sensor",
+      "entityId": "cell_29_wire_resistance",
+      "configuredName": "cell 29 wire resistance"
+    },
+    {
+      "key": "cell_resistance_3",
+      "domain": "sensor",
+      "entityId": "cell_3_wire_resistance",
+      "configuredName": "cell 3 wire resistance"
+    },
+    {
+      "key": "cell_resistance_30",
+      "domain": "sensor",
+      "entityId": "cell_30_wire_resistance",
+      "configuredName": "cell 30 wire resistance"
+    },
+    {
+      "key": "cell_resistance_31",
+      "domain": "sensor",
+      "entityId": "cell_31_wire_resistance",
+      "configuredName": "cell 31 wire resistance"
+    },
+    {
+      "key": "cell_resistance_32",
+      "domain": "sensor",
+      "entityId": "cell_32_wire_resistance",
+      "configuredName": "cell 32 wire resistance"
+    },
+    {
+      "key": "cell_resistance_4",
+      "domain": "sensor",
+      "entityId": "cell_4_wire_resistance",
+      "configuredName": "cell 4 wire resistance"
+    },
+    {
+      "key": "cell_resistance_5",
+      "domain": "sensor",
+      "entityId": "cell_5_wire_resistance",
+      "configuredName": "cell 5 wire resistance"
+    },
+    {
+      "key": "cell_resistance_6",
+      "domain": "sensor",
+      "entityId": "cell_6_wire_resistance",
+      "configuredName": "cell 6 wire resistance"
+    },
+    {
+      "key": "cell_resistance_7",
+      "domain": "sensor",
+      "entityId": "cell_7_wire_resistance",
+      "configuredName": "cell 7 wire resistance"
+    },
+    {
+      "key": "cell_resistance_8",
+      "domain": "sensor",
+      "entityId": "cell_8_wire_resistance",
+      "configuredName": "cell 8 wire resistance"
+    },
+    {
+      "key": "cell_resistance_9",
+      "domain": "sensor",
+      "entityId": "cell_9_wire_resistance",
+      "configuredName": "cell 9 wire resistance"
+    },
+    {
+      "key": "cell_rfv",
+      "domain": "sensor",
+      "entityId": "cell_rfv",
+      "configuredName": "cell rfv"
+    },
+    {
+      "key": "cell_uvp",
+      "domain": "sensor",
+      "entityId": "cell_uvp",
+      "configuredName": "cell uvp"
+    },
+    {
+      "key": "cell_uvpr",
+      "domain": "sensor",
+      "entityId": "cell_uvpr",
+      "configuredName": "cell uvpr"
+    },
+    {
+      "key": "cell_voltage_1",
+      "domain": "sensor",
+      "entityId": "cell_voltage_1",
+      "configuredName": "cell voltage 1"
+    },
+    {
+      "key": "cell_voltage_10",
+      "domain": "sensor",
+      "entityId": "cell_voltage_10",
+      "configuredName": "cell voltage 10"
+    },
+    {
+      "key": "cell_voltage_11",
+      "domain": "sensor",
+      "entityId": "cell_voltage_11",
+      "configuredName": "cell voltage 11"
+    },
+    {
+      "key": "cell_voltage_12",
+      "domain": "sensor",
+      "entityId": "cell_voltage_12",
+      "configuredName": "cell voltage 12"
+    },
+    {
+      "key": "cell_voltage_13",
+      "domain": "sensor",
+      "entityId": "cell_voltage_13",
+      "configuredName": "cell voltage 13"
+    },
+    {
+      "key": "cell_voltage_14",
+      "domain": "sensor",
+      "entityId": "cell_voltage_14",
+      "configuredName": "cell voltage 14"
+    },
+    {
+      "key": "cell_voltage_15",
+      "domain": "sensor",
+      "entityId": "cell_voltage_15",
+      "configuredName": "cell voltage 15"
+    },
+    {
+      "key": "cell_voltage_16",
+      "domain": "sensor",
+      "entityId": "cell_voltage_16",
+      "configuredName": "cell voltage 16"
+    },
+    {
+      "key": "cell_voltage_17",
+      "domain": "sensor",
+      "entityId": "cell_voltage_17",
+      "configuredName": "cell voltage 17"
+    },
+    {
+      "key": "cell_voltage_18",
+      "domain": "sensor",
+      "entityId": "cell_voltage_18",
+      "configuredName": "cell voltage 18"
+    },
+    {
+      "key": "cell_voltage_19",
+      "domain": "sensor",
+      "entityId": "cell_voltage_19",
+      "configuredName": "cell voltage 19"
+    },
+    {
+      "key": "cell_voltage_2",
+      "domain": "sensor",
+      "entityId": "cell_voltage_2",
+      "configuredName": "cell voltage 2"
+    },
+    {
+      "key": "cell_voltage_20",
+      "domain": "sensor",
+      "entityId": "cell_voltage_20",
+      "configuredName": "cell voltage 20"
+    },
+    {
+      "key": "cell_voltage_21",
+      "domain": "sensor",
+      "entityId": "cell_voltage_21",
+      "configuredName": "cell voltage 21"
+    },
+    {
+      "key": "cell_voltage_22",
+      "domain": "sensor",
+      "entityId": "cell_voltage_22",
+      "configuredName": "cell voltage 22"
+    },
+    {
+      "key": "cell_voltage_23",
+      "domain": "sensor",
+      "entityId": "cell_voltage_23",
+      "configuredName": "cell voltage 23"
+    },
+    {
+      "key": "cell_voltage_24",
+      "domain": "sensor",
+      "entityId": "cell_voltage_24",
+      "configuredName": "cell voltage 24"
+    },
+    {
+      "key": "cell_voltage_25",
+      "domain": "sensor",
+      "entityId": "cell_voltage_25",
+      "configuredName": "cell voltage 25"
+    },
+    {
+      "key": "cell_voltage_26",
+      "domain": "sensor",
+      "entityId": "cell_voltage_26",
+      "configuredName": "cell voltage 26"
+    },
+    {
+      "key": "cell_voltage_27",
+      "domain": "sensor",
+      "entityId": "cell_voltage_27",
+      "configuredName": "cell voltage 27"
+    },
+    {
+      "key": "cell_voltage_28",
+      "domain": "sensor",
+      "entityId": "cell_voltage_28",
+      "configuredName": "cell voltage 28"
+    },
+    {
+      "key": "cell_voltage_29",
+      "domain": "sensor",
+      "entityId": "cell_voltage_29",
+      "configuredName": "cell voltage 29"
+    },
+    {
+      "key": "cell_voltage_3",
+      "domain": "sensor",
+      "entityId": "cell_voltage_3",
+      "configuredName": "cell voltage 3"
+    },
+    {
+      "key": "cell_voltage_30",
+      "domain": "sensor",
+      "entityId": "cell_voltage_30",
+      "configuredName": "cell voltage 30"
+    },
+    {
+      "key": "cell_voltage_31",
+      "domain": "sensor",
+      "entityId": "cell_voltage_31",
+      "configuredName": "cell voltage 31"
+    },
+    {
+      "key": "cell_voltage_32",
+      "domain": "sensor",
+      "entityId": "cell_voltage_32",
+      "configuredName": "cell voltage 32"
+    },
+    {
+      "key": "cell_voltage_4",
+      "domain": "sensor",
+      "entityId": "cell_voltage_4",
+      "configuredName": "cell voltage 4"
+    },
+    {
+      "key": "cell_voltage_5",
+      "domain": "sensor",
+      "entityId": "cell_voltage_5",
+      "configuredName": "cell voltage 5"
+    },
+    {
+      "key": "cell_voltage_6",
+      "domain": "sensor",
+      "entityId": "cell_voltage_6",
+      "configuredName": "cell voltage 6"
+    },
+    {
+      "key": "cell_voltage_7",
+      "domain": "sensor",
+      "entityId": "cell_voltage_7",
+      "configuredName": "cell voltage 7"
+    },
+    {
+      "key": "cell_voltage_8",
+      "domain": "sensor",
+      "entityId": "cell_voltage_8",
+      "configuredName": "cell voltage 8"
+    },
+    {
+      "key": "cell_voltage_9",
+      "domain": "sensor",
+      "entityId": "cell_voltage_9",
+      "configuredName": "cell voltage 9"
+    },
+    {
+      "key": "cell_wire_resistance_status_mask",
+      "domain": "sensor",
+      "entityId": "cell_wire_resistance_status_mask",
+      "configuredName": "cell wire resistance status mask"
+    },
+    {
+      "key": "charge_current_measurement_voltage",
+      "domain": "sensor",
+      "entityId": "charge_current_measurement_voltage",
+      "configuredName": "charge current measurement voltage"
+    },
+    {
+      "key": "charge_ocp_delay",
+      "domain": "sensor",
+      "entityId": "charge_ocp_delay",
+      "configuredName": "charge ocp delay"
+    },
+    {
+      "key": "charge_ocpr_left",
+      "domain": "sensor",
+      "entityId": "charge_ocpr_left",
+      "configuredName": "charge ocpr left"
+    },
+    {
+      "key": "charge_ocpr_time",
+      "domain": "sensor",
+      "entityId": "charge_ocpr_time",
+      "configuredName": "charge ocpr time"
+    },
+    {
+      "key": "charge_otp",
+      "domain": "sensor",
+      "entityId": "charge_otp",
+      "configuredName": "charge otp"
+    },
+    {
+      "key": "charge_otpr",
+      "domain": "sensor",
+      "entityId": "charge_otpr",
+      "configuredName": "charge otpr"
+    },
+    {
+      "key": "charge_scpr_left",
+      "domain": "sensor",
+      "entityId": "charge_scpr_left",
+      "configuredName": "charge scpr left"
+    },
+    {
+      "key": "charge_utp",
+      "domain": "sensor",
+      "entityId": "charge_utp",
+      "configuredName": "charge utp"
+    },
+    {
+      "key": "charge_utpr",
+      "domain": "sensor",
+      "entityId": "charge_utpr",
+      "configuredName": "charge utpr"
+    },
+    {
+      "key": "charger_plugged",
+      "domain": "sensor",
+      "entityId": "charger_plugged",
+      "configuredName": "charger plugged"
+    },
+    {
+      "key": "charging",
+      "domain": "sensor",
+      "entityId": "charging_control_raw",
+      "configuredName": "charging control raw"
+    },
+    {
+      "key": "charging_active",
+      "domain": "sensor",
+      "entityId": "charging_raw",
+      "configuredName": "charging raw"
+    },
+    {
+      "key": "charging_cycles",
+      "domain": "sensor",
+      "entityId": "charging_cycles",
+      "configuredName": "charging cycles"
+    },
+    {
+      "key": "charging_float_mode",
+      "domain": "binary_sensor",
+      "entityId": "charging_float_mode",
+      "configuredName": "charging float mode"
+    },
+    {
+      "key": "continued_charge_current",
+      "domain": "sensor",
+      "entityId": "continued_charge_current",
+      "configuredName": "continued charge current"
+    },
+    {
+      "key": "continued_discharge_current",
+      "domain": "sensor",
+      "entityId": "continued_discharge_current",
+      "configuredName": "continued discharge current"
+    },
+    {
+      "key": "current_raw",
+      "domain": "sensor",
+      "entityId": "current_raw",
+      "configuredName": "current raw"
+    },
+    {
+      "key": "custom_alarm_1",
+      "domain": "sensor",
+      "entityId": "custom_alarm_1",
+      "configuredName": "custom alarm 1"
+    },
+    {
+      "key": "custom_alarm_2",
+      "domain": "sensor",
+      "entityId": "custom_alarm_2",
+      "configuredName": "custom alarm 2"
+    },
+    {
+      "key": "cycle_capacity",
+      "domain": "sensor",
+      "entityId": "total_charging_cycle_capacity",
+      "configuredName": "total charging cycle capacity"
+    },
+    {
+      "key": "data_domain_enable_0",
+      "domain": "sensor",
+      "entityId": "data_domain_enable_0",
+      "configuredName": "data domain enable 0"
+    },
+    {
+      "key": "data_stored_period",
+      "domain": "sensor",
+      "entityId": "data_stored_period",
+      "configuredName": "data stored period"
+    },
+    {
+      "key": "delta_cell_voltage",
+      "domain": "sensor",
+      "entityId": "delta_cell_voltage",
+      "configuredName": "delta cell voltage"
+    },
+    {
+      "key": "dev_addr",
+      "domain": "sensor",
+      "entityId": "dev_addr",
+      "configuredName": "dev addr"
+    },
+    {
+      "key": "device_model",
+      "domain": "text_sensor",
+      "entityId": "manufacturer_device_id",
+      "configuredName": "manufacturer device id"
+    },
+    {
+      "key": "disable_pcl_module",
+      "domain": "binary_sensor",
+      "entityId": "disable_pcl_module",
+      "configuredName": "disable pcl module"
+    },
+    {
+      "key": "disable_temp_sensor",
+      "domain": "binary_sensor",
+      "entityId": "disable_temp_sensor",
+      "configuredName": "disable temp sensor"
+    },
+    {
+      "key": "discharge_current_measurement_voltage",
+      "domain": "sensor",
+      "entityId": "discharge_current_measurement_voltage",
+      "configuredName": "discharge current measurement voltage"
+    },
+    {
+      "key": "discharge_ocp_delay",
+      "domain": "sensor",
+      "entityId": "discharge_ocp_delay",
+      "configuredName": "discharge ocp delay"
+    },
+    {
+      "key": "discharge_ocpr_left",
+      "domain": "sensor",
+      "entityId": "discharge_ocpr_left",
+      "configuredName": "discharge ocpr left"
+    },
+    {
+      "key": "discharge_ocpr_time",
+      "domain": "sensor",
+      "entityId": "discharge_ocpr_time",
+      "configuredName": "discharge ocpr time"
+    },
+    {
+      "key": "discharge_on_failed",
+      "domain": "binary_sensor",
+      "entityId": "discharge_on_failed",
+      "configuredName": "discharge on failed"
+    },
+    {
+      "key": "discharge_otp",
+      "domain": "sensor",
+      "entityId": "discharge_otp",
+      "configuredName": "discharge otp"
+    },
+    {
+      "key": "discharge_otpr",
+      "domain": "sensor",
+      "entityId": "discharge_otpr",
+      "configuredName": "discharge otpr"
+    },
+    {
+      "key": "discharge_scpr_left",
+      "domain": "sensor",
+      "entityId": "discharge_scpr_left",
+      "configuredName": "discharge scpr left"
+    },
+    {
+      "key": "discharging",
+      "domain": "sensor",
+      "entityId": "discharging_control_raw",
+      "configuredName": "discharging control raw"
+    },
+    {
+      "key": "discharging_active",
+      "domain": "sensor",
+      "entityId": "discharging_raw",
+      "configuredName": "discharging raw"
+    },
+    {
+      "key": "dry_contact_1_recovery_value",
+      "domain": "sensor",
+      "entityId": "dry_contact_1_recovery_value",
+      "configuredName": "dry contact 1 recovery value"
+    },
+    {
+      "key": "dry_contact_1_trigger_source",
+      "domain": "sensor",
+      "entityId": "dry_contact_1_trigger_source",
+      "configuredName": "dry contact 1 trigger source"
+    },
+    {
+      "key": "dry_contact_1_trigger_value",
+      "domain": "sensor",
+      "entityId": "dry_contact_1_trigger_value",
+      "configuredName": "dry contact 1 trigger value"
+    },
+    {
+      "key": "dry_contact_2_recovery_value",
+      "domain": "sensor",
+      "entityId": "dry_contact_2_recovery_value",
+      "configuredName": "dry contact 2 recovery value"
+    },
+    {
+      "key": "dry_contact_2_trigger_source",
+      "domain": "sensor",
+      "entityId": "dry_contact_2_trigger_source",
+      "configuredName": "dry contact 2 trigger source"
+    },
+    {
+      "key": "dry_contact_2_trigger_value",
+      "domain": "sensor",
+      "entityId": "dry_contact_2_trigger_value",
+      "configuredName": "dry contact 2 trigger value"
+    },
+    {
+      "key": "emergency_timer",
+      "domain": "sensor",
+      "entityId": "emergency_timer",
+      "configuredName": "emergency timer"
+    },
+    {
+      "key": "full_charge_capacity",
+      "domain": "sensor",
+      "entityId": "full_charge_capacity",
+      "configuredName": "full charge capacity"
+    },
+    {
+      "key": "gps_disconnected",
+      "domain": "binary_sensor",
+      "entityId": "gps_disconnected",
+      "configuredName": "gps disconnected"
+    },
+    {
+      "key": "gps_heartbeat",
+      "domain": "binary_sensor",
+      "entityId": "gps_heartbeat",
+      "configuredName": "gps heartbeat"
+    },
+    {
+      "key": "hardware_version",
+      "domain": "text_sensor",
+      "entityId": "hardware_version",
+      "configuredName": "hardware version"
+    },
+    {
+      "key": "heat_en",
+      "domain": "binary_sensor",
+      "entityId": "heat_en",
+      "configuredName": "heat en"
+    },
+    {
+      "key": "heating_activation_temperature",
+      "domain": "sensor",
+      "entityId": "heating_activation_temperature",
+      "configuredName": "heating activation temperature"
+    },
+    {
+      "key": "heating_active",
+      "domain": "binary_sensor",
+      "entityId": "heating_active",
+      "configuredName": "heating active"
+    },
+    {
+      "key": "heating_current",
+      "domain": "sensor",
+      "entityId": "heating_current",
+      "configuredName": "heating current"
+    },
+    {
+      "key": "heating_deactivation_temperature",
+      "domain": "sensor",
+      "entityId": "heating_deactivation_temperature",
+      "configuredName": "heating deactivation temperature"
+    },
+    {
+      "key": "lcd_always_on",
+      "domain": "binary_sensor",
+      "entityId": "lcd_always_on",
+      "configuredName": "lcd always on"
+    },
+    {
+      "key": "lcd_buzzer_release_val",
+      "domain": "sensor",
+      "entityId": "lcd_buzzer_release_val",
+      "configuredName": "lcd buzzer release val"
+    },
+    {
+      "key": "lcd_buzzer_trigger",
+      "domain": "sensor",
+      "entityId": "lcd_buzzer_trigger",
+      "configuredName": "lcd buzzer trigger"
+    },
+    {
+      "key": "lcd_buzzer_trigger_val",
+      "domain": "sensor",
+      "entityId": "lcd_buzzer_trigger_val",
+      "configuredName": "lcd buzzer trigger val"
+    },
+    {
+      "key": "max_balance_current",
+      "domain": "sensor",
+      "entityId": "max_balance_current",
+      "configuredName": "max balance current"
+    },
+    {
+      "key": "max_voltage_cell_index_native",
+      "domain": "sensor",
+      "entityId": "max_voltage_cell_index_native",
+      "configuredName": "max voltage cell index (native)"
+    },
+    {
+      "key": "min_voltage_cell_index_native",
+      "domain": "sensor",
+      "entityId": "min_voltage_cell_index_native",
+      "configuredName": "min voltage cell index (native)"
+    },
+    {
+      "key": "modify_pwd_in_time",
+      "domain": "binary_sensor",
+      "entityId": "modify_pwd_in_time",
+      "configuredName": "modify pwd in time"
+    },
+    {
+      "key": "mos_otp",
+      "domain": "sensor",
+      "entityId": "mos_otp",
+      "configuredName": "mos otp"
+    },
+    {
+      "key": "mos_otpr",
+      "domain": "sensor",
+      "entityId": "mos_otpr",
+      "configuredName": "mos otpr"
+    },
+    {
+      "key": "mos_temp_sensor_status_bit_raw",
+      "domain": "sensor",
+      "entityId": "mos_temp_sensor_status_bit_raw",
+      "configuredName": "mos temp sensor status bit raw"
+    },
+    {
+      "key": "mosfet_temperature",
+      "domain": "sensor",
+      "entityId": "mosfet_temperature",
+      "configuredName": "mosfet temperature"
+    },
+    {
+      "key": "native_bms_power",
+      "domain": "sensor",
+      "entityId": "native_bms_power",
+      "configuredName": "native bms power"
+    },
+    {
+      "key": "odd_run_time",
+      "domain": "text_sensor",
+      "entityId": "odd_run_time_exact",
+      "configuredName": "odd run time exact"
+    },
+    {
+      "key": "ovpr_left",
+      "domain": "sensor",
+      "entityId": "ovpr_left",
+      "configuredName": "ovpr left"
+    },
+    {
+      "key": "pcl_module_sta",
+      "domain": "sensor",
+      "entityId": "pcl_module_sta",
+      "configuredName": "pcl module sta"
+    },
+    {
+      "key": "port_switch",
+      "domain": "sensor",
+      "entityId": "port_switch",
+      "configuredName": "port switch"
+    },
+    {
+      "key": "precharge_status",
+      "domain": "sensor",
+      "entityId": "precharge_status",
+      "configuredName": "precharge status"
+    },
+    {
+      "key": "pwr_on_times",
+      "domain": "sensor",
+      "entityId": "pwr_on_times",
+      "configuredName": "pwr on times"
+    },
+    {
+      "key": "rcv_time",
+      "domain": "sensor",
+      "entityId": "rcv_time",
+      "configuredName": "rcv time"
+    },
+    {
+      "key": "rfv_time",
+      "domain": "sensor",
+      "entityId": "rfv_time",
+      "configuredName": "rfv time"
+    },
+    {
+      "key": "rtc_ticks",
+      "domain": "text_sensor",
+      "entityId": "rtc_ticks_exact",
+      "configuredName": "rtc ticks exact"
+    },
+    {
+      "key": "scp_delay",
+      "domain": "sensor",
+      "entityId": "scp_delay",
+      "configuredName": "scp delay"
+    },
+    {
+      "key": "scpr_time",
+      "domain": "sensor",
+      "entityId": "scpr_time",
+      "configuredName": "scpr time"
+    },
+    {
+      "key": "sensor_heating_mask",
+      "domain": "sensor",
+      "entityId": "sensor_heating_mask",
+      "configuredName": "sensor heating mask"
+    },
+    {
+      "key": "setup_passcode",
+      "domain": "text_sensor",
+      "entityId": "setup_passcode_readback",
+      "configuredName": "setup passcode readback"
+    },
+    {
+      "key": "smart_sleep",
+      "domain": "sensor",
+      "entityId": "smart_sleep",
+      "configuredName": "smart sleep"
+    },
+    {
+      "key": "smart_sleep_enabled",
+      "domain": "binary_sensor",
+      "entityId": "smart_sleep_enabled",
+      "configuredName": "smart sleep enabled"
+    },
+    {
+      "key": "smart_sleep_timeout_hours",
+      "domain": "sensor",
+      "entityId": "smart_sleep_timeout_hours",
+      "configuredName": "smart sleep timeout hours"
+    },
+    {
+      "key": "soc_0",
+      "domain": "sensor",
+      "entityId": "soc_0",
+      "configuredName": "soc 0"
+    },
+    {
+      "key": "soc_100",
+      "domain": "sensor",
+      "entityId": "soc_100",
+      "configuredName": "soc 100"
+    },
+    {
+      "key": "software_version",
+      "domain": "text_sensor",
+      "entityId": "software_version",
+      "configuredName": "software version"
+    },
+    {
+      "key": "special_charger",
+      "domain": "binary_sensor",
+      "entityId": "special_charger",
+      "configuredName": "special charger"
+    },
+    {
+      "key": "start_balance",
+      "domain": "sensor",
+      "entityId": "start_balance",
+      "configuredName": "start balance"
+    },
+    {
+      "key": "start_balance_trigger",
+      "domain": "sensor",
+      "entityId": "start_balance_trigger",
+      "configuredName": "start balance trigger"
+    },
+    {
+      "key": "state_of_charge",
+      "domain": "sensor",
+      "entityId": "state_of_charge",
+      "configuredName": "state of charge"
+    },
+    {
+      "key": "state_of_health",
+      "domain": "sensor",
+      "entityId": "state_of_health",
+      "configuredName": "state of health"
+    },
+    {
+      "key": "system_power_off",
+      "domain": "sensor",
+      "entityId": "system_power_off",
+      "configuredName": "system power off"
+    },
+    {
+      "key": "temperature_1",
+      "domain": "sensor",
+      "entityId": "temperature_sensor_1",
+      "configuredName": "temperature sensor 1"
+    },
+    {
+      "key": "temperature_2",
+      "domain": "sensor",
+      "entityId": "temperature_sensor_2",
+      "configuredName": "temperature sensor 2"
+    },
+    {
+      "key": "temperature_4",
+      "domain": "sensor",
+      "entityId": "temperature_sensor_4",
+      "configuredName": "temperature sensor 4"
+    },
+    {
+      "key": "temperature_5",
+      "domain": "sensor",
+      "entityId": "temperature_sensor_5",
+      "configuredName": "temperature sensor 5"
+    },
+    {
+      "key": "temperature_sensor_3",
+      "domain": "sensor",
+      "entityId": "temperature_sensor_3",
+      "configuredName": "temperature sensor 3"
+    },
+    {
+      "key": "tim_prodischarge",
+      "domain": "sensor",
+      "entityId": "tim_prodischarge",
+      "configuredName": "tim prodischarge"
+    },
+    {
+      "key": "time_enter_sleep",
+      "domain": "sensor",
+      "entityId": "time_enter_sleep",
+      "configuredName": "time enter sleep"
+    },
+    {
+      "key": "timed_stored_data",
+      "domain": "binary_sensor",
+      "entityId": "timed_stored_data",
+      "configuredName": "timed stored data"
+    },
+    {
+      "key": "total_runtime",
+      "domain": "text_sensor",
+      "entityId": "total_runtime_exact",
+      "configuredName": "total runtime exact"
+    },
+    {
+      "key": "total_voltage_raw",
+      "domain": "sensor",
+      "entityId": "total_voltage_raw",
+      "configuredName": "total voltage raw"
+    },
+    {
+      "key": "uart1_mprtol_enable",
+      "domain": "text_sensor",
+      "entityId": "uart1_mprtol_enable",
+      "configuredName": "uart1 mprtol enable"
+    },
+    {
+      "key": "uart1_mprtol_nbr",
+      "domain": "sensor",
+      "entityId": "uart1_mprtol_nbr",
+      "configuredName": "uart1 mprtol nbr"
+    },
+    {
+      "key": "uart2_mprtol_enable_0",
+      "domain": "sensor",
+      "entityId": "uart2_mprtol_enable_0",
+      "configuredName": "uart2 mprtol enable 0"
+    },
+    {
+      "key": "uart2_mprtol_nbr",
+      "domain": "sensor",
+      "entityId": "uart2_mprtol_nbr",
+      "configuredName": "uart2 mprtol nbr"
+    },
+    {
+      "key": "uart_mprtol_enable_0_15",
+      "domain": "text_sensor",
+      "entityId": "uart_mprtol_enable_0_15",
+      "configuredName": "uart mprtol enable 0 15"
+    },
+    {
+      "key": "uart_protocol_library_version",
+      "domain": "sensor",
+      "entityId": "uart_protocol_library_version",
+      "configuredName": "uart protocol library version"
+    },
+    {
+      "key": "uvpr_left",
+      "domain": "sensor",
+      "entityId": "uvpr_left",
+      "configuredName": "uvpr left"
+    }
+  ]
+}
