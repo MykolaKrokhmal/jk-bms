@@ -185,6 +185,10 @@ echo "=== Stage 4: write registry exact-equality proof ==="
 node test/protocol_catalog/test_stage4_write_registry_equality.js
 
 echo
+echo "=== Stage 4: closure invariants (2026-09-22, Stage 4/5 boundary) ==="
+node test/protocol_catalog/test_stage4_closure_invariants.js
+
+echo
 echo "=== Stage 4: write registry HTTP end-to-end (spawns its own demo server) ==="
 node test/protocol_catalog/test_stage4_write_http_simulator_end_to_end.js
 node test/protocol_catalog/test_stage4_register_write_simulator_end_to_end.js

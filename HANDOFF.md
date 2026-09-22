@@ -1,3 +1,64 @@
+## Сесія: 2026-09-22 (Claude — Stage 4 closure, перехід до Stage 5)
+
+**Stage 4 (write registry: fail-closed HTTP→main-loop handoff, async
+accepted/request_id/status-poll contract, register-write UI) статус
+закрито цим проходом.** Точні, обов'язкові до збереження формулювання:
+
+- **Stage 4 software/runtime implementation: COMPLETE.**
+- **Deployment/read-only runtime integration: VERIFIED on hardware at
+  `025ad01`** (`/0.js` byte-identical до локального `jk_bms.js`; BMS
+  `LIVE`; topology `CONFIRMED`; 16S UI коректний; write registry DOM
+  відповідає generated inventory; 6 хв стабільної роботи без reboot;
+  reset diagnostics без нового crash marker).
+- **18 pre-existing full-width полів: `write-hardware-verified`**
+  (незмінені цим Stage — full-width `write_bms_u32/u16` dispatch той
+  самий).
+- **42 нових Stage 4 полів: `write-software-ready`** (реальний
+  production endpoint, повний backend/frontend async contract,
+  targeted+TSan+`run_all.sh` зелені; апаратно НЕ верифіковані як група).
+- **`gps_heartbeat`: partial hardware smoke only.** Один прямий no-op
+  POST (`gps_heartbeat=0&submit_policy=live`) прийнято HTTP 200,
+  `request_id=8`, status endpoint повернув `accepted`/`tx_id=8`; raw
+  `0x1114` до/після лишився `12864`, цільовий bit2 лишився `0`, sibling
+  bits незмінні, reboot/crash/telemetry regression не було. Terminal
+  ACK/readback snapshot-подія для `tx_id=8` не була вчасно спостережена
+  до expiry (методологічний пропуск тестування, а не firmware defect) —
+  тому поле **лишається `write-software-ready`**, НЕ переводиться у
+  `write-hardware-verified`. Подальша UI-driven спроба не створила POST
+  через відхилений native `window.confirm()` у headless browser
+  automation — це обмеження тестового інструмента, не дефект прошивки;
+  повторну спробу свідомо не виконано.
+- **37 blocked полів: intentionally fail-closed**, кожне з явним
+  `blocked_reason` + `blocker_closure_criterion` у
+  `protocol/evidence/protocol_blockers.json` / `stage4_rw_inventory.json`.
+- Немає вимоги апаратно верифікувати всі 42 нових поля перед стартом
+  Stage 5 — такої вимоги немає в жодному authoritative plan-документі
+  цього репозиторію; не вигадана цим проходом.
+
+**Базова матриця (перевірена проти живих generated artifacts, не
+задокументована "на слово"):** 97 manifest RW rows = 18
+write-hardware-verified + 42 write-software-ready + 37 blocked; write
+registry = 42 entries = 5 live + 37 authorization_required. Новий
+машинний доказ: `test/protocol_catalog/test_stage4_closure_invariants.js`
+(9/9) — 97=18+42+37, 42=5+37, кожен hardware-verified row має реальний
+`hardware_verification_provenance`, кожен software-ready row має
+реальний `current_write_endpoint`, жоден blocked row не має production
+endpoint, кожен blocked row має reason+closure criterion,
+`gps_heartbeat` не позначений hardware-verified, frontend live-submit
+surface точно дорівнює 5 live-ключам без жодного
+authorization_required/blocked leak.
+
+Аудит не знайшов production correctness gaps — усі перелічені інваріанти
+вже трималися на momент аудиту; єдина зміна цього проходу — новий
+closure-proof тест вище (жодних змін safety class/range/access/UI/API).
+
+Наступний крок: **Stage 5** (`W`-команди — `declared_access:"w"` схема,
+service-action registry, evidence resolution для 2 неоднозначних команд,
+lab-safe implementation для решти 6). Реалізація Stage 5 цим проходом
+НЕ розпочата.
+
+---
+
 ## Сесія: 2026-09-14/15 (Claude — фінальна підготовка репозиторію)
 
 > Попередній запис цього файлу (сесія 2026-09-12) описував активний
