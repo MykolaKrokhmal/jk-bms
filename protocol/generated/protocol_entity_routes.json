@@ -1,8 +1,8 @@
 {
   "$schema": "protocol-entity-routes-generated-v1",
   "generated_by": "tools/protocol/authoring/build_protocol_entity_routes.js",
-  "source_hash": "bfdd0e7df97dbcae",
-  "route_count": 250,
+  "source_hash": "65ee8bb90ddadde4",
+  "route_count": 251,
   "routes": [
     {
       "key": "alarm_bat_ovp",
@@ -1431,6 +1431,12 @@
       "domain": "sensor",
       "entityId": "temperature_sensor_3",
       "configuredName": "temperature sensor 3"
+    },
+    {
+      "key": "temperature_sensor_status_mask",
+      "domain": "sensor",
+      "entityId": "temperature_sensor_status_mask",
+      "configuredName": "temperature sensor status mask"
     },
     {
       "key": "tim_prodischarge",

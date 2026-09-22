@@ -1,13 +1,14 @@
 {
   "$comment": "GENERATED -- Stage 3 (typed-petting-puzzle plan) preflight deliverable: wire-position-based status of every one of the 265 manifest parameters against the CURRENT registers.canonical.json and CURRENT open protocol_blockers.json entries. 'Wire-position' means bit/byte-half/whole-register slot identity, not proven semantic identity -- a status is implemented_* only when exactly one canonical field occupies a parameter's own wire position; more than one such field yields status=missing with an explicit AMBIGUOUS note rather than a guess (see tools/protocol/authoring/build_stage3_status_map.js's own header comment). NOT a mechanical manifest-count-vs-canonical-count comparison -- packed fields, aliases, and derived entities have a different structure between the two catalogs. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_stage3_status_map.js. Because this reads the CURRENT canonical/blocker state (which Stage 3 itself will change), this file's own committed content reflects one snapshot in the stage's history -- re-run this generator (and its own --check) after each canonical/blocker change within Stage 3, exactly like every other generator in this pipeline.",
   "manifest_source_sha256": "23b07669074e51b20cc1e915f202c1dd2b14f911e0da641a2091a44dc14a3ba7",
-  "canonical_source_sha256": "872b8cc8ffcdd5ea7313e43d60784c584b360267b3c6889d5cad0cf082bb11b8",
-  "blockers_source_sha256": "42e2f3fa724f261753f21aa11f363a992778281c4e04861c91c9ae7a7518541b",
+  "canonical_source_sha256": "711f2f2da357e3dfc87686c29282619d79bba8f4cb4b958706a1c481c2e34d60",
+  "blockers_source_sha256": "738424020b5b099713d32a9d11e336c9556e7f0f5d60542828de985bf292ed9a",
   "parameter_count": 265,
   "counts": {
-    "implemented_read": 186,
-    "blocked": 8,
+    "implemented_read": 187,
+    "unsupported_bit_position_undocumented": 2,
     "implemented_write_confirmed": 60,
+    "blocked": 5,
     "missing": 6,
     "derived_not_a_register": 1,
     "reserved": 4
@@ -322,8 +323,8 @@
       "base_address": "0x12D0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "implemented_read",
+      "note": "canonical field implemented (unique wire-position match), effective_access=r"
     },
     {
       "id": "UserAlarm",
@@ -522,16 +523,16 @@
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "unsupported_bit_position_undocumented",
+      "note": "MANUFACTURER_BIT_POSITION_NOT_DOCUMENTED: neither the official PDF nor the V1.1/V2 workbook states which bit within this packed register this parameter occupies -- permanently classified unsupported/unaddressable as an individual value, not a guessable gap."
     },
     {
       "id": "PCLModuleAnomaly",
       "base_address": "0x12A0",
       "access": "R",
       "classification": "official",
-      "status": "blocked",
-      "note": "named in an open protocol_blockers.json entry"
+      "status": "unsupported_bit_position_undocumented",
+      "note": "MANUFACTURER_BIT_POSITION_NOT_DOCUMENTED: neither the official PDF nor the V1.1/V2 workbook states which bit within this packed register this parameter occupies -- permanently classified unsupported/unaddressable as an individual value, not a guessable gap."
     },
     {
       "id": "MOSTempSensorPresent",

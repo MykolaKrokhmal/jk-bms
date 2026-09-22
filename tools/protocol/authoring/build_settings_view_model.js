@@ -367,6 +367,36 @@ for (const p of eligibleParams) {
   // access === "R"
   const resolved = resolveCanonicalField(p);
   if (!resolved) {
+    // Permanent unsupported classification (2026-09-22, unmapped-rows
+    // cleanup): a manifest parameter with address.bit_unspecified=true
+    // (currently exactly TemperatureSensorAnomaly, PCLModuleAnomaly) can
+    // never resolve to a canonical field -- resolveCanonicalField() calls
+    // the SAME fieldOccupiesManifestParamWirePosition() guard that
+    // unconditionally refuses to match a bit_unspecified address, by
+    // construction. This is evidence-resolved and stable (the source data
+    // itself never states a bit position; guessing one is fabrication,
+    // never a guessable gap awaiting more data) -- a DIFFERENT, more
+    // precise final state than the generic unmapped_protocol_row/
+    // NO_CANONICAL_MAPPING/AMBIGUOUS_CANONICAL_WIRE_POSITION reasons
+    // below, which describe a genuinely still-open gap.
+    if (p.address && p.address.bit_unspecified) {
+      const row = baseRow(p);
+      Object.assign(row, {
+        uiSection: "unmapped",
+        labelUk: p.name_ua || null,
+        labelEn: p.name_prog || null,
+        unit: (p.unit && p.unit.raw_unit_symbol) || null,
+        precision: typeof p.precision === "number" ? p.precision : null,
+        min: typeof p.minimum === "number" ? p.minimum : null,
+        max: typeof p.maximum === "number" ? p.maximum : null,
+        step: typeof p.step === "number" ? p.step : null,
+        readWriteState: "unsupported_protocol_field",
+        blockedReason: "MANUFACTURER_BIT_POSITION_NOT_DOCUMENTED",
+        blockerAddress: blocker ? blocker.address : null,
+      });
+      rows.push(row);
+      continue;
+    }
     const hasAddressMatches = (canonByAddr.get(p.address.base_address) || []).length > 0;
     const row = baseRow(p);
     Object.assign(row, {
@@ -435,7 +465,17 @@ for (const row of rows) countsByAccess[row.access] = (countsByAccess[row.access]
 const countsByStage4State = {};
 for (const row of rows) if (row.stage4State) countsByStage4State[row.stage4State] = (countsByStage4State[row.stage4State] || 0) + 1;
 const cellCompositeCount = rows.filter((r) => r.compositeGroup === "cell").length;
-const unmappedCount = rows.filter((r) => r.canonicalKey === null && r.access !== "W").length;
+// unmapped_row_count (2026-09-22 refinement, unmapped-rows cleanup): this
+// metric must count only GENUINELY unresolved rows -- an explicitly
+// evidence-resolved permanent classification (readWriteState
+// "unsupported_protocol_field", e.g. TemperatureSensorAnomaly/
+// PCLModuleAnomaly) is a settled, stable final state, not an open gap,
+// and must be reported separately (unsupported_row_count) rather than
+// inflating the "still needs work" count. Both exclude W rows (which
+// have their own, unrelated Stage 5 service-action lifecycle) by
+// construction, since W rows never carry a canonicalKey at all.
+const unmappedCount = rows.filter((r) => r.canonicalKey === null && r.access !== "W" && r.readWriteState !== "unsupported_protocol_field").length;
+const unsupportedCount = rows.filter((r) => r.readWriteState === "unsupported_protocol_field").length;
 
 const contentHash = sha256(MANIFEST_PATH) + sha256(CANONICAL_PATH) + sha256(WRITE_REGISTRY_PATH) + sha256(STAGE4_INVENTORY_PATH) + sha256(STAGE5_INVENTORY_PATH) + sha256(BLOCKERS_PATH);
 const shortHash = crypto.createHash("sha256").update(contentHash).digest("hex").slice(0, 16);
@@ -450,6 +490,7 @@ const outDoc = {
   counts_by_stage4_state: countsByStage4State,
   cell_composite_row_count: cellCompositeCount,
   unmapped_row_count: unmappedCount,
+  unsupported_row_count: unsupportedCount,
   rows,
 };
 const outJson = JSON.stringify(outDoc, null, 2) + "\n";
@@ -520,4 +561,4 @@ if (newJs !== jsSrc) {
   fs.writeFileSync(JS_PATH, newJs, "utf8");
   console.log("wrote jk_bms.js (SETTINGS VIEW MODEL block)");
 }
-console.log(`${rows.length} rows: ${JSON.stringify(countsByAccess)}; stage4: ${JSON.stringify(countsByStage4State)}; cell composite rows: ${cellCompositeCount}; unmapped: ${unmappedCount}`);
+console.log(`${rows.length} rows: ${JSON.stringify(countsByAccess)}; stage4: ${JSON.stringify(countsByStage4State)}; cell composite rows: ${cellCompositeCount}; unmapped: ${unmappedCount}; unsupported: ${unsupportedCount}`);

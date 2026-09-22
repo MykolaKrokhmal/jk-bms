@@ -215,20 +215,26 @@ const NO_LOCATORS = new Map();
   const p = manifestParam("SyntheticBitUnspecified", { base_address: "0x9080", bit_unspecified: true });
   const regs = canonByAddr("0x9080", 16, [bitField("synthetic_unrelated_bit", 0, "implemented", "r")]);
   const result = classifyOne(p, regs, NO_BLOCKERS, NO_LOCATORS);
-  check("bit_unspecified parameter never matches any field -> status=missing, not AMBIGUOUS, not implemented_*",
-    result.status === "missing" && !/AMBIGUOUS/.test(result.note), JSON.stringify(result));
+  check("bit_unspecified parameter -> status=unsupported_bit_position_undocumented (permanent, 2026-09-22), never missing, never AMBIGUOUS, never implemented_*",
+    result.status === "unsupported_bit_position_undocumented" && !/AMBIGUOUS/.test(result.note), JSON.stringify(result));
   check("fieldOccupiesManifestParamWirePosition returns false directly for a bit_unspecified address against any field",
     fieldOccupiesManifestParamWirePosition({ bit_unspecified: true, bit: null, byte_half: null }, bitField("x", 0), 16) === false);
 }
 {
-  // bit_unspecified WITH an open blocker: blocker precedence still wins,
-  // exactly as for any other parameter -- confirms the guard doesn't
-  // change step 3 of the classification order.
+  // bit_unspecified WITH an open blocker (2026-09-22 update): the
+  // permanent bit_unspecified classification is checked BEFORE the
+  // open-blocker check in classifyOne()'s own order -- by design, this is
+  // the ONE case where the permanent classification wins over blocker
+  // precedence, exactly so that closing this parameter's own blocker
+  // (recording its permanent-unsupported resolution) can never regress
+  // it to a generic "missing" or leave it dependent on the blocker
+  // staying open forever. Proves the result is IDENTICAL whether or not
+  // a blocker names this parameter.
   const p = manifestParam("SyntheticBitUnspecifiedBlocked", { base_address: "0x9080", bit_unspecified: true });
   const regs = canonByAddr("0x9080", 16, [bitField("synthetic_unrelated_bit", 0, "implemented", "r")]);
   const result = classifyOne(p, regs, new Set(["SyntheticBitUnspecifiedBlocked"]), NO_LOCATORS);
-  check("bit_unspecified parameter named in an open blocker -> blocked (unaffected by the wire-position guard)",
-    result.status === "blocked", JSON.stringify(result));
+  check("bit_unspecified parameter named in an open blocker still classifies unsupported_bit_position_undocumented (blocker-independent, by design)",
+    result.status === "unsupported_bit_position_undocumented", JSON.stringify(result));
 }
 
 // ===========================================================================
@@ -365,10 +371,17 @@ const NO_LOCATORS = new Map();
   const path = require("path");
   const ROOT = path.join(__dirname, "..", "..");
   const statusMap = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "stage3_status_map.json"), "utf8"));
-  const expected = { implemented_read: 186, blocked: 8, implemented_write_confirmed: 60, missing: 6, reserved: 4, derived_not_a_register: 1 };
+  // Baseline moved to 187/5/60/6/4/1/2 (unmapped-rows cleanup, 2026-09-22):
+  // TempSensorAbsent reclassified blocked -> implemented_read (186->187,
+  // 8->7 blocked before also subtracting the 2 below); TemperatureSensor
+  // Anomaly/PCLModuleAnomaly reclassified blocked -> the new permanent
+  // unsupported_bit_position_undocumented status (7->5 blocked, +2 new
+  // status), never a regression to a generic "missing" (missing stays 6,
+  // untouched by this batch).
+  const expected = { implemented_read: 187, blocked: 5, implemented_write_confirmed: 60, missing: 6, reserved: 4, derived_not_a_register: 1, unsupported_bit_position_undocumented: 2 };
   const countsMatch = Object.keys(expected).length === Object.keys(statusMap.counts).length &&
     Object.entries(expected).every(([k, v]) => statusMap.counts[k] === v);
-  check("real generated stage3_status_map.json counts match the current baseline (186/8/60/6/4/1, sum 265, Stage 4 promoted 42 fields from implemented_read to implemented_write_confirmed)",
+  check("real generated stage3_status_map.json counts match the current baseline (187/5/60/6/4/1/2, sum 265)",
     countsMatch, JSON.stringify(statusMap.counts));
   check("no AMBIGUOUS note appears anywhere in the real generated status map (production has zero collisions)",
     !statusMap.parameters.some((p) => /AMBIGUOUS/.test(p.note)));

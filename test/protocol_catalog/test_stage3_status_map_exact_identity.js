@@ -214,8 +214,14 @@ for (const id of ["TemperatureSensorAnomaly", "PCLModuleAnomaly"]) {
   check(`${id} has bit_unspecified=true in the manifest (precondition for this check)`,
     p && p.address.bit_unspecified === true);
   const mapped = byId.get(id);
-  check(`${id} (bit_unspecified) classifies as blocked, never implemented_* via a guessed bit match`,
-    mapped && mapped.status === "blocked");
+  // 2026-09-22 (unmapped-rows cleanup): permanently classified
+  // unsupported_bit_position_undocumented, never implemented_* via a
+  // guessed bit match, and never a generic "blocked"/"missing" either --
+  // this classification is deterministic and does not depend on this
+  // parameter's own protocol_blockers.json entry staying open (it is now
+  // closed, with a permanent-unsupported resolution recorded).
+  check(`${id} (bit_unspecified) classifies as unsupported_bit_position_undocumented, never implemented_* via a guessed bit match`,
+    mapped && mapped.status === "unsupported_bit_position_undocumented");
 }
 
 console.log(`\n${checks} checks run, ${failures} failed.`);

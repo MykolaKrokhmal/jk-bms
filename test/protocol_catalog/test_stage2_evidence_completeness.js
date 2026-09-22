@@ -174,12 +174,31 @@ const MANUALLY_RESOLVED_ID_TO_KEY = {
   BATTempSensor3Present: "bat_temp_sensor_3_present",
   BATTempSensor4Present: "bat_temp_sensor_4_present",
   BATTempSensor5Present: "bat_temp_sensor_5_present",
+  // Unmapped-rows cleanup (2026-09-22): TempSensorAbsent's own stale
+  // "unevidenced aggregation formula" premise was corrected against the
+  // SAME two sources already cited on its 0x12D0 siblings above -- the
+  // manifest describes it as the RAW high byte itself, not a formula, so
+  // it needed no new evidence, only a corrected read of the existing
+  // evidence. Its own blocker (opened 2026-09-20, separate from the
+  // architectural one above) is now closed.
+  TempSensorAbsent: "temperature_sensor_status_mask",
 };
+
+// Permanently-unsupported bucket (2026-09-22, unmapped-rows cleanup): a
+// FOURTH honest outcome, distinct from all three above -- a parameter
+// whose own manifest address carries bit_unspecified=true is evidence-
+// COMPLETE (both primary sources were checked and neither states a bit
+// position) and permanently unaddressable, not "still open" (no blocker
+// left to name it, by design -- see protocol_blockers.json's own closed
+// resolution for this exact pair) and not "resolved" (no real pdf_locator
+// exists, nor could one meaningfully exist for an unspecified bit).
+const PERMANENTLY_UNSUPPORTED_IDS = new Set(["TemperatureSensorAnomaly", "PCLModuleAnomaly"]);
 
 const uncategorized = [];
 let resolvedCount = 0;
 let blockedCount = 0;
 let manuallyResolvedCount = 0;
+let permanentlyUnsupportedCount = 0;
 for (const p of manifest.parameters) {
   if (reservedIds.has(p.id) || calculatedIds.has(p.id)) continue; // handled by their own dedicated checks above
   const loc = locatorById.get(p.id);
@@ -190,15 +209,18 @@ for (const p of manifest.parameters) {
   if (hasResolvedPdf) resolvedCount += 1;
   else if (hasBlocker) blockedCount += 1;
   else if (hasManualImplementation) manuallyResolvedCount += 1;
+  else if (PERMANENTLY_UNSUPPORTED_IDS.has(p.id)) permanentlyUnsupportedCount += 1;
   else uncategorized.push(p.id);
 }
-check("every non-reserved, non-calculated parameter (260 of 265) is either PDF-resolved, covered by an open blocker, or manually-resolved-and-implemented -- never silently uncovered",
+check("every non-reserved, non-calculated parameter (260 of 265) is either PDF-resolved, covered by an open blocker, manually-resolved-and-implemented, or permanently-unsupported -- never silently uncovered",
   uncategorized.length === 0, `uncategorized=${uncategorized.length}: ${uncategorized.slice(0, 10).join(",")}${uncategorized.length > 10 ? "..." : ""}`);
-check("resolved + blocked + manually-resolved accounts for all 260 non-reserved/non-calculated parameters",
-  resolvedCount + blockedCount + manuallyResolvedCount === 260,
-  `resolved=${resolvedCount} blocked=${blockedCount} manually-resolved=${manuallyResolvedCount} total=${resolvedCount + blockedCount + manuallyResolvedCount}`);
-check("exactly 49 parameters are in the manually-resolved-and-implemented bucket (20 from earlier this round [0x1114 cluster, 0x1118, LCDBuzzerTrigger/DRY2Trigger, and pre-existing entries] + 29 new: 0x12D0's 7 projections + 0x12A0's 22 alarm-bit projections, Stage 3 continuation pass 2026-09-20)",
-  manuallyResolvedCount === 49, `actual=${manuallyResolvedCount}`);
+check("resolved + blocked + manually-resolved + permanently-unsupported accounts for all 260 non-reserved/non-calculated parameters",
+  resolvedCount + blockedCount + manuallyResolvedCount + permanentlyUnsupportedCount === 260,
+  `resolved=${resolvedCount} blocked=${blockedCount} manually-resolved=${manuallyResolvedCount} permanently-unsupported=${permanentlyUnsupportedCount} total=${resolvedCount + blockedCount + manuallyResolvedCount + permanentlyUnsupportedCount}`);
+check("exactly 2 parameters are in the permanently-unsupported bucket (TemperatureSensorAnomaly, PCLModuleAnomaly)",
+  permanentlyUnsupportedCount === 2, `actual=${permanentlyUnsupportedCount}`);
+check("exactly 50 parameters are in the manually-resolved-and-implemented bucket (20 from earlier this round [0x1114 cluster, 0x1118, LCDBuzzerTrigger/DRY2Trigger, and pre-existing entries] + 29 from 0x12D0's 7 projections + 0x12A0's 22 alarm-bit projections [Stage 3 continuation pass 2026-09-20] + 1 new: TempSensorAbsent, unmapped-rows cleanup 2026-09-22)",
+  manuallyResolvedCount === 50, `actual=${manuallyResolvedCount}`);
 
 // The 3 newly-authored reserved rows must each have a REAL canonical.json
 // entry (not just a manifest classification) -- cross-checked against the
@@ -233,10 +255,17 @@ check("settings_ui.mapping.json's evidence_status field matches this test's inde
 
 // The 4 already-known manifest ambiguities (2 bit_number_missing @
 // 0x12A0, 2 type_length_mismatch @ 0x1600/0x1606) must each have their
-// own open blocker -- proves they weren't silently dropped when the
-// broader PDF-locator blockers were seeded.
-for (const id of ["TemperatureSensorAnomaly", "PCLModuleAnomaly", "VoltageCalibration", "CurrentCalibration"]) {
+// own blocker entry (open or, for the 2 permanently-resolved ones,
+// closed with a recorded resolution) -- proves they weren't silently
+// dropped when the broader PDF-locator blockers were seeded.
+for (const id of ["VoltageCalibration", "CurrentCalibration"]) {
   check(`known manifest ambiguity "${id}" has its own open blocker entry`, blockedIds.has(id));
+}
+const blockersDoc = loadJson("protocol/evidence/protocol_blockers.json");
+for (const id of ["TemperatureSensorAnomaly", "PCLModuleAnomaly"]) {
+  const entry = blockersDoc.blockers.find((b) => b.parameter_id.split(",").map((s) => s.trim()).includes(id));
+  check(`known manifest ambiguity "${id}" has its own blocker entry, now closed with a permanent-unsupported resolution recorded`,
+    !!entry && entry.status === "closed" && typeof entry.resolution === "string" && entry.resolution.length > 0);
 }
 
 console.log(`\n${checks} checks run, ${failures} failed.`);

@@ -51,7 +51,7 @@ const canonical = loadJson("protocol/registers.canonical.json");
 // ===========================================================================
 {
   const block = readPlan.blocks.find((b) => b.address === "0x12D0");
-  check("0x12D0 block exists with 8 fields", block && block.fields.length === 8);
+  check("0x12D0 block exists with 9 fields (RAW + 7 pre-existing bit projections + temperature_sensor_status_mask, 2026-09-22)", block && block.fields.length === 9);
   const byKey = new Map(block.fields.map((f) => [f.key, f]));
 
   // Construct a payload: high byte = 0b00111110 (bits 1-5 set = present,
@@ -82,6 +82,27 @@ const canonical = loadJson("protocol/registers.canonical.json");
   const bat1_2 = decodeField(payload2, byKey.get("bat_temp_sensor_1_present"), 2);
   check("flipping only bit0 (MOS) changes mos_temp_sensor_status_bit_raw to 1 without affecting bat_temp_sensor_1_present",
     mos2 === 1 && bat1_2 === 1);
+
+  // temperature_sensor_status_mask (2026-09-22, unmapped-rows cleanup):
+  // the RAW high byte itself, decoded from the SAME payload -- must equal
+  // the whole high byte exactly (0x3E for payload's 0b00111110), proving
+  // it is a plain byte-wide read, never a formula/aggregate over the 6
+  // individual bits above.
+  const statusMask = decodeField(payload, byKey.get("temperature_sensor_status_mask"), 2);
+  check("temperature_sensor_status_mask decodes the exact high byte (0x3E), matching the SAME bits the 6 individual projections above decoded",
+    statusMask === 0x3e, `got 0x${statusMask.toString(16)}`);
+
+  // Undocumented bits 6-7: set them in a fresh payload and confirm the
+  // mask preserves them RAW (no truncation, no reinterpretation) while
+  // every documented bit0-5 projection is unaffected by them.
+  const payload3 = Buffer.from([0b11111110, 0x01]); // bits 6,7 set; bits 1-5 set; bit0 clear
+  const statusMask3 = decodeField(payload3, byKey.get("temperature_sensor_status_mask"), 2);
+  check("temperature_sensor_status_mask preserves undocumented bits 6-7 RAW, without truncation or reinterpretation",
+    statusMask3 === 0xfe, `got 0x${statusMask3.toString(16)}`);
+  const mos3 = decodeField(payload3, byKey.get("mos_temp_sensor_status_bit_raw"), 2);
+  const bat1_3 = decodeField(payload3, byKey.get("bat_temp_sensor_1_present"), 2);
+  check("setting the undocumented bits 6-7 does not affect the documented bit0/bit1 projections' own decode",
+    mos3 === 0 && bat1_3 === 1);
 }
 
 // ===========================================================================
@@ -135,7 +156,7 @@ const canonical = loadJson("protocol/registers.canonical.json");
     block12A0 && block12A0.strict_length === true);
   const reg12D0 = canonical.registers.find((r) => r.address === "0x12D0");
   const reg12A0 = canonical.registers.find((r) => r.address === "0x12A0");
-  check("0x12D0's declared payload_bytes is still 2 (unchanged by adding 7 projections)", reg12D0.payload_bytes === 2);
+  check("0x12D0's declared payload_bytes is still 2 (unchanged by adding 8 projections)", reg12D0.payload_bytes === 2);
   check("0x12A0's declared payload_bytes is still 4 (unchanged by adding 22 projections)", reg12A0.payload_bytes === 4);
 }
 

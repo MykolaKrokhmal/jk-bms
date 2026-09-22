@@ -187,9 +187,33 @@ check("exactly 32 channels, each with exactly 3 correct bindings",
 // ---------------------------------------------------------------------------
 const wRows = doc.rows.filter((r) => r.access === "W");
 check("exactly 8 W-command rows, canonicalKey always null", wRows.length === 8 && wRows.every((r) => r.canonicalKey === null));
-const unmappedRows = doc.rows.filter((r) => r.canonicalKey === null && r.access !== "W");
-check("exactly 3 unmapped protocol rows", unmappedRows.length === 3, JSON.stringify(unmappedRows.map((r) => r.id)));
+
+// Unmapped-rows cleanup (2026-09-22): TempSensorAbsent is now a real
+// mapped row (canonicalKey temperature_sensor_status_mask), so the
+// generic unmapped bucket drops from 3 to 0. TemperatureSensorAnomaly/
+// PCLModuleAnomaly move to their OWN distinct, permanent
+// "unsupported_protocol_field" state -- a settled final classification,
+// never re-counted as a generic unresolved/unmapped row.
+const unmappedRows = doc.rows.filter((r) => r.canonicalKey === null && r.access !== "W" && r.readWriteState !== "unsupported_protocol_field");
+check("zero generic unmapped protocol rows remain", unmappedRows.length === 0, JSON.stringify(unmappedRows.map((r) => r.id)));
 check("every unmapped row carries a specific blockedReason", unmappedRows.every((r) => !!r.blockedReason));
+
+const unsupportedRows = doc.rows.filter((r) => r.readWriteState === "unsupported_protocol_field");
+check("exactly 2 rows are permanently unsupported_protocol_field (TemperatureSensorAnomaly, PCLModuleAnomaly)",
+  unsupportedRows.length === 2 && unsupportedRows.every((r) => r.canonicalKey === null),
+  JSON.stringify(unsupportedRows.map((r) => r.manifestId)));
+check("every unsupported row carries the precise MANUFACTURER_BIT_POSITION_NOT_DOCUMENTED reason",
+  unsupportedRows.every((r) => r.blockedReason === "MANUFACTURER_BIT_POSITION_NOT_DOCUMENTED"));
+check("every unsupported row retains its real label (never blanked)",
+  unsupportedRows.every((r) => !!r.labelUk && !!r.labelEn));
+check("TempSensorAbsent is now a real mapped read-only row (canonicalKey, readWriteState read_only)",
+  (() => {
+    const r = doc.rows.find((rr) => rr.manifestId === "TempSensorAbsent");
+    return r && r.canonicalKey === "temperature_sensor_status_mask" && r.readWriteState === "read_only" && r.access === "R";
+  })());
+check("generated document's own unmapped_row_count is 0 and unsupported_row_count is 2 (refined metric, 2026-09-22)",
+  doc.unmapped_row_count === 0 && doc.unsupported_row_count === 2,
+  `unmapped_row_count=${doc.unmapped_row_count} unsupported_row_count=${doc.unsupported_row_count}`);
 
 // ---------------------------------------------------------------------------
 // 11. wireType/valueKind correctness fix (2026-09-22): deterministic,

@@ -40,7 +40,13 @@ const EXPECTED_0x12D0 = {
   Heating: "implemented_read", MOSTempSensorPresent: "implemented_read",
   BATTempSensor1Present: "implemented_read", BATTempSensor2Present: "implemented_read",
   BATTempSensor3Present: "implemented_read", BATTempSensor4Present: "implemented_read",
-  BATTempSensor5Present: "implemented_read", TempSensorAbsent: "blocked",
+  BATTempSensor5Present: "implemented_read",
+  // TempSensorAbsent (2026-09-22, unmapped-rows cleanup): the stale
+  // "unevidenced aggregation formula" premise was corrected -- the
+  // manifest itself describes this parameter as the RAW high byte, not
+  // a formula over it. Now resolves to its own real projection field
+  // (temperature_sensor_status_mask) and classifies implemented_read.
+  TempSensorAbsent: "implemented_read",
 };
 for (const [id, expected] of Object.entries(EXPECTED_0x12D0)) {
   check(`status-map: "${id}" is ${expected}`, byId.get(id) && byId.get(id).status === expected, JSON.stringify(byId.get(id)));
@@ -56,8 +62,14 @@ const EXPECTED_0x12A0_IMPLEMENTED = [
 for (const id of EXPECTED_0x12A0_IMPLEMENTED) {
   check(`status-map: "${id}" is implemented_read`, byId.get(id) && byId.get(id).status === "implemented_read", JSON.stringify(byId.get(id)));
 }
-check("status-map: TemperatureSensorAnomaly (bit_unspecified) remains blocked -- no bit guessed", byId.get("TemperatureSensorAnomaly").status === "blocked");
-check("status-map: PCLModuleAnomaly (bit_unspecified) remains blocked -- no bit guessed", byId.get("PCLModuleAnomaly").status === "blocked");
+// TemperatureSensorAnomaly/PCLModuleAnomaly (2026-09-22, unmapped-rows
+// cleanup): permanently classified unsupported_bit_position_undocumented
+// -- deterministic regardless of the (now closed) blocker's own status,
+// never a guessed bit, never a generic "missing".
+check("status-map: TemperatureSensorAnomaly (bit_unspecified) is permanently unsupported_bit_position_undocumented -- no bit guessed",
+  byId.get("TemperatureSensorAnomaly").status === "unsupported_bit_position_undocumented");
+check("status-map: PCLModuleAnomaly (bit_unspecified) is permanently unsupported_bit_position_undocumented -- no bit guessed",
+  byId.get("PCLModuleAnomaly").status === "unsupported_bit_position_undocumented");
 
 check("status-map: UART1MPRTOLEnable is implemented_read", byId.get("UART1MPRTOLEnable") && byId.get("UART1MPRTOLEnable").status === "implemented_read");
 check("status-map: UARTMPRTOLEnable[0-15] is implemented_read", byId.get("UARTMPRTOLEnable[0-15]") && byId.get("UARTMPRTOLEnable[0-15]").status === "implemented_read");
@@ -83,7 +95,7 @@ for (const id of [...EXPECTED_0x12A0_IMPLEMENTED, "Heating", "MOSTempSensorPrese
 const allNewKeys = [
   "heating_active", "bat_temp_sensor_1_present", "bat_temp_sensor_2_present",
   "bat_temp_sensor_3_present", "bat_temp_sensor_4_present", "bat_temp_sensor_5_present",
-  "mos_temp_sensor_status_bit_raw",
+  "mos_temp_sensor_status_bit_raw", "temperature_sensor_status_mask",
   "alarm_wire_res", "alarm_mos_otp", "alarm_cell_quantity", "alarm_cur_sensor_err",
   "alarm_cell_ovp", "alarm_bat_ovp", "alarm_ch_ocp", "alarm_ch_scp", "alarm_ch_otp",
   "alarm_ch_utp", "alarm_cpu_aux_commu_err", "alarm_cell_uvp", "alarm_bat_uvp",

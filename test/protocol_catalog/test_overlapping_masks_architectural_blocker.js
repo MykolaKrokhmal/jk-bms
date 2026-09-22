@@ -63,26 +63,31 @@ check("alarms_bitmask (0x12A0) is still fields[0], full 32-bit width, not itself
 // ===========================================================================
 const d12D0Projections = reg12D0.fields.filter((f) => f.projection_of !== null);
 const d12A0Projections = reg12A0.fields.filter((f) => f.projection_of !== null);
-check("0x12D0 has exactly 7 projection fields, all projection_of: 'sensor_heating_mask'",
-  d12D0Projections.length === 7 && d12D0Projections.every((f) => f.projection_of === "sensor_heating_mask"));
+check("0x12D0 has exactly 8 projection fields (7 from 2026-09-20 + temperature_sensor_status_mask, 2026-09-22), all projection_of: 'sensor_heating_mask'",
+  d12D0Projections.length === 8 && d12D0Projections.every((f) => f.projection_of === "sensor_heating_mask"));
 check("0x12A0 has exactly 22 projection fields, all projection_of: 'alarms_bitmask'",
   d12A0Projections.length === 22 && d12A0Projections.every((f) => f.projection_of === "alarms_bitmask"));
 
 // ===========================================================================
-// 3. Both original blockers are now CLOSED (the architectural gap they
-// named is resolved); TempSensorAbsent and TemperatureSensorAnomaly/
-// PCLModuleAnomaly remain genuinely open (different, unrelated reasons,
-// not touched by the projection architecture).
+// 3. Both original architectural blockers are CLOSED (the architectural
+// gap they named is resolved). TempSensorAbsent's own separate blocker
+// (unrelated stale-premise issue) is ALSO closed (2026-09-22, unmapped-
+// rows cleanup -- the "aggregation formula" premise was corrected, not
+// the architectural gap this file otherwise covers). TemperatureSensor
+// Anomaly/PCLModuleAnomaly's own blocker is closed too, via this
+// project's own explicit "permanently unsupported" resolution path --
+// see test_stage3_status_map_exact_identity.js for the classifier-level
+// coverage of that permanent classification.
 // ===========================================================================
 const blocker12D0Closed = blockers.blockers.find((b) => b.address === "0x12D0" && b.status === "closed" && b.parameter_id.includes("Heating"));
 const blocker12A0Closed = blockers.blockers.find((b) => b.address === "0x12A0" && b.status === "closed" && b.parameter_id.includes("Alarm Mask"));
 check("the original 0x12D0 architectural blocker (7 params) is closed", !!blocker12D0Closed);
 check("the original 0x12A0 architectural blocker (22 params + AlarmBatUVP) is closed", !!blocker12A0Closed);
 
-const tempSensorAbsentOpen = blockers.blockers.find((b) => b.address === "0x12D0" && b.parameter_id === "TempSensorAbsent" && b.status === "open");
-const anomaliesOpen = blockers.blockers.find((b) => b.address === "0x12A0" && b.parameter_id.includes("TemperatureSensorAnomaly") && b.status === "open");
-check("TempSensorAbsent's own separate blocker is still open (no evidenced aggregation formula -- unrelated to the resolved architectural gap)", !!tempSensorAbsentOpen);
-check("TemperatureSensorAnomaly/PCLModuleAnomaly's own blocker is still open (bit_unspecified -- unrelated to the resolved architectural gap)", !!anomaliesOpen);
+const tempSensorAbsentClosed = blockers.blockers.find((b) => b.address === "0x12D0" && b.parameter_id === "TempSensorAbsent" && b.status === "closed");
+const anomaliesClosed = blockers.blockers.find((b) => b.address === "0x12A0" && b.parameter_id.includes("TemperatureSensorAnomaly") && b.status === "closed");
+check("TempSensorAbsent's own separate blocker is now closed (stale aggregation-formula premise corrected -- it is a plain RAW projection, 2026-09-22)", !!tempSensorAbsentClosed);
+check("TemperatureSensorAnomaly/PCLModuleAnomaly's own blocker is now closed (permanently classified unsupported, 2026-09-22 -- no bit guessed)", !!anomaliesClosed);
 
 // ===========================================================================
 // 4. No bit was guessed for TemperatureSensorAnomaly/PCLModuleAnomaly --

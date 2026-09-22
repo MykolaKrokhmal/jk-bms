@@ -31,20 +31,24 @@
  * existing does not make THIS parameter confirmed):
  *   1. manifest classification "reserved"  -> reserved
  *   2. manifest classification "derived"   -> derived_not_a_register
- *   3. parameter_id named in an open protocol_blockers.json entry -> blocked
- *   4. no canonical register at this address at all -> missing
- *   5. a canonical register exists; find every field occupying this
+ *   3. manifest address.bit_unspecified=true -> unsupported_bit_position_
+ *      undocumented, PERMANENTLY (2026-09-22 addition) -- checked BEFORE
+ *      the open-blocker check below, so this is deterministic regardless
+ *      of blocker open/closed state; never falls through to "missing".
+ *   4. parameter_id named in an open protocol_blockers.json entry -> blocked
+ *   5. no canonical register at this address at all -> missing
+ *   6. a canonical register exists; find every field occupying this
  *      parameter's exact wire position (bit / byte-half / whole-register):
- *      5a. more than one such field -> missing, with an explicit
+ *      6a. more than one such field -> missing, with an explicit
  *          "AMBIGUOUS wire-position match" note (never implemented_*,
  *          never a guessed pick -- see TERMINOLOGY above)
- *      5b. exactly one such field -> inspect it:
+ *      6b. exactly one such field -> inspect it:
  *        implemented + effective_access "rw" -> implemented_write_confirmed
  *        implemented + effective_access "r"  -> implemented_read
  *        implemented (other effective_access) -> implemented_other
  *        source_only_unimplemented / partially_implemented /
  *          implementation_only_unverified     -> catalog_only
- *      5c. zero such fields (e.g. only a reserved placeholder sibling,
+ *      6c. zero such fields (e.g. only a reserved placeholder sibling,
  *          like the 0x12EE half-register's OWN half not yet being this
  *          parameter's half) -> missing
  *
@@ -151,6 +155,30 @@ function classifyOne(p, canonByAddr, blockedIds, locatorById) {
 
   if (p.classification === "reserved") return { status: "reserved", note: "manifest classification=reserved" };
   if (p.classification === "derived") return { status: "derived_not_a_register", note: "manifest classification=derived (not a hardware register)" };
+
+  // Permanent bit_unspecified classification (2026-09-22, unmapped-rows
+  // cleanup): a manifest parameter whose own address carries
+  // bit_unspecified=true has no documented bit position in either the
+  // official PDF or the V1.1/V2 workbook (confirmed: as of this writing
+  // exactly 2 manifest parameters, TemperatureSensorAnomaly and
+  // PCLModuleAnomaly, carry this flag) -- assigning one from availability
+  // or ordering would be fabrication, and
+  // fieldOccupiesManifestParamWirePosition() already refuses to match
+  // such a parameter to ANY canonical field, by construction (see its own
+  // early bit_unspecified guard above). Checked here BEFORE the
+  // open-blocker check, so this classification is stable and
+  // DETERMINISTIC regardless of whether this parameter's own
+  // protocol_blockers.json entry is open or closed -- the whole point is
+  // that closing the blocker (recording the permanent-unsupported
+  // resolution) must never cause this parameter to regress to a generic
+  // "missing" status, and the classification must never depend on
+  // keeping an "open blocker" forever to stay honestly reported.
+  if (p.address && p.address.bit_unspecified) {
+    return {
+      status: "unsupported_bit_position_undocumented",
+      note: "MANUFACTURER_BIT_POSITION_NOT_DOCUMENTED: neither the official PDF nor the V1.1/V2 workbook states which bit within this packed register this parameter occupies -- permanently classified unsupported/unaddressable as an individual value, not a guessable gap.",
+    };
+  }
 
   if (blockedIds.has(p.id)) {
     return { status: "blocked", note: "named in an open protocol_blockers.json entry" };

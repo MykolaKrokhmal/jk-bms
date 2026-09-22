@@ -361,6 +361,10 @@ echo "=== Settings read-value fix: total_voltage_raw/current_raw public sensors 
 node test/protocol_catalog/test_electrical_metrics_public_sensors.js
 
 echo
+echo "=== Unmapped-rows cleanup: TempSensorAbsent mapping + permanent unsupported classification ==="
+node test/protocol_catalog/test_unmapped_rows_cleanup.js
+
+echo
 echo "=== Stage 3: build_stage3_status_map.js exact-field-identity classifier fix regression ==="
 node test/protocol_catalog/test_stage3_status_map_exact_identity.js
 

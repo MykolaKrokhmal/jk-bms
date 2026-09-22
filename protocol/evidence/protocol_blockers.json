@@ -21,8 +21,10 @@
       "evidence_needed": "A real-hardware, read-only FC03 request at 0x12A0 with a known, independently-confirmed anomaly condition triggered (or absent), comparing the raw 32-bit value against every OTHER already-bit-confirmed alarm in the same register to isolate which of the remaining unassigned bit positions correspond to these two flags.",
       "owner": "hardware-verification-session",
       "closure_criterion": "Both bit positions confirmed against real hardware (or against the manufacturer directly), or the fields are permanently classified unsupported with that reasoning recorded.",
-      "status": "open",
-      "opened_date": "2026-09-16"
+      "status": "closed",
+      "opened_date": "2026-09-16",
+      "closed_date": "2026-09-22",
+      "resolution": "Permanently resolved via this closure_criterion's own explicit second option (2026-09-22, unmapped-rows cleanup): no bit position was ever confirmed by hardware or manufacturer, and none was guessed. TemperatureSensorAnomaly and PCLModuleAnomaly remain, and will permanently remain, without a canonical field, without a runtime entity, and without a route -- both manifest rows carry bit_unspecified=true (confirmed: neither the official PDF nor the V1.1/V2 workbook assigns either name a bit number within 0x12A0's 32-bit register, and the 22 already-evidenced alarm-bit projections occupy exactly bits 0-21, leaving no principled way to distinguish which of the remaining bits, if any, belongs to which of these two names). tools/protocol/authoring/build_stage3_status_map.js's classifier now deterministically classifies any bit_unspecified manifest parameter as status=unsupported_bit_position_undocumented (reason MANUFACTURER_BIT_POSITION_NOT_DOCUMENTED), independent of this blocker's own open/closed state -- closing this blocker does not, and must not, cause either parameter to fall into a generic 'missing' status. The raw alarms_bitmask entity (mask=0xFFFFFFFF) remains completely unchanged and continues to publish the full wire value, including whichever bits these two names refer to -- the underlying data is not lost, only not independently addressable as its own named value. All 22 existing alarm-bit projections are unchanged. This classification is stable and does not depend on ever reopening this blocker; a future manufacturer clarification or hardware capture that resolves an exact bit position for either name is still welcome and would warrant reopening at that time, but the current, permanent default is unsupported, not indefinitely pending."
     },
     {
       "parameter_id": "VoltageCalibration",
@@ -227,8 +229,10 @@
       "evidence_needed": "An official clarification of the intended aggregation formula, or confirmation that no such aggregate exists on the wire at all (i.e. this manifest row is a documentation-only summary label, not a real addressable value) -- either resolves this without guessing.",
       "owner": "stage3-architecture-followup",
       "closure_criterion": "A formula is confirmed by an independent source and implemented, or the parameter is permanently classified as not independently addressable (a documentation label over the 6 individual bits, not its own wire value) with that reasoning recorded.",
-      "status": "open",
-      "opened_date": "2026-09-20"
+      "status": "closed",
+      "opened_date": "2026-09-20",
+      "closed_date": "2026-09-22",
+      "resolution": "The original issue text's premise (an unevidenced AGGREGATION FORMULA over the 6 individual bits) was itself stale/incorrect, corrected this round by direct re-review of the same two sources already cited on this register's other fields: the manifest's own address (0x12D0 (старший байт), UINT8 (1 байт)), its own unit/component (бітова маска, raw bitmask), and its own description (\"Бітова маска наявності термодатчиків у першому UINT8 packed-регістра 0x12D0: BIT0 MOS, BIT1..5 Bat1..Bat5\") all describe TempSensorAbsent as the RAW HIGH BYTE ITSELF, not an aggregate/formula computed over it -- exactly what the already-implemented sibling field sensor_heating_mask already publishes as its own full 16-bit raw value. No formula was ever needed; a plain read-only projection of the existing, already-fetched high byte resolves this without guessing anything. Implemented as canonical field temperature_sensor_status_mask (projection_of: sensor_heating_mask, mask 0xFF00, shift 8, U8, effective_access r) -- zero new Modbus traffic (same register sensor_heating_mask already reads), zero invented bit semantics (bits 0-5 documented by mos_temp_sensor_status_bit_raw/bat_temp_sensor_1..5_present's own separate, already-evidenced projections; bits 6-7 explicitly undocumented and displayed raw with no invented meaning). build_stage3_status_map.js now resolves TempSensorAbsent's own manifest wire position (0x12D0 high byte) to this field deterministically, reclassifying it implemented_read."
     },
     {
       "parameter_id": "UART1MPRTOLEnable",

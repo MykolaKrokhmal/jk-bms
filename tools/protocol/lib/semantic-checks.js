@@ -454,16 +454,36 @@ function check(registerDoc, nonRegisterDoc, repoRoot) {
     // overlap detection across this register's fields -- a projection's
     // mask is EXPECTED and REQUIRED to overlap its own declared parent's
     // mask (that overlap is the entire point: it is the same physical bits,
-    // read once, viewed twice); any OTHER overlap (two physical fields, two
-    // sibling projections of the same parent, a projection overlapping a
-    // field it does not declare as its parent) is still a real error.
+    // read once, viewed twice). Two sibling projections of the SAME parent
+    // may ALSO overlap, but only when one's mask strictly CONTAINS the
+    // other's (a coarser aggregate view legitimately re-exposing bits its
+    // own finer-grained siblings already project individually -- see
+    // isSameParentContainment below, 2026-09-22 generalization); two
+    // siblings claiming the IDENTICAL mask, two unrelated physical fields,
+    // or a projection overlapping a field it does not declare as its
+    // parent are all still real errors.
     for (let i = 0; i < coverage.length; i += 1) {
       for (let j = i + 1; j < coverage.length; j += 1) {
         if ((coverage[i][0] & coverage[j][0]) !== 0) {
-          const [, keyI, projOfI] = coverage[i];
-          const [, keyJ, projOfJ] = coverage[j];
+          const [maskI, keyI, projOfI] = coverage[i];
+          const [maskJ, keyJ, projOfJ] = coverage[j];
           const isDeclaredProjectionPair = projOfI === keyJ || projOfJ === keyI;
-          if (!isDeclaredProjectionPair) {
+          // Same-parent sibling CONTAINMENT (2026-09-22, unmapped-rows
+          // cleanup): a coarser-grained sibling projection (e.g. a
+          // byte-wide status mask) whose own mask STRICTLY CONTAINS a
+          // finer-grained sibling projection's own mask (e.g. one
+          // individual bit within that same byte), both declaring the
+          // SAME projection_of parent, is an intentional, safe overlap --
+          // both are read-only views of the identical already-fetched
+          // physical bits, at different granularities, never two
+          // competing claims to the exact same bits. Strict inequality
+          // (maskI !== maskJ) deliberately still rejects the genuine
+          // duplicate-claim case (two siblings claiming the IDENTICAL
+          // mask) as a real OVERLAPPING_MASKS error, unchanged from
+          // before this generalization.
+          const isSameParentContainment = projOfI !== null && projOfI !== undefined && projOfI === projOfJ &&
+            maskI !== maskJ && ((maskI & maskJ) === maskI || (maskI & maskJ) === maskJ);
+          if (!isDeclaredProjectionPair && !isSameParentContainment) {
             errors.push(issue("OVERLAPPING_MASKS", `registers[${reg.register_id}]`,
               `fields "${keyI}" and "${keyJ}" in register ${reg.address} have overlapping masks, and neither declares the other as its projection_of parent`));
           }

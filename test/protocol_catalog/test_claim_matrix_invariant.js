@@ -116,7 +116,7 @@ check("4. effective RW count is 60 (documented baseline -- Stage 4 typed-petting
 check("4b. of the 60 effective-RW fields, exactly 18 are owner-authorized and 42 are registry-backed (the two authorization avenues never overlap)",
   r.ownerAuthorizedKeys.size === 18 && r.registryBackedKeys.size === 42 && [...r.ownerAuthorizedKeys].every((k) => !r.registryBackedKeys.has(k)),
   `owner=${r.ownerAuthorizedKeys.size} registry=${r.registryBackedKeys.size}`);
-check("5. effective R count is 190 (documented baseline -- Stage 4 typed-petting-puzzle plan §5 promoted 42 of the prior 232 to effective_access rw)", r.effectiveR === 190, `actual=${r.effectiveR}`);
+check("5. effective R count is 191 (documented baseline -- Stage 4 typed-petting-puzzle plan §5 promoted 42 of the prior 232 to effective_access rw, then unmapped-rows cleanup 2026-09-22 added 1 new read-only projection field, temperature_sensor_status_mask)", r.effectiveR === 191, `actual=${r.effectiveR}`);
 check("6. unsupported count is 4 (documented baseline -- Stage 2 typed-petting-puzzle plan added 3 new intentionally_not_exposed reserved half-registers, 0x12EE/0x130C/0x1506, alongside the pre-existing reserved_0x12d2; a further change here must again be a reviewed, deliberate catalog edit)",
   r.unsupported === 4, `actual=${r.unsupported}`);
 check("6b. declared_r + declared_rw == logical field count", r.declaredR + r.declaredRw === r.logicalFields);
