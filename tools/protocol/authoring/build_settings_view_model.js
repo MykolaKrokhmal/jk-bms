@@ -133,6 +133,24 @@ function accessLetter(effectiveAccess) {
   return null;
 }
 
+// Deterministic value-kind classification, derived ONLY from the
+// canonical field's own authoritative wire_type + whether it carries a
+// documented enum_map -- never from a runtime/browser value (a row with
+// no live value yet must classify identically to one that does).
+// Read-value-formatting correctness bug fix (2026-09-22): the previous
+// renderer routed every non-enum row through numeric()/toFixed(),
+// silently corrupting ASCII (hardware_version="15A" -> NaN) and HEX/raw
+// fields. wireType/valueKind let the renderer pick the right formatter
+// per row without guessing from the current SSE payload's own shape.
+function deriveValueKind(wireType, hasEnumMap) {
+  if (hasEnumMap) return "enum";
+  if (wireType === "BIT") return "binary";
+  if (wireType === "ASCII") return "text";
+  if (wireType === "HEX") return "raw_text";
+  if (["U8", "U16", "U32", "S8", "S16", "S32", "F32"].includes(wireType)) return "numeric";
+  return "unknown";
+}
+
 // Resolves a manifest parameter to AT MOST ONE canonical field via the
 // SAME wire-position matcher build_stage3_status_map.js's own classifier
 // uses (fieldOccupiesManifestParamWirePosition) -- never a name-similarity
@@ -162,6 +180,8 @@ function baseRow(p) {
     manifestId: p.id,
     access: p.access,
     effectiveAccess: null,
+    wireType: null,
+    valueKind: "unknown",
     stage4State: null,
     uiSection: null,
     uiOrder: null,
@@ -290,6 +310,8 @@ for (const p of eligibleParams) {
       // what the manifest itself declares.
       access: "RW",
       effectiveAccess: accessLetter(s4.effective_access),
+      wireType: field ? (field.wire_type || null) : null,
+      valueKind: deriveValueKind(field ? field.wire_type : null, !!(field && field.enum_map)),
       stage4State: s4.stage4_state,
       uiSection: field ? (field.ui_section || null) : "unmapped",
       uiOrder: field && typeof field.ui_order === "number" ? field.ui_order : null,
@@ -355,6 +377,8 @@ for (const p of eligibleParams) {
     canonicalKey: field.key,
     access: "R",
     effectiveAccess: accessLetter(field.effective_access),
+    wireType: field.wire_type || null,
+    valueKind: deriveValueKind(field.wire_type, !!field.enum_map),
     uiSection: field.ui_section || null,
     uiOrder: typeof field.ui_order === "number" ? field.ui_order : null,
     uiGroup: field.ui_group || null,
@@ -427,7 +451,7 @@ function jsStringLiteral(v) {
 function jsBool(v) { return v === null ? "null" : v ? "true" : "false"; }
 function jsNum(v) { return v === null ? "null" : v; }
 
-const jsRows = rows.map((r) => `    { id: ${jsStringLiteral(r.id)}, canonicalKey: ${jsStringLiteral(r.canonicalKey)}, manifestId: ${jsStringLiteral(r.manifestId)}, access: ${jsStringLiteral(r.access)}, effectiveAccess: ${jsStringLiteral(r.effectiveAccess)}, stage4State: ${jsStringLiteral(r.stage4State)}, uiSection: ${jsStringLiteral(r.uiSection)}, uiOrder: ${jsNum(r.uiOrder)}, uiGroup: ${jsStringLiteral(r.uiGroup)}, labelUk: ${jsStringLiteral(r.labelUk)}, labelEn: ${jsStringLiteral(r.labelEn)}, unit: ${jsStringLiteral(r.unit)}, ukUnit: ${jsStringLiteral(r.ukUnit)}, enUnit: ${jsStringLiteral(r.enUnit)}, precision: ${jsNum(r.precision)}, editorKind: ${jsStringLiteral(r.editorKind)}, min: ${jsNum(r.min)}, max: ${jsNum(r.max)}, step: ${jsNum(r.step)}, options: ${jsStringLiteral(r.options)}, readEntityId: ${jsStringLiteral(r.readEntityId)}, writeEntityId: ${jsStringLiteral(r.writeEntityId)}, readWriteState: ${jsStringLiteral(r.readWriteState)}, submitPolicy: ${jsStringLiteral(r.submitPolicy)}, writeSafetyClass: ${jsStringLiteral(r.writeSafetyClass)}, writePathKind: ${jsStringLiteral(r.writePathKind)}, currentWriteEndpoint: ${jsStringLiteral(r.currentWriteEndpoint)}, writeUsesReadModifyWrite: ${jsBool(r.writeUsesReadModifyWrite)}, blockedReason: ${jsStringLiteral(r.blockedReason)}, blockerClosureCriterion: ${jsStringLiteral(r.blockerClosureCriterion)}, hardwareVerificationProvenance: ${jsStringLiteral(r.hardwareVerificationProvenance)}, revalidationRequired: ${jsBool(r.revalidationRequired)}, compositeGroup: ${jsStringLiteral(r.compositeGroup)}, compositeRole: ${jsStringLiteral(r.compositeRole)}, topologyChannelIndex: ${jsNum(r.topologyChannelIndex)}, evidenceRef: ${jsStringLiteral(r.evidenceRef)} },`).join("\n");
+const jsRows = rows.map((r) => `    { id: ${jsStringLiteral(r.id)}, canonicalKey: ${jsStringLiteral(r.canonicalKey)}, manifestId: ${jsStringLiteral(r.manifestId)}, access: ${jsStringLiteral(r.access)}, effectiveAccess: ${jsStringLiteral(r.effectiveAccess)}, wireType: ${jsStringLiteral(r.wireType)}, valueKind: ${jsStringLiteral(r.valueKind)}, stage4State: ${jsStringLiteral(r.stage4State)}, uiSection: ${jsStringLiteral(r.uiSection)}, uiOrder: ${jsNum(r.uiOrder)}, uiGroup: ${jsStringLiteral(r.uiGroup)}, labelUk: ${jsStringLiteral(r.labelUk)}, labelEn: ${jsStringLiteral(r.labelEn)}, unit: ${jsStringLiteral(r.unit)}, ukUnit: ${jsStringLiteral(r.ukUnit)}, enUnit: ${jsStringLiteral(r.enUnit)}, precision: ${jsNum(r.precision)}, editorKind: ${jsStringLiteral(r.editorKind)}, min: ${jsNum(r.min)}, max: ${jsNum(r.max)}, step: ${jsNum(r.step)}, options: ${jsStringLiteral(r.options)}, readEntityId: ${jsStringLiteral(r.readEntityId)}, writeEntityId: ${jsStringLiteral(r.writeEntityId)}, readWriteState: ${jsStringLiteral(r.readWriteState)}, submitPolicy: ${jsStringLiteral(r.submitPolicy)}, writeSafetyClass: ${jsStringLiteral(r.writeSafetyClass)}, writePathKind: ${jsStringLiteral(r.writePathKind)}, currentWriteEndpoint: ${jsStringLiteral(r.currentWriteEndpoint)}, writeUsesReadModifyWrite: ${jsBool(r.writeUsesReadModifyWrite)}, blockedReason: ${jsStringLiteral(r.blockedReason)}, blockerClosureCriterion: ${jsStringLiteral(r.blockerClosureCriterion)}, hardwareVerificationProvenance: ${jsStringLiteral(r.hardwareVerificationProvenance)}, revalidationRequired: ${jsBool(r.revalidationRequired)}, compositeGroup: ${jsStringLiteral(r.compositeGroup)}, compositeRole: ${jsStringLiteral(r.compositeRole)}, topologyChannelIndex: ${jsNum(r.topologyChannelIndex)}, evidenceRef: ${jsStringLiteral(r.evidenceRef)} },`).join("\n");
 
 const jsBlock = `${JS_BEGIN}
   // Source of truth: protocol/generated/bms_v1_1_manifest.json (the row universe) joined to

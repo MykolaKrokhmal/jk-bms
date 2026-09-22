@@ -345,6 +345,10 @@ echo "=== Finish-Settings-architecture batch: Settings ownership invariant (N=0/
 node test/protocol_catalog/test_settings_ownership.js
 
 echo
+echo "=== Settings correctness fix: value formatting + BIT dropdown DOM behavior (text/HEX exactness, No/Yes select, numeric constraints) ==="
+node test/protocol_catalog/test_settings_value_formatting.js
+
+echo
 echo "=== Stage 3: build_stage3_status_map.js exact-field-identity classifier fix regression ==="
 node test/protocol_catalog/test_stage3_status_map_exact_identity.js
 

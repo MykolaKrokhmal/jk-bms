@@ -191,5 +191,63 @@ const unmappedRows = doc.rows.filter((r) => r.canonicalKey === null && r.access 
 check("exactly 3 unmapped protocol rows", unmappedRows.length === 3, JSON.stringify(unmappedRows.map((r) => r.id)));
 check("every unmapped row carries a specific blockedReason", unmappedRows.every((r) => !!r.blockedReason));
 
+// ---------------------------------------------------------------------------
+// 11. wireType/valueKind correctness fix (2026-09-22): deterministic,
+// derived ONLY from the canonical field's own wire_type + enum_map
+// presence -- never from a runtime value. Re-runs the REAL classifier
+// (deriveValueKind, re-implemented here ONLY as an independent oracle to
+// cross-check the generator's real output against, not to replace it --
+// the generator itself is the thing under test, run above via --check).
+// ---------------------------------------------------------------------------
+function expectedValueKind(wireType, hasEnumMap) {
+  if (hasEnumMap) return "enum";
+  if (wireType === "BIT") return "binary";
+  if (wireType === "ASCII") return "text";
+  if (wireType === "HEX") return "raw_text";
+  if (["U8", "U16", "U32", "S8", "S16", "S32", "F32"].includes(wireType)) return "numeric";
+  return "unknown";
+}
+const canonicalFieldByKey = new Map();
+for (const reg of JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "registers.canonical.json"), "utf8")).registers) {
+  for (const field of reg.fields || []) canonicalFieldByKey.set(field.key, field);
+}
+let valueKindAgreement = true;
+const valueKindDisagreements = [];
+for (const r of doc.rows) {
+  if (!r.canonicalKey) {
+    if (r.valueKind !== "unknown" || r.wireType !== null) { valueKindAgreement = false; valueKindDisagreements.push({ id: r.id, reason: "unmapped/W row must be wireType:null valueKind:unknown", got: { wireType: r.wireType, valueKind: r.valueKind } }); }
+    continue;
+  }
+  const field = canonicalFieldByKey.get(r.canonicalKey);
+  const expectedWireType = field ? (field.wire_type || null) : null;
+  const expectedKind = expectedValueKind(expectedWireType, !!(field && field.enum_map));
+  if (r.wireType !== expectedWireType || r.valueKind !== expectedKind) {
+    valueKindAgreement = false;
+    valueKindDisagreements.push({ id: r.id, key: r.canonicalKey, expected: { wireType: expectedWireType, valueKind: expectedKind }, got: { wireType: r.wireType, valueKind: r.valueKind } });
+  }
+}
+check("every row's wireType/valueKind exactly matches an independent re-derivation from registers.canonical.json",
+  valueKindAgreement, JSON.stringify(valueKindDisagreements.slice(0, 5)));
+
+check("real ASCII fields (hardware_version/software_version/setup_passcode) classify as valueKind=text",
+  ["hardware_version", "software_version", "setup_passcode"].every((k) => {
+    const row = doc.rows.find((r) => r.canonicalKey === k);
+    return row && row.wireType === "ASCII" && row.valueKind === "text";
+  }));
+check("real HEX fields classify as valueKind=raw_text",
+  ["uart1_mprtol_enable", "uart_mprtol_enable_0_15"].every((k) => {
+    const row = doc.rows.find((r) => r.canonicalKey === k);
+    return row && row.wireType === "HEX" && row.valueKind === "raw_text";
+  }));
+check("real BIT fields with NO documented enum_map classify as valueKind=binary (gps_heartbeat/lcd_always_on/smart_sleep_enabled/timed_stored_data)",
+  ["gps_heartbeat", "lcd_always_on", "smart_sleep_enabled", "timed_stored_data"].every((k) => {
+    const row = doc.rows.find((r) => r.canonicalKey === k);
+    return row && row.wireType === "BIT" && row.valueKind === "binary" && row.options === null;
+  }));
+check("a real BIT field WITH a documented enum_map (port_switch) classifies as valueKind=enum, not binary",
+  (() => { const row = doc.rows.find((r) => r.canonicalKey === "port_switch"); return row && row.wireType === "BIT" && row.valueKind === "enum" && !!row.options; })());
+check("valueKind is never inferred from an unmapped row's own manifest metadata -- always exactly 'unknown'",
+  doc.rows.filter((r) => r.canonicalKey === null).every((r) => r.valueKind === "unknown"));
+
 console.log(`\nSettings view-model structural summary: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);
