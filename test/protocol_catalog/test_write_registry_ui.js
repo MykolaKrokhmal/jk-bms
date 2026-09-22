@@ -798,10 +798,23 @@ async function main() {
   setLanguage("uk");
   await flushMicrotasks();
 
+  // Finish-the-Settings-architecture batch (2026-09-22): the standalone
+  // write-registry panel (#writeRegistryList) is no longer part of the
+  // live app -- refreshAllDynamicText() no longer calls
+  // relocalizeWriteRegistry() (renderSettingsCatalog()'s own generic rows,
+  // covered by test_settings_catalog.js, are the live, relocalizing
+  // surface for this same underlying data now). renderWriteRegistry()/
+  // relocalizeWriteRegistry() themselves are left defined and still
+  // directly callable (this test still exercises them against its own
+  // manually-built writeRegistryList DOM, proving the shared production
+  // write CLIENT -- submitRegisterWrite()/runRegisterWriteTransaction() --
+  // still works), but a real language switch through the app no longer
+  // reaches them, so their own text is correctly expected to stay frozen.
   const groupHeaderTextsUk = writeRegistryList.querySelectorAll(".write-registry-group-header").map((h) => h.textContent);
-  check("EN->UK: group header text actually changes", groupHeaderTextsUk.every((t, i) => t !== groupHeaderTextsEn[i]), `en=${JSON.stringify(groupHeaderTextsEn)} uk=${JSON.stringify(groupHeaderTextsUk)}`);
-  check("EN->UK: the live button's label re-localizes", liveButton.textContent !== liveButtonTextEn, liveButton.textContent);
-  check("EN->UK: the authorization-required note re-localizes", authNote.textContent !== authNoteTextEn, authNote.textContent);
+  check("EN->UK: the retired write-registry panel's group headers do NOT relocalize (refreshAllDynamicText() no longer calls relocalizeWriteRegistry())",
+    groupHeaderTextsUk.every((t, i) => t === groupHeaderTextsEn[i]), `en=${JSON.stringify(groupHeaderTextsEn)} uk=${JSON.stringify(groupHeaderTextsUk)}`);
+  check("EN->UK: the retired panel's live button label stays frozen (dead surface, not the live app path)", liveButton.textContent === liveButtonTextEn, liveButton.textContent);
+  check("EN->UK: the retired panel's authorization-required note stays frozen (dead surface, not the live app path)", authNote.textContent === authNoteTextEn, authNote.textContent);
   // writeRegistry.blockedNote's own template is literally "{reason}" in
   // BOTH languages (jk_bms.js's i18n table) -- the blocked reason is a raw
   // machine code (e.g. "RANGE_NOT_ESTABLISHED" from stage4_rw_inventory.

@@ -84,9 +84,17 @@ check("software-ready branch renders serviceActions.softwareReadyNoDispatchNote 
   /t\("serviceActions\.softwareReadyNoDispatchNote"\)/.test(jsSource));
 
 // --- HTML panel scaffolding ---
-check("panel markup declares the serviceActionsList container", jsSource.includes('id="serviceActionsList"'));
-check("build() calls renderServiceActions() during boot", /renderServiceActions\(\);/.test(jsSource));
-check("refreshAllDynamicText() calls relocalizeServiceActions() on language switch", /relocalizeServiceActions\(\);/.test(jsSource));
+// Finish-the-Settings-architecture batch (2026-09-22): the standalone
+// service-actions panel is retired -- the generic Settings catalog
+// (#settingsCatalogList, renderSettingsCatalog()) renders all 8 W
+// commands as generic rows now (access==="W" branch), reading the SAME
+// SERVICE_ACTIONS-equivalent data straight from SETTINGS_VIEW_MODEL (see
+// test_settings_catalog.js). This proves removal, not presence.
+check("panel markup no longer declares the retired serviceActionsList container", !jsSource.includes('id="serviceActionsList"'));
+check("build() no longer calls renderServiceActions() during boot", !/renderServiceActions\(\);/.test(jsSource));
+check("refreshAllDynamicText() no longer calls relocalizeServiceActions() on language switch", !/relocalizeServiceActions\(\);/.test(jsSource));
+check("build() calls renderSettingsCatalog() during boot instead", /renderSettingsCatalog\(\);/.test(jsSource));
+check("refreshAllDynamicText() calls relocalizeSettingsCatalog() on language switch instead", /relocalizeSettingsCatalog\(\);/.test(jsSource));
 
 // --- i18n scaffolding, both languages ---
 for (const lang of ["en", "uk"]) {

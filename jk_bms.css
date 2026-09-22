@@ -1304,6 +1304,23 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 @media (max-width:560px){
   .cell-composite-calibration{ flex-basis:100%; justify-content:flex-start; }
 }
+
+/* Generic Settings catalog (Phase B, 2026-09-22) -- catalog-first
+   renderer for every non-cell eligible manifest row (R/RW/W), grouped by
+   real user-facing section headings. Mirrors cell-composite-row's own
+   compact-desktop / wrap-on-narrow rhythm; no nested cards. */
+.settings-catalog-group-header{ padding:16px 18px 6px; font-size:.78em; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--ink-faint); }
+.settings-catalog-row{ flex-wrap:wrap; gap:8px 14px; }
+.settings-catalog-label{ font-weight:500; flex:1 1 160px; }
+.settings-catalog-value{ min-width:72px; text-align:right; }
+.settings-catalog-editor-group{ display:flex; align-items:center; gap:8px; flex:1 1 220px; justify-content:flex-end; }
+.settings-catalog-editor{ width:100px; }
+.settings-catalog-unit{ font-size:.85em; color:var(--ink-faint); }
+.settings-catalog-note{ font-size:.85em; color:var(--ink-faint); flex:1 1 220px; text-align:right; }
+@media (max-width:560px){
+  .settings-catalog-editor-group{ flex-basis:100%; justify-content:flex-start; }
+  .settings-catalog-note{ flex-basis:100%; text-align:left; }
+}
 /* Value column widened 15% (94px -> 108px) across every breakpoint below. */
 .register-editor{ display:grid; grid-template-columns:108px 54px; align-items:center; gap:8px; flex:none; }
 .register-editor.has-unit{ grid-template-columns:108px 54px; }

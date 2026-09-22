@@ -134,9 +134,17 @@ check("blocked rows render no input element at all (else branch has no `new_stri
   })());
 
 // --- HTML panel + i18n scaffolding, both languages ---
-check("panel markup declares the writeRegistryList container", jsSource.includes('id="writeRegistryList"'));
-check("panel markup declares the writeRegistryMessage status element", jsSource.includes('id="writeRegistryMessage"'));
-check("build() calls renderWriteRegistry() during boot", /renderWriteRegistry\(\);\s*\n\s*renderServiceActions\(\);\s*\n\s*setText\("sysFirmware"/.test(jsSource));
+// Finish-the-Settings-architecture batch (2026-09-22): the standalone
+// write-registry panel's own HTML container/message element and its
+// boot-time render call are retired -- the generic Settings catalog
+// (#settingsCatalogList, renderSettingsCatalog()) is the ONE active
+// Settings DOM surface now (see test_settings_catalog.js). This proves
+// removal, not presence: no duplicate active DOM surface.
+check("panel markup no longer declares the retired writeRegistryList container", !jsSource.includes('id="writeRegistryList"'));
+check("panel markup no longer declares the retired writeRegistryMessage status element", !jsSource.includes('id="writeRegistryMessage"'));
+check("build() no longer calls renderWriteRegistry() during boot", !/renderWriteRegistry\(\);/.test(jsSource));
+check("panel markup declares the replacement settingsCatalogList container", jsSource.includes('id="settingsCatalogList"'));
+check("build() calls renderSettingsCatalog() during boot", /renderCellCompositeList\(\);\s*\n\s*renderSettingsCatalog\(\);/.test(jsSource));
 
 for (const lang of ["en", "uk"]) {
   const langBlockMatch = jsSource.match(new RegExp(`${lang}:\\s*\\{[\\s\\S]*?writeRegistry:\\s*\\{([\\s\\S]*?)\\n\\s*\\},\\n\\s*diagnostics:`));

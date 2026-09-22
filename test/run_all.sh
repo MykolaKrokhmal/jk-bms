@@ -337,6 +337,14 @@ echo "=== Cell-composite batch: composite cell-row DOM behavior (N=8/16/24/32, S
 node test/protocol_catalog/test_cell_composite_rows.js
 
 echo
+echo "=== Finish-Settings-architecture batch: generic Settings catalog DOM behavior (catalog-first, R/RW/W shapes, SSE, dirty/focus, i18n) ==="
+node test/protocol_catalog/test_settings_catalog.js
+
+echo
+echo "=== Finish-Settings-architecture batch: Settings ownership invariant (N=0/8/16/24/32, no gaps/duplicates) ==="
+node test/protocol_catalog/test_settings_ownership.js
+
+echo
 echo "=== Stage 3: build_stage3_status_map.js exact-field-identity classifier fix regression ==="
 node test/protocol_catalog/test_stage3_status_map_exact_identity.js
 
