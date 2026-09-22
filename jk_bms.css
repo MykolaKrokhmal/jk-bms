@@ -1283,6 +1283,25 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 .service-action-row{ flex-wrap:wrap; gap:8px 14px; }
 .service-action-label{ font-weight:500; }
 .service-action-note{ flex:1 1 220px; font-size:.85em; color:var(--ink-faint); text-align:right; }
+
+/* Cell-composite batch (2026-09-22): one row per active cell channel --
+   voltage + wire resistance (both read-only) + calibration editor, all
+   three independent canonical bindings merged into a single visual row.
+   Desktop: compact single line via flex. Narrow screens: wraps within the
+   SAME row/card (no nested card, no extra badge chrome) -- the calibration
+   group is given room to drop to its own line first (flex-basis:100%)
+   since it is the widest element (input + button/note). */
+.cell-composite-list{ margin-top:4px; }
+.cell-composite-row{ flex-wrap:wrap; gap:8px 14px; }
+.cell-composite-label{ font-weight:500; min-width:84px; }
+.cell-composite-voltage, .cell-composite-resistance{ min-width:72px; text-align:right; }
+.cell-composite-calibration{ display:flex; align-items:center; gap:8px; flex:1 1 220px; justify-content:flex-end; }
+.cell-composite-calibration-editor{ width:100px; }
+.cell-composite-write-state{ font-size:.85em; color:var(--ink-faint); }
+.cell-composite-unconfirmed{ color:var(--ink-faint); font-size:.9em; padding:13px 18px; margin:0; }
+@media (max-width:560px){
+  .cell-composite-calibration{ flex-basis:100%; justify-content:flex-start; }
+}
 /* Value column widened 15% (94px -> 108px) across every breakpoint below. */
 .register-editor{ display:grid; grid-template-columns:108px 54px; align-items:center; gap:8px; flex:none; }
 .register-editor.has-unit{ grid-template-columns:108px 54px; }

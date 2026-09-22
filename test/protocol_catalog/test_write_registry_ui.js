@@ -403,24 +403,40 @@ async function main() {
   resetFetchQueue();
   renderWriteRegistry();
 
+  // Cell-composite batch (2026-09-22): all 32 cell_connection_wire_resistance_*
+  // WRITE_REGISTRY.authorizationRequired entries are now rendered
+  // exclusively by the composite cell-row list's calibration column, not
+  // here -- 79 total / 37 authorizationRequired become 47 total / 5
+  // authorizationRequired (79-32=47, 37-32=5). live (5, no cell keys) and
+  // blocked (37, no cell keys) are unaffected. WRITE_REGISTRY itself still
+  // carries all 79 entries (asserted below) -- this is a render-time
+  // filter only, never a change to the generated registry.
+  const isCellCalibrationKey = (key) => /^cell_connection_wire_resistance_\d+$/.test(key);
   const rows = writeRegistryList.querySelectorAll(".write-registry-row");
-  check("exactly 79 rows total", rows.length === 79, `got=${rows.length}`);
+  check("exactly 47 rows total (79 WRITE_REGISTRY entries minus 32 cell-calibration keys, moved to the composite renderer)", rows.length === 47, `got=${rows.length}`);
   const liveRows = rows.filter((r) => r.dataset.writeRegistryGroup === "live");
   const authRows = rows.filter((r) => r.dataset.writeRegistryGroup === "authorizationRequired");
   const blockedRows = rows.filter((r) => r.dataset.writeRegistryGroup === "blocked");
   check("exactly 5 live rows", liveRows.length === 5, `got=${liveRows.length}`);
-  check("exactly 37 authorization-required rows", authRows.length === 37, `got=${authRows.length}`);
+  check("exactly 5 authorization-required rows (37 minus 32 cell-calibration keys)", authRows.length === 5, `got=${authRows.length}`);
   check("exactly 37 blocked rows", blockedRows.length === 37, `got=${blockedRows.length}`);
   const allKeys = rows.map((r) => r.dataset.writeRegistryKey);
-  check("no duplicate canonical keys across all 79 rows", new Set(allKeys).size === allKeys.length,
+  check("no duplicate canonical keys across all 47 rows", new Set(allKeys).size === allKeys.length,
     `unique=${new Set(allKeys).size} total=${allKeys.length}`);
-  let everyKeyOnce = true;
+  check("no cell_connection_wire_resistance_* key ever appears in the write registry DOM",
+    !allKeys.some(isCellCalibrationKey));
+  let everyNonCellKeyOnce = true;
+  let totalWriteRegistryEntries = 0;
   for (const group of ["live", "authorizationRequired", "blocked"]) {
     for (const e of WRITE_REGISTRY[group]) {
-      if (allKeys.filter((k) => k === e.key).length !== 1) everyKeyOnce = false;
+      totalWriteRegistryEntries += 1;
+      if (isCellCalibrationKey(e.key)) continue;
+      if (allKeys.filter((k) => k === e.key).length !== 1) everyNonCellKeyOnce = false;
     }
   }
-  check("every canonical key from WRITE_REGISTRY appears in the DOM exactly once", everyKeyOnce);
+  check("every NON-cell-calibration canonical key from WRITE_REGISTRY appears in the DOM exactly once", everyNonCellKeyOnce);
+  check("WRITE_REGISTRY itself still carries all 79 entries (the generated registry is unchanged; only this render is filtered)",
+    totalWriteRegistryEntries === 79, `got=${totalWriteRegistryEntries}`);
   check("page render performs zero fetch/POST calls on its own", fetchCallLog.length === 0, JSON.stringify(fetchCallLog));
 
   // =========================================================================
@@ -490,7 +506,7 @@ async function main() {
   // =========================================================================
   // C. Authorization-required
   // =========================================================================
-  const authEntry = WRITE_REGISTRY.authorizationRequired[0];
+  const authEntry = WRITE_REGISTRY.authorizationRequired.find((e) => !isCellCalibrationKey(e.key));
   const authRow = rows.find((r) => r.dataset.writeRegistryKey === authEntry.key);
   check("authorization-required row is visible/present", !!authRow);
   const authInput = authRow.querySelector("input");
@@ -794,13 +810,13 @@ async function main() {
   // never corrupts/empties it, and it stays exactly the real reason code.
   check("EN->UK: the blocked note is untouched (raw reason code, not localized prose by design) and still correct",
     blockedNote.textContent === blockedNoteTextEn && blockedNote.textContent.length > 0, blockedNote.textContent);
-  check("EN->UK: row count is still exactly 5/37/37", (() => {
+  check("EN->UK: row count is still exactly 5/5/37", (() => {
     const r2 = writeRegistryList.querySelectorAll(".write-registry-row");
     return r2.filter((x) => x.dataset.writeRegistryGroup === "live").length === 5 &&
-      r2.filter((x) => x.dataset.writeRegistryGroup === "authorizationRequired").length === 37 &&
+      r2.filter((x) => x.dataset.writeRegistryGroup === "authorizationRequired").length === 5 &&
       r2.filter((x) => x.dataset.writeRegistryGroup === "blocked").length === 37;
   })());
-  check("EN->UK: no duplicate rows were created", writeRegistryList.querySelectorAll(".write-registry-row").length === 79);
+  check("EN->UK: no duplicate rows were created", writeRegistryList.querySelectorAll(".write-registry-row").length === 47);
   check("EN->UK: dataset keys stay language-neutral (still real canonical keys)",
     liveRow.dataset.writeRegistryKey === "gps_heartbeat" && authRow.dataset.writeRegistryKey === authEntry.key);
   check("EN->UK: draft value survives the language switch", thirdInput.value === "1");
@@ -819,7 +835,7 @@ async function main() {
   await flushMicrotasks();
   const groupHeaderTextsEn2 = writeRegistryList.querySelectorAll(".write-registry-group-header").map((h) => h.textContent);
   check("UK->EN: group headers return to the original English text", JSON.stringify(groupHeaderTextsEn2) === JSON.stringify(groupHeaderTextsEn));
-  check("UK->EN: row count is still exactly 79, no duplicates", writeRegistryList.querySelectorAll(".write-registry-row").length === 79);
+  check("UK->EN: row count is still exactly 47, no duplicates", writeRegistryList.querySelectorAll(".write-registry-row").length === 47);
 
   console.log(`\nwrite registry UI executable DOM test summary: ${checks - failures}/${checks} passed`);
   process.exit(failures ? 1 : 0);

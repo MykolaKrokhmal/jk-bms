@@ -213,6 +213,10 @@ echo "=== Stage 5: service-action panel UI structural regression ==="
 node test/protocol_catalog/test_stage5_service_actions_ui_structural.js
 
 echo
+echo "=== Cell-composite batch: generated Settings view-model generator determinism (--check) ==="
+node tools/protocol/authoring/build_settings_view_model.js --check
+
+echo
 echo "=== protocol catalog: generation atomicity + simulated-failure detection ==="
 node test/protocol_catalog/test_generation_atomicity.js
 
@@ -323,6 +327,14 @@ node test/protocol_catalog/test_cell_channel_frontend.js
 echo
 echo "=== protocol catalog: Settings/Diagnostics register-list cell-channel hiding (N=8/16/24/32, 16->8 transition, late SSE) ==="
 node test/protocol_catalog/test_diagnostic_cell_channel_hiding.js
+
+echo
+echo "=== Cell-composite batch: generated Settings view-model determinism + full inventory + 32-channel binding ==="
+node test/protocol_catalog/test_settings_view_model.js
+
+echo
+echo "=== Cell-composite batch: composite cell-row DOM behavior (N=8/16/24/32, SSE updates, draft/focus, write policy, i18n) ==="
+node test/protocol_catalog/test_cell_composite_rows.js
 
 echo
 echo "=== Stage 3: build_stage3_status_map.js exact-field-identity classifier fix regression ==="
