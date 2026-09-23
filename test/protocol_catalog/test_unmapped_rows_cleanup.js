@@ -320,7 +320,7 @@ function main() {
   // --- TempSensorAbsent: catalog-first, then real payload, representative
   // raw mask values including bits 6-7. ---
   check("catalog-first: TempSensorAbsent's row shows the unavailable placeholder before any SSE value",
-    rowValueText("TempSensorAbsent") === "--", rowValueText("TempSensorAbsent"));
+    rowValueText("TempSensorAbsent") === "Unavailable", rowValueText("TempSensorAbsent"));
 
   const tsmRoute = routeForTsm;
   ingestPayload({ id: `${tsmRoute.domain}/${tsmRoute.configuredName}`, value: 0x3e, state: "62" });

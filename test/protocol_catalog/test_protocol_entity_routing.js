@@ -231,7 +231,7 @@ function main() {
   // =========================================================================
   const nativePowerId = manifestIdFor("native_bms_power");
   check("sanity: native_bms_power has a real generic-block route", !!nativePowerId);
-  check("catalog-first: native_bms_power's row shows the unavailable placeholder before any SSE value", rowValueText(nativePowerId) === "--", rowValueText(nativePowerId));
+  check("catalog-first: native_bms_power's row shows the unavailable placeholder before any SSE value", rowValueText(nativePowerId) === "Unavailable", rowValueText(nativePowerId));
 
   // =========================================================================
   // 1. Ordinary numeric sensor whose key equals entity ID -- real-format
@@ -399,7 +399,7 @@ function main() {
   check("uart2_mprtol_nbr routes correctly", rowValueText(uart2NbrId) === "2", rowValueText(uart2NbrId));
   const uart2EnableBefore = rowValueText(uart2EnableId);
   check("updating uart2_mprtol_nbr does NOT overwrite its packed sibling uart2_mprtol_enable_0's own row",
-    uart2EnableBefore === "--", uart2EnableBefore);
+    uart2EnableBefore === "Unavailable", uart2EnableBefore);
   ingestPayload({ id: `${uart2EnableRoute.domain}/${uart2EnableRoute.configuredName}`, value: 1, state: "1" });
   updateSettingsCatalogValue(uart2EnableId);
   check("uart2_mprtol_enable_0 routes correctly once its OWN payload arrives", rowValueText(uart2EnableId) === "1", rowValueText(uart2EnableId));

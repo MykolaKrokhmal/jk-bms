@@ -439,6 +439,16 @@ async function main() {
     totalWriteRegistryEntries === 79, `got=${totalWriteRegistryEntries}`);
   check("page render performs zero fetch/POST calls on its own", fetchCallLog.length === 0, JSON.stringify(fetchCallLog));
 
+  // The production submit path now requires a recently observed source
+  // register and a healthy SSE/BMS link. Establish those prerequisites in
+  // this transaction-contract test before exercising preflight/POST.
+  ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
+  hooks.setBrowserLink("connected");
+  ingestPayload({ id: "binary_sensor/gps heartbeat", state: "OFF", value: false });
+  ingestPayload({ id: "binary_sensor/lcd always on", state: "OFF", value: false });
+  ingestPayload({ id: "binary_sensor/smart sleep enabled", state: "OFF", value: false });
+  ingestPayload({ id: "sensor/smart sleep timeout hours", state: "24", value: 24 });
+
   // =========================================================================
   // B. Live fields
   // =========================================================================

@@ -201,6 +201,11 @@ class FakeNode {
 function fakeClick(node) { node.dispatchEvent(new FakeEvent("click", node)); }
 
 let fetchCallLog = [];
+let fakeNow = 100000;
+class ControlledDate extends Date {
+  constructor(...args) { super(...(args.length ? args : [fakeNow])); }
+  static now() { return fakeNow; }
+}
 async function fakeFetch(url, opts) {
   const method = (opts && opts.method) || "GET";
   fetchCallLog.push({ url: String(url), method });
@@ -240,6 +245,7 @@ function loadRealClosures() {
   class HTMLInputElement {}
   const sandbox = {
     window, document, navigator: { language: "en" }, URL, console, Map, HTMLInputElement, AbortController,
+    Date: ControlledDate,
     fetch: (...args) => fakeFetch(...args), confirm: () => true,
   };
   vm.createContext(sandbox);
@@ -289,7 +295,7 @@ function main() {
   check("catalog-first: a real R row exists before its SSE value ever arrived", !!rRowAtBoot);
   const rValueAtBoot = rRowAtBoot.querySelector(".settings-catalog-value");
   check("catalog-first: its value shows the localized unavailable placeholder, never a fabricated number",
-    rValueAtBoot && rValueAtBoot.textContent === "--", rValueAtBoot && rValueAtBoot.textContent);
+    rValueAtBoot && rValueAtBoot.textContent === "Unavailable", rValueAtBoot && rValueAtBoot.textContent);
 
   // =========================================================================
   // 8. An unknown SSE entity cannot create a Settings row.
@@ -426,6 +432,114 @@ function main() {
   // button, so it never risks a real network call either).
   // =========================================================================
   check("zero fetch/POST calls were issued anywhere in this entire test run", fetchCallLog.length === 0, JSON.stringify(fetchCallLog));
+
+  // Controlled-clock integration: real production closures, not a copied
+  // freshness algorithm. Canonical poll groups are 1s/15s/300s; their
+  // authoritative fieldMeta budgets are 3s/30s/320s respectively.
+  const { setBrowserLink, sweepDiagnosticStaleness, settingsFieldFreshness,
+    renderCellCompositeList, submitRegisterSetting, submitRegisterWrite,
+    registerEntity, PROTOCOL_CATALOG } = hooks;
+  const cellList = new FakeNode("div");
+  cellList.id = "cellCompositeList";
+  body.appendChild(cellList);
+  const byKey = (key) => rows().find((r) => r.dataset.canonicalKey === key);
+  const readValue = (key) => byKey(key).querySelector(".settings-catalog-value");
+  fakeNow = 200000;
+  ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
+  setBrowserLink("connected");
+  check("initial LIVE accepts a valid register reading that preceded health in the SSE snapshot",
+    legacyInput.dataset.freshness === "fresh" && legacyButton.disabled === false);
+  ingestPayload({ id: "text_sensor/topology state", state: "CONFIRMED", value: "CONFIRMED" });
+  ingestPayload({ id: "sensor/display cell count", state: "16", value: 16 });
+  ingestPayload({ id: "sensor/cell voltage 4", state: "3.452 V", value: 3.452 });
+  ingestPayload({ id: "sensor/cell 4 wire resistance", state: "0.040 mΩ", value: 0.040 });
+  ingestPayload({ id: "sensor/cell connection wire resistance 4", state: "1234", value: 1234 });
+  ingestPayload({ id: "sensor/total voltage raw", state: "55.123 V", value: 55.123 });
+  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  updateSettingsCatalogValue("VolSmartSleep");
+  renderCellCompositeList();
+  const cellRows = cellList.querySelectorAll(".cell-composite-row");
+  const cell4 = cellRows.find((r) => r.dataset.cellIndex === "4");
+  const cellVoltage = cell4.querySelector(".cell-composite-voltage");
+  const cellResistance = cell4.querySelector(".cell-composite-resistance");
+  const cellCalibration = cell4.querySelector(".cell-composite-calibration-editor");
+  check("16S visibility uses protocol display_cell_count; channels 17+ absent", cellRows.length === 16 &&
+    !cellRows.some((r) => Number(r.dataset.cellIndex) > 16));
+  check("canonical 1s/15s/300s groups retain their own 3s/30s/320s budgets",
+    PROTOCOL_CATALOG.fieldMeta.cell_voltage_4.freshnessBudgetS === 3 &&
+    PROTOCOL_CATALOG.fieldMeta.total_voltage_raw.freshnessBudgetS === 30 &&
+    PROTOCOL_CATALOG.fieldMeta.smart_sleep.freshnessBudgetS === 320);
+  check("never-observed R value remains unavailable", rValueAtBoot.dataset.freshness === "unavailable" &&
+    rValueAtBoot.textContent === "Unavailable");
+  check("new SSE makes each observed Settings/cell value fresh", cellVoltage.dataset.freshness === "fresh" &&
+    cellResistance.dataset.freshness === "fresh" && cellCalibration.dataset.freshness === "fresh" &&
+    readValue("total_voltage_raw").dataset.freshness === "fresh" && legacyInput.dataset.freshness === "fresh");
+  check("fresh legacy RW submit button enabled", legacyButton.disabled === false);
+
+  legacyInput.value = "4.321";
+  legacyInput.dataset.dirty = "true";
+  legacyInput.focus();
+  legacyInput.setSelectionRange(1, 3);
+  fakeNow += 3001;
+  sweepDiagnosticStaleness();
+  check("1s group stale after 3s despite connected SSE", cellVoltage.dataset.freshness === "stale" &&
+    cellResistance.dataset.freshness === "stale" && cellCalibration.dataset.freshness === "fresh" &&
+    cellVoltage.title.includes("3s"));
+  check("15s/300s groups remain fresh at 3s", readValue("total_voltage_raw").dataset.freshness === "fresh" &&
+    legacyInput.dataset.freshness === "fresh");
+  ingestPayload({ id: "sensor/cell voltage 4", state: "3.452 V", value: 3.452 });
+  check("unchanged-value SSE clears only its own cell field, not its sibling", cellVoltage.dataset.freshness === "fresh" &&
+    cellResistance.dataset.freshness === "stale");
+  fakeNow = 230001;
+  sweepDiagnosticStaleness();
+  check("15s group stale only after its 30s budget", readValue("total_voltage_raw").dataset.freshness === "stale" &&
+    legacyInput.dataset.freshness === "fresh");
+  fakeNow = 520001;
+  sweepDiagnosticStaleness();
+  check("300s group stale only after its 320s budget", legacyInput.dataset.freshness === "stale" &&
+    cellCalibration.dataset.freshness === "stale" && legacyButton.disabled === true && legacyInput.title.includes("320s"));
+  check("staleness sweep preserves draft, focus and selection", legacyInput.value === "4.321" &&
+    activeElement === legacyInput && legacyInput.selectionStart === 1 && legacyInput.selectionEnd === 3);
+  submitRegisterSetting("smart_sleep", legacyButton);
+  check("stale legacy submit produces zero fetch/POST", fetchCallLog.length === 0);
+
+  // Exercise the Stage 4 submit guard as well. The test-only route models a
+  // valid SSE source without touching the production entity map or hardware.
+  registerEntity("gps_heartbeat", "number", "gps_heartbeat", "gps_heartbeat");
+  ingestPayload({ id: "gps_heartbeat", state: "0", value: 0 });
+  updateSettingsCatalogValue("GPS Heartbeat");
+  fakeNow += 30001;
+  sweepDiagnosticStaleness();
+  submitRegisterWrite(hooks.WRITE_REGISTRY.live.find((e) => e.key === "gps_heartbeat"), s4Input, s4Button);
+  check("stale Stage 4 submit produces zero GET/preflight and zero POST", fetchCallLog.length === 0 && s4Button.disabled === true);
+
+  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  check("unchanged-value SSE refreshes a 300s field without overwriting its draft",
+    legacyInput.dataset.freshness === "fresh" && legacyButton.disabled === false && legacyInput.value === "4.321" &&
+    activeElement === legacyInput && legacyInput.selectionStart === 1 && legacyInput.selectionEnd === 3);
+  setBrowserLink("reconnecting");
+  check("disconnect immediately marks cached value offline and disables submit",
+    legacyInput.dataset.freshness === "offline" && legacyButton.disabled === true);
+  setBrowserLink("connected");
+  check("reconnect alone never promotes old cached value to current", legacyInput.dataset.freshness === "offline" && legacyButton.disabled === true);
+  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  check("post-reconnect same-value SSE restores freshness without draft loss", legacyInput.dataset.freshness === "fresh" &&
+    legacyButton.disabled === false && legacyInput.value === "4.321" && activeElement === legacyInput);
+  ingestPayload({ id: "text_sensor/bms health", state: "OFFLINE", value: "OFFLINE" });
+  check("BMS offline invalidates cached Settings value even with browser connected", legacyInput.dataset.freshness === "offline" &&
+    legacyButton.disabled === true);
+  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  check("SSE echo while BMS is OFFLINE cannot make the register current", legacyInput.dataset.freshness === "offline");
+  ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
+  check("BMS recovery alone leaves even an offline-period echo invalid", legacyInput.dataset.freshness === "offline");
+  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  check("fresh register SSE after BMS recovery clears offline state", legacyInput.dataset.freshness === "fresh");
+  fakeNow += 320001;
+  sweepDiagnosticStaleness();
+  setLanguage("uk");
+  check("stale indication and age explanation localize to Ukrainian", legacyInput.dataset.freshness === "stale" &&
+    legacyInput.title.includes("Немає оновлення") && legacyInput.parentNode.querySelector(".settings-freshness-note").textContent.includes("Застаріло"));
+  check("all stale/offline attempts remained read-only", fetchCallLog.length === 0);
 
   console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
   process.exit(failures ? 1 : 0);
