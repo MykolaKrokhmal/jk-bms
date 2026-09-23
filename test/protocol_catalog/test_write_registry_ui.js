@@ -444,6 +444,7 @@ async function main() {
   // this transaction-contract test before exercising preflight/POST.
   ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
   hooks.setBrowserLink("connected");
+  hooks.acceptReadBlockSnapshot({ blocks: [[0x1114, 0, 1]] });
   ingestPayload({ id: "binary_sensor/gps heartbeat", state: "OFF", value: false });
   ingestPayload({ id: "binary_sensor/lcd always on", state: "OFF", value: false });
   ingestPayload({ id: "binary_sensor/smart sleep enabled", state: "OFF", value: false });

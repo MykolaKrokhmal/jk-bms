@@ -438,7 +438,7 @@ function main() {
   // authoritative fieldMeta budgets are 3s/30s/320s respectively.
   const { setBrowserLink, sweepDiagnosticStaleness, settingsFieldFreshness,
     renderCellCompositeList, submitRegisterSetting, submitRegisterWrite,
-    registerEntity, PROTOCOL_CATALOG } = hooks;
+    registerEntity, PROTOCOL_CATALOG, acceptReadBlockSnapshot, readBlockSuccess } = hooks;
   const cellList = new FakeNode("div");
   cellList.id = "cellCompositeList";
   body.appendChild(cellList);
@@ -447,6 +447,7 @@ function main() {
   fakeNow = 200000;
   ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
   setBrowserLink("connected");
+  acceptReadBlockSnapshot({ blocks: [[0x1000, 0, 1], [0x1114, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] });
   check("initial LIVE accepts a valid register reading that preceded health in the SSE snapshot",
     legacyInput.dataset.freshness === "fresh" && legacyButton.disabled === false);
   ingestPayload({ id: "text_sensor/topology state", state: "CONFIRMED", value: "CONFIRMED" });
@@ -455,6 +456,8 @@ function main() {
   ingestPayload({ id: "sensor/cell 4 wire resistance", state: "0.040 mΩ", value: 0.040 });
   ingestPayload({ id: "sensor/cell connection wire resistance 4", state: "1234", value: 1234 });
   ingestPayload({ id: "sensor/total voltage raw", state: "55.123 V", value: 55.123 });
+  ingestPayload({ id: "sensor/current raw", state: "0.000 A", value: 0 });
+  ingestPayload({ id: "cell_connected_mask_exact", state: "65535", value: "65535" });
   ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
   updateSettingsCatalogValue("VolSmartSleep");
   renderCellCompositeList();
@@ -469,6 +472,9 @@ function main() {
     PROTOCOL_CATALOG.fieldMeta.cell_voltage_4.freshnessBudgetS === 3 &&
     PROTOCOL_CATALOG.fieldMeta.total_voltage_raw.freshnessBudgetS === 30 &&
     PROTOCOL_CATALOG.fieldMeta.smart_sleep.freshnessBudgetS === 320);
+  check("clustered current_raw uses the physical 0x1290 block, not its own 0x1298 register address",
+    PROTOCOL_CATALOG.fieldMeta.current_raw.readAddress === 0x1290 &&
+    readValue("current_raw").dataset.freshness === "fresh");
   check("never-observed R value remains unavailable", rValueAtBoot.dataset.freshness === "unavailable" &&
     rValueAtBoot.textContent === "Unavailable");
   check("new SSE makes each observed Settings/cell value fresh", cellVoltage.dataset.freshness === "fresh" &&
@@ -486,14 +492,23 @@ function main() {
     cellResistance.dataset.freshness === "stale" && cellCalibration.dataset.freshness === "fresh" &&
     cellVoltage.title.includes("3s"));
   check("15s/300s groups remain fresh at 3s", readValue("total_voltage_raw").dataset.freshness === "fresh" &&
-    legacyInput.dataset.freshness === "fresh");
+    legacyInput.dataset.freshness === "fresh" && readValue("cell_connected_mask").dataset.freshness === "fresh");
   ingestPayload({ id: "sensor/cell voltage 4", state: "3.452 V", value: 3.452 });
   check("unchanged-value SSE clears only its own cell field, not its sibling", cellVoltage.dataset.freshness === "fresh" &&
     cellResistance.dataset.freshness === "stale");
   fakeNow = 230001;
   sweepDiagnosticStaleness();
   check("15s group stale only after its 30s budget", readValue("total_voltage_raw").dataset.freshness === "stale" &&
-    legacyInput.dataset.freshness === "fresh");
+    readValue("current_raw").dataset.freshness === "stale" && legacyInput.dataset.freshness === "fresh" &&
+    readValue("cell_connected_mask").dataset.freshness === "stale");
+  readBlockSuccess(`${0x1290}:2`);
+  check("successful clustered 0x1290 read refreshes current_raw without a changed value",
+    readValue("current_raw").dataset.freshness === "fresh");
+  ingestPayload({ id: "cell_connected_mask_exact", state: "65535", value: "65535" });
+  check("unchanged mask value alone does not refresh its physical block", readValue("cell_connected_mask").dataset.freshness === "stale");
+  ingestPayload({ id: "text_sensor/read plan success", state: `${0x1240}:2`, value: `${0x1240}:2` });
+  check("successful 0x1240 block read clears stale without a changed mask value",
+    readValue("cell_connected_mask").dataset.freshness === "fresh");
   fakeNow = 520001;
   sweepDiagnosticStaleness();
   check("300s group stale only after its 320s budget", legacyInput.dataset.freshness === "stale" &&
@@ -512,9 +527,15 @@ function main() {
   sweepDiagnosticStaleness();
   submitRegisterWrite(hooks.WRITE_REGISTRY.live.find((e) => e.key === "gps_heartbeat"), s4Input, s4Button);
   check("stale Stage 4 submit produces zero GET/preflight and zero POST", fetchCallLog.length === 0 && s4Button.disabled === true);
+  ingestPayload({ id: "text_sensor/read plan success", state: `${0x1114}:2`, value: `${0x1114}:2` });
+  check("unchanged binary readback becomes fresh on its successful block event",
+    settingsFieldFreshness("gps_heartbeat").kind === "fresh" && fetchCallLog.length === 0);
 
   ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
-  check("unchanged-value SSE refreshes a 300s field without overwriting its draft",
+  check("unchanged-value SSE alone cannot claim a successful register read",
+    legacyInput.dataset.freshness === "stale" && legacyButton.disabled === true);
+  readBlockSuccess(`${0x1000}:2`);
+  check("successful block read refreshes a 300s field without overwriting its draft",
     legacyInput.dataset.freshness === "fresh" && legacyButton.disabled === false && legacyInput.value === "4.321" &&
     activeElement === legacyInput && legacyInput.selectionStart === 1 && legacyInput.selectionEnd === 3);
   setBrowserLink("reconnecting");
@@ -523,22 +544,27 @@ function main() {
   setBrowserLink("connected");
   check("reconnect alone never promotes old cached value to current", legacyInput.dataset.freshness === "offline" && legacyButton.disabled === true);
   ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
-  check("post-reconnect same-value SSE restores freshness without draft loss", legacyInput.dataset.freshness === "fresh" &&
+  check("post-reconnect value snapshot alone does not validate the old register", legacyInput.dataset.freshness === "offline");
+  fakeNow += 1;
+  readBlockSuccess(`${0x1000}:3`);
+  check("post-reconnect successful block read restores freshness without draft loss", legacyInput.dataset.freshness === "fresh" &&
     legacyButton.disabled === false && legacyInput.value === "4.321" && activeElement === legacyInput);
   ingestPayload({ id: "text_sensor/bms health", state: "OFFLINE", value: "OFFLINE" });
   check("BMS offline invalidates cached Settings value even with browser connected", legacyInput.dataset.freshness === "offline" &&
     legacyButton.disabled === true);
   ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
   check("SSE echo while BMS is OFFLINE cannot make the register current", legacyInput.dataset.freshness === "offline");
+  readBlockSuccess(`${0x1000}:4`);
   ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
   check("BMS recovery alone leaves even an offline-period echo invalid", legacyInput.dataset.freshness === "offline");
-  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
-  check("fresh register SSE after BMS recovery clears offline state", legacyInput.dataset.freshness === "fresh");
+  fakeNow += 1;
+  readBlockSuccess(`${0x1000}:5`);
+  check("successful register read after BMS recovery clears offline state", legacyInput.dataset.freshness === "fresh");
   fakeNow += 320001;
   sweepDiagnosticStaleness();
   setLanguage("uk");
   check("stale indication and age explanation localize to Ukrainian", legacyInput.dataset.freshness === "stale" &&
-    legacyInput.title.includes("Немає оновлення") && legacyInput.parentNode.querySelector(".settings-freshness-note").textContent.includes("Застаріло"));
+    legacyInput.title.includes("Немає успішного читання") && legacyInput.parentNode.querySelector(".settings-freshness-note").textContent === "Застаріло");
   check("all stale/offline attempts remained read-only", fetchCallLog.length === 0);
 
   console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);

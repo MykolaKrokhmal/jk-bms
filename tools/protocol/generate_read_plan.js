@@ -434,9 +434,9 @@ const DERIVED_BOOLEAN_OVERRIDE = {
   charging_active: { entityId: "charging_raw" },
   discharging_active: { entityId: "discharging_raw" },
   balancing_active: { entityId: "balancing_raw" },
-  charging: { entityId: "charging_control_raw", cadenceMs: 75000 },
-  discharging: { entityId: "discharging_control_raw", cadenceMs: 75000 },
-  balancing: { entityId: "balancing_control_raw", cadenceMs: 75000 },
+  charging: { entityId: "charging_control_raw" },
+  discharging: { entityId: "discharging_control_raw" },
+  balancing: { entityId: "balancing_control_raw" },
 };
 
 // A genuinely different, narrower case from DERIVED_BOOLEAN_OVERRIDE above:
@@ -596,25 +596,10 @@ const READ_DOMAIN_OVERRIDE = {
 // integer string -- exactly what a mask needs, no decimal point.
 const EXACT_DECIMAL_FIELDS = new Set(["rtc_ticks", "odd_run_time", "bms_system_ticks", "total_runtime", "cell_connected_mask"]);
 
-// Fields whose canonical poll_group implies a cadence this generator has
-// no other default for, but which ARE genuinely read on the real device
-// today (confirmed by direct inspection of batterylifepo4.yaml,
-// 2026-09-15) -- Stage 1 preserves exact current behavior rather than
-// silently fixing (or silently dropping) a pre-existing classification
-// mismatch.
+// Reserve overrides for genuinely evidenced deviations from the canonical
+// poll group. There are none currently: the formerly overridden registers
+// now carry their actual cadence in the canonical catalog.
 const CADENCE_OVERRIDE_MS = {
-  // on_demand_passcode's default is "not auto-polled" -- but the real
-  // entity has no skip_updates, i.e. it uses the plain 15s default today.
-  setup_passcode: 15000,
-  // cell_connected_mask/average_cell_voltage/delta_cell_voltage are
-  // cell_block_1s by poll_group classification (grouped with the bespoke
-  // 1Hz cell-voltage/resistance reader conceptually), but are NOT actually
-  // part of that reader's own 0x1200-0x1234 response (which stops before
-  // 0x1240) -- each is its own separate, regular modbus_controller entity
-  // on the plain 15s default cadence, confirmed by direct inspection.
-  cell_connected_mask: 15000,
-  average_cell_voltage: 15000,
-  delta_cell_voltage: 15000,
 };
 
 // poll_group -> default cadence, matching batterylifepo4.yaml's own
@@ -623,8 +608,9 @@ const CADENCE_OVERRIDE_MS = {
 // against every real entity this session.
 const POLL_GROUP_CADENCE_MS = {
   telemetry_15s: 15000,
+  control_75s: 75000,
   config_slow_300s: 300000,
-  on_demand_passcode: null, // no default -- every field in this poll_group must have an explicit CADENCE_OVERRIDE_MS entry
+  on_demand_passcode: null,
   on_demand_topology: null,
   on_demand_service: null,
   cell_block_1s: null, // bespoke-excluded; never reached if BESPOKE_EXCLUDED_KEYS is correct
@@ -714,9 +700,12 @@ for (const { field: f, register: r } of allRegisterFields) {
       throw new Error(
         `READ_PLAN_NO_CADENCE: field "${f.key}" (poll_group "${r.poll_group}") has no default cadence and no ` +
         `CADENCE_OVERRIDE_MS entry -- every on-demand-classified field that IS actually auto-polled today must be ` +
-        `given one explicitly (see setup_passcode's own entry for the pattern).`
+        `given one explicitly.`
       );
     }
+  }
+  if (cadenceMs > 0 && Number(r.freshness_budget_s) * 1000 < cadenceMs) {
+    throw new Error(`READ_PLAN_FRESHNESS_BELOW_CADENCE: ${r.register_id} budget ${r.freshness_budget_s}s < ${cadenceMs}ms cadence`);
   }
 
   planFields.push({ field: f, register: r, entityId, domain, cadenceMs });
@@ -1345,6 +1334,7 @@ function buildServicerInterval() {
   L("      }");
   L("      id(g_rp_last_success_ms)[chosen] = millis();");
   L("      id(g_rp_revision)[chosen] = id(g_rp_revision)[chosen] + 1;");
+  L("      id(read_plan_success)->publish_state(std::to_string(jk_read_plan::kBlocks[chosen].address) + \":\" + std::to_string(id(g_rp_revision)[chosen]));");
   L("      id(g_rp_transport_state)[chosen] = jk_poll_scheduler::IDLE;");
   L("      if (id(g_rp_pending_index) == chosen) id(g_rp_pending_index) = -1;");
   L("    });");

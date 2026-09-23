@@ -57,7 +57,7 @@
           "declared_access": { "type": "string", "enum": ["r", "rw", "w"] },
           "poll_group": {
             "type": "string",
-            "enum": ["cell_block_1s", "config_slow_300s", "telemetry_15s", "on_demand_passcode", "on_demand_topology", "on_demand_service"]
+            "enum": ["cell_block_1s", "config_slow_300s", "telemetry_15s", "control_75s", "on_demand_passcode", "on_demand_topology", "on_demand_service"]
           },
           "freshness_budget_s": { "type": "number", "minimum": 0 },
           "atomicity_group": { "type": "string" },

@@ -310,9 +310,15 @@ function buildNonRegisterKeys() {
 // generator. This is the single source those tables should read from.
 // Note: this project's frontend has no client-side polling loop — all
 // live values arrive over one SSE channel pushed by the firmware, so
-// pollGroup/freshnessBudgetS are consumed by jk_bms.js purely to judge
-// per-parameter staleness against the time since the last SSE update for
-// that key, not to drive a fetch interval.
+// pollGroup/freshnessBudgetS judge per-parameter staleness rather than drive
+// a fetch interval. readAddress identifies the physical read-plan block
+// whose successful-read timestamp governs the field.
+function physicalReadBlockAddress(f, r) {
+  // 0x1298 current_raw is decoded by the existing clustered 0x1290 read,
+  // alongside total_voltage_raw. Its own register address is not a block
+  // start in the scheduler-owned read plan.
+  return f.key === "current_raw" ? 0x1290 : (r.address ? Number.parseInt(r.address, 16) : null);
+}
 function buildFieldMeta() {
   const entries = [];
   for (const { field: f, register: r } of allRegisterFields) {
@@ -326,6 +332,7 @@ function buildFieldMeta() {
       step: f.step ?? null,
       pollGroup: r.poll_group ?? null,
       freshnessBudgetS: r.freshness_budget_s ?? null,
+      readAddress: physicalReadBlockAddress(f, r),
       // Final-preparation-plan Stage 1: the fields below already existed in
       // protocol/registers.canonical.json but never reached the browser —
       // jk_bms.js rendered Settings from 3 separate, generator-disconnected
@@ -354,7 +361,7 @@ function buildFieldMeta() {
   // included. Folding it in makes fieldMeta cover every entity this
   // project knows about, leaving nothing left to hand-maintain.
   const registerFreshnessByKey = new Map(
-    allRegisterFields.map(({ field: f, register: r }) => [f.key, { pollGroup: r.poll_group ?? null, freshnessBudgetS: r.freshness_budget_s ?? null }])
+    allRegisterFields.map(({ field: f, register: r }) => [f.key, { pollGroup: r.poll_group ?? null, freshnessBudgetS: r.freshness_budget_s ?? null, readAddress: physicalReadBlockAddress(f, r) }])
   );
   for (const e of nonRegisterDoc.entities) {
     // Stage 5 follow-up (2026-09-11): a computed entity that is a direct,
@@ -364,7 +371,7 @@ function buildFieldMeta() {
     // un-stale-able — otherwise the Overview panel's most prominent
     // values (voltage/current) would never show a freshness marker no
     // matter how long the underlying register actually went silent.
-    let derivedFreshness = { pollGroup: null, freshnessBudgetS: null };
+    let derivedFreshness = { pollGroup: null, freshnessBudgetS: null, readAddress: null };
     if (e.derived_from_register_key) {
       const source = registerFreshnessByKey.get(e.derived_from_register_key);
       if (!source) {
@@ -382,6 +389,7 @@ function buildFieldMeta() {
       step: null,
       pollGroup: derivedFreshness.pollGroup,
       freshnessBudgetS: derivedFreshness.freshnessBudgetS,
+      readAddress: derivedFreshness.readAddress,
       // non_register_entities.canonical.json already carries labels (its
       // own schema has frontend_label_uk/en) — piped through for the same
       // reason register fields' labels are, so nothing needs a second,
@@ -549,7 +557,7 @@ function buildJsInjectionBlock() {
     return `Object.freeze({ ${keys.map((k) => `"${jsStringEscape(k)}": "${jsStringEscape(m[k])}"`).join(", ")} })`;
   };
   const fieldMetaLines = fieldMetaEntries
-    .map(([k, m]) => `      ${k}: { unit: ${jsLiteral(m.unit)}, ukUnit: ${jsLiteral(m.ukUnit)}, enUnit: ${jsLiteral(m.enUnit)}, precision: ${jsLiteral(m.precision)}, min: ${jsLiteral(m.min)}, max: ${jsLiteral(m.max)}, step: ${jsLiteral(m.step)}, pollGroup: ${jsLiteral(m.pollGroup)}, freshnessBudgetS: ${jsLiteral(m.freshnessBudgetS)}, labelUk: ${jsLiteral(m.labelUk)}, labelEn: ${jsLiteral(m.labelEn)}, uiSection: ${jsLiteral(m.uiSection)}, uiOrder: ${jsLiteral(m.uiOrder)}, uiGroup: ${jsLiteral(m.uiGroup)}, editorKind: ${jsLiteral(m.editorKind)}, enumMap: ${jsEnumMapLiteral(m.enumMap)} },`)
+    .map(([k, m]) => `      ${k}: { unit: ${jsLiteral(m.unit)}, ukUnit: ${jsLiteral(m.ukUnit)}, enUnit: ${jsLiteral(m.enUnit)}, precision: ${jsLiteral(m.precision)}, min: ${jsLiteral(m.min)}, max: ${jsLiteral(m.max)}, step: ${jsLiteral(m.step)}, pollGroup: ${jsLiteral(m.pollGroup)}, freshnessBudgetS: ${jsLiteral(m.freshnessBudgetS)}, readAddress: ${jsLiteral(m.readAddress)}, labelUk: ${jsLiteral(m.labelUk)}, labelEn: ${jsLiteral(m.labelEn)}, uiSection: ${jsLiteral(m.uiSection)}, uiOrder: ${jsLiteral(m.uiOrder)}, uiGroup: ${jsLiteral(m.uiGroup)}, editorKind: ${jsLiteral(m.editorKind)}, enumMap: ${jsEnumMapLiteral(m.enumMap)} },`)
     .join("\n");
   const wireAliasLines = wireAliases
     .map((a) => `      [${jsLiteral(a.key)}, ${jsLiteral(a.domain)}, ${jsLiteral(a.realId)}, ${jsLiteral(a.configuredName)}],`)

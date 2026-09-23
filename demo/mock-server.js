@@ -33,6 +33,13 @@ const ROOT = path.join(__dirname, "..");
 // cell_count and setup_passcode keep their own bespoke handling exactly
 // like the real firmware.
 const REGISTER_CATALOG = require(path.join(ROOT, "register_catalog.json"));
+const READ_PLAN = require(path.join(ROOT, "protocol", "generated", "read_plan.json"));
+// Mirror the firmware's read-only freshness snapshot and revision SSE using
+// the demo's existing 1s tick, with no extra browser polling or bus model.
+const readPlanFreshness = READ_PLAN.blocks.map((block) => ({
+  address: parseInt(block.address, 16), cadenceMs: block.cadence_ms,
+  lastSuccessMs: Date.now(), revision: 1,
+}));
 // Stage 4 production-integration gap fix (2026-09-21): the real firmware's
 // generated write_registry.yaml `number:` entities are ALL internal:true
 // -- ESPHome's generic /number/<id>/set REST route can never reach any of
@@ -1022,6 +1029,7 @@ const clients = new Set();
 // is a harmless no-op, exactly like ESPHome publishing before any client
 // has connected).
 seedEntities();
+setEntity("text_sensor-read_plan_success", `${readPlanFreshness[0].address}:1`);
 
 // NOTE on wire-format fidelity: real ESPHome's web_server component
 // actually publishes each entity's "id" as "<domain>/<configured name>"
@@ -1076,6 +1084,16 @@ function num(id) { return Number(entities[id] ? entities[id].value : 0); }
 
 function tick() {
   const dirty = new Set();
+  const tickNow = Date.now();
+  if (scenario !== "bms_offline") {
+    for (const block of readPlanFreshness) {
+      if (tickNow - block.lastSuccessMs < block.cadenceMs) continue;
+      block.lastSuccessMs = tickNow;
+      block.revision += 1;
+      setEntity("text_sensor-read_plan_success", `${block.address}:${block.revision}`);
+      broadcastEntity("text_sensor-read_plan_success");
+    }
+  }
 
   // Stage 4 production-integration simulation: keep rawWordCache "fresh"
   // the same way the real read-plan scheduler continuously re-polls
@@ -1790,6 +1808,13 @@ const server = http.createServer((req, res) => {
   if (p === "/history.json") {
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
     res.end(historyPayload());
+    return;
+  }
+  if (p === "/settings/read-freshness" && req.method === "GET") {
+    const now = Date.now();
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    res.end(JSON.stringify({ blocks: readPlanFreshness.map((block) =>
+      [block.address, Math.max(0, now - block.lastSuccessMs), block.revision]) }));
     return;
   }
   const ccMatch = p.match(/^\/charge_history\.json(?:\/(\d+))?$/);

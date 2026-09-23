@@ -1317,10 +1317,10 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 .settings-catalog-editor{ width:100px; }
 .settings-catalog-unit{ font-size:.85em; color:var(--ink-faint); }
 .settings-catalog-note{ font-size:.85em; color:var(--ink-faint); flex:1 1 220px; text-align:right; }
-.settings-freshness-note{ font-size:.75em; color:var(--warn); line-height:1.25; max-width:260px; }
+.settings-freshness-note{ font-size:.75em; color:var(--warn); line-height:1.25; white-space:nowrap; }
 .settings-freshness-note[hidden]{ display:none; }
 .settings-catalog-editor-group .settings-freshness-note,
-.cell-composite-calibration .settings-freshness-note{ flex:0 1 190px; }
+.cell-composite-calibration .settings-freshness-note{ flex:0 0 auto; }
 @media (max-width:560px){
   .settings-catalog-editor-group{ flex-basis:100%; justify-content:flex-start; }
   .settings-catalog-note{ flex-basis:100%; text-align:left; }
