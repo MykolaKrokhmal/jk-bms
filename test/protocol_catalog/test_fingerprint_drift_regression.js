@@ -93,6 +93,8 @@ const FILES_TO_COPY = [
   // of fingerprint.js's accept step's broader validation pass.
   "protocol/schema/protocol-blockers.schema.json",
   "protocol/evidence/protocol_blockers.json",
+  "protocol/schema/hardware-verified-writes.schema.json",
+  "protocol/evidence/hardware_verified_writes.json",
   // Stage 4 (typed-petting-puzzle plan §5): the generated write registry
   // -- fingerprint.js's accept step transitively runs pipeline.js check,
   // which now (optionally) reads write_registry.json, and validate.js

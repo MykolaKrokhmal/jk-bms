@@ -850,6 +850,129 @@ async function main() {
   check("UK->EN: group headers return to the original English text", JSON.stringify(groupHeaderTextsEn2) === JSON.stringify(groupHeaderTextsEn));
   check("UK->EN: row count is still exactly 47, no duplicates", writeRegistryList.querySelectorAll(".write-registry-row").length === 47);
 
+  // =========================================================================
+  // I. Mismatch-detail correctness fix (2026-09-22): describe() now
+  // receives the AUTHORITATIVE write_tx_snapshot entry (its real `rb`
+  // readback), never the requested UI value and never the asynchronously-
+  // updated display entity -- see runRegisterWriteTransaction()'s own
+  // checkSnapshotTerminal() and submitRegisterWrite()'s
+  // describeWriteRegistryOutcome(). Real production path end to end:
+  // click -> preflight -> POST -> status poll -> write_tx_snapshot SSE ->
+  // decoded terminal message. No structural/source-grep substitute.
+  // =========================================================================
+  setLanguage("en");
+  await flushMicrotasks();
+
+  // I1. Requested BIT value=1, exact snapshot {status:5 (MISMATCH), rb:
+  // <raw register with gps_heartbeat's own bit CLEAR>} must report the
+  // real decoded 0/"No" -- never the requested 1/"Yes" (the exact false-
+  // positive this fix closes; gps_heartbeat: mask 0x0004, shift 2).
+  check("I1 precondition: gps_heartbeat's real mask/shift are as expected (0x0004/2)",
+    liveEntry.mask === "0x0004" && liveEntry.shift === 2, JSON.stringify(liveEntry));
+  resetFetchQueue();
+  liveInput.value = "1";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
+  queueRegisterWriteAccepted("gps_heartbeat", 101, 101);
+  fakeClick(liveButton);
+  await flushMicrotasks();
+  // I5. An entity-state SSE update reporting the REQUESTED value (as if
+  // the display entity had already re-published "ON") arrives BEFORE the
+  // snapshot's own terminal verdict -- this must NEVER be allowed to
+  // influence the eventual mismatch text (writeTransaction()'s own third-
+  // audit rule applied here too: only write_tx_snapshot is authoritative).
+  ingestPayload({ id: "binary_sensor/gps heartbeat", domain: "binary_sensor", value: true, state: "ON" });
+  await flushMicrotasks();
+  // rb = 0x0000: every bit clear, including gps_heartbeat's own bit2 -- a
+  // real, whole-register raw readback disagreeing with the request.
+  publishSnapshot(liveEntry.address, 101, 5, { rb: 0 });
+  await flushMicrotasks();
+  const i1Message = idRegistry.get("wrMsg_gps_heartbeat").textContent;
+  check("I1: MISMATCH reports the real decoded value 'No', never the requested 'Yes'",
+    i1Message.includes("No") && !i1Message.includes("Yes"), i1Message);
+  check("I1: the false-positive text this fix closes ('BMS reports 1'-equivalent requested-echo) does not appear",
+    !i1Message.includes("reports 1"), i1Message);
+  check("I5: the entity-state SSE update matching the request did NOT leak into the mismatch detail (still 'No', not influenced by the ON state)",
+    i1Message.includes("No"), i1Message);
+
+  // I2. Packed U8 readback decoded with mask+shift, not the whole raw
+  // register: smart_sleep_timeout_hours (mask 0xFF00, shift 8), packed
+  // with its sibling data_domain_enable_0 in the LOW byte.
+  const hoursEntry = WRITE_REGISTRY.live.find((e) => e.key === "smart_sleep_timeout_hours");
+  check("I2 precondition: smart_sleep_timeout_hours's real mask/shift are as expected (0xFF00/8)",
+    hoursEntry.mask === "0xFF00" && hoursEntry.shift === 8, JSON.stringify(hoursEntry));
+  const hoursRow = rows.find((r) => r.dataset.writeRegistryKey === "smart_sleep_timeout_hours");
+  const hoursInput = hoursRow.querySelector(".write-registry-input");
+  const hoursButton = hoursRow.querySelector(".write-registry-button");
+  resetFetchQueue();
+  hoursInput.value = "24";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 0, merged_raw: 6144, sibling_bits_before: 0, reject_reason: null } }));
+  queueRegisterWriteAccepted("smart_sleep_timeout_hours", 102, 102);
+  fakeClick(hoursButton);
+  await flushMicrotasks();
+  // Whole raw register 0x0BAA: high byte 0x0B = 11 (the real decoded
+  // smart_sleep_timeout_hours value), low byte 0xAA belongs entirely to
+  // the packed sibling data_domain_enable_0 and must NEVER leak in.
+  publishSnapshot(hoursEntry.address, 102, 5, { rb: 0x0BAA });
+  await flushMicrotasks();
+  const i2Message = idRegistry.get("wrMsg_smart_sleep_timeout_hours").textContent;
+  check("I2: packed U8 readback decodes to 11 (0x0BAA high byte via mask+shift), never the whole raw register (2986) or the sibling's own low byte",
+    i2Message.includes("11") && !i2Message.includes("2986") && !i2Message.includes("170"), i2Message);
+
+  // I3. A matching snapshot still produces the normal CONFIRMED/"Saved"
+  // outcome -- this fix must not disturb the success path.
+  resetFetchQueue();
+  hoursInput.value = "24";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 6144, merged_raw: 6144, sibling_bits_before: 0, reject_reason: null } }));
+  queueRegisterWriteAccepted("smart_sleep_timeout_hours", 103, 103);
+  fakeClick(hoursButton);
+  await flushMicrotasks();
+  publishSnapshot(hoursEntry.address, 103, 4, { rb: 0x1800 }); // high byte 0x18 = 24, matches request
+  await flushMicrotasks();
+  const i3Message = idRegistry.get("wrMsg_smart_sleep_timeout_hours").textContent;
+  check("I3: a matching snapshot (status 4, CONFIRMED) still produces the normal Saved outcome, unaffected by this fix",
+    i3Message === "Saved", i3Message);
+  check("I3: CONFIRMED clears the active-transaction guard as before", !activeTransactionKeys.has("smart_sleep_timeout_hours"));
+
+  // I4. The snapshot must match the exact accepted tx_id AND address --
+  // an unrelated tx_id at the SAME address must not resolve this
+  // transaction's own mismatch text; only the matching tx_id may.
+  resetFetchQueue();
+  liveInput.value = "1";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
+  queueRegisterWriteAccepted("gps_heartbeat", 104, 104);
+  fakeClick(liveButton);
+  await flushMicrotasks();
+  publishSnapshot(liveEntry.address, 999, 5, { rb: 0 }); // wrong tx_id, same address
+  await flushMicrotasks();
+  check("I4: an unrelated tx_id at the same address does not settle this transaction",
+    activeTransactionKeys.has("gps_heartbeat") && liveButton.disabled === true);
+  publishSnapshot(hoursEntry.address, 104, 5, { rb: 0 }); // correct tx_id, wrong address
+  await flushMicrotasks();
+  check("I4: the accepted tx_id at a different address does not settle this transaction",
+    activeTransactionKeys.has("gps_heartbeat") && liveButton.disabled === true);
+  publishSnapshot(liveEntry.address, 104, 5, { rb: 0 }); // exact tx_id/address, bit2 clear: a physically possible mismatch
+  await flushMicrotasks();
+  const i4Message = idRegistry.get("wrMsg_gps_heartbeat").textContent;
+  check("I4: once the exact matching tx_id and address arrive, mismatch reports that snapshot's actual No",
+    i4Message.includes("No") && !i4Message.includes("Yes"), i4Message);
+  check("I4: the transaction is settled by the exact-tx_id match", !activeTransactionKeys.has("gps_heartbeat"));
+
+  // I6. Recovery can also end in MISMATCH (status 11). Its terminal
+  // detail must use the recovered probe's own rb, just like status 5.
+  resetFetchQueue();
+  liveInput.value = "1";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 512, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
+  queueRegisterWriteAccepted("gps_heartbeat", 105, 105);
+  fakeClick(liveButton);
+  await flushMicrotasks();
+  publishSnapshot(liveEntry.address, 105, 6, { rb: 0 });
+  await flushMicrotasks();
+  publishSnapshot(liveEntry.address, 105, 11, { rb: 0 });
+  await flushMicrotasks();
+  const i6Message = idRegistry.get("wrMsg_gps_heartbeat").textContent;
+  check("I6: RECOVERED_MISMATCH reports the recovered raw readback as No",
+    i6Message.includes("No") && !i6Message.includes("Yes"), i6Message);
+
   console.log(`\nwrite registry UI executable DOM test summary: ${checks - failures}/${checks} passed`);
   process.exit(failures ? 1 : 0);
 }

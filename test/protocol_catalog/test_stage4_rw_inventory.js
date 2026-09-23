@@ -92,28 +92,59 @@ check("canonical rw-access field count is 96, exactly one less than the 97 manif
 // The original 18 owner-authorized fields stay write-hardware-verified,
 // not silently demoted -- and are never flagged for revalidation (this
 // Stage's work does not touch their full-width write_bms_u32/u16 dispatch).
+// UPDATED (2026-09-22, unmapped-rows cleanup follow-up): 5 more fields
+// (gps_heartbeat, lcd_always_on, smart_sleep_enabled, timed_stored_data,
+// smart_sleep_timeout_hours) were promoted from write-software-ready via
+// protocol/evidence/hardware_verified_writes.json's own recorded real
+// hardware transaction results -- 18 + 5 = 23. None of these 5 are
+// flagged revalidation_required either (their Stage 4 write-registry
+// endpoint/dispatch is completely unchanged; only the provenance/state
+// label is promoted).
 // ===========================================================================
 const hwVerified = inv.rows.filter((r) => r.stage4_state === "write-hardware-verified");
-check("exactly 18 rows are write-hardware-verified (the pre-existing, unchanged set)", hwVerified.length === 18, `actual=${hwVerified.length}`);
+check("exactly 23 rows are write-hardware-verified (18 pre-existing + 5 newly promoted, 2026-09-22)", hwVerified.length === 23, `actual=${hwVerified.length}`);
 const revalidationNeeded = hwVerified.filter((r) => r.revalidation_required === true);
-check("none of the 18 write-hardware-verified rows are flagged revalidation_required (full-width write path unchanged by this Stage)",
+check("none of the 23 write-hardware-verified rows are flagged revalidation_required (write path unchanged by this promotion)",
   revalidationNeeded.length === 0, JSON.stringify(revalidationNeeded.map((r) => r.manifest_id)));
+const newlyPromotedIds = new Set(["GPS Heartbeat", "LCD Always On", "SmartSleep", "TimedStoredData", "TIMSmartSleep"]);
+const newlyPromotedRows = hwVerified.filter((r) => newlyPromotedIds.has(r.manifest_id));
+check("exactly the 5 named fields are the newly-promoted write-hardware-verified rows",
+  newlyPromotedRows.length === 5, JSON.stringify(newlyPromotedRows.map((r) => r.manifest_id)));
+check("every newly-promoted row still carries a real current_write_endpoint (Stage 4 write-registry endpoint unchanged, not a new one)",
+  newlyPromotedRows.every((r) => !!r.current_write_endpoint));
+const gpsHeartbeatRow = inv.rows.find((r) => r.manifest_id === "GPS Heartbeat");
+check("gps_heartbeat's hardware_verification_provenance explicitly records the value=1 MISMATCH limitation (never silently claimed bidirectional)",
+  gpsHeartbeatRow && /LIMITATION/.test(gpsHeartbeatRow.hardware_verification_provenance) && /MISMATCH/.test(gpsHeartbeatRow.hardware_verification_provenance),
+  gpsHeartbeatRow && gpsHeartbeatRow.hardware_verification_provenance);
 
 // ===========================================================================
-// The new write-software-ready set matches the generated write registry
-// exactly -- every row claiming write-software-ready has a real
-// write_registry.json entry, and every write_registry.json entry is
-// reflected as write-software-ready (or write-hardware-verified, for the
-// impossible overlap case) somewhere in the inventory.
+// The write_registry.json entry set matches EXACTLY the UNION of
+// write-software-ready rows and write-hardware-verified rows that carry a
+// real current_write_endpoint (2026-09-22 update: 5 fields now occupy
+// this union's hardware-verified side, since hardware-verification
+// promotion never removes a field's write_registry.json entry -- only
+// the pre-existing 18 legacy_setting_def fields, which carry no registry
+// entry at all, are the genuine "hardware-verified but NOT in the
+// registry" case). Every row in this union has a real registry entry,
+// and every registry entry is reflected in this union -- exact set
+// equality both directions.
 // ===========================================================================
 const writeRegistry = loadJson("protocol/generated/write_registry.json");
 const registryKeys = new Set(writeRegistry.entries.map((e) => e.key));
 const softwareReady = inv.rows.filter((r) => r.stage4_state === "write-software-ready");
-check("write-software-ready row count matches the write registry's entry count", softwareReady.length === writeRegistry.entry_count,
-  `inventory=${softwareReady.length} registry=${writeRegistry.entry_count}`);
-const softwareReadyMissingFromRegistry = softwareReady.filter((r) => !registryKeys.has(r.canonical_key));
-check("every write-software-ready row has a real write_registry.json entry", softwareReadyMissingFromRegistry.length === 0,
-  JSON.stringify(softwareReadyMissingFromRegistry.map((r) => r.manifest_id)));
+const hwVerifiedWithRegistryEntry = inv.rows.filter((r) => r.stage4_state === "write-hardware-verified" && registryKeys.has(r.canonical_key));
+const registryBackedRows = [...softwareReady, ...hwVerifiedWithRegistryEntry];
+check("write-software-ready + registry-backed write-hardware-verified row count matches the write registry's entry count",
+  registryBackedRows.length === writeRegistry.entry_count,
+  `software-ready=${softwareReady.length} hw-verified-with-entry=${hwVerifiedWithRegistryEntry.length} total=${registryBackedRows.length} registry=${writeRegistry.entry_count}`);
+const registryBackedMissingFromRegistry = registryBackedRows.filter((r) => !registryKeys.has(r.canonical_key));
+check("every write-software-ready or registry-backed write-hardware-verified row has a real write_registry.json entry",
+  registryBackedMissingFromRegistry.length === 0, JSON.stringify(registryBackedMissingFromRegistry.map((r) => r.manifest_id)));
+const registryKeysNotInUnion = [...registryKeys].filter((k) => !registryBackedRows.some((r) => r.canonical_key === k));
+check("every write_registry.json entry is reflected in this union (no registry entry orphaned)",
+  registryKeysNotInUnion.length === 0, JSON.stringify(registryKeysNotInUnion));
+check("exactly 5 write-hardware-verified rows are registry-backed (the 5 newly-promoted fields; the pre-existing 18 use legacy_setting_def and carry no registry entry)",
+  hwVerifiedWithRegistryEntry.length === 5, JSON.stringify(hwVerifiedWithRegistryEntry.map((r) => r.manifest_id)));
 
 console.log(`\n${checks} checks run, ${failures} failed.`);
 process.exit(failures ? 1 : 0);

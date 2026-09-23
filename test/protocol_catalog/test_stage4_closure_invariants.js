@@ -38,8 +38,15 @@ const hw = rows.filter((r) => r.stage4_state === "write-hardware-verified");
 const sw = rows.filter((r) => r.stage4_state === "write-software-ready");
 const bl = rows.filter((r) => r.stage4_state === "blocked");
 
-check("97 manifest RW rows = 18 write-hardware-verified + 42 write-software-ready + 37 blocked",
-  rows.length === 97 && hw.length === 18 && sw.length === 42 && bl.length === 37,
+// 2026-09-22 (unmapped-rows cleanup follow-up): 5 fields promoted
+// write-software-ready -> write-hardware-verified via protocol/evidence/
+// hardware_verified_writes.json's own recorded real hardware results
+// (18+5=23 hardware-verified, 42-5=37 software-ready; write_registry.json
+// itself, checked separately below, is unaffected -- these 5 keep their
+// exact same registry entry/endpoint/submit policy, only the Stage 4
+// provenance label changed).
+check("97 manifest RW rows = 23 write-hardware-verified + 37 write-software-ready + 37 blocked",
+  rows.length === 97 && hw.length === 23 && sw.length === 37 && bl.length === 37,
   `total=${rows.length} hw=${hw.length} sw=${sw.length} bl=${bl.length}`);
 
 const liveEntries = registry.entries.filter((e) => e.submit_policy === "live");
@@ -64,10 +71,26 @@ check("every blocked row carries both a real blocked_reason and a real blocker_c
   bl.every((r) => !!r.blocked_reason && !!r.blocker_closure_criterion),
   bl.filter((r) => !r.blocked_reason || !r.blocker_closure_criterion).map((r) => r.canonical_key).join(",") || "none missing");
 
+// UPDATED (2026-09-22, unmapped-rows cleanup follow-up): the earlier
+// hardware smoke test referenced by this check's old text only observed
+// request acceptance, not a terminal ACK/readback. A LATER, real Settings
+// UI session (same day, HEAD 4742865) obtained an actual terminal
+// runRegisterWriteTransaction() result: value 0 (No) showed Saved via
+// the real tx_id-correlated ACK + forced-readback path. The screenshot
+// does not distinguish CONFIRMED from RECOVERED_CONFIRMED. This is a
+// one-time hardware-verification
+// event, recorded in protocol/evidence/hardware_verified_writes.json.
+// value 1 (Yes) reached a real terminal MISMATCH on the same hardware in
+// the same session -- this is explicitly NOT reinterpreted as success;
+// gps_heartbeat's own hardware_verification_provenance text (asserted
+// above) must still name that MISMATCH limitation by name.
 const gps = rows.find((r) => r.canonical_key === "gps_heartbeat");
-check("gps_heartbeat is NOT marked write-hardware-verified (2026-09-22 hardware smoke: request accepted/no-op preserved, terminal ACK/readback not directly observed -- remains write-software-ready)",
-  !!gps && gps.stage4_state === "write-software-ready" && gps.write_hardware_verified === false,
+check("gps_heartbeat IS marked write-hardware-verified (real CONFIRMED transaction observed for value 0, 2026-09-22)",
+  !!gps && gps.stage4_state === "write-hardware-verified" && gps.write_hardware_verified === true,
   gps ? `state=${gps.stage4_state} write_hardware_verified=${gps.write_hardware_verified}` : "gps_heartbeat row missing from inventory");
+check("gps_heartbeat's own provenance names the value=1 MISMATCH limitation explicitly (never silently claimed bidirectional)",
+  !!gps && /MISMATCH/.test(gps.hardware_verification_provenance) && /LIMITATION/.test(gps.hardware_verification_provenance),
+  gps && gps.hardware_verification_provenance);
 
 // Frontend live-submit surface: the generated WRITE_REGISTRY.live key set
 // embedded in jk_bms.js must be EXACTLY the registry's 5 live keys --

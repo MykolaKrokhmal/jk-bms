@@ -290,13 +290,25 @@ for (const p of eligibleParams) {
     let blockedReason = null;
     let blockerClosureCriterion = null;
     if (s4.stage4_state === "write-hardware-verified") {
-      // The 18 pre-Stage-4, owner-authorized fields -- SETTING_KEYS/
-      // SETTING_DEFS' own legacy number+OK editor in jk_bms.js, never
-      // touched by this batch. Manufacturer access stays RW; this is
-      // never "blocked".
+      // Two DIFFERENT UI dispatch mechanisms can both reach
+      // write-hardware-verified, and this branch must not assume which:
+      //   (a) the ORIGINAL 18 pre-Stage-4, owner-authorized fields --
+      //       SETTING_KEYS/SETTING_DEFS' own legacy number+OK editor in
+      //       jk_bms.js, never touched by Stage 4 at all. These carry no
+      //       write_registry.json entry, so stage4_rw_inventory.json's own
+      //       current_write_endpoint is null for them.
+      //   (b) a field PROMOTED to write-hardware-verified from an existing
+      //       write-software-ready Stage 4 write-registry entry (hardware-
+      //       verification evidence added later; the real endpoint/submit
+      //       policy this field already had is unchanged -- see
+      //       protocol/evidence/hardware_verified_writes.json) -- these DO
+      //       carry a real write_registry.json entry and current_write_endpoint.
+      // Registry membership distinguishes the two. The original 18 also
+      // have current_write_endpoint values from their legacy set_* entities.
+      const wrEntry = s4.canonical_key ? writeRegistryByKey.get(s4.canonical_key) : null;
       readWriteState = "live";
-      submitPolicy = "live";
-      writePathKind = "legacy_setting_def";
+      submitPolicy = wrEntry ? wrEntry.submit_policy : "live";
+      writePathKind = wrEntry ? "stage4_write_registry" : "legacy_setting_def";
       currentWriteEndpoint = s4.current_write_endpoint;
     } else if (s4.stage4_state === "write-software-ready") {
       const wrEntry = s4.canonical_key ? writeRegistryByKey.get(s4.canonical_key) : null;

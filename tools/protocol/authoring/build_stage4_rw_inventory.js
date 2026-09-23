@@ -55,12 +55,22 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { fieldOccupiesManifestParamWirePosition } = require("./build_stage3_status_map.js");
+const { validate } = require("../lib/mini-schema.js");
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 const MANIFEST_PATH = path.join(ROOT, "protocol", "generated", "bms_v1_1_manifest.json");
 const CANONICAL_PATH = path.join(ROOT, "protocol", "registers.canonical.json");
 const BLOCKERS_PATH = path.join(ROOT, "protocol", "evidence", "protocol_blockers.json");
 const WRITE_REGISTRY_PATH = path.join(ROOT, "protocol", "generated", "write_registry.json");
+// Mismatch-detail fix follow-up (2026-09-22, unmapped-rows cleanup
+// batch): the smallest authoritative, machine-readable source recording
+// a REAL ACK + forced-readback write-transaction result observed on real
+// hardware via the deployed Settings UI, for a field that reached
+// write-software-ready through the Stage 4 write-registry mechanism (a
+// DIFFERENT purpose from owner_write_override, which is risk-acceptance
+// to unblock a write path at all, not hardware-verification evidence).
+const HARDWARE_VERIFIED_WRITES_PATH = path.join(ROOT, "protocol", "evidence", "hardware_verified_writes.json");
+const HARDWARE_VERIFIED_WRITES_SCHEMA_PATH = path.join(ROOT, "protocol", "schema", "hardware-verified-writes.schema.json");
 const OUT_PATH = path.join(ROOT, "protocol", "generated", "stage4_rw_inventory.json");
 const CHECK = process.argv.includes("--check");
 
@@ -71,6 +81,17 @@ const manifest = loadJson(MANIFEST_PATH);
 const canonical = loadJson(CANONICAL_PATH);
 const blockersDoc = loadJson(BLOCKERS_PATH);
 const writeRegistry = loadJson(WRITE_REGISTRY_PATH);
+const hardwareVerifiedWritesDoc = loadJson(HARDWARE_VERIFIED_WRITES_PATH);
+const hardwareEvidenceErrors = validate(loadJson(HARDWARE_VERIFIED_WRITES_SCHEMA_PATH), hardwareVerifiedWritesDoc);
+if (hardwareEvidenceErrors.length) {
+  for (const error of hardwareEvidenceErrors) console.error(`hardware_verified_writes.json ${error.path}: ${error.message}`);
+  process.exit(1);
+}
+const hardwareVerifiedByKey = new Map(hardwareVerifiedWritesDoc.entries.map((e) => [e.canonical_key, e]));
+if (hardwareVerifiedByKey.size !== hardwareVerifiedWritesDoc.entries.length) {
+  console.error("hardware_verified_writes.json has duplicate canonical_key entries");
+  process.exit(1);
+}
 const writeRegistryByKey = new Map(writeRegistry.entries.map((e) => [e.key, e]));
 
 const openBlockedNames = new Set();
@@ -267,6 +288,7 @@ for (const p of rwParams) {
   }
 
   row.write_software_ready = true;
+  const hwVerified = hardwareVerifiedByKey.get(field.key);
   if (isOriginal18) {
     // Pre-existing, previously hardware-verified fields (Stage 1's own 18
     // implemented_write_confirmed set). This round's changes (schema
@@ -278,6 +300,20 @@ for (const p of rwParams) {
     row.write_hardware_verified = true;
     row.hardware_verification_provenance = "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.";
     row.revalidation_required = false;
+  } else if (hwVerified && registryEntry) {
+    // Promoted from write-software-ready via protocol/evidence/
+    // hardware_verified_writes.json's own recorded real hardware
+    // transaction result (2026-09-22) -- the SAME Stage 4 write-registry
+    // endpoint/submit policy this field already had is unchanged; only
+    // the provenance/state label is promoted. See that entry's own
+    // `limitation` for any direction genuinely NOT confirmed (e.g.
+    // gps_heartbeat=1) -- never silently claimed bidirectional if it
+    // was not.
+    row.stage4_state = "write-hardware-verified";
+    row.write_hardware_verified = true;
+    row.hardware_verification_provenance = hwVerified.provenance + (hwVerified.limitation ? ` LIMITATION: ${hwVerified.limitation}` : "");
+    row.revalidation_required = false;
+    row.current_write_endpoint = registryEntry.entity_id;
   } else if (registryEntry) {
     row.stage4_state = "write-software-ready";
     row.current_write_endpoint = registryEntry.entity_id;
@@ -298,6 +334,15 @@ for (const p of rwParams) {
 // sharing charging_float_mode with nobody else is fine; two DIFFERENT
 // manifest ids sharing one canonical key would not be.
 const duplicated = [...duplicatedCanonicalKeys.entries()].filter(([, ids]) => ids.length > 1);
+
+for (const evidence of hardwareVerifiedWritesDoc.entries) {
+  const row = rows.find((r) => r.canonical_key === evidence.canonical_key && r.manifest_id === evidence.manifest_id);
+  if (!row || row.address !== evidence.address || row.stage4_state !== "write-hardware-verified" ||
+      !writeRegistryByKey.has(evidence.canonical_key)) {
+    console.error(`hardware_verified_writes.json entry ${evidence.canonical_key} does not match a promoted registry-backed RW row`);
+    process.exit(1);
+  }
+}
 
 const counts_by_state = {};
 const counts_by_safety_class = {};
@@ -359,8 +404,21 @@ const JK_BMS_JS_PATH = path.join(ROOT, "jk_bms.js");
 function jsLiteral(v) { return v === null || v === undefined ? "null" : JSON.stringify(v); }
 
 function buildLiveOrAuthLine(e) {
+  // Mismatch-detail correctness fix (2026-09-22, unmapped-rows cleanup
+  // follow-up): mask/shift/signedness/wireType/wordCount/offset/
+  // decimalPrecision, straight from write_registry.json's own already-
+  // computed field geometry -- the SAME numbers generate_write_registry.js
+  // gives the real ESPHome read-modify-write dispatch and the compiled
+  // C++ lookup table. The frontend needs these to decode a
+  // write_tx_snapshot entry's raw `rb` (the WHOLE packed register word)
+  // down to this ONE field's own real value, exactly like the backend's
+  // own decode_numeric() does for every read -- never re-deriving or
+  // guessing this geometry a second time.
   return `      { key: ${jsLiteral(e.key)}, address: ${parseInt(e.address, 16)}, minimum: ${jsLiteral(e.minimum)}, ` +
     `maximum: ${jsLiteral(e.maximum)}, step: ${jsLiteral(e.step)}, scale: ${jsLiteral(e.scale)}, ` +
+    `offset: ${jsLiteral(e.offset)}, mask: ${jsLiteral(e.mask)}, shift: ${jsLiteral(e.shift)}, ` +
+    `signedness: ${jsLiteral(e.signedness)}, wireType: ${jsLiteral(e.wire_type)}, wordCount: ${jsLiteral(e.word_count)}, ` +
+    `decimalPrecision: ${jsLiteral(e.decimal_precision)}, ` +
     `writeSafetyClass: ${jsLiteral(e.write_safety_class)}, submitPolicy: ${jsLiteral(e.submit_policy)} },`;
 }
 function buildBlockedLine(row) {

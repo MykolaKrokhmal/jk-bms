@@ -1,0 +1,66 @@
+{
+  "$schema": "../schema/hardware-verified-writes.schema.json",
+  "schema_version": 1,
+  "entries": [
+    {
+      "canonical_key": "gps_heartbeat",
+      "manifest_id": "GPS Heartbeat",
+      "address": "0x1114",
+      "verified_at": "2026-09-22",
+      "verified_by": "Mykola Krokhmal",
+      "session": "Real Settings UI, deployed firmware HEAD 4742865, ~20:17-20:21 Europe/Kyiv 2026-09-22",
+      "directions_confirmed": ["0"],
+      "directions_not_confirmed": ["1"],
+      "limitation": "Requesting 1 (Yes) showed a terminal MISMATCH in the real Settings UI on this hardware. The UI detail 'BMS reports 1' echoed the requested value due to a separate frontend defect, so the actual raw readback is unknown from this screenshot. The later value 0 (No) request showed Saved. Bidirectional support is not claimed; the value=1 MISMATCH must not be reinterpreted as success.",
+      "provenance": "The real Settings UI showed Saved for value 0 (No) after runRegisterWriteTransaction() completed its accepted request_id -> tx_id -> exact-address write_tx_snapshot path. The screenshot does not distinguish terminal status 4 (CONFIRMED) from 10 (RECOVERED_CONFIRMED). The preceding value 1 (Yes) request showed a terminal mismatch in the UI; its exact numeric snapshot status was not captured."
+    },
+    {
+      "canonical_key": "lcd_always_on",
+      "manifest_id": "LCD Always On",
+      "address": "0x1114",
+      "verified_at": "2026-09-22",
+      "verified_by": "Mykola Krokhmal",
+      "session": "Real Settings UI, deployed firmware HEAD 4742865, ~20:17-20:21 Europe/Kyiv 2026-09-22",
+      "directions_confirmed": ["0", "1"],
+      "directions_not_confirmed": [],
+      "limitation": null,
+      "provenance": "The real Settings UI showed Saved for both value 0 (No) and then value 1 (Yes), through runRegisterWriteTransaction()'s accepted request_id -> tx_id -> exact-address write_tx_snapshot path. The screenshots do not distinguish terminal status 4 (CONFIRMED) from 10 (RECOVERED_CONFIRMED)."
+    },
+    {
+      "canonical_key": "smart_sleep_enabled",
+      "manifest_id": "SmartSleep",
+      "address": "0x1114",
+      "verified_at": "2026-09-22",
+      "verified_by": "Mykola Krokhmal",
+      "session": "Real Settings UI, deployed firmware HEAD 4742865, ~20:17-20:21 Europe/Kyiv 2026-09-22",
+      "directions_confirmed": ["0", "1"],
+      "directions_not_confirmed": [],
+      "limitation": null,
+      "provenance": "The real Settings UI showed Saved for both value 1 (Yes) and then value 0 (No), through runRegisterWriteTransaction()'s accepted request_id -> tx_id -> exact-address write_tx_snapshot path. The screenshots do not distinguish terminal status 4 (CONFIRMED) from 10 (RECOVERED_CONFIRMED)."
+    },
+    {
+      "canonical_key": "timed_stored_data",
+      "manifest_id": "TimedStoredData",
+      "address": "0x1114",
+      "verified_at": "2026-09-22",
+      "verified_by": "Mykola Krokhmal",
+      "session": "Real Settings UI, deployed firmware HEAD 4742865, ~20:17-20:21 Europe/Kyiv 2026-09-22",
+      "directions_confirmed": ["0", "1"],
+      "directions_not_confirmed": [],
+      "limitation": null,
+      "provenance": "The real Settings UI showed Saved for both value 1 (Yes) and then value 0 (No), through runRegisterWriteTransaction()'s accepted request_id -> tx_id -> exact-address write_tx_snapshot path. The screenshots do not distinguish terminal status 4 (CONFIRMED) from 10 (RECOVERED_CONFIRMED)."
+    },
+    {
+      "canonical_key": "smart_sleep_timeout_hours",
+      "manifest_id": "TIMSmartSleep",
+      "address": "0x1118",
+      "verified_at": "2026-09-22",
+      "verified_by": "Mykola Krokhmal",
+      "session": "Real Settings UI, deployed firmware HEAD 4742865, ~20:17-20:21 Europe/Kyiv 2026-09-22",
+      "directions_confirmed": ["24"],
+      "directions_not_confirmed": [],
+      "limitation": "Only the value 24 (hours) was tested and confirmed on this hardware. No other numeric value was tested -- do not claim broader range coverage than this single confirmed value.",
+      "provenance": "The real Settings UI showed Saved for value 24 hours through runRegisterWriteTransaction()'s accepted request_id -> tx_id -> exact-address write_tx_snapshot path. The screenshot does not distinguish terminal status 4 (CONFIRMED) from 10 (RECOVERED_CONFIRMED)."
+    }
+  ]
+}

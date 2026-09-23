@@ -114,15 +114,25 @@ check("exact set equality: generated RW canonicalKey set == Stage 4 inventory ca
   [...canonicalKeySetGenerated].every((k) => canonicalKeySetStage4.has(k)) &&
   [...canonicalKeySetStage4].every((k) => canonicalKeySetGenerated.has(k)));
 
+// 2026-09-22 (unmapped-rows cleanup follow-up): 5 fields promoted
+// write-software-ready -> write-hardware-verified via protocol/evidence/
+// hardware_verified_writes.json (18+5=23, 42-5=37; blocked unaffected).
 const byStage4State = { "write-hardware-verified": 0, "write-software-ready": 0, "blocked": 0 };
 for (const r of rwRows) if (byStage4State[r.stage4State] !== undefined) byStage4State[r.stage4State] += 1;
-check("exact Stage 4 partition: 18 write-hardware-verified / 42 write-software-ready / 37 blocked",
-  byStage4State["write-hardware-verified"] === 18 && byStage4State["write-software-ready"] === 42 && byStage4State["blocked"] === 37,
+check("exact Stage 4 partition: 23 write-hardware-verified / 37 write-software-ready / 37 blocked",
+  byStage4State["write-hardware-verified"] === 23 && byStage4State["write-software-ready"] === 37 && byStage4State["blocked"] === 37,
   JSON.stringify(byStage4State));
 
 // ---------------------------------------------------------------------------
 // 5. Hardware-verified rows: access stays RW, never blocked, retain
-// their real currentWriteEndpoint (the legacy set_<key> production path).
+// their real currentWriteEndpoint. Two DIFFERENT dispatch mechanisms
+// legitimately coexist within this set (2026-09-22 update): the original
+// 18 (legacy_setting_def, SETTING_KEYS/SETTING_DEFS, set_<key> endpoint,
+// no write_registry.json entry) and 5 newly-promoted fields that keep
+// their EXISTING Stage 4 write-registry endpoint/dispatch unchanged
+// (stage4_write_registry, also a set_<key> entity_id, per
+// write_registry.json) -- promotion never migrates a field's own dispatch
+// mechanism, only its provenance label.
 // ---------------------------------------------------------------------------
 const hwVerified = rwRows.filter((r) => r.stage4State === "write-hardware-verified");
 check("every hardware-verified row's access is RW", hwVerified.every((r) => r.access === "RW"));
@@ -130,8 +140,15 @@ check("every hardware-verified row's readWriteState is live, never blocked", hwV
 check("every hardware-verified row carries its real currentWriteEndpoint (e.g. set_smart_sleep)",
   hwVerified.every((r) => typeof r.currentWriteEndpoint === "string" && r.currentWriteEndpoint.startsWith("set_")),
   JSON.stringify(hwVerified.filter((r) => !r.currentWriteEndpoint).map((r) => r.id)));
-check("every hardware-verified row's writePathKind is legacy_setting_def",
-  hwVerified.every((r) => r.writePathKind === "legacy_setting_def"));
+const NEWLY_PROMOTED_HW_KEYS = new Set(["gps_heartbeat", "lcd_always_on", "smart_sleep_enabled", "timed_stored_data", "smart_sleep_timeout_hours"]);
+const hwVerifiedLegacy = hwVerified.filter((r) => !NEWLY_PROMOTED_HW_KEYS.has(r.canonicalKey));
+const hwVerifiedPromoted = hwVerified.filter((r) => NEWLY_PROMOTED_HW_KEYS.has(r.canonicalKey));
+check("exactly 18 hardware-verified rows use writePathKind legacy_setting_def (the pre-existing set, unaffected)",
+  hwVerifiedLegacy.length === 18 && hwVerifiedLegacy.every((r) => r.writePathKind === "legacy_setting_def"),
+  JSON.stringify(hwVerifiedLegacy.map((r) => ({ key: r.canonicalKey, kind: r.writePathKind }))));
+check("exactly 5 hardware-verified rows use writePathKind stage4_write_registry (newly promoted -- endpoint/dispatch unchanged, not migrated to legacy_setting_def)",
+  hwVerifiedPromoted.length === 5 && hwVerifiedPromoted.every((r) => r.writePathKind === "stage4_write_registry"),
+  JSON.stringify(hwVerifiedPromoted.map((r) => ({ key: r.canonicalKey, kind: r.writePathKind }))));
 
 // ---------------------------------------------------------------------------
 // 6. Blocked RW rows keep their RW identity (never downgrade to R) and
@@ -147,7 +164,7 @@ check("every blocked RW row carries a non-null blockedReason", blockedRw.every((
 // ---------------------------------------------------------------------------
 const writeRegistryByKey = new Map(writeRegistry.entries.map((e) => [e.key, e]));
 const softwareReady = rwRows.filter((r) => r.stage4State === "write-software-ready");
-check("exactly 42 write-software-ready RW rows, all with a real canonicalKey", softwareReady.length === 42 && softwareReady.every((r) => r.canonicalKey));
+check("exactly 37 write-software-ready RW rows, all with a real canonicalKey (42-5, 2026-09-22 promotion)", softwareReady.length === 37 && softwareReady.every((r) => r.canonicalKey));
 let submitPolicyAgreement = true;
 for (const r of softwareReady) {
   const wr = writeRegistryByKey.get(r.canonicalKey);
