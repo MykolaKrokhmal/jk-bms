@@ -695,6 +695,17 @@ const TOPOLOGY_REASONS = [
 ];
 const TOPOLOGY_STATE_NAMES = ["LOADING", "CONFIRMED", "MISMATCH", "INVALID", "WRITE_UNCERTAIN", "OFFLINE", "PENDING"];
 
+// display_cell_count mirrors jk_topology_core.h's
+// channel_count_from_configured(): the CellCount register rounded, when it is
+// within the protocol's channel capacity, else 0 ("no valid N to show").
+// Computed on every resolve, independent of topology state, like production.
+const PROTOCOL_CHANNEL_CAPACITY = 32;
+function mockDisplayCellCount() {
+  if (!Number.isFinite(registerCellCount)) return 0;
+  const candidate = Math.round(registerCellCount);
+  return candidate >= 1 && candidate <= PROTOCOL_CHANNEL_CAPACITY ? candidate : 0;
+}
+
 function resolveTopologyMock() {
   const changed = new Set();
   const setc = (id, state, value) => { setEntity(id, state, value); changed.add(id); };
@@ -704,6 +715,7 @@ function resolveTopologyMock() {
     setc("sensor-topology_revision", String(topologyRevision));
     setc("sensor-topology_data_freshness", "0.0");
     setc("sensor-effective_cell_count", String(effective));
+    setc("sensor-display_cell_count", String(mockDisplayCellCount()));
     setc("sensor-last_confirmed_cell_count", String(lastConfirmedCellCount));
     setc("text_sensor-topology_state", TOPOLOGY_STATE_NAMES[stateCode]);
     setc("text_sensor-topology_reason", TOPOLOGY_REASONS[reason]);

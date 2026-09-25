@@ -693,6 +693,73 @@ async function testActiveAlarmOverrideReasonExplicit(sse) {
 }
 
 /* ============================================================ */
+// L11 (mock display_cell_count): the REAL mock's SSE frames, fed through the
+// REAL jk_bms.js ingestPayload()/renderCells() (generated canonical routes),
+// must produce exactly the configured active cells -- no channel beyond it --
+// with the backend-published voltage extremes still authoritative.
+function loadBrowserClosures() {
+  const fs = require("fs");
+  const vm = require("vm");
+  class Node {
+    constructor(tag) { this.tagName = tag; this.childNodes = []; this.textContent = ""; this.className = ""; this.style = { setProperty() {} }; this._html = ""; }
+    set innerHTML(v) { this._html = v; if (v === "") this.childNodes = []; }
+    get innerHTML() { return this._html; }
+    appendChild(c) { this.childNodes.push(c); return c; }
+    setAttribute() {}
+    getContext() { return { measureText() { return { width: 0 }; } }; }
+  }
+  const dom = new Map(["statMinCells", "statMaxCells", "barColsCells", "barLabelsCells"].map((id) => [id, new Node("div")]));
+  const window = {
+    __JK_BMS_TEST_HOOKS__: {}, location: { href: "http://jk-bms.local/" }, addEventListener() {}, matchMedia() { return { matches: false }; },
+    requestAnimationFrame() { return 0; }, cancelAnimationFrame() {}, setInterval() { return 0; }, clearInterval() {}, setTimeout() { return 0; }, clearTimeout() {},
+  };
+  const document = {
+    readyState: "complete", addEventListener() {}, getElementById: (id) => dom.get(id) || null, querySelector: () => null, querySelectorAll() { return []; },
+    scrollingElement: { scrollTop: 0 }, createElement: (tag) => new Node(tag),
+  };
+  const sandbox = { window, document, navigator: { language: "en" }, URL, console, Map, HTMLInputElement: class {} };
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, "jk_bms.js"), "utf8"), sandbox, { filename: "jk_bms.js" });
+  return { hooks: window.__JK_BMS_TEST_HOOKS__, dom };
+}
+
+async function testDisplayCellCountMockToBrowser(sse) {
+  const routes = require(path.join(ROOT, "protocol", "generated", "protocol_entity_routes.json")).routes;
+  assert("L11: display_cell_count has a generated canonical route", routes.some((r) => r.key === "display_cell_count" && r.domain === "sensor"));
+  for (const count of [8, 16]) {
+    await resetTopology(sse, count);
+    const published = await sse.waitFor("sensor-display_cell_count", (v) => Number(v) === count, 3000);
+    await sse.waitFor("text_sensor-topology_state", (v) => v === "CONFIRMED", 3000);
+    await sse.waitFor("sensor-min_voltage_cell", (v) => Number(v) >= 1, 3000);
+    await sleep(1200); // one full mock tick, so every cell/extreme frame for this count has arrived
+    assert(`L11: mock publishes display_cell_count = configured CellCount (${count}) over SSE`, published, `got=${sse.get("sensor-display_cell_count")}`);
+    const { hooks, dom } = loadBrowserClosures();
+    for (const payload of Object.values(sse.entities)) hooks.ingestPayload(payload);
+    assert(`L11 (${count}): the real mock wire id resolves through the generated route`, hooks.entityByWireId.get("sensor-display_cell_count") === "display_cell_count");
+    assert(`L11 (${count}): the value reaches browser state through ingestPayload`, hooks.numeric("display_cell_count") === count && hooks.activeCellCount() === count,
+      `numeric=${hooks.numeric("display_cell_count")} active=${hooks.activeCellCount()}`);
+    hooks.renderCells();
+    const bars = dom.get("barColsCells").childNodes;
+    const labels = dom.get("barLabelsCells").childNodes.map((n) => n.textContent);
+    assert(`L11 (${count}): the Cells chart renders exactly ${count} active cells, none beyond`,
+      bars.length === count && labels[labels.length - 1] === String(count).padStart(2, "0"), `bars=${bars.length}`);
+    const backendMin = Number(sse.get("sensor-min_cell_voltage")).toFixed(3);
+    assert(`L11 (${count}): Min shows the backend-published extreme, not a browser recomputation`,
+      dom.get("statMinCells").textContent.startsWith(backendMin), `${dom.get("statMinCells").textContent} vs ${backendMin}`);
+    const minCell = Number(sse.get("sensor-min_voltage_cell"));
+    assert(`L11 (${count}): the highlighted min cell is the backend-reported one`,
+      bars.findIndex((b) => /\bmin\b/.test(b.className)) === minCell - 1, `backend=${minCell}`);
+  }
+  // Out-of-range / no valid count -> 0, exactly as production; nothing renders.
+  await post("/demo/register-cell-count?count=0");
+  const zero = await sse.waitFor("sensor-display_cell_count", (v) => Number(v) === 0, 3000);
+  const { hooks, dom } = loadBrowserClosures();
+  for (const payload of Object.values(sse.entities)) hooks.ingestPayload(payload);
+  hooks.renderCells();
+  assert("L11: CellCount 0 (no valid N) publishes display_cell_count 0 and renders no channel", zero && hooks.activeCellCount() === 0 && dom.get("barColsCells").childNodes.length === 0);
+  await resetTopology(sse, 16);
+}
+
 async function main() {
   const server = spawn(process.execPath, ["demo/mock-server.js"], {
     cwd: ROOT, env: Object.assign({}, process.env, { PORT: String(PORT) }), stdio: ["ignore", "pipe", "pipe"]
@@ -711,6 +778,7 @@ async function main() {
     await testConfirmedAtCount(sse, 4, "4S");
     await testConfirmedAtCount(sse, 8, "8S");
     await testConfirmedAtCount(sse, 16, "16S / maximum supported");
+    await testDisplayCellCountMockToBrowser(sse);
     await testOutOfRangeConfiguredRejected(sse);
     await testExactMaskRequired(sse);
     await testMaskWithGap(sse);

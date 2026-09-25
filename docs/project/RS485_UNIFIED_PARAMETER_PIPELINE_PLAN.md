@@ -127,6 +127,9 @@ runtime behaviour — no audit-only stages.
   secret scan, local history redacted). L10 is closed. Device flash, then
   passcode rotation, then HA history cleanup remain owner actions (see
   `CURRENT_LIMITATIONS.md`).
+- **L11:** the mock publishes `display_cell_count` with production semantics.
+  The demo Cells tab renders the configured active cells, and backend min/max
+  stay authoritative. L11 is closed.
 
 ### Stage 3 — One label source
 
