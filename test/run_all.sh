@@ -357,6 +357,10 @@ echo "=== Browser resume fix: SSE reconnect after sleep/offline/bfcache (control
 node test/protocol_catalog/test_sse_reconnect.js
 
 echo
+echo "=== Settings controls simplification: one control style, distinct states, reserved status track, phone layout (jk_bms.css) ==="
+node test/protocol_catalog/test_settings_controls_css.js
+
+echo
 echo "=== Finish-Settings-architecture batch: Settings ownership invariant (N=0/8/16/24/32, no gaps/duplicates) ==="
 node test/protocol_catalog/test_settings_ownership.js
 

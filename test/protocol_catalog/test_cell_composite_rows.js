@@ -377,9 +377,14 @@ function main() {
   const calib4 = row4.querySelector(".cell-composite-calibration");
   check("authorizationRequired: calibration input is disabled", !!calib4.querySelector("input") && calib4.querySelector("input").disabled === true);
   check("authorizationRequired: no submit button is ever created", !calib4.querySelector(".cell-composite-action"));
-  check("authorizationRequired: a write-state note with the real safety class is shown",
-    calib4.querySelector(".cell-composite-write-state") && calib4.querySelector(".cell-composite-write-state").textContent.includes("disruptive"),
-    calib4.querySelector(".cell-composite-write-state") && calib4.querySelector(".cell-composite-write-state").textContent);
+  // Settings controls simplification (2026-09-25): a short visible status;
+  // the full safety-class sentence is the badge's title (hover/screen reader).
+  const authState4 = calib4.querySelector(".cell-composite-write-state");
+  check("authorizationRequired: a short 'Authorization required' badge is shown, not a paragraph",
+    !!authState4 && authState4.textContent === "Authorization required" && authState4.dataset.noteKind === "authorization",
+    authState4 && authState4.textContent);
+  check("authorizationRequired: the real safety class sentence is kept as the badge's description",
+    !!authState4 && authState4.title.includes("disruptive") && authState4.title.length > 40, authState4 && authState4.title);
 
   const realAuthEntry = WRITE_REGISTRY.authorizationRequired.find((e) => e.key === "cell_connection_wire_resistance_4");
   check("sanity: cell_connection_wire_resistance_4 really is authorizationRequired in the real, unmodified WRITE_REGISTRY", !!realAuthEntry);
@@ -466,8 +471,11 @@ function main() {
       const calib = row.querySelector(".cell-composite-calibration");
       check("blocked branch (source-patched): no input at all", !calib.querySelector("input"));
       check("blocked branch (source-patched): no submit button", !calib.querySelector(".cell-composite-action"));
-      check("blocked branch (source-patched): the real blocker reason is shown",
-        calib.querySelector(".cell-composite-write-state").textContent.includes("RANGE_NOT_ESTABLISHED"));
+      const blockedState = calib.querySelector(".cell-composite-write-state");
+      check("blocked branch (source-patched): a short 'Write blocked' badge is shown",
+        blockedState.textContent === "Write blocked" && blockedState.dataset.noteKind === "blocked");
+      check("blocked branch (source-patched): the real blocker reason is kept as the badge's description",
+        blockedState.title.includes("RANGE_NOT_ESTABLISHED"));
     },
     'key: "cell_connection_wire_resistance_4"'
   );

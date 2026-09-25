@@ -369,15 +369,19 @@ function main() {
     !!authSelect && authSelect.disabled === true && authSelect.childNodes.some((o) => o.textContent === "CAN") && authSelect.childNodes.some((o) => o.textContent === "RS485"));
   check("authorization_required row: no button anywhere (cannot dispatch)", !authRow.querySelector("button"));
   const authNote = authRow.querySelector(".settings-catalog-note");
-  check("authorization_required row: a real localized safety-class explanation", authNote && authNote.textContent.includes("disruptive"), authNote && authNote.textContent);
+  check("authorization_required row: a short localized safety status badge, not a paragraph",
+    authNote && authNote.textContent === "Authorization required" && authNote.dataset.noteKind === "authorization", authNote && authNote.textContent);
+  check("authorization_required row: the real safety-class explanation is kept as the badge's description",
+    authNote && authNote.title.includes("disruptive"), authNote && authNote.title);
 
   const blockedRow = rowFor("CellCount"); // cell_count, blocked
   check("blocked RW row exists and renders as RW (not silently a plain R row)", !!blockedRow && blockedRow.dataset.access === "RW");
   check("blocked row: no button anywhere (cannot dispatch)", !blockedRow.querySelector("button"));
   const blockedNote = blockedRow.querySelector(".settings-catalog-note");
-  check("blocked row: a real, human sentence (the closure criterion), not a bare internal code as primary text",
-    blockedNote && blockedNote.textContent.length > 20 && !/^[A-Z_]+$/.test(blockedNote.textContent.trim()),
-    blockedNote && blockedNote.textContent);
+  check("blocked row: a short 'Write blocked' status badge, not the evidence paragraph",
+    blockedNote && blockedNote.textContent === "Write blocked" && blockedNote.dataset.noteKind === "blocked", blockedNote && blockedNote.textContent);
+  check("blocked row: the closure criterion (a real human sentence, not a bare code) is kept as the badge's description",
+    blockedNote && blockedNote.title.length > 20 && !/^[A-Z_]+$/.test(blockedNote.title.trim()), blockedNote && blockedNote.title);
 
   const wRow = rowFor("Shutdown"); // W command, blocked
   check("W-command row exists, renders exactly once", !!wRow);
@@ -587,6 +591,7 @@ function main() {
   runStartupOrderingScenarios();
   runGlobalFreshnessScenarios();
   runCredentialRenderScenario();
+  runControlsSimplificationScenario();
 
   runRealReconnectScenario().then(() => {
     console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
@@ -999,6 +1004,130 @@ function runCredentialRenderScenario() {
       !!dom && text.includes("Hidden") && !dom.querySelector("input") && !dom.querySelector("button"));
   }
   check("C1: zero GET/POST during the credential render scenario", fetchCallLog.length === 0);
+}
+
+// Settings controls simplification (owner request 2026-09-25): rows show a
+// label, the value/editor, unit, a short write status and the freshness
+// status -- never the evidence prose, which becomes the status badge's
+// description. Every control keeps a programmatic label and description.
+function runControlsSimplificationScenario() {
+  fakeNow = 2000000;
+  const p = bootStartupPage();
+  const { SETTINGS_CATALOG_ROWS, setLanguage, updateSettingsCatalogValue, relocalizeSettingsCatalog } = p.hooks;
+  const list = document_list();
+  const rows = list.querySelectorAll(".settings-catalog-row");
+  const prose = SETTINGS_CATALOG_ROWS.map((r) => r.blockerClosureCriterion).filter((x) => typeof x === "string" && x.length > 40);
+  // Visible text of a row = its textContent (title attributes are not text).
+  const leaking = rows.filter((row) => prose.some((text) => row.textContent.includes(text)));
+  check("X1: no row shows a blocker closure-criterion paragraph as text", prose.length > 20 && leaking.length === 0,
+    `${prose.length} criteria, leaking rows: ${leaking.slice(0, 3).map((r) => r.dataset.manifestId).join(",")}`);
+  const notes = list.querySelectorAll(".settings-catalog-note");
+  const longest = Math.max(...notes.map((n) => n.textContent.length));
+  check("X1: every visible write-status text is short (<= 60 chars)", notes.length > 40 && longest <= 60, `longest=${longest}`);
+
+  const byState = (state) => SETTINGS_CATALOG_ROWS.filter((r) => r.readWriteState === state && r.canonicalKey)
+    .map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId)).filter(Boolean);
+  const blocked = byState("blocked");
+  const authorization = byState("authorization_required");
+  check("X2: every blocked RW row keeps its safety status badge with the full reason as description",
+    blocked.length > 20 && blocked.every((el) => {
+      const note = el.querySelector(".settings-catalog-note");
+      return note && note.textContent === "Write blocked" && note.dataset.noteKind === "blocked" && note.title.length > 10;
+    }));
+  check("X2: every authorization-required row keeps its safety badge + safety-class description",
+    authorization.length > 0 && authorization.every((el) => {
+      const note = el.querySelector(".settings-catalog-note");
+      return note && note.textContent === "Authorization required" && /safety class/.test(note.title);
+    }));
+  check("X2: blocked/authorization rows still have no submit button (fail closed)",
+    [...blocked, ...authorization].every((el) => !el.querySelector("button")));
+  const liveStage4 = SETTINGS_CATALOG_ROWS.filter((r) => r.readWriteState === "live" && r.writePathKind === "stage4_write_registry")
+    .map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId)).filter(Boolean);
+  check("X2: Stage 4 rows keep their write-result status region (role=status, aria-live)",
+    liveStage4.length > 0 && liveStage4.every((el) => {
+      const m = el.querySelector(".settings-catalog-message");
+      return m && m.getAttribute("role") === "status" && m.getAttribute("aria-live") === "polite" && m.id.startsWith("wrMsg_");
+    }));
+
+  const editors = list.querySelectorAll(".settings-catalog-editor");
+  const idLists = [...editors, ...list.querySelectorAll(".settings-catalog-action"), ...list.querySelectorAll(".settings-catalog-value")]
+    .flatMap((n) => [n.getAttribute("aria-labelledby"), n.getAttribute("aria-describedby")]).filter(Boolean);
+  check("X3: every aria id reference is a valid single-token id list (manifest ids with spaces are escaped)",
+    idLists.length > 100 && idLists.every((v) => v.split(" ").every((id) => /^[A-Za-z0-9_-]+$/.test(id) && idRegistry.get(id))));
+  const labelled = editors.filter((ed) => {
+    const labelId = ed.getAttribute("aria-labelledby");
+    const label = labelId && idRegistry.get(labelId);
+    return label && label.textContent.trim().length > 0;
+  });
+  check("X3: every Settings control (editable or disabled) has a programmatic label with text",
+    editors.length > 50 && labelled.length === editors.length, `${labelled.length}/${editors.length}`);
+  const described = editors.filter((ed) => {
+    const ids = (ed.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean);
+    return ids.length > 0 && ids.every((id) => idRegistry.get(id)) && ids.some((id) => idRegistry.get(id).classList.contains("settings-freshness-note"));
+  });
+  check("X3: every control is described by its (existing) freshness status element", described.length === editors.length,
+    `${described.length}/${editors.length} missing: ${editors.filter((ed) => !described.includes(ed)).map((ed) => `${ed.closest(".settings-catalog-row").dataset.manifestId}[${ed.getAttribute("aria-describedby")}]`).join(" ")}`);
+  check("X3: Stage 4 editors are also described by their write-result region",
+    liveStage4.every((el) => (el.querySelector(".settings-catalog-editor").getAttribute("aria-describedby") || "").includes("wrMsg_")));
+  check("X3: disabled blocked editors are described by their write-status badge",
+    blocked.filter((el) => el.querySelector(".settings-catalog-editor")).every((el) =>
+      (el.querySelector(".settings-catalog-editor").getAttribute("aria-describedby") || "").includes(el.querySelector(".settings-catalog-note").id)));
+  check("X3: editable controls are native INPUT/SELECT and actions native type=button buttons (keyboard-operable)",
+    editors.every((ed) => ed.tagName === "input" || ed.tagName === "select") && editors.every((ed) => ed.getAttribute("tabindex") === null) &&
+    list.querySelectorAll(".settings-catalog-action").every((b) => b.tagName === "button" && b.type === "button"));
+  check("X3: every editor group declares whether it has a unit (alignment track)",
+    list.querySelectorAll(".settings-catalog-editor-group").every((g) => g.dataset.hasUnit === "true" || g.dataset.hasUnit === "false"));
+
+  // R rows with no reading: the value itself says "Unavailable" -- the
+  // status track does not repeat it.
+  const emptyR = SETTINGS_CATALOG_ROWS.filter((r) => r.access === "R" && r.canonicalKey)
+    .map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId)).filter(Boolean)
+    .filter((el) => el.querySelector(".settings-catalog-value").textContent === "Unavailable");
+  check("X4: an unread R value never shows 'Unavailable' twice", emptyR.length > 10 &&
+    emptyR.every((el) => { const m = el.querySelector(".settings-freshness-note"); return m.hidden && m.textContent === ""; }));
+
+  // Status kinds remain distinct and spelled out (never color-only).
+  ingestStartupValues(p);
+  const kindOf = () => p.legacyInput.dataset.freshness;
+  const textOf = () => p.marker(p.legacyInput).textContent;
+  const seen = {};
+  seen[kindOf()] = textOf();
+  health(p, "LIVE");
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  seen[kindOf()] = textOf();
+  fakeNow += 400000;
+  p.hooks.sweepDiagnosticStaleness();
+  seen[kindOf()] = textOf();
+  p.hooks.setBrowserLink("reconnecting");
+  seen[kindOf()] = textOf();
+  check("X5: pending/fresh/stale/offline are distinct states, each non-fresh one with its own status text",
+    Object.keys(seen).sort().join(",") === "fresh,offline,pending,stale" && seen.fresh === "" &&
+    new Set([seen.pending, seen.stale, seen.offline]).size === 3 && [seen.pending, seen.stale, seen.offline].every(Boolean), JSON.stringify(seen));
+
+  // Draft preservation across re-render (relocalization + value refresh).
+  p.hooks.setBrowserLink("connected");
+  p.legacyInput.value = "3.111";
+  p.legacyInput.dataset.dirty = "true";
+  p.legacyInput.focus();
+  p.legacyInput.setSelectionRange(1, 3);
+  p.binarySelect.value = "0";
+  p.binarySelect.dataset.dirty = "true";
+  setLanguage("uk");
+  relocalizeSettingsCatalog();
+  updateSettingsCatalogValue("VolSmartSleep");
+  updateSettingsCatalogValue("LCD Always On");
+  const ukNote = blocked[0].querySelector(".settings-catalog-note");
+  check("X6: relocalization keeps drafts, dirty flags, focus, selection and dropdown choice",
+    p.legacyInput.value === "3.111" && p.legacyInput.dataset.dirty === "true" && activeElement === p.legacyInput &&
+    p.legacyInput.selectionStart === 1 && p.legacyInput.selectionEnd === 3 && p.binarySelect.value === "0");
+  check("X6: the write-status badge relocalizes (short UK text, description kept)",
+    ukNote.textContent === "Запис заблоковано" && ukNote.title.length > 10, ukNote.textContent);
+  setLanguage("en");
+  check("X: no GET/POST during the controls scenario", fetchCallLog.length === 0);
+}
+
+function document_list() {
+  return idRegistry.get("settingsCatalogList");
 }
 
 // Browser resume fix (2026-09-25): the REAL connection manager (connect(),
