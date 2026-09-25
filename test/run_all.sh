@@ -353,6 +353,10 @@ echo "=== Finish-Settings-architecture batch: generic Settings catalog DOM behav
 node test/protocol_catalog/test_settings_catalog.js
 
 echo
+echo "=== Browser resume fix: SSE reconnect after sleep/offline/bfcache (controlled clock, one EventSource, fail-closed) ==="
+node test/protocol_catalog/test_sse_reconnect.js
+
+echo
 echo "=== Finish-Settings-architecture batch: Settings ownership invariant (N=0/8/16/24/32, no gaps/duplicates) ==="
 node test/protocol_catalog/test_settings_ownership.js
 

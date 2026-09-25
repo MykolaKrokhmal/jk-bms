@@ -30,6 +30,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { TimerQueue, FakeEventSource, ListenerRegistry, flush } = require("./sse_test_harness");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const source = fs.readFileSync(path.join(ROOT, "jk_bms.js"), "utf8");
@@ -206,8 +207,17 @@ class ControlledDate extends Date {
   constructor(...args) { super(...(args.length ? args : [fakeNow])); }
   static now() { return fakeNow; }
 }
+// Real-connection-manager scenarios only (runRealReconnectScenario): the
+// controlled timer queue/listeners, and the read-only GET
+// /settings/read-freshness snapshot the real onopen fetches. Kept apart from
+// fetchCallLog, which must stay empty (no write is ever dispatched).
+let harness = null;
 async function fakeFetch(url, opts) {
   const method = (opts && opts.method) || "GET";
+  if (harness && method === "GET" && String(url).endsWith("/settings/read-freshness")) {
+    harness.snapshotGets += 1;
+    return { ok: true, status: 200, json: async () => harness.snapshot };
+  }
   fetchCallLog.push({ url: String(url), method });
   throw new Error(`test shim: unexpected fetch ${method} ${url} -- this test never issues a real HTTP request (no write is dispatched)`);
 }
@@ -221,10 +231,13 @@ function loadRealClosures() {
   const window = {
     __JK_BMS_TEST_HOOKS__: {},
     location: { href: "http://jk-bms.local/" },
-    addEventListener() {}, matchMedia() { return { matches: false }; },
+    addEventListener: (type, fn) => { if (harness) harness.win.add(type, fn); },
+    matchMedia() { return { matches: false }; },
     cancelAnimationFrame() {}, requestAnimationFrame(cb) { return setImmediate(cb); },
-    clearInterval() {}, setInterval() {},
-    setTimeout: (cb) => setTimeout(cb, 0), clearTimeout: (id) => clearTimeout(id),
+    clearInterval: (id) => { if (harness) harness.timers.clear(id); },
+    setInterval: (cb, ms) => (harness ? harness.timers.setInterval(cb, ms) : undefined),
+    setTimeout: (cb, ms) => (harness ? harness.timers.setTimeout(cb, ms) : setTimeout(cb, 0)),
+    clearTimeout: (id) => (harness ? harness.timers.clear(id) : clearTimeout(id)),
     fetch: (...args) => fakeFetch(...args),
     confirm: () => true,
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
@@ -233,9 +246,10 @@ function loadRealClosures() {
     documentElement,
     scrollingElement: { scrollTop: 0 },
     readyState: "complete",
+    visibilityState: "visible",
     createElement(tag) { return new FakeNode(tag); },
     createDocumentFragment() { return new FakeNode("#fragment"); },
-    addEventListener() {},
+    addEventListener: (type, fn) => { if (harness) harness.doc.add(type, fn); },
     getElementById(id) { return idRegistry.get(id) || null; },
     querySelector(sel) { return body.querySelector(sel); },
     querySelectorAll(sel) { return body.querySelectorAll(sel); },
@@ -244,8 +258,8 @@ function loadRealClosures() {
   };
   class HTMLInputElement {}
   const sandbox = {
-    window, document, navigator: { language: "en" }, URL, console, Map, HTMLInputElement, AbortController,
-    Date: ControlledDate,
+    window, document, navigator: { language: "en", onLine: true }, URL, console, Map, HTMLInputElement, AbortController,
+    Date: ControlledDate, EventSource: FakeEventSource,
     fetch: (...args) => fakeFetch(...args), confirm: () => true,
   };
   vm.createContext(sandbox);
@@ -547,6 +561,9 @@ function main() {
   check("post-reconnect value snapshot alone does not validate the old register", legacyInput.dataset.freshness === "offline");
   fakeNow += 1;
   readBlockSuccess(`${0x1000}:3`);
+  check("post-reconnect block read without this connection's own bms_health stays blocked (fail closed)",
+    legacyInput.dataset.freshness === "offline" && legacyButton.disabled === true);
+  ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
   check("post-reconnect successful block read restores freshness without draft loss", legacyInput.dataset.freshness === "fresh" &&
     legacyButton.disabled === false && legacyInput.value === "4.321" && activeElement === legacyInput);
   ingestPayload({ id: "text_sensor/bms health", state: "OFFLINE", value: "OFFLINE" });
@@ -571,8 +588,10 @@ function main() {
   runGlobalFreshnessScenarios();
   runCredentialRenderScenario();
 
-  console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
-  process.exit(failures ? 1 : 0);
+  runRealReconnectScenario().then(() => {
+    console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
+    process.exit(failures ? 1 : 0);
+  }, (error) => { console.error(error); process.exit(1); });
 }
 
 // Startup ordering (owner report 2026-09-25: Settings/cell values briefly
@@ -777,6 +796,9 @@ function runStartupOrderingScenarios() {
   check("S4: offline-after-reconnect submit attempts produce zero GET/POST", attemptAllSubmits(p) === 0);
   fakeNow += 1;
   p.hooks.readBlockSuccess(`${0x1000}:2`);
+  check("S4: freshness before this connection's health still blocks writes", p.legacyInput.dataset.freshness === "offline" &&
+    p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
+  health(p, "LIVE");
   check("S4: a post-boundary block read restores only its own block", p.legacyInput.dataset.freshness === "fresh" &&
     p.binarySelect.dataset.freshness === "offline");
   p.hooks.readBlockSuccess(`${0x1114}:2`);
@@ -926,7 +948,10 @@ function runGlobalFreshnessScenarios() {
   // G10. Reconnect followed by health recovery.
   fakeNow += 1000;
   p.hooks.setBrowserLink("connected");
-  check("G10: reconnect with cached LIVE health is live again, never pending", globalPanel(p).tier === "live");
+  check("G10: reconnect with only the previous connection's LIVE health -> reconnecting, never live or pending",
+    globalPanel(p).tier === "reconnecting");
+  health(p, "LIVE");
+  check("G10: this connection's own LIVE health -> live again", globalPanel(p).tier === "live");
   health(p, "STALE");
   check("G10: STALE after reconnect is stale, never pending", globalPanel(p).tier === "stale");
   fakeNow += 1000;
@@ -974,6 +999,75 @@ function runCredentialRenderScenario() {
       !!dom && text.includes("Hidden") && !dom.querySelector("input") && !dom.querySelector("button"));
   }
   check("C1: zero GET/POST during the credential render scenario", fetchCallLog.length === 0);
+}
+
+// Browser resume fix (2026-09-25): the REAL connection manager (connect(),
+// its lifecycle listeners and its timers) reconnects after a simulated Mac
+// sleep while the open Settings page keeps every piece of user state:
+// draft values, focus + selection, dropdown choice, dirty flags, the 16S
+// active-cell rows -- and nothing is re-rendered from scratch. Writes stay
+// blocked until the new connection's health and post-boundary block reads.
+async function runRealReconnectScenario() {
+  fakeNow = 1900000;
+  const clock = { now: () => fakeNow, get value() { return fakeNow; }, set value(v) { fakeNow = v; } };
+  harness = { timers: new TimerQueue(clock), win: new ListenerRegistry(), doc: new ListenerRegistry(), snapshotGets: 0,
+    snapshot: { blocks: [[0x1000, 0, 1], [0x1114, 0, 1], [0x1200, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] } };
+  FakeEventSource.reset();
+  const p = bootStartupPage({ connect: false });
+  p.hooks.connect();
+  const first = FakeEventSource.instances[0];
+  first.open();
+  await flush();
+  ingestStartupValues(p);
+  health(p, "LIVE");
+  fakeNow += 1;
+  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  p.hooks.readBlockSuccess(`${0x1114}:2`);
+  check("R: real connect() -> LIVE and writable", p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === false &&
+    p.binarySelect.dataset.freshness === "fresh");
+  // The user is mid-edit in the open Settings page.
+  p.legacyInput.value = "3.250";
+  p.legacyInput.dataset.dirty = "true";
+  p.legacyInput.focus();
+  p.legacyInput.setSelectionRange(2, 4);
+  p.binarySelect.value = "0";
+  p.binarySelect.dataset.dirty = "true";
+  const legacyNode = p.legacyInput;
+  const selectNode = p.binarySelect;
+  const rowCount = p.cell4().count;
+  // Mac sleeps for an hour; the socket is half-open (no error, no data).
+  harness.timers.suspend(60 * 60 * 1000);
+  document_visible(p);
+  const second = FakeEventSource.instances[FakeEventSource.instances.length - 1];
+  check("R: wake reconnects by itself (no reload): exactly one new EventSource", FakeEventSource.instances.length === 2 &&
+    FakeEventSource.live().length === 1 && first.readyState === 2);
+  check("R: while unconfirmed every submit is blocked and zero GET/POST", p.legacyInput.dataset.freshness === "offline" &&
+    p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
+  second.open();
+  await flush();
+  fakeNow += 1;
+  p.hooks.readBlockSuccess(`${0x1000}:3`);
+  check("R: reconnect + block read but no health on this connection -> still blocked", p.legacyButton.disabled === true);
+  health(p, "LIVE");
+  p.hooks.readBlockSuccess(`${0x1114}:3`);
+  p.hooks.updateSettingsCatalogValue("VolSmartSleep");
+  p.hooks.updateSettingsCatalogValue("LCD Always On");
+  const cell = p.cell4();
+  check("R: after health + post-boundary reads the fields are writable again", p.legacyInput.dataset.freshness === "fresh" &&
+    p.legacyButton.disabled === false && p.binarySelect.dataset.freshness === "fresh");
+  check("R: the same DOM nodes survive (no rebuild), with draft, dirty flag, focus and selection intact",
+    p.legacyInput === legacyNode && p.binarySelect === selectNode && p.legacyInput.value === "3.250" &&
+    p.legacyInput.dataset.dirty === "true" && activeElement === legacyNode &&
+    p.legacyInput.selectionStart === 2 && p.legacyInput.selectionEnd === 4);
+  check("R: the dropdown draft selection survives", p.binarySelect.value === "0" && p.binarySelect.dataset.dirty === "true");
+  check("R: 16S active-cell rows unchanged", cell.count === rowCount && cell.count === 16 && cell.maxIndex === 16);
+  check("R: only the read-only freshness snapshot was fetched (twice), never a write", harness.snapshotGets === 2 && fetchCallLog.length === 0);
+  harness = null;
+}
+
+function document_visible(page) {
+  harness.doc.dispatch("visibilitychange");
+  return page;
 }
 
 main();
