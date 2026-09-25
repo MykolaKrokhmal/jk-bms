@@ -303,6 +303,17 @@ check("register_catalog.json no longer lists device_name_override (moved to non_
 check("non_register_entities.canonical.json lists device_name_override as local_config",
   nonRegisterDoc.entities.some((e) => e.key === "device_name_override" && e.category === "local_config"));
 
+// control_override_reason (IMPLEMENTATION_DRIFT_REVIEW.md 2.1): mock-only,
+// classified with the one category that does not imply a production publisher.
+const overrideEntity = nonRegisterDoc.entities.find((e) => e.key === "control_override_reason");
+check("non_register_entities.canonical.json lists control_override_reason as mock_backend_only, text_sensor, no production entity id",
+  !!overrideEntity && overrideEntity.category === "mock_backend_only" && overrideEntity.esphome_domain === "text_sensor" &&
+  overrideEntity.esphome_entity_id === null && /MOCK-ONLY/.test(overrideEntity.note) && !("derived_from_register_key" in overrideEntity));
+const bogusCategoryDoc = JSON.parse(JSON.stringify(nonRegisterDoc));
+bogusCategoryDoc.entities[0].category = "production_maybe";
+check("non-register schema still rejects an unknown category (enum extension did not weaken it)",
+  mini.validate(nonRegisterSchema, bogusCategoryDoc).length > 0);
+
 // ===========================================================================
 // 9. Full YAML BMS-register coverage — every modbus_controller `address:`
 //    line in batterylifepo4.yaml corresponds to a catalog register.

@@ -20,7 +20,7 @@
         "additionalProperties": false,
         "properties": {
           "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
-          "category": { "type": "string", "enum": ["calculated_esphome", "esp32_browser_ui", "local_config"] },
+          "category": { "type": "string", "enum": ["calculated_esphome", "esp32_browser_ui", "local_config", "mock_backend_only"], "description": "mock_backend_only: published only by demo/mock-server.js (a browser-registered route with no production batterylifepo4.yaml/components publisher); listed so the UI never treats it as a BMS register, without implying firmware support." },
           "esphome_domain": {
             "type": ["string", "null"],
             "enum": ["sensor", "binary_sensor", "text_sensor", "number", "select", "text", null]

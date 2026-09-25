@@ -97,3 +97,17 @@ open, unaffected by whether the fingerprint itself is current.
 This review's own currency (not just its conclusion) is what the fingerprint
 CLI's `review`/`accept` modes verify mechanically — see `protocol/README.md`
 and `tools/protocol/fingerprint.js` (Work 2 of the Stage 1 corrective pass).
+
+## Addendum 2026-09-25 — item 2.1 resolved
+
+Item 2.1 above is left as originally recorded. Resolution:
+`control_override_reason` is now in `protocol/non_register_entities.canonical.json`
+with the new schema category `mock_backend_only`. Runtime evidence at
+resolution time: production `batterylifepo4.yaml` and `components/` have no
+publisher; only `demo/mock-server.js` publishes it (consumed by
+`test/topology/run.js`). The generated `PROTOCOL_CATALOG.nonRegisterKeys`
+now carries it, so `NON_REGISTER_ENTITY_IDS` routes it to Diagnostics'
+read-only software-variable list and never to the Settings register list.
+There is no second exclusion list. Regression:
+`test/protocol_catalog/test_diagnostic_software_variables_scroll.js` (the
+control_override_reason section) and `test/register_catalog/validate.js`.

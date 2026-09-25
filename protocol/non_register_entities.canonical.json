@@ -198,6 +198,18 @@
       "note": "Topology resolver reason code."
     },
     {
+      "key": "control_override_reason",
+      "category": "mock_backend_only",
+      "esphome_domain": "text_sensor",
+      "esphome_entity_id": null,
+      "unit": "",
+      "uk_display_unit": "",
+      "en_display_unit": "",
+      "frontend_label_uk": "Причина перевизначення контролю",
+      "frontend_label_en": "Control override reason",
+      "note": "MOCK-ONLY as of 2026-09-25: published solely by demo/mock-server.js (text_sensor-control_override_reason, e.g. 'active_alarm_protection_trip' in the active_alarm scenario; consumed by test/topology/run.js). Production batterylifepo4.yaml and components/ contain no publisher, so real firmware never sends it. jk_bms.js registers the route (registerEntity text_sensor 'control override reason') only so the label is correct wherever it is observed. Not a BMS register: no address, no access, no write path. Listed here so it renders as a read-only software variable on Diagnostics, never in the Settings register list (IMPLEMENTATION_DRIFT_REVIEW.md item 2.1)."
+    },
+    {
       "key": "cellcount_tx_id",
       "category": "calculated_esphome",
       "esphome_domain": "sensor",

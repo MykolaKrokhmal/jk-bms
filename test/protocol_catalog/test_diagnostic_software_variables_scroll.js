@@ -298,6 +298,46 @@ async function main() {
     regList.childNodes.length === regRowsAfterFirst.length &&
     regRowsAfterFirst.every((node, i) => regList.childNodes[i] === node));
 
+  // --- control_override_reason classification (IMPLEMENTATION_DRIFT_REVIEW.md
+  // item 2.1). A registered, mock-only text_sensor that was missing from
+  // protocol/non_register_entities.canonical.json, so isBmsRegisterEntry()
+  // treated it as a BMS register and it rendered in Налаштування's register
+  // list instead of Діагностика's software-variable list. The fix must
+  // flow from the canonical non-register source, not a second list. -------
+  const { PROTOCOL_CATALOG, entityByWireId, diagSoftwareVarRows } = hooks;
+  const overrideWireId = "text_sensor/control override reason";
+  const owningList = (node) => { let n = node; while (n && n !== regList && n !== list) n = n.parentNode; return n; };
+  check("control_override_reason is routed by the real registerEntity() map",
+    entityByWireId.get(overrideWireId) === "control_override_reason");
+  check("control_override_reason is in the generated canonical non-register key set",
+    PROTOCOL_CATALOG.nonRegisterKeys.includes("control_override_reason"));
+  ingestPayload({ id: overrideWireId, domain: "text_sensor", name: "control override reason",
+    value: "active_alarm_protection_trip", state: "active_alarm_protection_trip" });
+  await flush();
+  const overrideValueNode = diagnosticReadoutRows.get(overrideWireId);
+  check("a received control_override_reason payload renders in Діагностика's software-variable list",
+    !!overrideValueNode && owningList(overrideValueNode) === list && diagSoftwareVarRows.has(overrideWireId));
+  // (This shim's querySelectorAll() always returns [] -- ownership is proven
+  // by walking the value node's real parent chain instead.)
+  check("control_override_reason is NOT rendered in Налаштування's BMS register list",
+    !!overrideValueNode && owningList(overrideValueNode) !== regList);
+  const overrideRow = overrideValueNode && overrideValueNode.parentNode;
+  check("its row is read-only: no input/select/button, only label + value",
+    !!overrideRow && overrideRow.querySelector("input, select, button, .register-toggle") === null &&
+    overrideRow.childNodes.length === 2 && overrideRow.childNodes.every((n) => n.tagName === "span" || n.tagName === "b"));
+  check("no write path: no set_ endpoint route, no Stage 4 registry entry",
+    !Array.from(entityByWireId.values()).includes("set_control_override_reason") &&
+    !hooks.WRITE_REGISTRY.live.concat(hooks.WRITE_REGISTRY.authorizationRequired || [], hooks.WRITE_REGISTRY.blocked || [])
+      .some((e) => e.key === "control_override_reason"));
+  // Authoritative register field keys (fieldMeta alone can't tell: derived
+  // non-register entities inherit a readAddress via derived_from_register_key).
+  const registerKeys = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "registers.canonical.json"), "utf8"))
+    .registers.flatMap((r) => r.fields.map((f) => f.key));
+  check("no real BMS register field is hidden: canonical non-register keys and register-backed keys are disjoint",
+    registerKeys.length > 0 && !registerKeys.some((k) => PROTOCOL_CATALOG.nonRegisterKeys.includes(k)), `registerKeys=${registerKeys.length}`);
+  check("a real BMS register (battery capacity) still renders in Налаштування's register list",
+    owningList(diagnosticReadoutRows.get("sensor/battery capacity")) === regList);
+
   console.log("\nNOTE: this test drives jk_bms.js against a small purpose-built DOM-node shim (real");
   console.log("parent/child/sibling semantics), not a full browser layout engine -- it proves the DOM-");
   console.log("mutation behavior that caused the scroll jump is gone, not the pixel-level rendering");
