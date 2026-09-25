@@ -1,0 +1,807 @@
+
+retry: 30000
+id: 50664
+event: ping
+data: {"title":"JK BMS","comment":"Monitor a JK-BMS (JK-PB series) via Modbus","ota":true,"log":true,"lang":"en","uptime":50}
+
+event: state
+data: {"id":"binary_sensor/charging float mode","domain":"binary_sensor","name":"charging float mode","icon":"","entity_category":0,"value":true,"state":"ON"}
+
+event: state
+data: {"id":"binary_sensor/charging","domain":"binary_sensor","name":"charging","icon":"","entity_category":0,"value":true,"state":"ON"}
+
+event: state
+data: {"id":"binary_sensor/discharging","domain":"binary_sensor","name":"discharging","icon":"","entity_category":0,"value":true,"state":"ON"}
+
+event: state
+data: {"id":"binary_sensor/balancing","domain":"binary_sensor","name":"balancing","icon":"","entity_category":0,"value":false,"state":"OFF"}
+
+event: state
+data: {"id":"binary_sensor/charging allowed","domain":"binary_sensor","name":"charging allowed","icon":"","entity_category":0,"value":true,"state":"ON"}
+
+event: state
+data: {"id":"binary_sensor/discharging allowed","domain":"binary_sensor","name":"discharging allowed","icon":"","entity_category":0,"value":true,"state":"ON"}
+
+event: state
+data: {"id":"binary_sensor/balancing allowed","domain":"binary_sensor","name":"balancing allowed","icon":"","entity_category":0,"value":true,"state":"ON"}
+
+event: state
+data: {"id":"sensor/smart sleep","domain":"sensor","name":"smart sleep","icon":"","entity_category":0,"value":3.5,"state":"3.500 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell uvp","domain":"sensor","name":"cell uvp","icon":"","entity_category":0,"value":2.65,"state":"2.650 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell uvpr","domain":"sensor","name":"cell uvpr","icon":"","entity_category":0,"value":2.9,"state":"2.900 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell ovp","domain":"sensor","name":"cell ovp","icon":"","entity_category":0,"value":3.65,"state":"3.650 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell ovpr","domain":"sensor","name":"cell ovpr","icon":"","entity_category":0,"value":3.4,"state":"3.400 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/start balance trigger","domain":"sensor","name":"start balance trigger","icon":"","entity_category":0,"value":0.01,"state":"0.010 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/soc 100","domain":"sensor","name":"soc 100","icon":"","entity_category":0,"value":3.445,"state":"3.445 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/soc 0","domain":"sensor","name":"soc 0","icon":"","entity_category":0,"value":2.7,"state":"2.700 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell rcv","domain":"sensor","name":"cell rcv","icon":"","entity_category":0,"value":3.45,"state":"3.450 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell rfv","domain":"sensor","name":"cell rfv","icon":"","entity_category":0,"value":3.35,"state":"3.350 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/system power off","domain":"sensor","name":"system power off","icon":"","entity_category":0,"value":2.5,"state":"2.500 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/continued charge current","domain":"sensor","name":"continued charge current","icon":"","entity_category":0,"value":140,"state":"140.000 A","uom":"A"}
+
+event: state
+data: {"id":"sensor/charge ocp delay","domain":"sensor","name":"charge ocp delay","icon":"","entity_category":0,"value":5,"state":"5 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/charge ocpr time","domain":"sensor","name":"charge ocpr time","icon":"","entity_category":0,"value":60,"state":"60 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/continued discharge current","domain":"sensor","name":"continued discharge current","icon":"","entity_category":0,"value":140,"state":"140.000 A","uom":"A"}
+
+event: state
+data: {"id":"sensor/discharge ocp delay","domain":"sensor","name":"discharge ocp delay","icon":"","entity_category":0,"value":10,"state":"10 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/discharge ocpr time","domain":"sensor","name":"discharge ocpr time","icon":"","entity_category":0,"value":60,"state":"60 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/scpr time","domain":"sensor","name":"scpr time","icon":"","entity_category":0,"value":5,"state":"5 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/max balance current","domain":"sensor","name":"max balance current","icon":"","entity_category":0,"value":1,"state":"1.000 A","uom":"A"}
+
+retry: 30000
+id: 51235
+event: ping
+data: {"uptime":51}
+
+event: state
+data: {"id":"sensor/charge otp","domain":"sensor","name":"charge otp","icon":"","entity_category":0,"value":55,"state":"55.0 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/charge otpr","domain":"sensor","name":"charge otpr","icon":"","entity_category":0,"value":50,"state":"50.0 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/discharge otp","domain":"sensor","name":"discharge otp","icon":"","entity_category":0,"value":55,"state":"55.0 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/discharge otpr","domain":"sensor","name":"discharge otpr","icon":"","entity_category":0,"value":50,"state":"50.0 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/charge utp","domain":"sensor","name":"charge utp","icon":"","entity_category":0,"value":3,"state":"3.0 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/charge utpr","domain":"sensor","name":"charge utpr","icon":"","entity_category":0,"value":5,"state":"5.0 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/mos otp","domain":"sensor","name":"mos otp","icon":"","entity_category":0,"value":70,"state":"70.0 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/mos otpr","domain":"sensor","name":"mos otpr","icon":"","entity_category":0,"value":60,"state":"60.0 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/cell count","domain":"sensor","name":"cell count","icon":"","entity_category":0,"value":16,"state":"16"}
+
+event: state
+data: {"id":"sensor/battery capacity","domain":"sensor","name":"battery capacity","icon":"","entity_category":0,"value":280,"state":"280.000 Ah","uom":"Ah"}
+
+event: state
+data: {"id":"sensor/scp delay","domain":"sensor","name":"scp delay","icon":"","entity_category":0,"value":1500,"state":"1500 µs","uom":"µs"}
+
+event: state
+data: {"id":"sensor/start balance","domain":"sensor","name":"start balance","icon":"","entity_category":0,"value":3.4,"state":"3.400 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/dev addr","domain":"sensor","name":"dev addr","icon":"","entity_category":0,"value":1,"state":"1"}
+
+event: state
+data: {"id":"sensor/tim prodischarge","domain":"sensor","name":"tim prodischarge","icon":"","entity_category":0,"value":0,"state":"0 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/heating activation temperature","domain":"sensor","name":"heating activation temperature","icon":"","entity_category":0,"value":0,"state":"0 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/heating deactivation temperature","domain":"sensor","name":"heating deactivation temperature","icon":"","entity_category":0,"value":0,"state":"0 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/cell connected mask","domain":"sensor","name":"cell connected mask","icon":"","entity_category":0,"value":65535,"state":"65535"}
+
+event: state
+data: {"id":"sensor/average cell voltage","domain":"sensor","name":"average cell voltage","icon":"","entity_category":0,"value":3.446,"state":"3.446 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/delta cell voltage","domain":"sensor","name":"delta cell voltage","icon":"","entity_category":0,"value":0.007,"state":"0.007 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/mosfet temperature","domain":"sensor","name":"mosfet temperature","icon":"","entity_category":0,"value":26.7,"state":"26.7 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/cell wire resistance status mask","domain":"sensor","name":"cell wire resistance status mask","icon":"","entity_category":0,"value":0,"state":"0"}
+
+event: state
+data: {"id":"sensor/native bms power","domain":"sensor","name":"native bms power","icon":"","entity_category":0,"value":0,"state":"0.000 W","uom":"W"}
+
+event: state
+data: {"id":"sensor/temperature sensor 1","domain":"sensor","name":"temperature sensor 1","icon":"","entity_category":0,"value":25.8,"state":"25.8 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/temperature sensor 2","domain":"sensor","name":"temperature sensor 2","icon":"","entity_category":0,"value":25.3,"state":"25.3 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/alarms bitmask","domain":"sensor","name":"alarms bitmask","icon":"","entity_category":0,"value":0,"state":"0"}
+
+event: state
+data: {"id":"sensor/balance current","domain":"sensor","name":"balance current","icon":"","entity_category":0,"value":0,"state":"0.000 A","uom":"A"}
+
+event: state
+data: {"id":"sensor/state of charge","domain":"sensor","name":"state of charge","icon":"","entity_category":0,"value":99,"state":"99 %","uom":"%"}
+
+event: state
+data: {"id":"sensor/capacity remaining","domain":"sensor","name":"capacity remaining","icon":"","entity_category":0,"value":276.661,"state":"276.661 Ah","uom":"Ah"}
+
+event: state
+data: {"id":"sensor/full charge capacity","domain":"sensor","name":"full charge capacity","icon":"","entity_category":0,"value":280,"state":"280.000 Ah","uom":"Ah"}
+
+event: state
+data: {"id":"sensor/charging cycles","domain":"sensor","name":"charging cycles","icon":"","entity_category":0,"value":39,"state":"39"}
+
+event: state
+data: {"id":"sensor/total charging cycle capacity","domain":"sensor","name":"total charging cycle capacity","icon":"","entity_category":0,"value":11073.23,"state":"11073.232 Ah","uom":"Ah"}
+
+event: state
+data: {"id":"sensor/state of health","domain":"sensor","name":"state of health","icon":"","entity_category":0,"value":100,"state":"100 %","uom":"%"}
+
+event: state
+data: {"id":"sensor/precharge status","domain":"sensor","name":"precharge status","icon":"","entity_category":0,"value":0,"state":"0"}
+
+event: state
+data: {"id":"sensor/custom alarm 1","domain":"sensor","name":"custom alarm 1","icon":"","entity_category":0,"value":0,"state":"0"}
+
+event: state
+data: {"id":"sensor/total runtime in seconds","domain":"sensor","name":"total runtime in seconds","icon":"","entity_category":0,"value":5.755128e7,"state":"57551280 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/custom alarm 2","domain":"sensor","name":"custom alarm 2","icon":"","entity_category":0,"value":0,"state":"0"}
+
+event: state
+data: {"id":"sensor/discharge ocpr left","domain":"sensor","name":"discharge ocpr left","icon":"","entity_category":0,"value":0,"state":"0 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/discharge scpr left","domain":"sensor","name":"discharge scpr left","icon":"","entity_category":0,"value":0,"state":"0 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/charge ocpr left","domain":"sensor","name":"charge ocpr left","icon":"","entity_category":0,"value":0,"state":"0 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/charge scpr left","domain":"sensor","name":"charge scpr left","icon":"","entity_category":0,"value":0,"state":"0 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/uvpr left","domain":"sensor","name":"uvpr left","icon":"","entity_category":0,"value":0,"state":"0 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/ovpr left","domain":"sensor","name":"ovpr left","icon":"","entity_category":0,"value":0,"state":"0 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/sensor heating mask","domain":"sensor","name":"sensor heating mask","icon":"","entity_category":0,"value":65280,"state":"65280"}
+
+event: state
+data: {"id":"sensor/emergency timer","domain":"sensor","name":"emergency timer","icon":"","entity_category":0,"value":0,"state":"0 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/battery current correction","domain":"sensor","name":"battery current correction","icon":"","entity_category":0,"value":966,"state":"966"}
+
+event: state
+data: {"id":"sensor/charge current measurement voltage","domain":"sensor","name":"charge current measurement voltage","icon":"","entity_category":0,"value":0,"state":"0 mV","uom":"mV"}
+
+event: state
+data: {"id":"sensor/discharge current measurement voltage","domain":"sensor","name":"discharge current measurement voltage","icon":"","entity_category":0,"value":0,"state":"0 mV","uom":"mV"}
+
+event: state
+data: {"id":"sensor/battery voltage correction","domain":"sensor","name":"battery voltage correction","icon":"","entity_category":0,"value":2.97405,"state":"2.974050"}
+
+event: state
+data: {"id":"sensor/alternate battery voltage","domain":"sensor","name":"alternate battery voltage","icon":"","entity_category":0,"value":55.14,"state":"55.14 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/heating current","domain":"sensor","name":"heating current","icon":"","entity_category":0,"value":0,"state":"0.000 A","uom":"A"}
+
+event: state
+data: {"id":"sensor/charger plugged","domain":"sensor","name":"charger plugged","icon":"","entity_category":0,"value":0,"state":"0"}
+
+event: state
+data: {"id":"sensor/bms system ticks","domain":"sensor","name":"bms system ticks","icon":"","entity_category":0,"value":2328589,"state":"2328588.5 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/temperature sensor 3","domain":"sensor","name":"temperature sensor 3","icon":"","entity_category":0,"value":26.7,"state":"26.7 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/temperature sensor 4","domain":"sensor","name":"temperature sensor 4","icon":"","entity_category":0,"value":25.8,"state":"25.8 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/temperature sensor 5","domain":"sensor","name":"temperature sensor 5","icon":"","entity_category":0,"value":25.2,"state":"25.2 °C","uom":"°C"}
+
+event: state
+data: {"id":"sensor/rtc ticks","domain":"sensor","name":"rtc ticks","icon":"","entity_category":0,"value":2.119294e8,"state":"211929424 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/time enter sleep","domain":"sensor","name":"time enter sleep","icon":"","entity_category":0,"value":86400,"state":"86400 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/pcl module sta","domain":"sensor","name":"pcl module sta","icon":"","entity_category":0,"value":0,"state":"0"}
+
+event: state
+data: {"id":"sensor/odd run time","domain":"sensor","name":"odd run time","icon":"","entity_category":0,"value":5.75511e7,"state":"57551100 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/pwr on times","domain":"sensor","name":"pwr on times","icon":"","entity_category":0,"value":11,"state":"11"}
+
+event: state
+data: {"id":"sensor/uart1 mprtol nbr","domain":"sensor","name":"uart1 mprtol nbr","icon":"","entity_category":0,"value":5,"state":"5"}
+
+event: state
+data: {"id":"sensor/can mprtol nbr","domain":"sensor","name":"can mprtol nbr","icon":"","entity_category":0,"value":1,"state":"1"}
+
+event: state
+data: {"id":"sensor/uart2 mprtol nbr","domain":"sensor","name":"uart2 mprtol nbr","icon":"","entity_category":0,"value":1,"state":"1"}
+
+event: state
+data: {"id":"sensor/uart2 mprtol enable 0","domain":"sensor","name":"uart2 mprtol enable 0","icon":"","entity_category":0,"value":255,"state":"255"}
+
+event: state
+data: {"id":"sensor/lcd buzzer trigger","domain":"sensor","name":"lcd buzzer trigger","icon":"","entity_category":0,"value":9,"state":"9"}
+
+event: state
+data: {"id":"sensor/dry contact 1 trigger source","domain":"sensor","name":"dry contact 1 trigger source","icon":"","entity_category":0,"value":8,"state":"8"}
+
+event: state
+data: {"id":"sensor/dry contact 2 trigger source","domain":"sensor","name":"dry contact 2 trigger source","icon":"","entity_category":0,"value":0,"state":"0"}
+
+event: state
+data: {"id":"sensor/uart protocol library version","domain":"sensor","name":"uart protocol library version","icon":"","entity_category":0,"value":1,"state":"1"}
+
+event: state
+data: {"id":"sensor/lcd buzzer trigger val","domain":"sensor","name":"lcd buzzer trigger val","icon":"","entity_category":0,"value":100,"state":"100"}
+
+event: state
+data: {"id":"sensor/lcd buzzer release val","domain":"sensor","name":"lcd buzzer release val","icon":"","entity_category":0,"value":95,"state":"95"}
+
+event: state
+data: {"id":"sensor/dry contact 1 trigger value","domain":"sensor","name":"dry contact 1 trigger value","icon":"","entity_category":0,"value":60,"state":"60 raw","uom":"raw"}
+
+event: state
+data: {"id":"sensor/dry contact 1 recovery value","domain":"sensor","name":"dry contact 1 recovery value","icon":"","entity_category":0,"value":50,"state":"50 raw","uom":"raw"}
+
+event: state
+data: {"id":"sensor/dry contact 2 trigger value","domain":"sensor","name":"dry contact 2 trigger value","icon":"","entity_category":0,"value":0,"state":"0 raw","uom":"raw"}
+
+event: state
+data: {"id":"sensor/dry contact 2 recovery value","domain":"sensor","name":"dry contact 2 recovery value","icon":"","entity_category":0,"value":0,"state":"0 raw","uom":"raw"}
+
+event: state
+data: {"id":"sensor/data stored period","domain":"sensor","name":"data stored period","icon":"","entity_category":0,"value":3600,"state":"3600 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/rcv time","domain":"sensor","name":"rcv time","icon":"","entity_category":0,"value":5,"state":"5.0 h","uom":"h"}
+
+event: state
+data: {"id":"sensor/rfv time","domain":"sensor","name":"rfv time","icon":"","entity_category":0,"value":1,"state":"1.0 h","uom":"h"}
+
+event: state
+data: {"id":"sensor/can mptl ver","domain":"sensor","name":"can mptl ver","icon":"","entity_category":0,"value":1,"state":"1"}
+
+event: state
+data: {"id":"sensor/wifi signal","domain":"sensor","name":"wifi signal","icon":"","entity_category":2,"value":-54,"state":"-54 dBm","uom":"dBm"}
+
+event: state
+data: {"id":"sensor/system uptime","domain":"sensor","name":"system uptime","icon":"mdi:timer-outline","entity_category":2,"value":31.782,"state":"32 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/bms last update age","domain":"sensor","name":"bms last update age","icon":"","entity_category":0,"value":0.527,"state":"1 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/cell voltage 1","domain":"sensor","name":"cell voltage 1","icon":"","entity_category":0,"value":3.445,"state":"3.445 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 2","domain":"sensor","name":"cell voltage 2","icon":"","entity_category":0,"value":3.452,"state":"3.452 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 3","domain":"sensor","name":"cell voltage 3","icon":"","entity_category":0,"value":3.447,"state":"3.447 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 4","domain":"sensor","name":"cell voltage 4","icon":"","entity_category":0,"value":3.447,"state":"3.447 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 5","domain":"sensor","name":"cell voltage 5","icon":"","entity_category":0,"value":3.448,"state":"3.448 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 6","domain":"sensor","name":"cell voltage 6","icon":"","entity_category":0,"value":3.446,"state":"3.446 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 7","domain":"sensor","name":"cell voltage 7","icon":"","entity_category":0,"value":3.445,"state":"3.445 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 8","domain":"sensor","name":"cell voltage 8","icon":"","entity_category":0,"value":3.446,"state":"3.446 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 9","domain":"sensor","name":"cell voltage 9","icon":"","entity_category":0,"value":3.447,"state":"3.447 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 10","domain":"sensor","name":"cell voltage 10","icon":"","entity_category":0,"value":3.446,"state":"3.446 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 11","domain":"sensor","name":"cell voltage 11","icon":"","entity_category":0,"value":3.446,"state":"3.446 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 12","domain":"sensor","name":"cell voltage 12","icon":"","entity_category":0,"value":3.445,"state":"3.445 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 13","domain":"sensor","name":"cell voltage 13","icon":"","entity_category":0,"value":3.445,"state":"3.445 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 14","domain":"sensor","name":"cell voltage 14","icon":"","entity_category":0,"value":3.445,"state":"3.445 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 15","domain":"sensor","name":"cell voltage 15","icon":"","entity_category":0,"value":3.446,"state":"3.446 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 16","domain":"sensor","name":"cell voltage 16","icon":"","entity_category":0,"value":3.445,"state":"3.445 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 17","domain":"sensor","name":"cell voltage 17","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 18","domain":"sensor","name":"cell voltage 18","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 19","domain":"sensor","name":"cell voltage 19","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 20","domain":"sensor","name":"cell voltage 20","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 21","domain":"sensor","name":"cell voltage 21","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 22","domain":"sensor","name":"cell voltage 22","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 23","domain":"sensor","name":"cell voltage 23","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 24","domain":"sensor","name":"cell voltage 24","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 25","domain":"sensor","name":"cell voltage 25","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 26","domain":"sensor","name":"cell voltage 26","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 27","domain":"sensor","name":"cell voltage 27","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 28","domain":"sensor","name":"cell voltage 28","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 29","domain":"sensor","name":"cell voltage 29","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 30","domain":"sensor","name":"cell voltage 30","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 31","domain":"sensor","name":"cell voltage 31","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/cell voltage 32","domain":"sensor","name":"cell voltage 32","icon":"","entity_category":0,"value":null,"state":"NA","uom":"V"}
+
+event: state
+data: {"id":"sensor/max cell voltage","domain":"sensor","name":"max cell voltage","icon":"","entity_category":0,"value":3.452,"state":"3.452 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/min cell voltage","domain":"sensor","name":"min cell voltage","icon":"","entity_category":0,"value":3.445,"state":"3.445 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/max voltage cell","domain":"sensor","name":"max voltage cell","icon":"","entity_category":0,"value":2,"state":"2"}
+
+event: state
+data: {"id":"sensor/min voltage cell","domain":"sensor","name":"min voltage cell","icon":"","entity_category":0,"value":1,"state":"1"}
+
+event: state
+data: {"id":"sensor/connected cell count","domain":"sensor","name":"connected cell count","icon":"","entity_category":0,"value":16,"state":"16"}
+
+event: state
+data: {"id":"sensor/measured cell count","domain":"sensor","name":"measured cell count","icon":"","entity_category":0,"value":16,"state":"16"}
+
+event: state
+data: {"id":"sensor/active cells voltage sum","domain":"sensor","name":"active cells voltage sum","icon":"","entity_category":0,"value":55.137,"state":"55.137 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/effective cell count","domain":"sensor","name":"effective cell count","icon":"","entity_category":0,"value":16,"state":"16"}
+
+event: state
+data: {"id":"sensor/display cell count","domain":"sensor","name":"display cell count","icon":"","entity_category":0,"value":16,"state":"16"}
+
+event: state
+data: {"id":"sensor/last confirmed cell count","domain":"sensor","name":"last confirmed cell count","icon":"","entity_category":0,"value":16,"state":"16"}
+
+event: state
+data: {"id":"sensor/topology revision","domain":"sensor","name":"topology revision","icon":"","entity_category":0,"value":45,"state":"45"}
+
+event: state
+data: {"id":"sensor/topology data freshness","domain":"sensor","name":"topology data freshness","icon":"","entity_category":0,"value":0.245,"state":"0.2 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/cell count transaction id","domain":"sensor","name":"cell count transaction id","icon":"","entity_category":0,"value":null,"state":"NA"}
+
+event: state
+data: {"id":"sensor/cell count transaction status code","domain":"sensor","name":"cell count transaction status code","icon":"","entity_category":0,"value":null,"state":"NA"}
+
+event: state
+data: {"id":"sensor/setup passcode transaction status code","domain":"sensor","name":"setup passcode transaction status code","icon":"","entity_category":0,"value":null,"state":"NA"}
+
+event: state
+data: {"id":"sensor/cell 1 wire resistance","domain":"sensor","name":"cell 1 wire resistance","icon":"","entity_category":0,"value":0.056,"state":"0.056 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 2 wire resistance","domain":"sensor","name":"cell 2 wire resistance","icon":"","entity_category":0,"value":0.053,"state":"0.053 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 3 wire resistance","domain":"sensor","name":"cell 3 wire resistance","icon":"","entity_category":0,"value":0.059,"state":"0.059 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 4 wire resistance","domain":"sensor","name":"cell 4 wire resistance","icon":"","entity_category":0,"value":0.058,"state":"0.058 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 5 wire resistance","domain":"sensor","name":"cell 5 wire resistance","icon":"","entity_category":0,"value":0.063,"state":"0.063 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 6 wire resistance","domain":"sensor","name":"cell 6 wire resistance","icon":"","entity_category":0,"value":0.061,"state":"0.061 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 7 wire resistance","domain":"sensor","name":"cell 7 wire resistance","icon":"","entity_category":0,"value":0.065,"state":"0.065 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 8 wire resistance","domain":"sensor","name":"cell 8 wire resistance","icon":"","entity_category":0,"value":0.062,"state":"0.062 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 9 wire resistance","domain":"sensor","name":"cell 9 wire resistance","icon":"","entity_category":0,"value":0.064,"state":"0.064 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 10 wire resistance","domain":"sensor","name":"cell 10 wire resistance","icon":"","entity_category":0,"value":0.059,"state":"0.059 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 11 wire resistance","domain":"sensor","name":"cell 11 wire resistance","icon":"","entity_category":0,"value":0.06,"state":"0.060 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 12 wire resistance","domain":"sensor","name":"cell 12 wire resistance","icon":"","entity_category":0,"value":0.057,"state":"0.057 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 13 wire resistance","domain":"sensor","name":"cell 13 wire resistance","icon":"","entity_category":0,"value":0.06,"state":"0.060 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 14 wire resistance","domain":"sensor","name":"cell 14 wire resistance","icon":"","entity_category":0,"value":0.054,"state":"0.054 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 15 wire resistance","domain":"sensor","name":"cell 15 wire resistance","icon":"","entity_category":0,"value":0.054,"state":"0.054 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 16 wire resistance","domain":"sensor","name":"cell 16 wire resistance","icon":"","entity_category":0,"value":0.051,"state":"0.051 mΩ","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 17 wire resistance","domain":"sensor","name":"cell 17 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 18 wire resistance","domain":"sensor","name":"cell 18 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 19 wire resistance","domain":"sensor","name":"cell 19 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 20 wire resistance","domain":"sensor","name":"cell 20 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 21 wire resistance","domain":"sensor","name":"cell 21 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 22 wire resistance","domain":"sensor","name":"cell 22 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 23 wire resistance","domain":"sensor","name":"cell 23 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 24 wire resistance","domain":"sensor","name":"cell 24 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 25 wire resistance","domain":"sensor","name":"cell 25 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 26 wire resistance","domain":"sensor","name":"cell 26 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 27 wire resistance","domain":"sensor","name":"cell 27 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 28 wire resistance","domain":"sensor","name":"cell 28 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 29 wire resistance","domain":"sensor","name":"cell 29 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 30 wire resistance","domain":"sensor","name":"cell 30 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 31 wire resistance","domain":"sensor","name":"cell 31 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell 32 wire resistance","domain":"sensor","name":"cell 32 wire resistance","icon":"","entity_category":0,"value":null,"state":"NA","uom":"mΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 1","domain":"sensor","name":"cell connection wire resistance 1","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 2","domain":"sensor","name":"cell connection wire resistance 2","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 3","domain":"sensor","name":"cell connection wire resistance 3","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 4","domain":"sensor","name":"cell connection wire resistance 4","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 5","domain":"sensor","name":"cell connection wire resistance 5","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 6","domain":"sensor","name":"cell connection wire resistance 6","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 7","domain":"sensor","name":"cell connection wire resistance 7","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 8","domain":"sensor","name":"cell connection wire resistance 8","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 9","domain":"sensor","name":"cell connection wire resistance 9","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 10","domain":"sensor","name":"cell connection wire resistance 10","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 11","domain":"sensor","name":"cell connection wire resistance 11","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 12","domain":"sensor","name":"cell connection wire resistance 12","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 13","domain":"sensor","name":"cell connection wire resistance 13","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 14","domain":"sensor","name":"cell connection wire resistance 14","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 15","domain":"sensor","name":"cell connection wire resistance 15","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 16","domain":"sensor","name":"cell connection wire resistance 16","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 17","domain":"sensor","name":"cell connection wire resistance 17","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 18","domain":"sensor","name":"cell connection wire resistance 18","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 19","domain":"sensor","name":"cell connection wire resistance 19","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 20","domain":"sensor","name":"cell connection wire resistance 20","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 21","domain":"sensor","name":"cell connection wire resistance 21","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 22","domain":"sensor","name":"cell connection wire resistance 22","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 23","domain":"sensor","name":"cell connection wire resistance 23","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 24","domain":"sensor","name":"cell connection wire resistance 24","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 25","domain":"sensor","name":"cell connection wire resistance 25","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 26","domain":"sensor","name":"cell connection wire resistance 26","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 27","domain":"sensor","name":"cell connection wire resistance 27","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 28","domain":"sensor","name":"cell connection wire resistance 28","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 29","domain":"sensor","name":"cell connection wire resistance 29","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 30","domain":"sensor","name":"cell connection wire resistance 30","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 31","domain":"sensor","name":"cell connection wire resistance 31","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance 32","domain":"sensor","name":"cell connection wire resistance 32","icon":"","entity_category":0,"value":0,"state":"0 µΩ","uom":"µΩ"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance queued count","domain":"sensor","name":"cell connection wire resistance queued count","icon":"","entity_category":0,"value":1,"state":"1"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance callback count","domain":"sensor","name":"cell connection wire resistance callback count","icon":"","entity_category":0,"value":1,"state":"1"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance last response bytes","domain":"sensor","name":"cell connection wire resistance last response bytes","icon":"","entity_category":0,"value":128,"state":"128"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance attempt started uptime","domain":"sensor","name":"cell connection wire resistance attempt started uptime","icon":"","entity_category":0,"value":15.037,"state":"15.037 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/cell connection wire resistance attempt ended uptime","domain":"sensor","name":"cell connection wire resistance attempt ended uptime","icon":"","entity_category":0,"value":15.07,"state":"15.070 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/total voltage","domain":"sensor","name":"total voltage","icon":"","entity_category":0,"value":55.143,"state":"55.143 V","uom":"V"}
+
+event: state
+data: {"id":"sensor/current","domain":"sensor","name":"current","icon":"","entity_category":0,"value":0,"state":"0.000 A","uom":"A"}
+
+event: state
+data: {"id":"sensor/power","domain":"sensor","name":"power","icon":"","entity_category":0,"value":0,"state":"0.00 W","uom":"W"}
+
+event: state
+data: {"id":"sensor/charging power","domain":"sensor","name":"charging power","icon":"","entity_category":0,"value":0,"state":"0.00 W","uom":"W"}
+
+event: state
+data: {"id":"sensor/discharging power","domain":"sensor","name":"discharging power","icon":"","entity_category":0,"value":0,"state":"0.00 W","uom":"W"}
+
+event: state
+data: {"id":"sensor/charging current","domain":"sensor","name":"charging current","icon":"","entity_category":0,"value":0,"state":"0.000 A","uom":"A"}
+
+event: state
+data: {"id":"sensor/discharging current","domain":"sensor","name":"discharging current","icon":"","entity_category":0,"value":0,"state":"-0.000 A","uom":"A"}
+
+event: state
+data: {"id":"sensor/charge status time elapsed","domain":"sensor","name":"charge status time elapsed","icon":"","entity_category":0,"value":40,"state":"40 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/charge phase elapsed","domain":"sensor","name":"charge phase elapsed","icon":"","entity_category":0,"value":39,"state":"39 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/battery state elapsed","domain":"sensor","name":"battery state elapsed","icon":"","entity_category":0,"value":39,"state":"39 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/battery state candidate age","domain":"sensor","name":"battery state candidate age","icon":"","entity_category":0,"value":0,"state":"0 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/current sample age","domain":"sensor","name":"current sample age","icon":"","entity_category":0,"value":13.238,"state":"13 s","uom":"s"}
+
+event: state
+data: {"id":"sensor/battery state candidate fresh samples","domain":"sensor","name":"battery state candidate fresh samples","icon":"","entity_category":0,"value":3,"state":"3"}
+
+event: state
+data: {"id":"sensor/idle current noise min","domain":"sensor","name":"idle current noise min","icon":"","entity_category":0,"value":0,"state":"0.000 A","uom":"A"}
+
+event: state
+data: {"id":"sensor/idle current noise max","domain":"sensor","name":"idle current noise max","icon":"","entity_category":0,"value":0,"state":"0.000 A","uom":"A"}
+
+event: state
+data: {"id":"text_sensor/cell connected mask exact","domain":"text_sensor","name":"cell connected mask exact","icon":"","entity_category":0,"value":"65535","state":"65535"}
+
+event: state
+data: {"id":"text_sensor/total runtime exact","domain":"text_sensor","name":"total runtime exact","icon":"","entity_category":0,"value":"57551279","state":"57551279"}
+
+event: state
+data: {"id":"text_sensor/bms system ticks exact","domain":"text_sensor","name":"bms system ticks exact","icon":"","entity_category":0,"value":"2328588.4","state":"2328588.4"}
+
+event: state
+data: {"id":"text_sensor/rtc ticks exact","domain":"text_sensor","name":"rtc ticks exact","icon":"","entity_category":0,"value":"211929431","state":"211929431"}
+
+event: state
+data: {"id":"text_sensor/manufacturer device id","domain":"text_sensor","name":"manufacturer device id","icon":"","entity_category":0,"value":"JK_PB1A16S15P","state":"JK_PB1A16S15P"}
+
+event: state
+data: {"id":"text_sensor/hardware version","domain":"text_sensor","name":"hardware version","icon":"","entity_category":0,"value":"15A","state":"15A"}
+
+event: state
+data: {"id":"text_sensor/software version","domain":"text_sensor","name":"software version","icon":"","entity_category":0,"value":"15.41","state":"15.41"}
+
+event: state
+data: {"id":"text_sensor/odd run time exact","domain":"text_sensor","name":"odd run time exact","icon":"","entity_category":0,"value":"57551100","state":"57551100"}
+
+event: state
+data: {"id":"text_sensor/setup passcode readback","domain":"text_sensor","name":"setup passcode readback","icon":"","entity_category":0,"value":"<redacted-secret>","state":"<redacted-secret>"}
+
+event: state
+data: {"id":"text_sensor/wifi ip address","domain":"text_sensor","name":"wifi ip address","icon":"","entity_category":2,"value":"192.168.27.43","state":"192.168.27.43"}
+
+event: state
+data: {"id":"text_sensor/bms health","domain":"text_sensor","name":"bms health","icon":"","entity_category":0,"value":"LIVE","state":"LIVE"}
+
+event: state
+data: {"id":"text_sensor/topology state","domain":"text_sensor","name":"topology state","icon":"","entity_category":0,"value":"CONFIRMED","state":"CONFIRMED"}
+
+event: state
+data: {"id":"text_sensor/topology reason","domain":"text_sensor","name":"topology reason","icon":"","entity_category":0,"value":"OK","state":"OK"}
+
+event: state
+data: {"id":"text_sensor/cell wire resistance extension capability","domain":"text_sensor","name":"cell wire resistance extension capability","icon":"","entity_category":0,"value":"","state":""}
+
+event: state
+data: {"id":"text_sensor/cell connection wire resistance capability","domain":"text_sensor","name":"cell connection wire resistance capability","icon":"","entity_category":0,"value":"SUPPORTED","state":"SUPPORTED"}
+
+event: state
+data: {"id":"text_sensor/cell connection wire resistance last outcome","domain":"text_sensor","name":"cell connection wire resistance last outcome","icon":"","entity_category":0,"value":"RESPONSE_OK","state":"RESPONSE_OK"}
+
+event: state
+data: {"id":"text_sensor/write transaction snapshot","domain":"text_sensor","name":"write transaction snapshot","icon":"","entity_category":0,"value":"","state":""}
+
+event: state
+data: {"id":"text_sensor/bms display name","domain":"text_sensor","name":"bms display name","icon":"","entity_category":0,"value":"LiFePO4-1S16P-00","state":"LiFePO4-1S16P-00"}
+
+event: state
+data: {"id":"text_sensor/total runtime formatted","domain":"text_sensor","name":"total runtime formatted","icon":"","entity_category":0,"value":"Unknown","state":"Unknown"}
+
+event: state
+data: {"id":"text_sensor/alarms","domain":"text_sensor","name":"alarms","icon":"","entity_category":0,"value":"","state":""}
+
+event: state
+data: {"id":"text_sensor/charge status","domain":"text_sensor","name":"charge status","icon":"","entity_category":0,"value":"float","state":"float"}
+
+event: state
+data: {"id":"text_sensor/charge phase","domain":"text_sensor","name":"charge phase","icon":"","entity_category":0,"value":"float","state":"float"}
+
+event: state
+data: {"id":"text_sensor/battery state current direction","domain":"text_sensor","name":"battery state current direction","icon":"","entity_category":0,"value":"neutral","state":"neutral"}
+
+event: state
+data: {"id":"text_sensor/battery state candidate direction","domain":"text_sensor","name":"battery state candidate direction","icon":"","entity_category":0,"value":"neutral","state":"neutral"}
+
+event: state
+data: {"id":"text_sensor/battery state unknown reason","domain":"text_sensor","name":"battery state unknown reason","icon":"","entity_category":0,"value":"n/a","state":"n/a"}
+
+event: state
+data: {"id":"text_sensor/battery state last known","domain":"text_sensor","name":"battery state last known","icon":"","entity_category":0,"value":"float","state":"float"}
+
+event: state
+data: {"id":"text_sensor/charge phase last known","domain":"text_sensor","name":"charge phase last known","icon":"","entity_category":0,"value":"float","state":"float"}
+
+curl: (28) Operation timed out after 6001 milliseconds with 47373 bytes received
