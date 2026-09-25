@@ -1,7 +1,7 @@
 {
   "$schema": "settings-view-model-generated-v3",
   "generated_by": "tools/protocol/authoring/build_settings_view_model.js",
-  "source_hash": "a678658995746ad0",
+  "source_hash": "df17f7133534a538",
   "eligibility_rule": "manifest parameter with access in {R,RW,W} and classification != 'reserved'",
   "row_count": 260,
   "counts_by_access": {
@@ -7929,7 +7929,7 @@
       "currentWriteEndpoint": null,
       "writeUsesReadModifyWrite": null,
       "blockedReason": "PAYLOAD_VALUE_CONTRACT_NOT_ESTABLISHED",
-      "blockerClosureCriterion": "The UNIT (seconds) is established, but the exact reference/encoding is not: is the written UINT32 a Unix epoch timestamp, seconds since an unstated device-specific epoch, or a relative/delta value? The official PDF states only 'UINT32, 4 bytes, W, 对时/Timecalibration, seconds' with no worked example or epoch definition. Writing an assumed epoch (e.g. guessing Unix time) to a real BMS RTC without source confirmation is exactly the fabricated-payload-value case this Stage forbids, even though the unit/scale is more precisely known here than for the other 7 commands. Resolved by an official clarification of the epoch/reference point, or a controlled protocol-capture experiment comparing a written value against the BMS's own subsequently-read wall-clock behavior.",
+      "blockerClosureCriterion": "A unit of seconds is stated only by the V2 workbook (row 254, column E 'секунди (S)'), not by the official PDF, whose unit cell for this row is empty; a unit is in any case not an encoding, and the exact reference/encoding is not established: is the written UINT32 a Unix epoch timestamp, seconds since an unstated device-specific epoch, or a relative/delta value? The official PDF states only 'UINT32, 4 bytes, W, 对时/Timecalibration' with no unit, no worked example and no epoch definition. Writing an assumed epoch (e.g. guessing Unix time) to a real BMS RTC without source confirmation is exactly the fabricated-payload-value case this Stage forbids, even though a unit is stated here (by the V2 workbook only) unlike for the other 7 commands. Resolved by an official clarification of the epoch/reference point, or a controlled protocol-capture experiment comparing a written value against the BMS's own subsequently-read wall-clock behavior.",
       "hardwareVerificationProvenance": null,
       "revalidationRequired": null,
       "compositeGroup": null,
