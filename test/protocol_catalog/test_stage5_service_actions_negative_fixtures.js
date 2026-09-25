@@ -209,5 +209,42 @@ check("base software-ready fixture passes semantic validation", checkSemanticInv
   check("a command with zero evidence citations is rejected", checkSemanticInvariants([bad]).some((e) => e.includes("evidence citation is required")));
 }
 
+// ---------------------------------------------------------------------------
+// Word order vs word count (2026-09-25): timecalibration (0x1612) had
+// word_count=2 with word_order="single_word", which the schema accepted and
+// no rule rejected.
+// ---------------------------------------------------------------------------
+const { MULTI_REGISTER_WORD_ORDERS } = require("../../tools/protocol/lib/service-action-semantic-checks.js");
+const wordOrderErrors = (c) => checkSemanticInvariants([c]).filter((e) => /word_order|word order/.test(e));
+const realCommands = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "service_actions.canonical.json"), "utf8")).commands;
+const realTimecal = realCommands.find((c) => c.key === "timecalibration");
+
+check("word_count 1 with word_order single_word is valid (schema + semantic)",
+  structuralErrorsFor([baseCommand({ word_count: 1, payload_bytes: 2 })]).length === 0 &&
+  checkSemanticInvariants([baseCommand({ word_count: 1, payload_bytes: 2 })]).length === 0);
+check("word_count 2 with word_order single_word is REJECTED by the semantic check",
+  wordOrderErrors(baseCommand({ word_count: 2, payload_bytes: 4, wire_type: "UINT32" })).length === 1);
+check("the exact pre-fix timecalibration shape (real row, word_order reverted to single_word) is REJECTED",
+  !!realTimecal && wordOrderErrors(Object.assign({}, realTimecal, { word_order: "single_word" })).length === 1);
+check("an unresolved multi-register order (word_count 2, word_order null) is valid",
+  structuralErrorsFor([baseCommand({ word_count: 2, payload_bytes: 4, wire_type: "UINT32", word_order: null })]).length === 0 &&
+  checkSemanticInvariants([baseCommand({ word_count: 2, payload_bytes: 4, wire_type: "UINT32", word_order: null })]).length === 0);
+const unsupported = baseCommand({ word_count: 2, payload_bytes: 4, wire_type: "UINT32", word_order: "high_word_first" });
+check("a multi-register order the schema does not support is REJECTED structurally AND semantically",
+  !MULTI_REGISTER_WORD_ORDERS.includes("high_word_first") &&
+  structuralErrorsFor([unsupported]).length > 0 && wordOrderErrors(unsupported).length === 1,
+  `supported=${JSON.stringify(MULTI_REGISTER_WORD_ORDERS)}`);
+check("schema-supported multi-register orders exclude single_word and null (currently none are established)",
+  !MULTI_REGISTER_WORD_ORDERS.includes("single_word") && !MULTI_REGISTER_WORD_ORDERS.includes(null) &&
+  MULTI_REGISTER_WORD_ORDERS.length === 0);
+const widthAmbiguous = realCommands.filter((c) => c.key === "voltage_calibration" || c.key === "current_calibration");
+check("the two width-ambiguous calibration actions (word_count null, word_order null) remain valid",
+  widthAmbiguous.length === 2 && widthAmbiguous.every((c) => c.word_count === null && c.word_order === null) &&
+  structuralErrorsFor(widthAmbiguous).length === 0 && checkSemanticInvariants(widthAmbiguous).length === 0);
+check("real timecalibration: word_count 2, word_order null, still blocked/authorization_required with no payload contract",
+  realTimecal.word_count === 2 && realTimecal.word_order === null && realTimecal.implementation_state === "blocked" &&
+  realTimecal.submit_policy === "authorization_required" && realTimecal.payload_value_contract === null);
+check("the full real canonical source has zero semantic errors", checkSemanticInvariants(realCommands).length === 0);
+
 console.log(`\nStage 5 service-action negative fixtures summary: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);

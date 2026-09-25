@@ -11,6 +11,18 @@
  *
  * Returns an array of human-readable error strings (empty = valid).
  */
+const fs = require("fs");
+const path = require("path");
+
+// Multi-register word orders the service-action schema can represent: its
+// word_order enum minus the 1-register "single_word" and the unresolved
+// null. Derived from the schema itself, so a future evidence-backed order
+// only has to be added in one place.
+const SCHEMA_PATH = path.join(__dirname, "..", "..", "..", "protocol", "schema", "service-actions-source.schema.json");
+const MULTI_REGISTER_WORD_ORDERS = JSON.parse(fs.readFileSync(SCHEMA_PATH, "utf8"))
+  .properties.commands.items.properties.word_order.enum
+  .filter((v) => v !== "single_word" && v !== null);
+
 function checkSemanticInvariants(commands) {
   const errors = [];
   const seenKeys = new Set();
@@ -58,10 +70,18 @@ function checkSemanticInvariants(commands) {
       }
     }
 
+    if (Number.isInteger(c.word_count) && c.word_count > 1) {
+      if (c.word_order === "single_word") {
+        errors.push(`${tag}: word_count ${c.word_count} with word_order "single_word" -- a multi-register value needs a multi-register word order, or null while that order is unresolved`);
+      } else if (c.word_order !== null && !MULTI_REGISTER_WORD_ORDERS.includes(c.word_order)) {
+        errors.push(`${tag}: word_order "${c.word_order}" is not a schema-supported multi-register order (supported: ${JSON.stringify(MULTI_REGISTER_WORD_ORDERS)}; use null while unresolved)`);
+      }
+    }
+
     if (c.evidence.length === 0) errors.push(`${tag}: at least one evidence citation is required`);
   }
 
   return errors;
 }
 
-module.exports = { checkSemanticInvariants };
+module.exports = { checkSemanticInvariants, MULTI_REGISTER_WORD_ORDERS };
