@@ -285,6 +285,9 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 /* Same lamp standard as .power-item .state-dot.on/.soc-meta .charge-stage
    i — 7px, solid-ring halo, not a bare flat dot. */
 .identity-sub .dot{ width:var(--lamp-size); height:var(--lamp-size); border-radius:50%; background:var(--good); box-shadow:0 0 0 var(--lamp-glow-spread) color-mix(in srgb, var(--good) var(--lamp-glow-alpha), transparent); flex:none; }
+/* Startup before the first bms_health report: neutral, neither live green
+   nor offline red, and static (no animation, so reduced-motion is moot). */
+.identity-sub .dot.pending{ background:var(--ink-faint); box-shadow:none; }
 .identity-sub .dot.offline{ background:var(--danger); box-shadow:0 0 0 var(--lamp-glow-spread) color-mix(in srgb, var(--danger) var(--lamp-glow-alpha), transparent); }
 .identity-sub .identity-sep{ color:var(--hair-strong); }
 .identity-sub[data-tier="delayed"], .identity-sub[data-tier="stale"]{ color:var(--warn); }
@@ -443,6 +446,7 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 .freshness-banner.tier-stale{ background:var(--warn-dim); color:var(--warn); }
 .freshness-banner.tier-offline{ background:var(--danger-dim); color:var(--danger); }
 .freshness-banner.tier-reconnecting{ background:var(--hair); color:var(--ink-dim); }
+.freshness-banner.tier-pending{ background:var(--hair); color:var(--ink-dim); }
 
 /* Topology banner (Cells panel) — CellCount is BMS *configuration*, never
    proof of the pack's physical topology, so this stays visible (never a

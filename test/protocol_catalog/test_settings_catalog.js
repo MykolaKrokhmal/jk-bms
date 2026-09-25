@@ -568,6 +568,7 @@ function main() {
   check("all stale/offline attempts remained read-only", fetchCallLog.length === 0);
 
   runStartupOrderingScenarios();
+  runGlobalFreshnessScenarios();
 
   console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
   process.exit(failures ? 1 : 0);
@@ -580,7 +581,7 @@ function main() {
 // single-lifetime test above can reach only once. The SSE value snapshot,
 // the async /settings/read-freshness snapshot and the first bms_health
 // event have no guaranteed relative order.
-function bootStartupPage() {
+function bootStartupPage({ connect = true } = {}) {
   const { hooks, body } = loadRealClosures();
   const list = new FakeNode("div");
   list.id = "settingsCatalogList";
@@ -595,12 +596,23 @@ function bootStartupPage() {
   const cellList = new FakeNode("div");
   cellList.id = "cellCompositeList";
   body.appendChild(cellList);
+  // Global freshness panel nodes (ids from the real build() markup).
+  const panel = {};
+  for (const [id, tag, cls] of [["cluster", "div", "cluster"], ["systemLine", "div", "identity-sub"], ["connDot", "span", "dot"],
+    ["bmsHealthText", "span", ""], ["freshnessBanner", "div", "freshness-banner"], ["diagBmsHealth", "span", ""],
+    ["diagBmsAge", "span", ""], ["diagBrowserLink", "span", ""]]) {
+    const node = new FakeNode(tag);
+    node.id = id;
+    if (cls) node.className = cls;
+    body.appendChild(node);
+    panel[id] = node;
+  }
   hooks.renderSettingsCatalog();
   const row = (manifestId) => list.querySelectorAll(".settings-catalog-row").find((r) => r.dataset.manifestId === manifestId);
   const legacyRow = row("VolSmartSleep");
   const binaryRow = row("LCD Always On");
   const page = {
-    hooks, cellList,
+    hooks, cellList, panel,
     legacyInput: legacyRow.querySelector(".settings-catalog-editor"),
     legacyButton: legacyRow.querySelector(".settings-catalog-action"),
     binarySelect: binaryRow.querySelector(".settings-catalog-editor"),
@@ -614,7 +626,8 @@ function bootStartupPage() {
         voltage: cell && cell.querySelector(".cell-composite-voltage") };
     },
   };
-  hooks.setBrowserLink("connected"); // EventSource onopen precedes every SSE message
+  if (connect) hooks.setBrowserLink("connected"); // EventSource onopen precedes every SSE message
+  hooks.renderFreshness();
   return page;
 }
 
@@ -630,7 +643,13 @@ function ingestStartupValues(page) {
 }
 
 const STARTUP_SNAPSHOT = { blocks: [[0x1000, 0, 1], [0x1114, 0, 1], [0x1200, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] };
-const health = (page, value) => page.hooks.ingestPayload({ id: "text_sensor/bms health", state: value, value });
+// ingestPayload() schedules the bound bms_health renderer (renderFreshness,
+// via bind()) on the next animation frame; the harness's rAF is async, so
+// run that same real renderer here to observe the frame synchronously.
+const health = (page, value) => {
+  page.hooks.ingestPayload({ id: "text_sensor/bms health", state: value, value });
+  page.hooks.renderFreshness();
+};
 
 // Every submit path a user can reach from a non-fresh Settings/cell field.
 function attemptAllSubmits(page) {
@@ -799,6 +818,136 @@ function runStartupOrderingScenarios() {
   p.hooks.readBlockSuccess(`${0x1000}:2`);
   check("S6: post-recovery block read restores freshness", p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === false);
   check("S6: zero GET/POST in the whole scenario", fetchCallLog.length === 0);
+}
+
+// Global (top) freshness panel: same startup race as the Settings fields --
+// before the first valid bms_health, bmsHealthState() reports OFFLINE, so
+// combinedFreshness()/renderFreshness() used to show "Offline" globally.
+function globalPanel(page) {
+  const p = page.panel;
+  return {
+    tier: page.hooks.combinedFreshness(), dataTier: p.systemLine.dataset.tier, clusterTier: p.cluster.dataset.freshness,
+    text: p.bmsHealthText.textContent, dotOffline: p.connDot.classList.contains("offline"),
+    dotPending: p.connDot.classList.contains("pending"), bannerHidden: p.freshnessBanner.hidden,
+    bannerClass: p.freshnessBanner.className, bannerText: p.freshnessBanner.textContent, diag: p.diagBmsHealth.textContent,
+  };
+}
+function assertGlobalPending(page, label, lang = "en") {
+  const g = globalPanel(page);
+  const word = lang === "uk" ? "Ще не підтверджено" : "Not yet confirmed";
+  check(`${label}: global tier is pending, never offline/live`, g.tier === "pending" && g.dataTier === "pending" &&
+    g.clusterTier === "pending", JSON.stringify(g));
+  check(`${label}: status text is the localized pending wording (${lang})`, g.text === word && g.diag === word, `${g.text} / ${g.diag}`);
+  check(`${label}: connection dot is neutral pending -- neither red offline nor plain live`, g.dotPending && !g.dotOffline);
+  check(`${label}: neutral pending banner, not the offline/stale banner`, !g.bannerHidden &&
+    g.bannerClass === "freshness-banner tier-pending" && !/offline|офлайн/i.test(g.bannerText), `${g.bannerClass} / ${g.bannerText}`);
+  check(`${label}: live-only activity is disabled while pending`, page.hooks.freshnessAllowsLiveActivity(g.tier) === false);
+}
+const liveDot = (g) => !g.dotOffline && !g.dotPending;
+
+function runGlobalFreshnessScenarios() {
+  // G1. Initial page state, before EventSource opens.
+  fakeNow = 1200000;
+  let p = bootStartupPage({ connect: false });
+  assertGlobalPending(p, "G1 before EventSource opens");
+  p.hooks.setLanguage("uk");
+  assertGlobalPending(p, "G1 uk", "uk");
+  p.hooks.setLanguage("en");
+
+  // G2. EventSource connected, no bms_health yet (+ cached values).
+  p.hooks.setBrowserLink("connected");
+  ingestStartupValues(p);
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  assertGlobalPending(p, "G2 connected, no health");
+  check("G2: Settings fields stay pending alongside the global pending tier",
+    p.legacyInput.dataset.freshness === "pending" && p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
+
+  // G3. Malformed / unknown health values are not observations.
+  health(p, "");
+  assertGlobalPending(p, "G3 empty health");
+  health(p, "BOGUS");
+  assertGlobalPending(p, "G3 unknown health");
+
+  // G4. First valid LIVE.
+  health(p, "LIVE");
+  let g = globalPanel(p);
+  check("G4: first LIVE -> live tier, live dot, banner hidden", g.tier === "live" && g.dataTier === "live" &&
+    g.text === "Live" && liveDot(g) && g.bannerHidden && p.hooks.freshnessAllowsLiveActivity(g.tier) === true, JSON.stringify(g));
+
+  // G5-G7. First valid DELAYED / STALE / OFFLINE on fresh pages.
+  fakeNow = 1300000;
+  p = bootStartupPage();
+  health(p, "DELAYED");
+  g = globalPanel(p);
+  check("G5: first DELAYED -> delayed tier, live-class dot, banner hidden", g.tier === "delayed" && liveDot(g) && g.bannerHidden &&
+    p.hooks.freshnessAllowsLiveActivity(g.tier) === true, JSON.stringify(g));
+  fakeNow = 1400000;
+  p = bootStartupPage();
+  ingestStartupValues(p);
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  health(p, "STALE");
+  g = globalPanel(p);
+  check("G6: first STALE -> stale tier and stale banner, distinct from pending/offline", g.tier === "stale" &&
+    g.bannerClass === "freshness-banner tier-stale" && g.dotOffline && !g.dotPending && g.text.startsWith("Stale") &&
+    p.hooks.freshnessAllowsLiveActivity(g.tier) === false, JSON.stringify(g));
+  check("G6: STALE Settings field is offline and blocked, zero POST", p.legacyInput.dataset.freshness === "offline" && attemptAllSubmits(p) === 0);
+  fakeNow = 1500000;
+  p = bootStartupPage();
+  health(p, "OFFLINE");
+  g = globalPanel(p);
+  check("G7: first OFFLINE -> offline tier, red dot, BMS-offline banner", g.tier === "offline" && g.dotOffline && !g.dotPending &&
+    g.bannerClass === "freshness-banner tier-offline" && g.bannerText.startsWith("BMS offline") && g.diag === "OFFLINE", JSON.stringify(g));
+
+  // G8. Valid health observed -> browser reconnect never returns to pending.
+  fakeNow = 1600000;
+  p = bootStartupPage();
+  health(p, "LIVE");
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  ingestStartupValues(p);
+  p.legacyInput.value = "3.300";
+  p.legacyInput.dataset.dirty = "true";
+  p.legacyInput.focus();
+  p.legacyInput.setSelectionRange(1, 2);
+  fakeNow += 1000;
+  p.hooks.setBrowserLink("reconnecting");
+  g = globalPanel(p);
+  check("G8: reconnect after a valid health -> reconnecting, never pending", g.tier === "reconnecting" && !g.dotPending &&
+    g.bannerClass === "freshness-banner tier-reconnecting", JSON.stringify(g));
+
+  // G9. -> 8 s disconnect escalation.
+  p.hooks.setBrowserLink("disconnected");
+  g = globalPanel(p);
+  check("G9: disconnect escalation -> offline with the browser-disconnected banner, never pending", g.tier === "offline" &&
+    g.dotOffline && !g.dotPending && g.bannerText.startsWith("Browser disconnected"), JSON.stringify(g));
+  check("G9: disconnected Settings field is offline, blocked, zero POST", p.legacyInput.dataset.freshness === "offline" &&
+    p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
+
+  // G10. Reconnect followed by health recovery.
+  fakeNow += 1000;
+  p.hooks.setBrowserLink("connected");
+  check("G10: reconnect with cached LIVE health is live again, never pending", globalPanel(p).tier === "live");
+  health(p, "STALE");
+  check("G10: STALE after reconnect is stale, never pending", globalPanel(p).tier === "stale");
+  fakeNow += 1000;
+  health(p, "LIVE");
+  g = globalPanel(p);
+  check("G10: health recovery -> live, never pending", g.tier === "live" && liveDot(g) && g.bannerHidden);
+  check("G10: Settings still needs a post-boundary block read after recovery", p.legacyInput.dataset.freshness === "offline");
+  fakeNow += 1;
+  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  check("G10: post-boundary read restores freshness; draft, focus, selection and cells intact",
+    p.legacyInput.dataset.freshness === "fresh" && p.legacyInput.value === "3.300" && activeElement === p.legacyInput &&
+    p.legacyInput.selectionStart === 1 && p.legacyInput.selectionEnd === 2 && p.cell4().count === 16 && p.binarySelect.value === "1");
+
+  // Pre-health browser reconnect/escalation keeps the existing semantics.
+  fakeNow = 1700000;
+  p = bootStartupPage();
+  p.hooks.setBrowserLink("reconnecting");
+  check("G11: link lost before any health -> reconnecting (a real browser-link observation), not offline",
+    globalPanel(p).tier === "reconnecting");
+  p.hooks.setBrowserLink("disconnected");
+  check("G11: existing disconnect escalation still reports offline before any health", globalPanel(p).tier === "offline");
+  check("G: zero GET/POST across the global scenarios", fetchCallLog.length === 0);
 }
 
 main();
