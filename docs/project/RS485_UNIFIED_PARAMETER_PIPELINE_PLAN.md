@@ -55,7 +55,12 @@ gaps each stage closes are listed in
 Each stage is one logical commit and must change code, a generator, a test or
 runtime behaviour — no audit-only stages.
 
-### Stage 1 — Classify every runtime key into one canonical source
+### Stage 1 — Classify every runtime key into one canonical source — DONE (2026-09-25)
+
+> Implemented on `codex/rs485-unified-pipeline`: canonical entries for the 10 keys
+> (with `read_plan_success` as category `protocol_infrastructure`), the exhaustive
+> invariant `test/protocol_catalog/test_runtime_key_space.js`, and real-render
+> coverage in `test_diagnostic_software_variables_scroll.js`.
 
 - **Objective:** every key the browser can route (generated
   `PROTOCOL_ENTITY_ROUTES` plus any hand `registerEntity()`) belongs to exactly

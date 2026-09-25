@@ -338,6 +338,67 @@ async function main() {
   check("a real BMS register (battery capacity) still renders in Налаштування's register list",
     owningList(diagnosticReadoutRows.get("sensor/battery capacity")) === regList);
 
+  // --- Stage 1 (RS485 unified pipeline plan): production runtime
+  // diagnostics and protocol infrastructure classified in the canonical
+  // non-register source. Real ingest -> rAF -> render path. -----------------
+  const nonRegisterCanon = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "non_register_entities.canonical.json"), "utf8")).entities;
+  const renderedIn = (wireId) => owningList(diagnosticReadoutRows.get(wireId));
+  const scoped = [
+    ["sensor/display cell count", "sensor", "display cell count", 16, "16"],
+    ["text_sensor/cell connection wire resistance capability", "text_sensor", "cell connection wire resistance capability", "SUPPORTED", "SUPPORTED"],
+    ["sensor/cell connection wire resistance callback count", "sensor", "cell connection wire resistance callback count", 3, "3"],
+  ];
+  for (const [wireId, domain, name, value, stateText] of scoped) {
+    ingestPayload({ id: wireId, domain, name, value, state: stateText });
+    await flush();
+    const key = entityByWireId.get(wireId);
+    check(`${key}: canonical non-register key renders in Діагностика's software list, not the BMS register list`,
+      PROTOCOL_CATALOG.nonRegisterKeys.includes(key) && renderedIn(wireId) === list,
+      `rendered in: ${renderedIn(wireId) === list ? "software list" : renderedIn(wireId) === regList ? "BMS register list" : "neither"}`);
+  }
+
+  // Protocol infrastructure (derived from the canonical category, not a
+  // hand list): consumed by the pipeline, rendered in neither list.
+  const infraKeys = nonRegisterCanon.filter((e) => e.category === "protocol_infrastructure").map((e) => e.key);
+  check("the canonical source models at least one protocol-infrastructure key", infraKeys.length > 0, JSON.stringify(infraKeys));
+  // (Row registries, not childNodes counts: the register list nests rows
+  // inside group containers.)
+  for (const key of infraKeys) {
+    const wireId = [...entityByWireId.entries()].find(([w, k]) => k === key && w.includes("/"))[0];
+    ingestPayload({ id: wireId, value: `${0x1000}:1`, state: `${0x1000}:1` });
+    await flush();
+    check(`infrastructure key ${key} renders in neither the register list nor the Diagnostics value list`,
+      !diagnosticReadoutRows.has(wireId) && !diagSoftwareVarRows.has(wireId), wireId);
+  }
+
+  // read_plan_success is still the physical-read freshness marker.
+  const { setBrowserLink, acceptReadBlockSnapshot, settingsFieldFreshness, activeCellCount } = hooks;
+  ingestPayload({ id: "text_sensor/bms health", value: "LIVE", state: "LIVE" });
+  setBrowserLink("connected");
+  acceptReadBlockSnapshot({ blocks: [[0x1000, 10000000, 5]] });
+  ingestPayload({ id: "smart_sleep", value: 3.321, state: "3.321 V" });
+  const staleBefore = settingsFieldFreshness("smart_sleep").kind;
+  ingestPayload({ id: "text_sensor/read plan success", value: `${0x1000}:6`, state: `${0x1000}:6` });
+  check("read_plan_success still refreshes its physical block (stale -> fresh)",
+    staleBefore === "stale" && settingsFieldFreshness("smart_sleep").kind === "fresh", `${staleBefore} -> ${settingsFieldFreshness("smart_sleep").kind}`);
+
+  // display_cell_count still drives active-cell visibility.
+  const visible = [1, 4, 8, 16].map((n) => {
+    ingestPayload({ id: "sensor/display cell count", domain: "sensor", name: "display cell count", value: n, state: String(n) });
+    return activeCellCount();
+  });
+  check("display_cell_count still controls 1S/4S/8S/16S active-cell visibility", JSON.stringify(visible) === "[1,4,8,16]", JSON.stringify(visible));
+
+  // No writable surface for any canonical non-register or infrastructure key.
+  const writeKeys = new Set(["live", "authorizationRequired", "blocked"].flatMap((g) => (hooks.WRITE_REGISTRY[g] || []).map((e) => e.key)));
+  const settingsKeys = new Set(hooks.SETTINGS_CATALOG_ROWS.map((r) => r.canonicalKey).filter(Boolean));
+  const routedKeys = new Set(entityByWireId.values());
+  const writable = nonRegisterCanon.map((e) => e.key).filter((k) => writeKeys.has(k) || settingsKeys.has(k) || routedKeys.has(`set_${k}`));
+  check("no canonical non-register/infrastructure key has a write-registry entry, Settings row or set_ route", writable.length === 0, JSON.stringify(writable));
+  const scopedRows = scoped.map(([wireId]) => diagnosticReadoutRows.get(wireId).parentNode);
+  check("every rendered scoped diagnostic row is read-only (label + value, no input/select/button)",
+    scopedRows.every((row) => row.querySelector("input, select, button, .register-toggle") === null && row.childNodes.length === 2));
+
   console.log("\nNOTE: this test drives jk_bms.js against a small purpose-built DOM-node shim (real");
   console.log("parent/child/sibling semantics), not a full browser layout engine -- it proves the DOM-");
   console.log("mutation behavior that caused the scroll jump is gone, not the pixel-level rendering");

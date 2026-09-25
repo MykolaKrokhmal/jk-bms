@@ -280,10 +280,15 @@ for (const n of [8, 16, 24, 32]) {
   ingestPayload({ id: "text_sensor/cell connection wire resistance capability", domain: "text_sensor", name: "cell connection wire resistance capability", value: "UNKNOWN", state: "UNKNOWN" });
   renderDiagnosticReadouts();
   check("cell_count's own row is never touched by the composite-ownership filter", hasRowFor("sensor/cell count"));
-  check("cell_wire_resistance_ext_capability's row is never touched by the composite-ownership filter",
-    hasRowFor("text_sensor/cell wire resistance extension capability"));
-  check("cell_connection_wire_resistance_capability's row is never touched by the composite-ownership filter",
-    hasRowFor("text_sensor/cell connection wire resistance capability"));
+  // The two capability entities are canonical non-register diagnostics (RS485
+  // plan Stage 1), so their rows live in Діагностика's software-variable
+  // list, not in this BMS register list. The cell-row filter must still
+  // never hide them at any N.
+  hooks.renderDiagnosticSoftwareVariables();
+  for (const wireId of ["text_sensor/cell wire resistance extension capability", "text_sensor/cell connection wire resistance capability"]) {
+    check(`${wireId}: never hidden by the composite-ownership filter -- rendered in Діагностика, not the BMS register list`,
+      hooks.diagSoftwareVarRows.has(wireId) && !hasRowFor(wireId));
+  }
 }
 
 // ===========================================================================

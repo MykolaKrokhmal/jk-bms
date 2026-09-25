@@ -265,6 +265,10 @@ echo "=== protocol catalog: entity/wire-ID collision regression (Крок M) ===
 node test/protocol_catalog/test_entity_id_collision.js
 
 echo
+echo "=== protocol catalog: exhaustive runtime key-space invariant (RS485 plan Stage 1) ==="
+node test/protocol_catalog/test_runtime_key_space.js
+
+echo
 echo "=== protocol catalog: generated wire-object-id alias coverage/collision + resolution regression ==="
 node test/protocol_catalog/test_wire_object_id_aliases.js
 
