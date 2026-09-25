@@ -54,6 +54,16 @@ generated block, the firmware publishes `read_plan_success` and updates the
   Backend-published calculated values (e.g. cell-voltage extremes, charge and
   discharge splits) are authoritative in the browser, exactly as in HA.
 
+**Browser link.** The page owns the SSE connection: exactly one EventSource
+at a time, tagged with a generation so a superseded one cannot change state;
+errors retry with capped backoff (1 s → 30 s); a progress watchdog (any event,
+including ESPHome's ~10 s ping) treats a silent stream as lost after 30 s; and
+page resume signals (visible, pageshow, resume, online, a late timer tick)
+probe the link at once. After a reconnect, Settings becomes writable only
+when the new connection has delivered its own valid `bms_health` and a
+read-block success newer than the loss boundary. No reconnect reloads the
+page or touches drafts.
+
 There is no browser polling of register data. The only HTTP reads are the
 freshness snapshot when the SSE connection opens, and the write-transaction
 status calls.

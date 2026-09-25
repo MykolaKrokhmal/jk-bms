@@ -40,11 +40,51 @@ The external component is fetched by ESPHome from the pinned GitHub revision.
 `packages:` / `includes:` / `web_server:` sections change, update this table
 in the same commit.
 
+## Deployed baseline (test ESP32)
+
+- **Currently deployed code:** commit `be99c96` (`fix(mock): publish
+  configured cell count`, on top of the security fix `70a6aae`). The owner
+  transferred the complete 14-file compile/runtime set above (every row
+  except the local `secrets.yaml`), compiled it with ESPHome **2026.9.0** in
+  the owner's environment (`toolchain.lock.json` still pins 2026.8.2, the
+  version an agent last compiled with on 2026-09-25) and uploaded it to the
+  test ESP32 on **2026-09-25**.
+- **Owner-local overlay (not in the repository, never committed):**
+  - `web_server:` `auth:` is commented out -- a temporary, development-only
+    security exception (see `docs/project/CURRENT_LIMITATIONS.md` ->
+    "Security: web authentication disabled on the development device");
+  - `web_server:` `js_include` / `css_include` point at
+    `./jk_bms_ui/jk_bms.js` and `./jk_bms_ui/jk_bms.css`.
+- **Path mapping** for every transfer:
+
+  | Repository path | Owner's ESPHome layout |
+  |---|---|
+  | `jk_bms.js` | `jk_bms_ui/jk_bms.js` |
+  | `jk_bms.css` | `jk_bms_ui/jk_bms.css` |
+  | every other file in the table above | the same relative path |
+
+  The repository keeps `jk_bms.js` / `jk_bms.css` at its root on purpose.
+- **Read-only post-deployment check (2026-09-25):** the served `/0.js`,
+  gunzipped, is byte-identical to `jk_bms.js` at `be99c96`; the retired
+  `setup_passcode_readback` entity is no longer advertised and published no
+  update across two reads of block 0x1470; `setup_passcode_status` published
+  only `hidden`; BMS health LIVE, 16 active cells, backend min/max agree with
+  the cell voltages, Settings values fresh, no console errors, no reboot in
+  the observation window. No endpoint required authentication (the overlay
+  above).
+- **Delta reports:** until the owner deploys a newer commit, every deployment
+  delta is computed against `be99c96`. A commit is recorded here as deployed
+  only after the owner has transferred, compiled and uploaded it.
+- **Local YAML:** when `batterylifepo4.yaml` did not change since the
+  deployed baseline, the owner keeps their local copy (with the overlay). When
+  it did change, the owner merges the change and re-applies the overlay.
+
 ## Deployment-delta reporting rule
 
 Every change that touches the build must be reported as an exact deployment
-delta against the previously deployed commit. For each changed file in the
-set above, give its path, size and full SHA-256. Exclude tests, docs,
+delta against the previously deployed commit (currently `be99c96`, see
+above). For each changed file in the set above, give its path, size, full
+SHA-256 and its destination in the owner's layout (the `jk_bms_ui/` mapping). Exclude tests, docs,
 evidence-only files, `demo/mock-server.js` and unchanged files. For example:
 
 ```bash

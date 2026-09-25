@@ -27,7 +27,7 @@ Planned fixes are in
 | L10 | **Closed (security remediation, 2026-09-25).** `setup_passcode`'s canonical read metadata now names its real read entity, `setup_passcode_status` (`esphome_read_domain: text_sensor`). That entity publishes only a content-independent `hidden` status, and the read-plan generator no longer overrides this field. Write-side metadata is unchanged. `test_entity_id_collision.js` checks strictly with no exception | — | `test_credential_redaction.js`, `test_entity_id_collision.js` | done |
 | L11 | **Closed (2026-09-25).** `demo/mock-server.js` publishes `display_cell_count` (`sensor-display_cell_count`) on every topology resolve, from its CellCount register with production's `channel_count_from_configured()` rule (1..32, else 0). The real mock → SSE → `ingestPayload` → `renderCells()` path is tested for 8S, 16S and the 0 boundary | — | `test/topology/run.js` (L11 checks) | done |
 
-## Security: setup passcode exposure (remediated in code 2026-09-25, device still pending)
+## Security: setup passcode exposure (remediated; firmware deployed 2026-09-25)
 
 - **What happened:** earlier generated firmware decoded the BMS setup passcode
   (register 0x1470) and published it on a non-internal `text_sensor`
@@ -51,13 +51,34 @@ Planned fixes are in
 - **History:** the four affected captures were redacted in local history, a
   targeted rewrite with only the readback records changed. No affected commit
   had been pushed. The old local objects were pruned.
+- **Device:** the remediated firmware (`be99c96`) was deployed to the test
+  ESP32 on 2026-09-25. A read-only check confirmed that the retired entity no
+  longer publishes and that `setup_passcode_status` publishes only `hidden`
+  (see `docs/guides/BUILD_AND_DEPLOY.md` -> "Deployed baseline").
 - **Still pending (owner actions, in this order):**
-  1. Review and explicitly approve a firmware compile and flash; **until then
-     the installed device keeps publishing the passcode**.
-  2. Only after that firmware is installed, rotate the BMS setup passcode.
-     Rotating earlier would expose the new value the same way.
-  3. Clean the old value from Home Assistant's recorder/history (the retired
+  1. Rotate the BMS setup passcode (owner decision; never by an agent).
+  2. Clean the old value from Home Assistant's recorder/history (the retired
      `setup passcode readback` entity).
+
+## Security: web authentication disabled on the development device (temporary exception)
+
+- **Finding (2026-09-25, kept on record):** a read-only check of the deployed
+  test ESP32 found that no endpoint required authentication -- `/`, `/0.js`,
+  `/events`, `/history.json`, `/charge_history.json`,
+  `/settings/read-freshness` and the `/settings/register-write*` handlers
+  all answered without credentials and without a `WWW-Authenticate`
+  challenge. The repository's `batterylifepo4.yaml` still configures
+  `web_server: auth: type: digest`, and an agent's 2026-09-25 compile of it
+  (ESPHome 2026.8.2) did enable digest auth.
+- **Cause and decision:** the owner commented out `web_server.auth` in their
+  local deployment copy and defers web authentication for the development
+  phase. This is an owner-accepted, **development-only** exception, not a
+  repository change: the device must stay on a trusted development network,
+  and anyone on that network can read telemetry and reach the write
+  handlers.
+- **Before any non-development deployment:** restore the `auth:` block in the
+  deployed YAML, recompile, and re-run the unauthenticated-GET check (every
+  protected endpoint must answer 401).
 
 ## Write and hardware-evidence limits
 

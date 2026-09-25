@@ -40,11 +40,18 @@ generated inventories linked below, not in prose.
 - **Service actions:** [`stage5_service_action_inventory.json`](../../protocol/generated/stage5_service_action_inventory.json);
   all are blocked, and local evidence is exhausted.
 
-## Open security item
+## Deployment and open security items
 
-The setup-passcode exposure is remediated in code, but **not yet on the
-device**: see `CURRENT_LIMITATIONS.md` → "Security: setup passcode exposure"
-for the required order (flash, then rotate, then clean HA history).
+- **Deployed baseline:** `be99c96` on the test ESP32 since 2026-09-25, with
+  the owner's local overlay (web auth commented out, UI files under
+  `jk_bms_ui/`). Later commits are not deployed. Details and the delta rule:
+  [`docs/guides/BUILD_AND_DEPLOY.md`](../guides/BUILD_AND_DEPLOY.md).
+- **Setup passcode:** the remediated firmware is on the device; rotating the
+  passcode and cleaning HA history remain owner actions (see
+  `CURRENT_LIMITATIONS.md` → "Security: setup passcode exposure").
+- **Web authentication:** disabled on the development device by owner
+  decision -- a temporary, development-only exception (see
+  `CURRENT_LIMITATIONS.md`).
 
 ## Standing owner rules (do not relax without an explicit owner instruction)
 
