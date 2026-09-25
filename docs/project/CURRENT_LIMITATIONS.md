@@ -1,0 +1,63 @@
+# Current known limitations
+
+**Status: AUTHORITATIVE list of known limitations, verified against the
+repository at the 2026-09-25 checkpoint (`f6de12c`).** Each entry names the
+machine-readable source it was checked against, so it can be re-verified
+rather than trusted. The old `OPEN_ISSUES.md` register is archived at
+[`docs/archive/reports/OPEN_ISSUES_2026-09-15.md`](../archive/reports/OPEN_ISSUES_2026-09-15.md);
+its entries were not all revalidated and are **not** a queue.
+
+Planned fixes are in
+[`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md)
+(stage numbers below refer to it).
+
+## Pipeline and runtime-model gaps (software, no hardware needed)
+
+| # | Limitation | Where it shows | Source to re-check | Plan |
+|---|---|---|---|---|
+| L1 | 9 production entities are in neither canonical source, so `isBmsRegisterEntry()` treats them as BMS registers: they render in the Settings register list, not Diagnostics. Keys: `display_cell_count`, `cell_wire_resistance_ext_capability`, `cell_connection_wire_resistance_{capability,last_outcome,queued_count,callback_count,last_response_bytes,attempt_started_uptime_s,attempt_ended_uptime_s}` | Налаштування register list | `registerEntity()` calls in `jk_bms.js` vs `PROTOCOL_CATALOG.nonRegisterKeys`; publishers in `batterylifepo4.yaml` | Stage 1 |
+| L2 | 98 bespoke-read keys (96 cell channels plus `min/max_voltage_cell_index_native`) take Settings freshness from SSE arrival, because their `fieldMeta.readAddress` is not a read-plan block and no block-success event exists for bespoke reads | Settings/cell freshness | `read_plan.json` `excluded_bespoke_keys` vs `blocks[].address`; `settingsFieldFreshness()` fallback to `stateUpdatedAt` | Stage 4 |
+| L3 | 8 calculated keys published to HA have no browser route (`charging_power`, `discharging_power`, `charging_current`, `discharging_current`, `min_cell_voltage`, `max_cell_voltage`, `min_voltage_cell`, `max_voltage_cell`); the browser computes its own equivalents | HA and browser may diverge | non-register canonical keys vs `PROTOCOL_ENTITY_ROUTES` / `registerEntity()` | Stage 2 |
+| L4 | Route and label truth is duplicated: 33 canonical-register keys also have hand `registerEntity()` calls; 41 non-register routes are hand-only; `DIAGNOSTIC_ENTITY_LABELS` duplicates canonical labels | maintenance/drift risk | `jk_bms.js` vs generated routes/`fieldMeta` | Stages 2–3 |
+| L5 | Write readiness has three uncomposed axes: `claim_matrix.json` (all fields `write_readiness: blocked`), canonical `effective_access` + `owner_write_override`, and Stage 4 state + `protocol/evidence/hardware_verified_writes.json` | confusing readiness reports | those three files | Stage 5 |
+| L6 | `stage3_status_map.json` reports the six width-established Stage 5 commands as `missing`, because its generator does not read `service_actions.canonical.json` | stale status | `protocol/generated/stage3_status_map.json` | Stage 5 |
+| L7 | Six internal raw read-plan sensors are republished to HA/browser by hand-written template `binary_sensor`s (a second, hand-maintained transform layer) | maintenance risk | `read_plan.json` fields with `internal: true`; `batterylifepo4.yaml` template binary sensors | Stage 6 |
+| L8 | The 18 legacy hardware-verified writes use a second encoder (`SETTING_DEFS` plus hand YAML `set_action`), separate from `write_registry` | maintenance risk | `jk_bms.js` `SETTING_DEFS`; `protocol/generated/write_registry.json` | Stage 7 (hardware) |
+| L9 | `protocol/generated/read_plan.yaml`'s header comment still says it is "NOT YET !include'd"; it is included at `batterylifepo4.yaml` (`packages: register_reads`) | misleading comment | generator module comment in `tools/protocol/generate_read_plan.js` | next generator touch |
+
+## Write and hardware-evidence limits
+
+- Write states per key are in
+  [`protocol/generated/stage4_rw_inventory.json`](../../protocol/generated/stage4_rw_inventory.json)
+  (`stage4_state`). Only `write-hardware-verified` rows have real-hardware
+  write evidence; `write-software-ready` rows are implemented but not
+  hardware-verified; `blocked` rows carry `blocked_reason` and
+  `blocker_closure_criterion`.
+- **`gps_heartbeat`: verified only for value 0.** Writing `1` ended in a real
+  terminal MISMATCH ("BMS reports No") on `JK_PB1A16S15P`; the cause is
+  unknown. The owner deferred this to the final stages: do not retry `1`, and
+  never call that direction hardware-verified. Full note:
+  [`docs/archive/claude/HANDOFF_2026-09-25.md`](../archive/claude/HANDOFF_2026-09-25.md)
+  (first section).
+- All Stage 5 service actions are blocked (see
+  [`protocol/generated/stage5_service_action_inventory.json`](../../protocol/generated/stage5_service_action_inventory.json)).
+  Every repository-local payload source has been checked and recorded
+  (`protocol/service_actions.canonical.json` evidence). Closing a blocker
+  needs an official clarification or a controlled, owner-approved capture.
+  Service actions must never be executed without explicit owner permission.
+- Real dynamic-topology changes (e.g. 16↔8), fault behaviour (BMS/Wi-Fi
+  loss, protection trips), and power-loss/OTA recovery have not been
+  hardware-tested; the deployed unit is observed as 16S.
+
+## Platform limits
+
+- 60-hour history is RAM-only in production: the history endpoints exist, but
+  the LittleFS persistence component (`components/jk_history`) is not
+  included by `batterylifepo4.yaml`. The isolated proof of concept is
+  `test/littlefs_poc/`.
+- There is no browser end-to-end suite: UI behaviour is tested with
+  real-closure DOM harnesses under Node (project policy: no third-party
+  dependencies).
+- The private V1 workbook is optional input; without it the pipeline runs
+  self-contained and the workbook-dependent checks are skipped (see
+  `CLAUDE.md`).

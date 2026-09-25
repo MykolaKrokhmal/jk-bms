@@ -5,10 +5,11 @@ Modbus RTU/RS485. `batterylifepo4.yaml` is the firmware config/backend;
 `jk_bms.js`/`jk_bms.css` are the embedded web UI; `demo/mock-server.js` runs the
 real frontend against a mock HTTP/SSE backend (no hardware needed for UI work).
 
-Current status/open defects/decisions live in project-state docs at the repo
-root (`PROJECT_STATE.md`, `OPEN_ISSUES.md`, `DECISIONS.md`, `HANDOFF.md` —
-check which of these exist and are current before trusting this line, as
-their exact names have moved between sessions).
+Current status, known limitations, decisions and the active plan live under
+`docs/project/` (`PROJECT_STATE.md`, `CURRENT_LIMITATIONS.md`, `DECISIONS.md`,
+`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`); `docs/README.md` indexes every
+document and its status. Older handoff/state/issue files are historical,
+under `docs/archive/` (not a queue).
 
 ## Build & test
 
@@ -85,5 +86,6 @@ their exact names have moved between sessions).
   as a personal habit note) because this repo is worked on by more than one
   AI agent concurrently on the same checkout — an uncoordinated commit from
   either agent risks committing the other agent's in-progress, unreviewed
-  changes under the wrong authorship/intent. See `HANDOFF.md`'s "Ризики"
-  section for a concrete instance of this happening.
+  changes under the wrong authorship/intent. See the "Ризики / відкриті
+  питання" section of the 2026-09-12 handoff (`git show c291106:HANDOFF.md`) for a concrete
+  instance of this happening.

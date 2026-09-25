@@ -3,10 +3,13 @@
 **Status:** Accepted (Stage 1 of `IMPLEMENTATION_ROADMAP.md`)
 **Date:** 2026-09-09
 
-See `docs/ARCHITECTURE.md` for diagrams (system data flow, the generic
+See `docs/protocol/ARCHITECTURE.md` for the current artifact roles and
+runtime data flow. The original diagrams (system data flow, the generic
 write-transaction state machine including the WRITE_UNCERTAIN recovery
-path, and the RW-field access classification) that summarize this
-document visually.
+path, and the RW-field access classification) are archived at
+`docs/archive/reports/ARCHITECTURE_DIAGRAMS_2026-09-10.md`. Mentions of
+`IMPLEMENTATION_ROADMAP.md` / `OPEN_ISSUES.md` in this record's dated
+addenda refer to files now under `docs/archive/` (see its README's path map).
 
 ## Context
 

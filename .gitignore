@@ -9,3 +9,12 @@ Backup/
 test/jk_history/test_jk_history_format
 test/jk_write_tx/test_jk_write_tx_core
 protocol/generated/.fingerprint-review.json
+
+# Project-local scratch output (never evidence; durable evidence belongs in
+# protocol/evidence/). Do not add a blanket *.log/*.txt rule: evidence captures
+# under protocol/evidence/ use those extensions.
+/tmp/
+/.tmp/
+# Python bytecode caches from protocol/evidence builders and components/.
+__pycache__/
+*.pyc

@@ -3,7 +3,7 @@
 Architecture and evidence reasoning: `../docs/adr/0001-protocol-catalog.md` (see the third-pass
 addendum for the claim-level evidence model and the single-pipeline architecture, and the
 fourth-pass addendum for `owner_write_override` and which fields it currently covers).
-Full audit of this stage's work: `../proj_arc/STAGE_1_COMPLETION_AUDIT.md`.
+Full audit of this stage's work (historical): `../docs/archive/project-arc/STAGE_1_COMPLETION_AUDIT.md`.
 
 ## Files
 
@@ -166,5 +166,6 @@ esphome compile batterylifepo4.yaml    # full compile — see the audit for RAM/
 ```
 
 Neither of these performs a hardware write. This project does not flash or write to a real
-device from this tooling — see `docs/adr/0001-protocol-catalog.md` and the governing
-`IMPLEMENTATION_ROADMAP.md` for why.
+device from this tooling — see `docs/adr/0001-protocol-catalog.md` and the (now archived)
+`docs/archive/project-arc/IMPLEMENTATION_ROADMAP.md` for why; the current plan is
+`docs/project/RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`.
