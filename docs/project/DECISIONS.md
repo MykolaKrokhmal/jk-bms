@@ -7,9 +7,10 @@
 > [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
 >
 > **Status review 2026-09-25.** Each entry below was not individually
-> revalidated. One divergence is confirmed and awaits owner confirmation:
-> "Two-state settings use confirmed toggles" versus the current Settings
-> catalog, which renders binary fields as dropdowns (commit `00f43db`). "V2
+> revalidated. The one confirmed divergence is resolved: on 2026-09-25 the
+> owner confirmed explicit binary dropdowns, so "Two-state settings use
+> confirmed toggles" is superseded (see "Binary RW settings use explicit
+> dropdowns" below). "V2
 > source must be mandatory in the release gate" now reads: the V2 workbook is
 > committed under `protocol/evidence/` and always used, while the private V1
 > workbook is optional (see `CLAUDE.md`).
@@ -282,7 +283,10 @@
 
 **Status:** Active.
 
-## Decision: Two-state settings use confirmed toggles
+## Decision: Two-state settings use confirmed toggles — SUPERSEDED (2026-09-25)
+
+> **Superseded** by "Binary RW settings use explicit dropdowns" below (owner
+> decision, 2026-09-25). Kept as historical context only.
 
 **Context:** Two-value dropdowns were slow and visually inconsistent.
 
@@ -294,7 +298,26 @@
 
 **Rejected approaches:** immediate write on first tap without confirmation.
 
-**Status:** Active; exact E2E confirmation behavior still needs proof.
+**Status:** Superseded on 2026-09-25; never the implemented Settings behaviour after commit `00f43db`.
+
+## Decision: Binary RW settings use explicit dropdowns
+
+**Context:** The generated Settings catalog renders binary (BIT / two-state) RW fields as an explicit two-option dropdown (commit `00f43db`, "BIT-field dropdown rendering"). The owner confirmed this design on 2026-09-25.
+
+**Decision:** Binary RW fields in Settings use an explicit dropdown with localized option labels and the same OK / confirmation / write-transaction path as every other RW field. They are not toggle switches.
+
+**Reason:**
+- The selected value is unambiguous: the control shows the value text, not a switch position.
+- The draft is visible before submission and is preserved across SSE updates, like any other editor.
+- It works with per-value freshness and fail-closed gating: submission is disabled unless the field is `fresh`.
+- It avoids an accidental immediate-toggle gesture on a control that writes to the BMS.
+- Submission still goes through the existing confirmation and exact-transaction path, with authoritative readback before success.
+
+**Alternatives considered:** a toggle that enters a confirmation state (the superseded decision above); a toggle with a permanent OK button.
+
+**Rejected approaches:** any control that writes on first tap/change without explicit submission.
+
+**Status:** Active; implemented behaviour, covered by `test/protocol_catalog/test_settings_catalog.js`.
 
 ## Decision: Numeric write button has deterministic state UX
 

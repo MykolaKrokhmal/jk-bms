@@ -23,6 +23,7 @@ artifact owns which fact.
 | Document | Purpose |
 |---|---|
 | [`../CLAUDE.md`](../CLAUDE.md) | agent working rules, build & test commands |
+| [`../AGENTS.md`](../AGENTS.md) | short entry point for Codex and other agents (routes to `CLAUDE.md` and this index) |
 | [`../protocol/README.md`](../protocol/README.md) | running the protocol generators, pipeline and fingerprint workflow |
 | [`guides/BUILD_AND_DEPLOY.md`](guides/BUILD_AND_DEPLOY.md) | ESPHome/HA compile/runtime file set and the deployment-delta rule |
 | [`guides/AUTH_AND_HISTORY.md`](guides/AUTH_AND_HISTORY.md) | web auth, flash/OTA, recovery, credential rotation, rollback |
