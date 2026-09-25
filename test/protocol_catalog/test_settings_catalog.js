@@ -567,8 +567,238 @@ function main() {
     legacyInput.title.includes("Немає успішного читання") && legacyInput.parentNode.querySelector(".settings-freshness-note").textContent === "Застаріло");
   check("all stale/offline attempts remained read-only", fetchCallLog.length === 0);
 
+  runStartupOrderingScenarios();
+
   console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
   process.exit(failures ? 1 : 0);
+}
+
+// Startup ordering (owner report 2026-09-25: Settings/cell values briefly
+// showed "Offline" right after opening the page). Each scenario is a fresh
+// page lifetime -- a new vm instance of the real jk_bms.js -- because the
+// defect only exists before the FIRST bms_health observation, which the
+// single-lifetime test above can reach only once. The SSE value snapshot,
+// the async /settings/read-freshness snapshot and the first bms_health
+// event have no guaranteed relative order.
+function bootStartupPage() {
+  const { hooks, body } = loadRealClosures();
+  const list = new FakeNode("div");
+  list.id = "settingsCatalogList";
+  body.appendChild(list);
+  const message = new FakeNode("p");
+  message.id = "settingsMessage";
+  body.appendChild(message);
+  const overlay = new FakeNode("div");
+  overlay.id = "cellOverlay";
+  overlay.hidden = true;
+  body.appendChild(overlay);
+  const cellList = new FakeNode("div");
+  cellList.id = "cellCompositeList";
+  body.appendChild(cellList);
+  hooks.renderSettingsCatalog();
+  const row = (manifestId) => list.querySelectorAll(".settings-catalog-row").find((r) => r.dataset.manifestId === manifestId);
+  const legacyRow = row("VolSmartSleep");
+  const binaryRow = row("LCD Always On");
+  const page = {
+    hooks, cellList,
+    legacyInput: legacyRow.querySelector(".settings-catalog-editor"),
+    legacyButton: legacyRow.querySelector(".settings-catalog-action"),
+    binarySelect: binaryRow.querySelector(".settings-catalog-editor"),
+    binaryButton: binaryRow.querySelector(".settings-catalog-action"),
+    marker: (node) => node.parentNode.querySelector(".settings-freshness-note"),
+    cell4() {
+      hooks.renderCellCompositeList();
+      const rows = cellList.querySelectorAll(".cell-composite-row");
+      const cell = rows.find((r) => r.dataset.cellIndex === "4");
+      return { count: rows.length, maxIndex: Math.max(...rows.map((r) => Number(r.dataset.cellIndex))),
+        voltage: cell && cell.querySelector(".cell-composite-voltage") };
+    },
+  };
+  hooks.setBrowserLink("connected"); // EventSource onopen precedes every SSE message
+  return page;
+}
+
+function ingestStartupValues(page) {
+  const { ingestPayload, updateSettingsCatalogValue } = page.hooks;
+  ingestPayload({ id: "text_sensor/topology state", state: "CONFIRMED", value: "CONFIRMED" });
+  ingestPayload({ id: "sensor/display cell count", state: "16", value: 16 });
+  ingestPayload({ id: "sensor/cell voltage 4", state: "3.452 V", value: 3.452 });
+  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  ingestPayload({ id: "binary_sensor/lcd always on", state: "ON", value: true });
+  updateSettingsCatalogValue("VolSmartSleep");
+  updateSettingsCatalogValue("LCD Always On");
+}
+
+const STARTUP_SNAPSHOT = { blocks: [[0x1000, 0, 1], [0x1114, 0, 1], [0x1200, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] };
+const health = (page, value) => page.hooks.ingestPayload({ id: "text_sensor/bms health", state: value, value });
+
+// Every submit path a user can reach from a non-fresh Settings/cell field.
+function attemptAllSubmits(page) {
+  const { submitRegisterSetting, submitRegisterWrite, WRITE_REGISTRY } = page.hooks;
+  submitRegisterSetting("smart_sleep", page.legacyButton);
+  submitRegisterWrite(WRITE_REGISTRY.live.find((e) => e.key === "lcd_always_on"), page.binarySelect, page.binaryButton);
+  return fetchCallLog.length;
+}
+
+function assertPending(page, label) {
+  const { settingsFieldFreshness } = page.hooks;
+  const cell = page.cell4();
+  check(`${label}: cached Settings value is pending, never offline`,
+    page.legacyInput.dataset.freshness === "pending" && settingsFieldFreshness("smart_sleep").kind === "pending",
+    page.legacyInput.dataset.freshness);
+  check(`${label}: cached binary dropdown value is pending`, page.binarySelect.dataset.freshness === "pending",
+    page.binarySelect.dataset.freshness);
+  check(`${label}: cached composite cell value is pending`, cell.voltage && cell.voltage.dataset.freshness === "pending",
+    cell.voltage && cell.voltage.dataset.freshness);
+  check(`${label}: pending marker says "Not yet confirmed" with its explanation, not "Offline"`,
+    page.marker(page.legacyInput).textContent === "Not yet confirmed" && !page.marker(page.legacyInput).hidden &&
+    page.legacyInput.title === "Not yet confirmed — waiting for the first BMS link status" &&
+    !page.legacyInput.classList.contains("is-stale"), `${page.marker(page.legacyInput).textContent} / ${page.legacyInput.title}`);
+  check(`${label}: every RW submit button is disabled while pending`,
+    page.legacyButton.disabled === true && page.binaryButton.disabled === true);
+  check(`${label}: pending submit attempts produce zero GET/POST`, attemptAllSubmits(page) === 0, JSON.stringify(fetchCallLog));
+}
+
+function runStartupOrderingScenarios() {
+  // 1. values -> freshness snapshot -> BMS LIVE (the reported ordering).
+  fakeNow = 600000;
+  let p = bootStartupPage();
+  ingestStartupValues(p);
+  p.legacyInput.value = "3.100";
+  p.legacyInput.dataset.dirty = "true";
+  p.legacyInput.focus();
+  p.legacyInput.setSelectionRange(1, 3);
+  assertPending(p, "S1 values before snapshot");
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  assertPending(p, "S1 snapshot ready, no health yet");
+  let cell = p.cell4();
+  check("S1: 16S active-cell visibility holds while pending", cell.count === 16 && cell.maxIndex === 16);
+  health(p, "LIVE");
+  cell = p.cell4();
+  check("S1: first LIVE makes the cached Settings, dropdown and cell values fresh",
+    p.legacyInput.dataset.freshness === "fresh" && p.binarySelect.dataset.freshness === "fresh" &&
+    cell.voltage.dataset.freshness === "fresh" && p.legacyButton.disabled === false && p.binaryButton.disabled === false);
+  check("S1: draft, focus and selection survive pending -> fresh", p.legacyInput.value === "3.100" &&
+    activeElement === p.legacyInput && p.legacyInput.selectionStart === 1 && p.legacyInput.selectionEnd === 3);
+  check("S1: binary dropdown keeps its observed selection", p.binarySelect.value === "1", p.binarySelect.value);
+  check("S1: zero GET/POST overall", fetchCallLog.length === 0);
+
+  // 1b. An unrecognised bms_health payload is not a health observation, but
+  // (pre-existing fail-closed rule) it still counts as "BMS not healthy" for
+  // the recovery boundary, so the next LIVE needs a new block read.
+  fakeNow = 650000;
+  p = bootStartupPage();
+  ingestStartupValues(p);
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  health(p, "");
+  check("S1b: empty bms_health payload leaves values pending, not offline",
+    p.legacyInput.dataset.freshness === "pending" && p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
+  fakeNow += 1;
+  health(p, "LIVE");
+  check("S1b: LIVE after a non-healthy payload still requires a post-boundary block read",
+    p.legacyInput.dataset.freshness === "offline" && p.legacyButton.disabled === true);
+  fakeNow += 1;
+  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  check("S1b: post-boundary block read restores freshness", p.legacyInput.dataset.freshness === "fresh");
+
+  // 2. BMS LIVE -> freshness snapshot -> values.
+  fakeNow = 700000;
+  p = bootStartupPage();
+  health(p, "LIVE");
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  check("S2: before any value arrives a field is unavailable, not pending/offline",
+    p.legacyInput.dataset.freshness === "unavailable" && p.legacyButton.disabled === true);
+  ingestStartupValues(p);
+  cell = p.cell4();
+  check("S2: values after LIVE+snapshot are immediately fresh", p.legacyInput.dataset.freshness === "fresh" &&
+    p.binarySelect.dataset.freshness === "fresh" && cell.voltage.dataset.freshness === "fresh" && p.legacyButton.disabled === false);
+  check("S2: zero GET/POST", fetchCallLog.length === 0);
+
+  // 3. Explicit BMS OFFLINE as the first health observation.
+  fakeNow = 800000;
+  p = bootStartupPage();
+  ingestStartupValues(p);
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  health(p, "OFFLINE");
+  cell = p.cell4();
+  check("S3: explicit OFFLINE is reported as offline, not pending", p.legacyInput.dataset.freshness === "offline" &&
+    p.binarySelect.dataset.freshness === "offline" && cell.voltage.dataset.freshness === "offline" &&
+    p.marker(p.legacyInput).textContent === "Offline");
+  check("S3: offline submit attempts produce zero GET/POST", p.legacyButton.disabled === true &&
+    p.binaryButton.disabled === true && attemptAllSubmits(p) === 0);
+  health(p, "LIVE");
+  check("S3: recovery to LIVE alone keeps the pre-outage values offline", p.legacyInput.dataset.freshness === "offline");
+  fakeNow += 1;
+  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  check("S3: a post-recovery block read restores freshness", p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === false);
+
+  // 4. Established browser connection lost -> reconnect -> successful
+  // post-boundary block read.
+  fakeNow = 900000;
+  p = bootStartupPage();
+  health(p, "LIVE");
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  ingestStartupValues(p);
+  p.legacyInput.value = "3.200";
+  p.legacyInput.dataset.dirty = "true";
+  p.legacyInput.focus();
+  p.legacyInput.setSelectionRange(0, 2);
+  fakeNow += 1000;
+  p.hooks.setBrowserLink("reconnecting");
+  check("S4: established-link loss marks cached values offline", p.legacyInput.dataset.freshness === "offline" &&
+    p.cell4().voltage.dataset.freshness === "offline" && p.legacyButton.disabled === true);
+  fakeNow += 1000;
+  p.hooks.setBrowserLink("connected");
+  // The real onopen re-fetches the snapshot; the BMS last read the block
+  // 1.5 s ago, i.e. BEFORE the disconnect boundary.
+  p.hooks.acceptReadBlockSnapshot({ blocks: [[0x1000, 1500, 1], [0x1114, 1500, 1], [0x1200, 1500, 1], [0x1240, 1500, 1], [0x1290, 1500, 1]] });
+  check("S4: reconnect never falls back to the initial pending state", p.legacyInput.dataset.freshness === "offline" &&
+    p.binarySelect.dataset.freshness === "offline" && p.cell4().voltage.dataset.freshness === "offline");
+  check("S4: offline-after-reconnect submit attempts produce zero GET/POST", attemptAllSubmits(p) === 0);
+  fakeNow += 1;
+  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  check("S4: a post-boundary block read restores only its own block", p.legacyInput.dataset.freshness === "fresh" &&
+    p.binarySelect.dataset.freshness === "offline");
+  p.hooks.readBlockSuccess(`${0x1114}:2`);
+  check("S4: recovery keeps draft, focus and selection", p.legacyInput.value === "3.200" && activeElement === p.legacyInput &&
+    p.legacyInput.selectionStart === 0 && p.legacyInput.selectionEnd === 2 && p.binarySelect.dataset.freshness === "fresh");
+
+  // 5. values -> BMS LIVE -> freshness snapshot (+ Ukrainian pending text).
+  fakeNow = 1000000;
+  p = bootStartupPage();
+  ingestStartupValues(p);
+  p.hooks.setLanguage("uk");
+  check("S5: pending marker and explanation localize to Ukrainian",
+    p.legacyInput.dataset.freshness === "pending" && p.marker(p.legacyInput).textContent === "Ще не підтверджено" &&
+    p.legacyInput.title === "Ще не підтверджено — очікування першого стану зв'язку з BMS",
+    `${p.marker(p.legacyInput).textContent} / ${p.legacyInput.title}`);
+  p.hooks.setLanguage("en");
+  health(p, "LIVE");
+  check("S5: after LIVE but before the snapshot, values are unavailable (awaiting source freshness), never offline",
+    p.legacyInput.dataset.freshness === "unavailable" && p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  check("S5: snapshot completes health + source freshness -> fresh", p.legacyInput.dataset.freshness === "fresh" &&
+    p.cell4().voltage.dataset.freshness === "fresh" && p.legacyButton.disabled === false);
+
+  // 6. BMS LIVE -> BMS STALE -> BMS LIVE.
+  fakeNow = 1100000;
+  p = bootStartupPage();
+  health(p, "LIVE");
+  p.hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  ingestStartupValues(p);
+  check("S6: fresh while LIVE", p.legacyInput.dataset.freshness === "fresh");
+  fakeNow += 1000;
+  health(p, "STALE");
+  check("S6: explicit STALE still invalidates cached values (offline), never pending",
+    p.legacyInput.dataset.freshness === "offline" && p.binarySelect.dataset.freshness === "offline" &&
+    p.cell4().voltage.dataset.freshness === "offline" && p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
+  fakeNow += 1000;
+  health(p, "LIVE");
+  check("S6: LIVE after STALE alone keeps the old values offline", p.legacyInput.dataset.freshness === "offline");
+  fakeNow += 1;
+  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  check("S6: post-recovery block read restores freshness", p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === false);
+  check("S6: zero GET/POST in the whole scenario", fetchCallLog.length === 0);
 }
 
 main();
