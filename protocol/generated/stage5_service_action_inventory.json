@@ -46,7 +46,7 @@
       "implementation_state": "blocked",
       "blocked_reason": "PAYLOAD_VALUE_CONTRACT_NOT_ESTABLISHED",
       "blocker_closure_criterion": "The exact trigger payload (e.g. a specific magic value such as 0x0001, vs. 'any non-zero write triggers shutdown', vs. some other fixed code) is established by an official errata/clarification or a controlled protocol-capture experiment on a lab-safe device. The official PDF and V2 workbook confirm only the register's address/access=W/wire type/length (UINT16, 2 bytes, internally consistent -- no width ambiguity here) and the command's PURPOSE ('forced BMS board shutdown'); neither states what value the command register actually expects. Guessing a trigger value for a command that cuts board power is exactly the fabrication this Stage explicitly forbids.",
-      "evidence_count": 3
+      "evidence_count": 8
     },
     {
       "key": "current_calibration",
@@ -88,7 +88,7 @@
       "implementation_state": "blocked",
       "blocked_reason": "PAYLOAD_VALUE_CONTRACT_NOT_ESTABLISHED",
       "blocker_closure_criterion": "The exact trigger payload for applying the Li-ion (NMC/NCA) chemistry preset is established by official clarification or a controlled protocol-capture experiment. Width (UINT16, 2 bytes) is internally consistent and not in question; the VALUE that actually triggers the preset (vs. leaves the register merely 'writable but inert') is not stated anywhere in the local sources. This command silently rewrites safety-critical protection thresholds for the wrong chemistry if triggered incorrectly -- never guessed.",
-      "evidence_count": 3
+      "evidence_count": 8
     },
     {
       "key": "lifepo4_preset",
@@ -109,7 +109,7 @@
       "implementation_state": "blocked",
       "blocked_reason": "PAYLOAD_VALUE_CONTRACT_NOT_ESTABLISHED",
       "blocker_closure_criterion": "Same criterion as li_ion (0x160A), resolved independently for this address's LiFePO4 chemistry preset trigger value.",
-      "evidence_count": 3
+      "evidence_count": 8
     },
     {
       "key": "lto_preset",
