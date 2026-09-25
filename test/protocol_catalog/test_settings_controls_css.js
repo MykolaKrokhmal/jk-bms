@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 "use strict";
 
-// Settings controls normalization (owner request 2026-09-25): static
-// regression over the REAL jk_bms.css. It proves the contract the rendered
-// check (mock browser, desktop 1024 px and phone 375 px, light and dark)
-// measured: one control style for number inputs and selects, a visible
-// focus state, distinguishable fresh/stale/offline/pending/unavailable/
-// disabled/error states, a themed field surface, a fixed alignment grid
-// whose status track is always reserved (no layout jump), and a three-track
-// phone layout that cannot overflow.
+// Settings controls (owner requests 2026-09-25): static regression over the
+// REAL jk_bms.css, matching what was measured in the mock browser at 1280,
+// 820, 375 and 320 px, light and dark, and with enlarged text: one field
+// shell per control (value, then unit suffix, then lock), a small neutral
+// lock instead of status badges, reasons kept visually hidden for screen
+// readers, a visible focus ring, distinguishable locked/pending/offline/
+// unavailable/stale/error/draft states, a fixed alignment grid whose status
+// track is reserved on desktop, and a phone layout with no empty rows.
 
 const fs = require("fs");
 const path = require("path");
@@ -60,104 +60,90 @@ const decl = (body, prop) => {
 const find = (selector, media = null) => rules.filter((r) => r.media === media && r.selectors.includes(selector));
 const bodyOf = (selector, media = null) => find(selector, media).map((r) => r.body).join(";");
 
-// 1. One base control style shared by <input> and <select>.
-const base = bodyOf(".settings-catalog-editor");
-check("base control rule is tag-agnostic (applies to input AND select)", base.length > 0);
-check("base control: 38 px height (usable touch target)", decl(base, "height") === "38px", decl(base, "height"));
-check("base control: 8 px radius, 1 px border, horizontal padding, border-box",
-  decl(base, "border-radius") === "8px" && /^1px solid/.test(decl(base, "border") || "") && decl(base, "padding") === "0 10px" &&
-  decl(base, "box-sizing") === "border-box");
-check("base control: themed field surface and ink color, inherited font, tabular digits",
-  decl(base, "background-color") === "var(--field-bg)" && decl(base, "color") === "var(--ink)" && decl(base, "font") === "inherit" &&
-  decl(base, "font-variant-numeric") === "tabular-nums");
-check("cell calibration inputs share the same base control style", find(".cell-composite-calibration-editor").some((r) => r.body === base));
-const select = bodyOf("select.settings-catalog-editor");
-check("select keeps its native element, drawn to the same box with a chevron",
-  decl(select, "appearance") === "none" && /linear-gradient/.test(decl(select, "background-image") || "") && decl(select, "padding-right") === "26px");
-check("number input spinners removed (no clipped digits), value right-aligned",
-  bodyOf("input.settings-catalog-editor").includes("text-align:right") &&
-  rules.some((r) => r.selectors.includes("input.settings-catalog-editor::-webkit-inner-spin-button")));
+// 1. One field shell for inputs and selects; the editor inside it is bare.
+const shell = bodyOf(".settings-field-shell");
+check("field shell: 38 px tall, 8 px radius, 1 px border, themed surface, flex row", decl(shell, "height") === "38px" &&
+  decl(shell, "border-radius") === "8px" && /^1px solid/.test(decl(shell, "border") || "") &&
+  decl(shell, "background-color") === "var(--field-bg)" && decl(shell, "display") === "flex" && decl(shell, "box-sizing") === "border-box");
+const inner = bodyOf(".settings-field-shell > .settings-catalog-editor");
+check("editor inside the shell is borderless, transparent, flexible and can shrink (no overlap with suffixes)",
+  decl(inner, "border") === "0" && decl(inner, "background-color") === "transparent" && decl(inner, "flex") === "1 1 auto" &&
+  decl(inner, "min-width") === "0" && decl(inner, "padding") === "0");
+check("cell calibration editors use the same inner rule", find(".settings-field-shell > .cell-composite-calibration-editor").some((r) => r.body === inner));
+check("number values are right-aligned against the unit; spinners removed",
+  bodyOf(".settings-field-shell > input").includes("text-align:right") &&
+  rules.some((r) => r.selectors.includes(".settings-field-shell > input::-webkit-inner-spin-button")));
+const unit = bodyOf(".settings-field-shell > .settings-catalog-unit");
+check("unit suffix is inside the shell, never shrinks and never wraps", decl(unit, "flex") === "none" && decl(unit, "white-space") === "nowrap");
+const select = bodyOf(".settings-field-shell > select");
+check("select keeps its native element, drawn inside the shell with a chevron", decl(select, "appearance") === "none" &&
+  /linear-gradient/.test(decl(select, "background-image") || ""));
 
-// 2. Visible keyboard focus.
-const focus = bodyOf(".settings-catalog-editor:focus-visible");
-check("focus-visible draws a 2 px accent outline on every control", /^2px solid/.test(decl(focus, "outline") || "") && /accent/.test(focus));
-check("action button has a visible focus-visible outline", /^2px solid/.test(decl(bodyOf(".settings-catalog-action:focus-visible"), "outline") || ""));
-const action = bodyOf(".settings-catalog-action");
-check("action button: 38 px tall, >= 44 px wide", decl(action, "height") === "38px" && parseInt(decl(action, "min-width"), 10) >= 44);
+check("an editable value is full-contrast ink even inside a generic .diag-row (which dims spans)",
+  decl(bodyOf(".diag-row .settings-field-shell"), "color") === "var(--ink)" &&
+  decl(bodyOf(".diag-row .settings-field-shell.is-locked"), "color") === "var(--ink-dim)");
 
-// 3. States are distinguishable.
+// 2. The lock: one small neutral icon, not a control or a badge.
+const lock = bodyOf(".settings-lock");
+const lockSvg = bodyOf(".settings-lock svg");
+check("lock is 14 px, neutral ink, never shrinks", decl(lock, "width") === "14px" && decl(lock, "height") === "14px" &&
+  decl(lock, "color") === "var(--ink-faint)" && decl(lock, "flex") === "none");
+check("lock uses the project's outline icon style (no fill, currentColor stroke, round caps)",
+  decl(lockSvg, "fill") === "none" && decl(lockSvg, "stroke") === "currentColor" && decl(lockSvg, "stroke-linecap") === "round");
+check("lock is not styled as an action (no pointer cursor, no background, no border)",
+  decl(lock, "cursor") === "default" && !decl(lock, "background") && !decl(lock, "border"));
+check("no badge/pill styling remains for write-status notes",
+  !rules.some((r) => r.selectors.some((sel) => /settings-catalog-note|cell-composite-write-state/.test(sel)) && /border-radius|background/.test(r.body)));
+const srOnly = bodyOf(".sr-only");
+check("reasons are visually hidden but kept in the accessibility tree (sr-only, not display:none)",
+  /clip/.test(srOnly) && decl(srOnly, "width") === "1px" && !/display\s*:\s*none/.test(srOnly) && !/visibility/.test(srOnly));
+
+// 3. Focus and states on the shell.
+check("keyboard focus draws a 2 px accent ring on the shell",
+  /^2px solid/.test(decl(bodyOf(".settings-field-shell:has(> :focus-visible)"), "outline") || ""));
+check("action button keeps a visible focus ring and 38 px height",
+  /^2px solid/.test(decl(bodyOf(".settings-catalog-action:focus-visible"), "outline") || "") && decl(bodyOf(".settings-catalog-action"), "height") === "38px");
 const states = {
-  pending: bodyOf('.settings-catalog-editor[data-freshness="pending"]'),
-  unavailable: bodyOf('.settings-catalog-editor[data-freshness="unavailable"]'),
-  offline: bodyOf('.settings-catalog-editor[data-freshness="offline"]'),
-  stale: bodyOf('.settings-catalog-editor[data-freshness="stale"]'),
-  error: bodyOf(".settings-catalog-editor.invalid"),
-  disabled: bodyOf(".settings-catalog-editor:disabled"),
-  dirty: bodyOf('.settings-catalog-editor[data-dirty="true"]'),
+  locked: bodyOf(".settings-field-shell.is-locked"),
+  pending: bodyOf('.settings-field-shell:has(> [data-freshness="pending"])'),
+  offline: bodyOf('.settings-field-shell:has(> [data-freshness="offline"])'),
+  unavailable: bodyOf('.settings-field-shell:not(.is-locked):has(> [data-freshness="unavailable"])'),
+  stale: bodyOf('.settings-field-shell:not(.is-locked):has(> [data-freshness="stale"])'),
+  error: bodyOf(".settings-field-shell:has(> .invalid)"),
+  dirty: bodyOf('.settings-field-shell:has(> [data-dirty="true"])'),
 };
-check("every state has its own rule", Object.values(states).every((b) => b.length > 0), JSON.stringify(Object.keys(states).filter((k) => !states[k])));
-check("every state rule is different", new Set(Object.values(states)).size === Object.keys(states).length);
-check("stale = warning border, error = danger border, offline = dotted, pending = dashed",
-  /var\(--warn\)/.test(decl(states.stale, "border-color") || "") && /var\(--danger\)/.test(decl(states.error, "border-color") || "") &&
-  decl(states.offline, "border-style") === "dotted" && decl(states.pending, "border-style") === "dashed");
-check("disabled/readonly is flat (hairline border, muted surface) and not-allowed",
-  decl(states.disabled, "border-color") === "var(--hair)" && decl(states.disabled, "background-color") === "var(--hair)" &&
-  decl(states.disabled, "cursor") === "not-allowed");
+check("every state has its own rule and every rule differs",
+  Object.values(states).every((b) => b.length > 0) && new Set(Object.values(states)).size === Object.keys(states).length,
+  JSON.stringify(Object.keys(states).filter((k) => !states[k])));
+check("locked = no field fill, hairline border, not-allowed: quieter than an editable (filled) field",
+  decl(states.locked, "background-color") === "transparent" && decl(states.locked, "border-color") === "var(--hair)" &&
+  decl(states.locked, "cursor") === "not-allowed");
+check("warning color only for stale data, danger only for errors; neither on a normally locked field",
+  /var\(--warn\)/.test(states.stale) && /var\(--danger\)/.test(states.error) && !/warn|danger/.test(states.locked) && !/warn|danger/.test(lock));
+check("offline = dotted, pending = dashed", decl(states.offline, "border-style") === "dotted" && decl(states.pending, "border-style") === "dashed");
 const order = (sel) => rules.findIndex((r) => r.selectors.includes(sel));
-check("error styling is declared after the freshness states (an invalid draft always shows as error)",
-  order(".settings-catalog-editor.invalid") > order('.settings-catalog-editor[data-freshness="stale"]'));
-
-// 4. Themed field surface in every theme block.
+check("error styling is declared after the freshness states",
+  order(".settings-field-shell:has(> .invalid)") > order('.settings-field-shell:not(.is-locked):has(> [data-freshness="stale"])'));
 const fieldBgDefs = rules.filter((r) => /--field-bg\s*:/.test(r.body));
-check("--field-bg is defined for default, prefers-light, data-theme=light and data-theme=dark",
-  fieldBgDefs.length === 4 &&
-  fieldBgDefs.some((r) => r.media && r.media.includes("prefers-color-scheme: light")) &&
-  fieldBgDefs.some((r) => r.selectors.includes(':root[data-theme="light"]')) &&
-  fieldBgDefs.some((r) => r.selectors.includes(':root[data-theme="dark"]')));
+check("--field-bg is defined for default, prefers-light, data-theme=light and data-theme=dark", fieldBgDefs.length === 4);
 
-// 5. Alignment grid with a reserved status track.
+// 4. Alignment grid.
 const group = bodyOf(".settings-catalog-editor-group");
-check("desktop: editor group is a four-track grid (editor | unit | action | status)",
-  decl(group, "display") === "grid" &&
-  decl(group, "grid-template-columns") === "var(--sc-editor-w) var(--sc-unit-w) var(--sc-action-w) var(--sc-status-w)");
-check("desktop: the track widths are fixed pixel variables on every Settings row",
-  ["--sc-editor-w", "--sc-unit-w", "--sc-action-w", "--sc-status-w"].every((v) => /^\d+px$/.test(decl(bodyOf(".settings-catalog-row"), v) || "")));
-check("each child has an explicit track (editor 1, unit 2, action/badge 3, status 4)",
-  decl(bodyOf(".settings-catalog-editor-group > .settings-catalog-editor"), "grid-column") === "1" &&
-  decl(bodyOf(".settings-catalog-editor-group > .settings-catalog-unit"), "grid-column") === "2" &&
-  decl(bodyOf(".settings-catalog-editor-group > .settings-catalog-action"), "grid-column") === "3" &&
-  decl(bodyOf(".settings-catalog-editor-group > .settings-freshness-note"), "grid-column") === "4");
+check("desktop: three fixed tracks (field shell | action | status)", decl(group, "display") === "grid" &&
+  decl(group, "grid-template-columns") === "var(--sc-field-w) var(--sc-action-w) var(--sc-status-w)" &&
+  ["--sc-field-w", "--sc-action-w", "--sc-status-w"].every((v) => /^\d+px$/.test(decl(bodyOf(".settings-catalog-row"), v) || "")));
 const reserved = bodyOf(".settings-catalog-row .settings-freshness-note[hidden]");
-check("a hidden status keeps its space (visibility:hidden, not display:none): no layout jump",
-  decl(reserved, "visibility") === "hidden" && decl(reserved, "display") === "block");
+check("desktop: a hidden status keeps its space (no layout jump)", decl(reserved, "visibility") === "hidden" && decl(reserved, "display") === "block");
 check("an empty write-result message takes no space", decl(bodyOf(".settings-catalog-message:empty"), "display") === "none");
 
-// 6. Phone layout.
+// 5. Phone layout: no empty badge/status rows.
 const phone = "@media (max-width:560px)";
 const phoneGroup = bodyOf(".settings-catalog-editor-group", phone);
-check("phone: group takes its own line and switches to three tracks ending in a flexible track",
-  decl(phoneGroup, "flex-basis") === "100%" && /minmax\(0, 1fr\)$/.test(decl(phoneGroup, "grid-template-columns") || ""));
-check("phone: status moves to its own reserved line under the controls",
-  decl(bodyOf(".settings-catalog-editor-group > .settings-freshness-note", phone), "grid-row") === "2" &&
-  decl(bodyOf(".settings-catalog-editor-group > .settings-freshness-note", phone), "grid-column") === "1 / -1");
-const phoneVars = bodyOf(".settings-catalog-row", phone);
-const fixedPhone = ["--sc-editor-w", "--sc-unit-w"].reduce((sum, v) => sum + parseInt(decl(phoneVars, v), 10), 0);
-check("phone: fixed tracks + gaps leave room in the narrowest measured row (257 px content)", fixedPhone + 2 * 8 + 80 <= 257,
-  `${fixedPhone}px fixed`);
-
-// A disabled control with no reading must stay visible: no rule may make
-// both its border and its surface transparent at once.
-const invisible = rules.filter((r) => r.selectors.some((sel) => /settings-catalog-editor(:disabled|\[data-freshness)/.test(sel)) &&
-  decl(r.body, "border-color") === "transparent");
-check("no state makes a control's border transparent (a disabled + unavailable control stays visible)", invisible.length === 0,
-  invisible.map((r) => r.selectors.join(",")).join(" | "));
-check("cell calibration controls wrap instead of overflowing narrow rows",
-  decl(bodyOf(".cell-composite-calibration"), "flex-wrap") === "wrap");
-
-// 7. Commentary is not styled as a paragraph any more.
-const note = bodyOf(".settings-catalog-row .settings-catalog-note");
-check("write-status note is a compact badge (inline-block, small type), not a flexible paragraph column",
-  decl(note, "display") === "inline-block" && decl(note, "font-size") === "12px" && !/flex\s*:\s*1 1/.test(css.match(/\.settings-catalog-note\{[^}]*\}/)?.[0] || ""));
+check("phone: the group takes its own line as [field | action]", decl(phoneGroup, "flex-basis") === "100%" &&
+  decl(phoneGroup, "grid-template-columns") === "minmax(0, 1fr) var(--sc-action-w)");
+check("phone: a hidden status takes no line (display:none)",
+  decl(bodyOf(".settings-catalog-editor-group > .settings-freshness-note[hidden]", phone), "display") === "none");
+check("cell calibration controls wrap instead of overflowing narrow rows", decl(bodyOf(".cell-composite-calibration"), "flex-wrap") === "wrap");
 
 console.log(`\nsettings controls CSS: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);

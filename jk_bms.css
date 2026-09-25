@@ -1302,15 +1302,9 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 .cell-composite-label{ font-weight:500; min-width:84px; }
 .cell-composite-voltage, .cell-composite-resistance{ min-width:72px; text-align:right; }
 .cell-composite-calibration{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; flex:1 1 220px; justify-content:flex-end; }
-.cell-composite-calibration-editor{ width:104px; flex:0 0 auto; }
-.cell-composite-calibration-unit{ font-size:.85em; color:var(--ink-faint); }
-.cell-composite-calibration-value{ min-width:72px; text-align:right; }
-.cell-composite-row .cell-composite-write-state{
-  display:inline-block; padding:3px 8px; border-radius:6px; background:var(--hair); color:var(--ink-dim);
-  font-size:12px; line-height:1.3; white-space:nowrap;
-}
-.cell-composite-row .cell-composite-write-state[data-note-kind="authorization"]{ background:var(--warn-dim); color:var(--warn); }
-.cell-composite-write-state[title]:not([title=""]){ cursor:help; }
+.cell-composite-calibration > .settings-field-shell{ flex:0 0 160px; width:160px; }
+.cell-composite-calibration > .settings-field-shell.is-static{ flex:0 1 auto; width:auto; }
+.cell-composite-calibration > .cell-composite-write-state.request-message:empty{ display:none; }
 .cell-composite-unconfirmed{ color:var(--ink-faint); font-size:.9em; padding:13px 18px; margin:0; }
 @media (max-width:560px){
   .cell-composite-calibration{ flex-basis:100%; justify-content:flex-start; }
@@ -1321,83 +1315,89 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
    real user-facing section headings. Mirrors cell-composite-row's own
    compact-desktop / wrap-on-narrow rhythm; no nested cards. */
 .settings-catalog-group-header{ padding:16px 18px 6px; font-size:.78em; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--ink-faint); }
-/* Settings parameter rows (2026-09-25 normalization): label | control
-   group. The group is a fixed four-track grid -- editor, unit, action (the
-   OK button, or the short write-status badge when a row cannot be
-   written), status (freshness) -- so every editor, unit and status lines up
-   across rows, and a status text appearing or disappearing never moves the
-   layout (its track is always reserved). Evidence prose is the status
-   badge's title, not row text. */
+/* Settings parameter rows: label | control group. The group is a fixed grid
+   -- field shell | action | status -- so fields, units, locks and status
+   line up across rows. The shell carries the field's boundary: the
+   editable value, then the unit suffix, then (when the field cannot be
+   written) one lock indicator, all inside the same border. A status
+   appearing or clearing never moves the desktop layout (its track is
+   always reserved). Why a field is locked is its accessible description
+   (visually hidden) and the lock's tooltip, never row text. */
 .settings-catalog-row{
-  --sc-editor-w:104px; --sc-unit-w:34px; --sc-action-w:132px; --sc-status-w:76px;
+  --sc-field-w:160px; --sc-action-w:52px; --sc-status-w:76px;
   flex-wrap:wrap; gap:8px 14px; min-height:58px;
 }
-.settings-catalog-label{ font-weight:500; flex:1 1 120px; min-width:0; }
+.settings-catalog-label{ font-weight:500; flex:1 1 140px; min-width:0; }
 .settings-catalog-row > .settings-catalog-value{ margin-left:auto; min-width:72px; text-align:right; }
+.settings-catalog-editor-group > .settings-catalog-locked-mark{ grid-column:1; grid-row:1; justify-self:end; margin-right:11px; }
+.settings-catalog-editor-group > .settings-catalog-dash{ color:var(--ink-faint); }
 .settings-catalog-editor-group{
-  display:grid; grid-template-columns:var(--sc-editor-w) var(--sc-unit-w) var(--sc-action-w) var(--sc-status-w);
+  display:grid; grid-template-columns:var(--sc-field-w) var(--sc-action-w) var(--sc-status-w);
   align-items:center; column-gap:8px; row-gap:4px; flex:0 0 auto; margin-left:auto; font-size:var(--fs-body);
 }
-.settings-catalog-editor-group > .settings-catalog-editor{ grid-column:1; grid-row:1; }
-.settings-catalog-editor-group > .settings-catalog-value{ grid-column:1; grid-row:1; text-align:right; overflow-wrap:anywhere; }
-.settings-catalog-editor-group[data-has-unit="false"] > .settings-catalog-value{ grid-column:1 / span 2; }
-.settings-catalog-editor-group > .settings-catalog-unit{ grid-column:2; grid-row:1; }
-.settings-catalog-editor-group > .settings-catalog-action,
-.settings-catalog-editor-group > .settings-catalog-note{ grid-column:3; grid-row:1; justify-self:start; }
-.settings-catalog-editor-group > .settings-freshness-note{ grid-column:4; grid-row:1; }
+.settings-catalog-editor-group > .settings-field-shell{ grid-column:1; grid-row:1; }
+.settings-catalog-editor-group > .settings-catalog-action{ grid-column:2; grid-row:1; justify-self:start; }
+.settings-catalog-editor-group > .settings-freshness-note{ grid-column:3; grid-row:1; }
 .settings-catalog-editor-group > .settings-catalog-message{ grid-column:1 / -1; grid-row:2; margin:0; text-align:right; font-size:12.5px; }
 .settings-catalog-message:empty{ display:none; }
-.settings-catalog-row .settings-catalog-unit{ font-size:13px; color:var(--ink-faint); white-space:nowrap; }
 
-/* One control style for number inputs and selects. */
-.settings-catalog-editor,
-.cell-composite-calibration-editor{
-  box-sizing:border-box; width:100%; min-width:0; height:38px; margin:0; padding:0 10px;
-  border:1px solid var(--hair-strong); border-radius:8px; background-color:var(--field-bg); color:var(--ink);
-  font:inherit; font-size:var(--fs-body); font-variant-numeric:tabular-nums; line-height:normal;
-  transition:border-color .15s ease, background-color .15s ease;
+/* Visually hidden, still in the accessibility tree. */
+.sr-only{
+  position:absolute !important; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
+  clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
 }
-input.settings-catalog-editor,
-input.cell-composite-calibration-editor{ text-align:right; -moz-appearance:textfield; appearance:textfield; }
-input.settings-catalog-editor::-webkit-outer-spin-button,
-input.cell-composite-calibration-editor::-webkit-outer-spin-button,
-input.settings-catalog-editor::-webkit-inner-spin-button,
-input.cell-composite-calibration-editor::-webkit-inner-spin-button{ -webkit-appearance:none; appearance:none; margin:0; }
-select.settings-catalog-editor{
-  -webkit-appearance:none; appearance:none; padding-right:26px; text-align:left; cursor:pointer; text-overflow:ellipsis;
+
+/* The field shell: one box for value + unit + lock. */
+.settings-field-shell{
+  box-sizing:border-box; display:flex; align-items:center; gap:6px; width:100%; min-width:0; height:38px; margin:0;
+  padding:0 10px; border:1px solid var(--hair-strong); border-radius:8px; background-color:var(--field-bg); color:var(--ink);
+  font-size:var(--fs-body); transition:border-color .15s ease, background-color .15s ease;
+}
+.settings-field-shell > .settings-catalog-editor,
+.settings-field-shell > .cell-composite-calibration-editor{
+  flex:1 1 auto; box-sizing:border-box; width:auto; min-width:0; height:100%; margin:0; padding:0; border:0; border-radius:0;
+  background-color:transparent; color:inherit; font:inherit; font-size:var(--fs-body); font-variant-numeric:tabular-nums; outline:none;
+}
+.settings-field-shell > input{ text-align:right; -moz-appearance:textfield; appearance:textfield; }
+.settings-field-shell > input::-webkit-outer-spin-button,
+.settings-field-shell > input::-webkit-inner-spin-button{ -webkit-appearance:none; appearance:none; margin:0; }
+.settings-field-shell > input::placeholder{ color:var(--ink-faint); opacity:1; }
+.settings-field-shell > select{
+  -webkit-appearance:none; appearance:none; padding-right:16px; text-align:left; cursor:pointer; text-overflow:ellipsis;
   background-image:linear-gradient(45deg, transparent 50%, var(--ink-dim) 50%), linear-gradient(135deg, var(--ink-dim) 50%, transparent 50%);
-  background-position:calc(100% - 15px) 50%, calc(100% - 10px) 50%; background-size:5px 5px; background-repeat:no-repeat;
+  background-position:calc(100% - 5px) 50%, calc(100% - 0px) 50%; background-size:5px 5px; background-repeat:no-repeat;
 }
-.settings-catalog-editor:hover:not(:disabled),
-.cell-composite-calibration-editor:hover:not(:disabled){ border-color:var(--ink-faint); }
-.settings-catalog-editor:focus,
-.cell-composite-calibration-editor:focus{ outline:none; }
-.settings-catalog-editor:focus-visible,
-.cell-composite-calibration-editor:focus-visible{ outline:2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset:1px; border-color:var(--accent); }
-/* Read-only display of a value that cannot be written here. */
-.settings-catalog-editor:disabled,
-.cell-composite-calibration-editor:disabled{ background-color:var(--hair); border-color:var(--hair); color:var(--ink-dim); cursor:not-allowed; opacity:1; -webkit-text-fill-color:var(--ink-dim); }
-select.settings-catalog-editor:disabled{ background-image:none; padding-right:10px; }
-/* Link/read state of the value shown in the control (also spelled out in
-the status track,
-so color is never the only signal). */
-.settings-catalog-editor[data-dirty="true"],
-so color is never the only signal). */
-.cell-composite-calibration-editor[data-dirty="true"]{ border-color:color-mix(in srgb, var(--accent) 60%, var(--hair-strong)); }
-.settings-catalog-editor[data-freshness="pending"],
-.cell-composite-calibration-editor[data-freshness="pending"]{ border-style:dashed; color:var(--ink-dim); }
-.settings-catalog-editor[data-freshness="unavailable"],
-.cell-composite-calibration-editor[data-freshness="unavailable"]{ border-style:dashed; background-color:transparent; color:var(--ink-faint); }
-.settings-catalog-editor[data-freshness="offline"],
-.cell-composite-calibration-editor[data-freshness="offline"]{ border-style:dotted; color:var(--ink-faint); -webkit-text-fill-color:var(--ink-faint); }
-.settings-catalog-editor[data-freshness="stale"],
-.cell-composite-calibration-editor[data-freshness="stale"]{ border-color:var(--warn); background-color:var(--warn-dim); }
-.settings-catalog-editor.invalid,
-.cell-composite-calibration-editor.invalid{ border-color:var(--danger); background-color:var(--danger-dim); color:var(--danger); -webkit-text-fill-color:var(--danger); }
-.settings-catalog-editor.is-stale::after,
-.cell-composite-calibration-editor.is-stale::after{ content:none; }
+.settings-field-shell > .settings-catalog-unit,
+.settings-field-shell > .cell-composite-calibration-unit{ flex:none; color:var(--ink-faint); font-size:13px; line-height:1; white-space:nowrap; }
+.settings-lock{ flex:none; display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; color:var(--ink-faint); cursor:default; }
+.settings-lock svg{ display:block; width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
 
-.cell-composite-calibration > .cell-composite-calibration-editor{ width:104px; flex:0 0 104px; }
+/* The shell is a <span>: beat the generic `.diag-row span` faint ink so an
+   editable value reads at full contrast (a locked one at --ink-dim). */
+.diag-row .settings-field-shell{ color:var(--ink); font-size:var(--fs-body); }
+.diag-row .settings-field-shell.is-locked{ color:var(--ink-dim); }
+
+/* Interaction and state, drawn on the shell. */
+.settings-field-shell:hover:not(.is-locked){ border-color:var(--ink-faint); }
+.settings-field-shell:has(> :focus-visible){ outline:2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset:1px; border-color:var(--accent); }
+/* Locked: flat, quieter than an editable field; the lock replaces the chevron. */
+.settings-field-shell.is-locked{ background-color:transparent; border-color:var(--hair); color:var(--ink-dim); cursor:not-allowed; }
+.settings-field-shell.is-locked > :disabled{ cursor:not-allowed; opacity:1; color:var(--ink-dim); -webkit-text-fill-color:var(--ink-dim); }
+.settings-field-shell.is-locked > select{ background-image:none; padding-right:0; }
+/* A locked value without an editor (text/credential rows): no box, lock after the value. */
+.settings-field-shell.is-static{ height:auto; min-height:38px; padding-right:0; border-color:transparent; background-color:transparent; justify-content:flex-end; }
+.settings-field-shell.is-static > .settings-catalog-value,
+.settings-field-shell.is-static > .cell-composite-calibration-value{ min-width:0; text-align:right; overflow-wrap:anywhere; color:var(--ink-dim); }
+/* Link/read state of the value (also spelled out in the status track). */
+.settings-field-shell:has(> [data-dirty="true"]){ border-color:color-mix(in srgb, var(--accent) 60%, var(--hair-strong)); }
+.settings-field-shell:has(> [data-freshness="pending"]){ border-style:dashed; }
+.settings-field-shell:has(> [data-freshness="offline"]){ border-style:dotted; }
+.settings-field-shell:has(> [data-freshness="offline"]) > input:not(:disabled){ color:var(--ink-faint); -webkit-text-fill-color:var(--ink-faint); }
+.settings-field-shell:not(.is-locked):has(> [data-freshness="unavailable"]){ border-style:dashed; background-color:transparent; }
+.settings-field-shell:not(.is-locked):has(> [data-freshness="stale"]){ border-color:var(--warn); background-color:var(--warn-dim); }
+.settings-field-shell:has(> .invalid){ border-color:var(--danger); background-color:var(--danger-dim); }
+.settings-field-shell > .invalid{ color:var(--danger); -webkit-text-fill-color:var(--danger); }
+.settings-field-shell > .is-stale::after{ content:none; }
 
 .settings-catalog-action{
   min-width:44px; height:38px; padding:0 12px; border:1px solid color-mix(in srgb, var(--accent) 55%, var(--hair));
@@ -1405,18 +1405,6 @@ so color is never the only signal). */
 }
 .settings-catalog-action:disabled{ opacity:.45; cursor:not-allowed; }
 .settings-catalog-action:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
-
-/* Short write-status badge (blocked / authorization / unsupported /
-   unavailable); the full reason is its title. */
-.settings-catalog-row .settings-catalog-note{
-  display:inline-block; max-width:100%; padding:3px 8px; border-radius:6px; background:var(--hair);
-  color:var(--ink-dim); font-size:12px; line-height:1.3; text-align:left;
-}
-.settings-catalog-row .settings-catalog-note[data-note-kind="authorization"]{ background:var(--warn-dim); color:var(--warn); }
-.settings-catalog-row .settings-catalog-note[data-note-kind="unsupported"],
-.settings-catalog-row .settings-catalog-note[data-note-kind="unavailable"]{ background:transparent; color:var(--ink-faint); padding-left:0; padding-right:0; }
-.settings-catalog-note[title]:not([title=""]){ cursor:help; }
-.settings-catalog-row > .settings-catalog-note{ margin-left:auto; flex:0 1 auto; }
 
 /* Freshness status: shared with the cell rows; inside Settings rows it has
    its own reserved track and may wrap to two short lines. */
@@ -1428,16 +1416,16 @@ so color is never the only signal). */
 .settings-catalog-row .settings-freshness-note[data-freshness="pending"]{ color:var(--ink-dim); }
 .settings-catalog-row .settings-freshness-note[data-freshness="unavailable"]{ color:var(--ink-faint); }
 .cell-composite-calibration .settings-freshness-note{ flex:0 0 auto; }
-/* Narrow screens: the group takes its own line under the label; three
-   tracks (editor | unit | action/badge) and the status on its own reserved
-   line below, so nothing overflows and nothing jumps. */
+/* Narrow screens: the group takes its own line under the label as
+   [field | action]; a status line appears below only while there is a
+   status to show (no empty rows). */
 @media (max-width:560px){
-  .settings-catalog-row{ --sc-editor-w:96px; --sc-unit-w:28px; --sc-status-w:72px; }
   .settings-catalog-editor-group{
     flex-basis:100%; margin-left:0; min-width:0;
-    grid-template-columns:var(--sc-editor-w) var(--sc-unit-w) minmax(0, 1fr);
+    grid-template-columns:minmax(0, 1fr) var(--sc-action-w);
   }
-  .settings-catalog-editor-group > .settings-freshness-note{ grid-column:1 / -1; grid-row:2; min-height:1.25em; }
+  .settings-catalog-editor-group > .settings-freshness-note{ grid-column:1 / -1; grid-row:2; }
+  .settings-catalog-editor-group > .settings-freshness-note[hidden]{ display:none; }
   .settings-catalog-editor-group > .settings-catalog-message{ grid-row:3; text-align:left; }
 }
 /* Value column widened 15% (94px -> 108px) across every breakpoint below. */

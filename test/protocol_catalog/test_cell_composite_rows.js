@@ -380,11 +380,12 @@ function main() {
   // Settings controls simplification (2026-09-25): a short visible status;
   // the full safety-class sentence is the badge's title (hover/screen reader).
   const authState4 = calib4.querySelector(".cell-composite-write-state");
-  check("authorizationRequired: a short 'Authorization required' badge is shown, not a paragraph",
-    !!authState4 && authState4.textContent === "Authorization required" && authState4.dataset.noteKind === "authorization",
-    authState4 && authState4.textContent);
-  check("authorizationRequired: the real safety class sentence is kept as the badge's description",
-    !!authState4 && authState4.title.includes("disruptive") && authState4.title.length > 40, authState4 && authState4.title);
+  check("authorizationRequired: no visible badge -- one lock indicator inside the locked field shell",
+    !!authState4 && authState4.classList.contains("sr-only") && calib4.querySelectorAll(".settings-lock").length === 1 &&
+    calib4.querySelector(".settings-lock").parentNode.classList.contains("is-locked"));
+  check("authorizationRequired: the real safety class sentence is the input's accessible description and the lock's tooltip",
+    !!authState4 && authState4.textContent.includes("disruptive") && calib4.querySelector("input").getAttribute("aria-describedby") === authState4.id &&
+    calib4.querySelector(".settings-lock").title === authState4.textContent, authState4 && authState4.textContent);
 
   const realAuthEntry = WRITE_REGISTRY.authorizationRequired.find((e) => e.key === "cell_connection_wire_resistance_4");
   check("sanity: cell_connection_wire_resistance_4 really is authorizationRequired in the real, unmodified WRITE_REGISTRY", !!realAuthEntry);
@@ -472,10 +473,11 @@ function main() {
       check("blocked branch (source-patched): no input at all", !calib.querySelector("input"));
       check("blocked branch (source-patched): no submit button", !calib.querySelector(".cell-composite-action"));
       const blockedState = calib.querySelector(".cell-composite-write-state");
-      check("blocked branch (source-patched): a short 'Write blocked' badge is shown",
-        blockedState.textContent === "Write blocked" && blockedState.dataset.noteKind === "blocked");
-      check("blocked branch (source-patched): the real blocker reason is kept as the badge's description",
-        blockedState.title.includes("RANGE_NOT_ESTABLISHED"));
+      check("blocked branch (source-patched): no visible badge -- exactly one lock indicator",
+        blockedState.classList.contains("sr-only") && calib.querySelectorAll(".settings-lock").length === 1);
+      check("blocked branch (source-patched): the real blocker reason is kept as the accessible description",
+        blockedState.textContent.includes("RANGE_NOT_ESTABLISHED") &&
+        calib.querySelector(".cell-composite-calibration-value").getAttribute("aria-describedby") === blockedState.id);
     },
     'key: "cell_connection_wire_resistance_4"'
   );

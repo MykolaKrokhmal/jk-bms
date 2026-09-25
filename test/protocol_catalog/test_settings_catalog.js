@@ -200,6 +200,11 @@ class FakeNode {
   getContext() { return {}; }
 }
 function fakeClick(node) { node.dispatchEvent(new FakeEvent("click", node)); }
+// The freshness status sits beside the field shell (value | unit | lock).
+function statusNote(node) {
+  const shell = node.closest(".settings-field-shell");
+  return (shell ? shell.parentNode : node.parentNode).querySelector(".settings-freshness-note");
+}
 
 let fetchCallLog = [];
 let fakeNow = 100000;
@@ -369,19 +374,22 @@ function main() {
     !!authSelect && authSelect.disabled === true && authSelect.childNodes.some((o) => o.textContent === "CAN") && authSelect.childNodes.some((o) => o.textContent === "RS485"));
   check("authorization_required row: no button anywhere (cannot dispatch)", !authRow.querySelector("button"));
   const authNote = authRow.querySelector(".settings-catalog-note");
-  check("authorization_required row: a short localized safety status badge, not a paragraph",
-    authNote && authNote.textContent === "Authorization required" && authNote.dataset.noteKind === "authorization", authNote && authNote.textContent);
-  check("authorization_required row: the real safety-class explanation is kept as the badge's description",
-    authNote && authNote.title.includes("disruptive"), authNote && authNote.title);
+  check("authorization_required row: no visible badge -- exactly one lock indicator inside the locked field shell",
+    authNote && authNote.classList.contains("sr-only") && authRow.querySelectorAll(".settings-lock").length === 1 &&
+    authRow.querySelector(".settings-lock").parentNode.classList.contains("is-locked"));
+  check("authorization_required row: the full safety-class reason is the select's accessible description",
+    authNote && authNote.textContent.startsWith("Authorization required. ") && authNote.textContent.includes("disruptive") &&
+    authSelect.getAttribute("aria-describedby").split(" ").includes(authNote.id), authNote && authNote.textContent);
 
   const blockedRow = rowFor("CellCount"); // cell_count, blocked
   check("blocked RW row exists and renders as RW (not silently a plain R row)", !!blockedRow && blockedRow.dataset.access === "RW");
   check("blocked row: no button anywhere (cannot dispatch)", !blockedRow.querySelector("button"));
   const blockedNote = blockedRow.querySelector(".settings-catalog-note");
-  check("blocked row: a short 'Write blocked' status badge, not the evidence paragraph",
-    blockedNote && blockedNote.textContent === "Write blocked" && blockedNote.dataset.noteKind === "blocked", blockedNote && blockedNote.textContent);
-  check("blocked row: the closure criterion (a real human sentence, not a bare code) is kept as the badge's description",
-    blockedNote && blockedNote.title.length > 20 && !/^[A-Z_]+$/.test(blockedNote.title.trim()), blockedNote && blockedNote.title);
+  check("blocked row: no visible 'Write blocked' badge -- exactly one lock indicator",
+    blockedNote && blockedNote.classList.contains("sr-only") && blockedRow.querySelectorAll(".settings-lock").length === 1);
+  check("blocked row: the closure criterion (a real human sentence, not a bare code) is the accessible description",
+    blockedNote && blockedNote.textContent.startsWith("Write blocked. ") && blockedNote.textContent.length > 40 &&
+    blockedRow.querySelector(".settings-lock").title === blockedNote.textContent, blockedNote && blockedNote.textContent);
 
   const wRow = rowFor("Shutdown"); // W command, blocked
   check("W-command row exists, renders exactly once", !!wRow);
@@ -585,7 +593,7 @@ function main() {
   sweepDiagnosticStaleness();
   setLanguage("uk");
   check("stale indication and age explanation localize to Ukrainian", legacyInput.dataset.freshness === "stale" &&
-    legacyInput.title.includes("Немає успішного читання") && legacyInput.parentNode.querySelector(".settings-freshness-note").textContent === "Застаріло");
+    legacyInput.title.includes("Немає успішного читання") && statusNote(legacyInput).textContent === "Застаріло");
   check("all stale/offline attempts remained read-only", fetchCallLog.length === 0);
 
   runStartupOrderingScenarios();
@@ -642,7 +650,7 @@ function bootStartupPage({ connect = true } = {}) {
     legacyButton: legacyRow.querySelector(".settings-catalog-action"),
     binarySelect: binaryRow.querySelector(".settings-catalog-editor"),
     binaryButton: binaryRow.querySelector(".settings-catalog-action"),
-    marker: (node) => node.parentNode.querySelector(".settings-freshness-note"),
+    marker: (node) => statusNote(node),
     cell4() {
       hooks.renderCellCompositeList();
       const rows = cellList.querySelectorAll(".cell-composite-row");
@@ -1016,31 +1024,45 @@ function runControlsSimplificationScenario() {
   const { SETTINGS_CATALOG_ROWS, setLanguage, updateSettingsCatalogValue, relocalizeSettingsCatalog } = p.hooks;
   const list = document_list();
   const rows = list.querySelectorAll(".settings-catalog-row");
+  // Visible text = textContent minus visually hidden (sr-only) descriptions.
+  const visibleText = (node) => (node.classList && node.classList.contains("sr-only")) ? "" :
+    (node.childNodes.length ? node.childNodes.map(visibleText).join("") : node.textContent);
   const prose = SETTINGS_CATALOG_ROWS.map((r) => r.blockerClosureCriterion).filter((x) => typeof x === "string" && x.length > 40);
-  // Visible text of a row = its textContent (title attributes are not text).
-  const leaking = rows.filter((row) => prose.some((text) => row.textContent.includes(text)));
-  check("X1: no row shows a blocker closure-criterion paragraph as text", prose.length > 20 && leaking.length === 0,
+  const leaking = rows.filter((row) => prose.some((text) => visibleText(row).includes(text)));
+  check("X1: no row shows a blocker closure-criterion paragraph as visible text", prose.length > 20 && leaking.length === 0,
     `${prose.length} criteria, leaking rows: ${leaking.slice(0, 3).map((r) => r.dataset.manifestId).join(",")}`);
-  const notes = list.querySelectorAll(".settings-catalog-note");
-  const longest = Math.max(...notes.map((n) => n.textContent.length));
-  check("X1: every visible write-status text is short (<= 60 chars)", notes.length > 40 && longest <= 60, `longest=${longest}`);
+  const badgeWords = ["Write blocked", "Authorization required", "Unavailable"];
+  const locked = rows.filter((r) => r.querySelector(".settings-lock"));
+  check("X1: no locked row shows a visible 'Write blocked' / 'Authorization required' / 'Unavailable' text",
+    locked.length > 40 && locked.every((r) => badgeWords.every((w) => !visibleText(r).includes(w))),
+    locked.filter((r) => badgeWords.some((w) => visibleText(r).includes(w))).slice(0, 3).map((r) => r.dataset.manifestId).join(","));
 
   const byState = (state) => SETTINGS_CATALOG_ROWS.filter((r) => r.readWriteState === state && r.canonicalKey)
     .map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId)).filter(Boolean);
   const blocked = byState("blocked");
   const authorization = byState("authorization_required");
-  check("X2: every blocked RW row keeps its safety status badge with the full reason as description",
-    blocked.length > 20 && blocked.every((el) => {
-      const note = el.querySelector(".settings-catalog-note");
-      return note && note.textContent === "Write blocked" && note.dataset.noteKind === "blocked" && note.title.length > 10;
-    }));
-  check("X2: every authorization-required row keeps its safety badge + safety-class description",
-    authorization.length > 0 && authorization.every((el) => {
-      const note = el.querySelector(".settings-catalog-note");
-      return note && note.textContent === "Authorization required" && /safety class/.test(note.title);
-    }));
-  check("X2: blocked/authorization rows still have no submit button (fail closed)",
-    [...blocked, ...authorization].every((el) => !el.querySelector("button")));
+  const lockedFieldOk = (el, prefix) => {
+    const note = el.querySelector(".settings-catalog-note");
+    const locks = el.querySelectorAll(".settings-lock");
+    const target = el.querySelector(".settings-catalog-editor") || el.querySelector(".settings-catalog-value");
+    return note && note.classList.contains("sr-only") && note.textContent.startsWith(prefix) && note.textContent.length > prefix.length + 10 &&
+      locks.length === 1 && locks[0].getAttribute("aria-hidden") === "true" && locks[0].title === note.textContent &&
+      target && (target.getAttribute("aria-describedby") || "").split(" ").includes(note.id);
+  };
+  check("X2: every blocked RW row: exactly one lock, full reason as the field's accessible description and the lock's tooltip",
+    blocked.length > 20 && blocked.every((el) => lockedFieldOk(el, "Write blocked. ")),
+    blocked.filter((el) => !lockedFieldOk(el, "Write blocked. ")).slice(0, 3).map((el) => el.dataset.manifestId).join(","));
+  check("X2: every authorization-required row: exactly one lock, safety-class reason as the accessible description",
+    authorization.length > 0 && authorization.every((el) => lockedFieldOk(el, "Authorization required. ") &&
+      /safety class/.test(el.querySelector(".settings-catalog-note").textContent)));
+  check("X2: locked controls are disabled, and blocked/authorization rows have no submit button (fail closed)",
+    [...blocked, ...authorization].every((el) => !el.querySelector("button") &&
+      el.querySelectorAll(".settings-catalog-editor").every((ed) => ed.disabled === true)));
+  const live = SETTINGS_CATALOG_ROWS.filter((r) => r.readWriteState === "live" && settingsEditorKindOf(r))
+    .map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId)).filter(Boolean);
+  check("X2: active controls are enabled, unlocked and carry no lock", live.length > 20 &&
+    live.every((el) => !el.querySelector(".settings-lock") && el.querySelector(".settings-catalog-editor").disabled !== true &&
+      !el.querySelector(".settings-field-shell").classList.contains("is-locked")));
   const liveStage4 = SETTINGS_CATALOG_ROWS.filter((r) => r.readWriteState === "live" && r.writePathKind === "stage4_write_registry")
     .map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId)).filter(Boolean);
   check("X2: Stage 4 rows keep their write-result status region (role=status, aria-live)",
@@ -1048,42 +1070,62 @@ function runControlsSimplificationScenario() {
       const m = el.querySelector(".settings-catalog-message");
       return m && m.getAttribute("role") === "status" && m.getAttribute("aria-live") === "polite" && m.id.startsWith("wrMsg_");
     }));
+  const wRows = SETTINGS_CATALOG_ROWS.filter((r) => r.access === "W").map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId));
+  check("X2: write-only commands show one lock and keep the reason as the row description",
+    wRows.length > 0 && wRows.every((el) => el.querySelectorAll(".settings-lock").length === 1 &&
+      idRegistry.get(el.getAttribute("aria-describedby")) === el.querySelector(".settings-catalog-note")));
 
+  // Units: inside the shell, outside the editable value; selects get none.
+  const shells = list.querySelectorAll(".settings-field-shell");
+  const unitShells = shells.filter((sh) => sh.querySelector(".settings-catalog-unit"));
+  check("X3: numeric units are suffixes inside the field shell, after the editor and before the lock",
+    unitShells.length > 30 && unitShells.every((sh) => {
+      const kids = sh.childNodes;
+      const unitIdx = kids.findIndex((k) => k.classList.contains("settings-catalog-unit"));
+      const lockIdx = kids.findIndex((k) => k.classList.contains("settings-lock"));
+      return kids[0].classList.contains("settings-catalog-editor") && kids[0].tagName === "input" && unitIdx === 1 &&
+        (lockIdx === -1 || lockIdx === 2) && kids[0].childNodes.length === 0;
+    }));
+  check("X3: selects never get a unit suffix; rows without a unit get no unit slot",
+    shells.filter((sh) => sh.querySelector("select")).every((sh) => !sh.querySelector(".settings-catalog-unit")) &&
+    shells.every((sh) => sh.querySelectorAll(".settings-catalog-unit").every((u) => u.textContent.trim() !== "")));
+  check("X3: every numeric input value is a bare number (no unit text)",
+    list.querySelectorAll(".settings-catalog-editor").filter((ed) => ed.tagName === "input" && ed.value !== "")
+      .every((ed) => /^-?\d+(\.\d+)?$/.test(ed.value)));
+
+  // Accessibility wiring.
+  const allIds = [];
+  list._walk((n) => { if (n.id) allIds.push(n.id); });
+  check("X4: no duplicate DOM ids in the Settings list", allIds.length > 300 && new Set(allIds).size === allIds.length,
+    `${allIds.length} ids`);
+  const idLists = [...list.querySelectorAll(".settings-catalog-editor"), ...list.querySelectorAll(".settings-catalog-action"),
+    ...list.querySelectorAll(".settings-catalog-value"), ...rows].flatMap((n) => [n.getAttribute("aria-labelledby"), n.getAttribute("aria-describedby")])
+    .filter(Boolean);
+  check("X4: every aria-labelledby/-describedby id resolves to exactly one element",
+    idLists.length > 150 && idLists.every((v) => v.split(" ").every((id) => /^[A-Za-z0-9_-]+$/.test(id) && allIds.filter((x) => x === id).length === 1)));
   const editors = list.querySelectorAll(".settings-catalog-editor");
-  const idLists = [...editors, ...list.querySelectorAll(".settings-catalog-action"), ...list.querySelectorAll(".settings-catalog-value")]
-    .flatMap((n) => [n.getAttribute("aria-labelledby"), n.getAttribute("aria-describedby")]).filter(Boolean);
-  check("X3: every aria id reference is a valid single-token id list (manifest ids with spaces are escaped)",
-    idLists.length > 100 && idLists.every((v) => v.split(" ").every((id) => /^[A-Za-z0-9_-]+$/.test(id) && idRegistry.get(id))));
-  const labelled = editors.filter((ed) => {
-    const labelId = ed.getAttribute("aria-labelledby");
-    const label = labelId && idRegistry.get(labelId);
-    return label && label.textContent.trim().length > 0;
-  });
-  check("X3: every Settings control (editable or disabled) has a programmatic label with text",
-    editors.length > 50 && labelled.length === editors.length, `${labelled.length}/${editors.length}`);
-  const described = editors.filter((ed) => {
-    const ids = (ed.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean);
-    return ids.length > 0 && ids.every((id) => idRegistry.get(id)) && ids.some((id) => idRegistry.get(id).classList.contains("settings-freshness-note"));
-  });
-  check("X3: every control is described by its (existing) freshness status element", described.length === editors.length,
-    `${described.length}/${editors.length} missing: ${editors.filter((ed) => !described.includes(ed)).map((ed) => `${ed.closest(".settings-catalog-row").dataset.manifestId}[${ed.getAttribute("aria-describedby")}]`).join(" ")}`);
-  check("X3: Stage 4 editors are also described by their write-result region",
-    liveStage4.every((el) => (el.querySelector(".settings-catalog-editor").getAttribute("aria-describedby") || "").includes("wrMsg_")));
-  check("X3: disabled blocked editors are described by their write-status badge",
-    blocked.filter((el) => el.querySelector(".settings-catalog-editor")).every((el) =>
-      (el.querySelector(".settings-catalog-editor").getAttribute("aria-describedby") || "").includes(el.querySelector(".settings-catalog-note").id)));
-  check("X3: editable controls are native INPUT/SELECT and actions native type=button buttons (keyboard-operable)",
+  check("X4: every Settings control has a programmatic label with text",
+    editors.length > 50 && editors.every((ed) => { const l = idRegistry.get(ed.getAttribute("aria-labelledby")); return l && l.textContent.trim(); }));
+  check("X4: every control is described by its freshness status element",
+    editors.every((ed) => (ed.getAttribute("aria-describedby") || "").split(" ").some((id) => idRegistry.get(id).classList.contains("settings-freshness-note"))));
+  check("X4: controls are native INPUT/SELECT and actions native type=button buttons (keyboard-operable)",
     editors.every((ed) => ed.tagName === "input" || ed.tagName === "select") && editors.every((ed) => ed.getAttribute("tabindex") === null) &&
     list.querySelectorAll(".settings-catalog-action").every((b) => b.tagName === "button" && b.type === "button"));
-  check("X3: every editor group declares whether it has a unit (alignment track)",
-    list.querySelectorAll(".settings-catalog-editor-group").every((g) => g.dataset.hasUnit === "true" || g.dataset.hasUnit === "false"));
 
-  // R rows with no reading: the value itself says "Unavailable" -- the
-  // status track does not repeat it.
+  // "Unavailable" is never said twice.
+  const lockedEmpty = [...blocked, ...authorization].filter((el) => !p.hooks.state[el.dataset.canonicalKey]);
+  check("X5: a locked field without a reading shows a dash and no 'Unavailable' status beside it",
+    lockedEmpty.length > 10 && lockedEmpty.every((el) => {
+      const ed = el.querySelector(".settings-catalog-editor");
+      const val = el.querySelector(".settings-catalog-value");
+      const dash = ed ? (ed.tagName !== "input" || (ed.value === "" && ed.placeholder === "—")) : val.textContent === "—";
+      const m = el.querySelector(".settings-freshness-note");
+      return dash && m.hidden && m.textContent === "";
+    }));
   const emptyR = SETTINGS_CATALOG_ROWS.filter((r) => r.access === "R" && r.canonicalKey)
     .map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId)).filter(Boolean)
     .filter((el) => el.querySelector(".settings-catalog-value").textContent === "Unavailable");
-  check("X4: an unread R value never shows 'Unavailable' twice", emptyR.length > 10 &&
+  check("X5: an unread R value never shows 'Unavailable' twice", emptyR.length > 10 &&
     emptyR.every((el) => { const m = el.querySelector(".settings-freshness-note"); return m.hidden && m.textContent === ""; }));
 
   // Status kinds remain distinct and spelled out (never color-only).
@@ -1100,12 +1142,24 @@ function runControlsSimplificationScenario() {
   seen[kindOf()] = textOf();
   p.hooks.setBrowserLink("reconnecting");
   seen[kindOf()] = textOf();
-  check("X5: pending/fresh/stale/offline are distinct states, each non-fresh one with its own status text",
+  check("X6: pending/fresh/stale/offline are distinct states, each non-fresh one with its own status text",
     Object.keys(seen).sort().join(",") === "fresh,offline,pending,stale" && seen.fresh === "" &&
     new Set([seen.pending, seen.stale, seen.offline]).size === 3 && [seen.pending, seen.stale, seen.offline].every(Boolean), JSON.stringify(seen));
 
-  // Draft preservation across re-render (relocalization + value refresh).
+  // The submitted value is the bare number, never the unit suffix.
   p.hooks.setBrowserLink("connected");
+  health(p, "LIVE");
+  fakeNow += 1;
+  p.hooks.readBlockSuccess(`${0x1000}:9`);
+  p.legacyInput.value = "3.33";
+  p.legacyInput.dataset.dirty = "true";
+  fetchCallLog = [];
+  try { p.hooks.submitRegisterSetting("smart_sleep", p.legacyButton); } catch (_) { /* fetch shim throws by design */ }
+  const sent = fetchCallLog.map((f) => f.url).join(" ");
+  check("X7: a legacy submit sends the bare number (value=3.33), never the unit", /[?&]value=3\.33(&|$)/.test(sent) && !/value=[^&]*[A-Za-zВ]/.test(sent), sent);
+  fetchCallLog = [];
+
+  // Draft preservation across re-render (relocalization + value refresh).
   p.legacyInput.value = "3.111";
   p.legacyInput.dataset.dirty = "true";
   p.legacyInput.focus();
@@ -1117,13 +1171,21 @@ function runControlsSimplificationScenario() {
   updateSettingsCatalogValue("VolSmartSleep");
   updateSettingsCatalogValue("LCD Always On");
   const ukNote = blocked[0].querySelector(".settings-catalog-note");
-  check("X6: relocalization keeps drafts, dirty flags, focus, selection and dropdown choice",
+  check("X8: relocalization keeps drafts, dirty flags, focus, selection and dropdown choice",
     p.legacyInput.value === "3.111" && p.legacyInput.dataset.dirty === "true" && activeElement === p.legacyInput &&
     p.legacyInput.selectionStart === 1 && p.legacyInput.selectionEnd === 3 && p.binarySelect.value === "0");
-  check("X6: the write-status badge relocalizes (short UK text, description kept)",
-    ukNote.textContent === "Запис заблоковано" && ukNote.title.length > 10, ukNote.textContent);
+  check("X8: the lock reason relocalizes (UK description and tooltip, still no visible badge)",
+    ukNote.textContent.startsWith("Запис заблоковано. ") && blocked[0].querySelector(".settings-lock").title === ukNote.textContent &&
+    !visibleText(blocked[0]).includes("Запис заблоковано"), ukNote.textContent.slice(0, 40));
+  const unsupported = rows.filter((el) => el.dataset.readWriteState === "unsupported_protocol_field");
+  check("X8: unmapped read fields keep their dash (not 'Unavailable') after relocalization",
+    unsupported.length > 0 && unsupported.every((el) => el.querySelector(".settings-catalog-dash").textContent === "—"));
   setLanguage("en");
-  check("X: no GET/POST during the controls scenario", fetchCallLog.length === 0);
+  check("X: no GET/POST during the controls scenario (outside the explicit X7 submit)", fetchCallLog.length === 0);
+}
+
+function settingsEditorKindOf(row) {
+  return row.valueKind === "enum" || row.valueKind === "binary" || row.valueKind === "numeric";
 }
 
 function document_list() {
