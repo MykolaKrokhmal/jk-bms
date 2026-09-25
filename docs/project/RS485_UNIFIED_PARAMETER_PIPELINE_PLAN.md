@@ -120,6 +120,14 @@ runtime behaviour — no audit-only stages.
 - **Hardware:** none. **Owner decision pending:** whether the browser should
   use these backend values instead of computing its own.
 
+### Post-Stage-2 consistency follow-up (2026-09-25)
+
+- **Security:** setup-passcode exposure remediated in code (credential fields
+  are status-only, retired publisher dropped, browser masking, strengthened
+  secret scan, local history redacted). L10 is closed. Device flash, then
+  passcode rotation, then HA history cleanup remain owner actions (see
+  `CURRENT_LIMITATIONS.md`).
+
 ### Stage 3 — One label source
 
 - **Objective:** `DIAGNOSTIC_ENTITY_LABELS` no longer duplicates canonical

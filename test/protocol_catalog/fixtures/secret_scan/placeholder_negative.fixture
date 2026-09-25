@@ -4,3 +4,7 @@ wifi:
 api:
   encryption:
     key: !secret jk_bms_api_key
+# Redacted / empty setup-passcode-readback records and the non-secret status entity are safe.
+data: {"id":"text_sensor/setup passcode readback","domain":"text_sensor","value":"<redacted-secret>","state":"<redacted-secret>"}
+data: {"id":"text_sensor/setup passcode readback","domain":"text_sensor","value":"","state":""}
+data: {"id":"text_sensor/setup passcode status","domain":"text_sensor","value":"hidden","state":"hidden"}

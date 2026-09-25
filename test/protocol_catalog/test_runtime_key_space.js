@@ -58,7 +58,7 @@ function loadRealClosures() {
 }
 
 const hooks = loadRealClosures();
-const { entityByWireId, PROTOCOL_CATALOG, LEGACY_COMPANION_SUPPRESSED } = hooks;
+const { entityByWireId, PROTOCOL_CATALOG, LEGACY_COMPANION_SUPPRESSED, RETIRED_SECRET_SUPPRESSED } = hooks;
 
 const registerKeys = new Set(readJson("protocol/registers.canonical.json").registers.flatMap((r) => r.fields.map((f) => f.key)));
 const nonRegisterEntities = readJson("protocol/non_register_entities.canonical.json").entities;
@@ -81,8 +81,10 @@ for (let i = 0; i < names.length; i += 1) {
 // 2. Every routed runtime key is in exactly one class.
 const runtimeKeys = new Set();
 let legacyWireIds = 0;
+let retiredSecretWireIds = 0;
 for (const value of entityByWireId.values()) {
   if (value === LEGACY_COMPANION_SUPPRESSED) legacyWireIds += 1;
+  else if (value === RETIRED_SECRET_SUPPRESSED) retiredSecretWireIds += 1;
   else runtimeKeys.add(value);
 }
 const unclassified = [...runtimeKeys].filter((k) => classOf(k).length === 0).sort();
@@ -99,6 +101,16 @@ check("legacy companions are suppressed only via the generated legacyCompanionEn
   legacy.length > 0 && legacyWireIds > 0 &&
   legacy.every(([, domain, entityId]) => entityByWireId.get(`${domain}-${entityId}`) === LEGACY_COMPANION_SUPPRESSED),
   `entries=${legacy.length} suppressedWireIds=${legacyWireIds}`);
+
+// 3b. Retired secret publishers are suppressed only for canonical
+// credential-class fields' retired_secret_read_entities.
+const retiredCanonical = readJson("protocol/registers.canonical.json").registers.flatMap((r) => r.fields)
+  .flatMap((f) => (f.retired_secret_read_entities || []).map((e) => ({ credential: f.write_safety_class === "credential", ...e })));
+check("retired secret publishers are suppressed exactly per canonical retired_secret_read_entities (credential fields only)",
+  retiredCanonical.length > 0 && retiredCanonical.every((e) => e.credential &&
+    entityByWireId.get(`${e.domain}-${e.entity_id}`) === RETIRED_SECRET_SUPPRESSED &&
+    entityByWireId.get(`${e.domain}/${e.configured_name}`) === RETIRED_SECRET_SUPPRESSED) && retiredSecretWireIds > 0,
+  `entries=${retiredCanonical.length} suppressedWireIds=${retiredSecretWireIds}`);
 
 // 4. The generated catalog agrees with the canonical source.
 const generatedNonRegister = new Set(PROTOCOL_CATALOG.nonRegisterKeys);

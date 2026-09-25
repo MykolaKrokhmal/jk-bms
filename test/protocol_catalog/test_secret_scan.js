@@ -45,6 +45,21 @@ const DETECTORS = [
   },
 ];
 
+// Security remediation (2026-09-25): the device's setup-passcode readback
+// entity published the decoded credential as a generic JSON `"state"` /
+// `"value"` field in /events captures, which no key=value detector matches.
+// This detector finds such records structurally; only an empty value or a
+// `<...>` redaction marker is safe. Its findings never carry a fingerprint.
+const CREDENTIAL_RECORD = /^[^\n]*"id":"text_sensor(?:\/[^"\/]*)?[\/-]setup[ _]passcode[ _]readback"[^\n]*$/gm;
+const CREDENTIAL_FIELD = /"(?:value|state)":"((?:[^"\\]|\\.)*)"/g;
+function credentialRecordValue(match) {
+  for (const field of match[0].matchAll(CREDENTIAL_FIELD)) {
+    if (field[1] !== "" && !/^<[^>]+>$/.test(field[1])) return field[1];
+  }
+  return "<none>";
+}
+const CREDENTIAL_DETECTOR = { id: "CREDENTIAL_READBACK_STATE", regex: CREDENTIAL_RECORD, value: credentialRecordValue, withholdFingerprint: true };
+
 const SAFE_VALUE_PATTERNS = [
   /^!secret\s+[A-Za-z_][A-Za-z0-9_]*$/,
   /^!env_var\s+[A-Za-z_][A-Za-z0-9_]*$/,
@@ -97,8 +112,8 @@ function lineAt(text, offset) {
   return line;
 }
 
-function scanText(text, fileLabel, scope, findings) {
-  for (const detector of DETECTORS) {
+function scanText(text, fileLabel, scope, findings, detectors = DETECTORS.concat([CREDENTIAL_DETECTOR])) {
+  for (const detector of detectors) {
     detector.regex.lastIndex = 0;
     for (let match = detector.regex.exec(text); match; match = detector.regex.exec(text)) {
       const value = detector.value(match);
@@ -108,7 +123,7 @@ function scanText(text, fileLabel, scope, findings) {
         file: fileLabel,
         line: lineAt(text, match.index),
         detector: detector.id,
-        fingerprint: fingerprint(value),
+        fingerprint: detector.withholdFingerprint ? "withheld" : `sha256:${fingerprint(value)}`,
       });
       if (match[0].length === 0) detector.regex.lastIndex += 1;
     }
@@ -148,6 +163,7 @@ function scanWorktree(findings, statistics) {
     if (!stat.isFile()) continue; // e.g. a broken symlink git still tracks
     if (stat.size > MAX_FILE_BYTES) {
       statistics.skippedLarge += 1;
+      scanLargeForCredentials(fs.readFileSync(absolute), relative, "worktree", findings, statistics);
       continue;
     }
     const buffer = fs.readFileSync(absolute);
@@ -170,6 +186,7 @@ function scanIndex(findings, statistics) {
     if (blob.status !== 0) continue;
     if (blob.stdout.length > MAX_FILE_BYTES) {
       statistics.skippedLarge += 1;
+      scanLargeForCredentials(blob.stdout, relative, "index", findings, statistics);
       continue;
     }
     if (isProbablyBinary(blob.stdout)) {
@@ -190,11 +207,24 @@ function scanRecentHistory(findings, statistics) {
     for (const relative of files.stdout.toString("utf8").split("\0").filter(Boolean)) {
       if (DEFAULT_EXCLUDED_FILES.has(relative)) continue;
       const blob = git(["show", `${revision}:${relative}`], { encoding: "buffer" });
-      if (blob.status !== 0 || blob.stdout.length > MAX_FILE_BYTES || isProbablyBinary(blob.stdout)) continue;
+      if (blob.status !== 0) continue;
+      if (blob.stdout.length > MAX_FILE_BYTES) {
+        scanLargeForCredentials(blob.stdout, `${revision.slice(0, 12)}:${relative}`, "history", findings, statistics);
+        continue;
+      }
+      if (isProbablyBinary(blob.stdout)) continue;
       statistics.historyFiles += 1;
       scanText(blob.stdout.toString("utf8"), `${revision.slice(0, 12)}:${relative}`, "history", findings);
     }
   }
+}
+
+// Files above MAX_FILE_BYTES skip the general detectors, but NOT the
+// credential-record detector: the leaking captures were large SSE logs.
+function scanLargeForCredentials(buffer, fileLabel, scope, findings, statistics) {
+  if (isProbablyBinary(buffer)) return;
+  if (statistics) statistics.largeCredentialScanned = (statistics.largeCredentialScanned || 0) + 1;
+  scanText(buffer.toString("utf8"), fileLabel, scope, findings, [CREDENTIAL_DETECTOR]);
 }
 
 function assertFixtureBehavior() {
@@ -204,6 +234,18 @@ function assertFixtureBehavior() {
   scanText(fs.readFileSync(NEGATIVE_FIXTURE, "utf8"), path.relative(REPO_ROOT, NEGATIVE_FIXTURE), "synthetic-negative", negativeFindings);
   if (positiveFindings.length === 0) throw new Error("synthetic positive fixture was not detected");
   if (negativeFindings.length !== 0) throw new Error("valid placeholder fixture produced a false positive");
+  const credentialFindings = positiveFindings.filter((f) => f.detector === CREDENTIAL_DETECTOR.id);
+  if (credentialFindings.length === 0) throw new Error("synthetic setup-passcode-readback record was not detected");
+  if (credentialFindings.some((f) => f.fingerprint !== "withheld")) throw new Error("credential finding exposed a fingerprint");
+  // A record deep inside a >MAX_FILE_BYTES capture must still be found.
+  // Assembled from parts so this scanner's own source never contains a
+  // matching record line.
+  const entity = ["text_sensor/setup passcode", "readback"].join(" ");
+  const large = Buffer.from("x".repeat(MAX_FILE_BYTES + 1024) + "\n" +
+    `data: {"id":"${entity}","value":"synthetic-fixture-passcode-0000","state":"synthetic-fixture-passcode-0000"}\n`);
+  const largeFindings = [];
+  scanLargeForCredentials(large, "synthetic-large-capture", "synthetic-positive", largeFindings);
+  if (largeFindings.length === 0) throw new Error("a credential record inside a large capture was not detected");
 }
 
 /** Regression for Work 4 (final preparation pass): scanWorktree() must be
@@ -301,9 +343,9 @@ function main() {
   }
 
   for (const finding of unique.values()) {
-    console.error(`SECRET_SCAN_LEAK scope=${finding.scope} file=${finding.file} line=${finding.line} detector=${finding.detector} fingerprint=sha256:${finding.fingerprint}`);
+    console.error(`SECRET_SCAN_LEAK scope=${finding.scope} file=${finding.file} line=${finding.line} detector=${finding.detector} fingerprint=${finding.fingerprint}`);
   }
-  console.log(`secret-scan files(worktree=${statistics.worktreeFiles},index=${statistics.indexFiles},history=${statistics.historyFiles}) skipped(binary=${statistics.skippedBinary},large=${statistics.skippedLarge}) fixtures(positive=detected,negative=clean)`);
+  console.log(`secret-scan files(worktree=${statistics.worktreeFiles},index=${statistics.indexFiles},history=${statistics.historyFiles}) skipped(binary=${statistics.skippedBinary},large=${statistics.skippedLarge}; large files credential-scanned=${statistics.largeCredentialScanned || 0}) fixtures(positive=detected,negative=clean)`);
   if (unique.size > 0) process.exit(1);
   console.log("secret-scan PASS");
 }

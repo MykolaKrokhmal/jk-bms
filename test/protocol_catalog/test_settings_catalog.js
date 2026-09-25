@@ -569,6 +569,7 @@ function main() {
 
   runStartupOrderingScenarios();
   runGlobalFreshnessScenarios();
+  runCredentialRenderScenario();
 
   console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
   process.exit(failures ? 1 : 0);
@@ -948,6 +949,31 @@ function runGlobalFreshnessScenarios() {
   p.hooks.setBrowserLink("disconnected");
   check("G11: existing disconnect escalation still reports offline before any health", globalPanel(p).tier === "offline");
   check("G: zero GET/POST across the global scenarios", fetchCallLog.length === 0);
+}
+
+// Security remediation (2026-09-25): a credential row never renders a
+// credential value, whether it arrives on the routed status entity or on the
+// retired secret publisher. Artificial sentinel only; failures name the channel.
+function runCredentialRenderScenario() {
+  const SENTINEL = "ARTIFICIAL-SENTINEL-PASSCODE-0000";
+  fakeNow = 1800000;
+  const p = bootStartupPage();
+  const credentialRows = p.hooks.SETTINGS_CATALOG_ROWS.filter((r) => r.writeSafetyClass === "credential");
+  check("C1: the catalog has credential-class rows", credentialRows.length > 0);
+  const list = p.cellList.parentNode.querySelectorAll(".settings-catalog-row");
+  for (const row of credentialRows) {
+    const dom = list.find((r) => r.dataset.manifestId === row.manifestId);
+    for (const wireId of ["text_sensor/setup passcode status", "text_sensor/setup passcode readback", "text_sensor-setup_passcode_readback"]) {
+      p.hooks.ingestPayload({ id: wireId, domain: "text_sensor", value: SENTINEL, state: SENTINEL });
+    }
+    p.hooks.updateSettingsCatalogValue(row.manifestId);
+    const text = dom ? dom.textContent : "";
+    check(`C1: ${row.manifestId} rendered Settings row never contains a credential value`, !!dom && !text.includes(SENTINEL),
+      text.includes(SENTINEL) ? "channel: rendered Settings row" : "");
+    check(`C1: ${row.manifestId} shows the localized hidden marker and has no editor or submit control`,
+      !!dom && text.includes("Hidden") && !dom.querySelector("input") && !dom.querySelector("button"));
+  }
+  check("C1: zero GET/POST during the credential render scenario", fetchCallLog.length === 0);
 }
 
 main();

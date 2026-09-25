@@ -1,7 +1,7 @@
 {
   "$schema": "protocol-entity-routes-generated-v1",
   "generated_by": "tools/protocol/authoring/build_protocol_entity_routes.js",
-  "source_hash": "aadbbbb9f1d4e76a",
+  "source_hash": "d711390f2aa04220",
   "route_count": 320,
   "routes": [
     {
@@ -1663,8 +1663,8 @@
     {
       "key": "setup_passcode",
       "domain": "text_sensor",
-      "entityId": "setup_passcode_readback",
-      "configuredName": "setup passcode readback"
+      "entityId": "setup_passcode_status",
+      "configuredName": "setup passcode status"
     },
     {
       "key": "setup_passcode_tx_status_code",
@@ -1923,6 +1923,14 @@
       "domain": "text_sensor",
       "entityId": "write_tx_snapshot",
       "configuredName": "write transaction snapshot"
+    }
+  ],
+  "retired_secret_routes": [
+    {
+      "field": "setup_passcode",
+      "domain": "text_sensor",
+      "entityId": "setup_passcode_readback",
+      "configuredName": "setup passcode readback"
     }
   ]
 }

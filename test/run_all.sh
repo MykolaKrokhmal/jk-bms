@@ -273,6 +273,10 @@ echo "=== protocol catalog: generated entity routes vs real ESPHome publishers (
 node test/protocol_catalog/test_entity_route_publishers.js
 
 echo
+echo "=== protocol catalog: credential redaction (setup passcode never published; security remediation) ==="
+node test/protocol_catalog/test_credential_redaction.js
+
+echo
 echo "=== protocol catalog: generated wire-object-id alias coverage/collision + resolution regression ==="
 node test/protocol_catalog/test_wire_object_id_aliases.js
 

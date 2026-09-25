@@ -418,17 +418,19 @@ const ENTITY_ID_OVERRIDE = {
   // legacy_companion_entity_id (registers.canonical.json), read directly
   // below wherever this generator needs it.
   //
-  // canonical.json claims esphome_read_entity_id "setup_passcode" for this
-  // field -- but that id already belongs to a DIFFERENT, pre-existing
-  // `text` domain entity (the always-masked write-side display, which
-  // literally always publishes "****************" regardless of wire
-  // content -- see batterylifepo4.yaml's own `id: setup_passcode` entity).
-  // The real, distinct read entity for the raw decoded bytes has always
-  // been `setup_passcode_readback` (a separate text_sensor). Confirmed via
-  // a real `esphome config` ID-collision error this session (2026-09-15)
-  // when the two entities' generated ids collided.
-  setup_passcode: "setup_passcode_readback",
+  //
+  // setup_passcode's former entry (-> "setup_passcode_readback") is gone
+  // (security remediation 2026-09-25): canonical.json's esphome_read_entity_id
+  // now names the real read entity itself (setup_passcode_status), and that
+  // entity publishes only a content-independent status -- see
+  // CREDENTIAL_STATUS_MARKER below.
 };
+
+// Credential-class fields (canonical write_safety_class "credential", e.g.
+// setup_passcode at 0x1470) are NEVER decoded or published. After a
+// successful block read their read entity publishes only this constant --
+// no value, length, prefix, suffix, checksum or hash of the secret.
+const CREDENTIAL_STATUS_MARKER = "hidden";
 
 const DERIVED_BOOLEAN_OVERRIDE = {
   charging_active: { entityId: "charging_raw" },
@@ -835,6 +837,7 @@ const blocks = [...blocksByAddress.values()]
         unit: pf.field.canonical_unit || null,
         precision: pf.field.decimal_precision,
         internal: !!DERIVED_BOOLEAN_OVERRIDE[pf.field.key],
+        credential_status_only: pf.field.write_safety_class === "credential",
         label_en: pf.field.frontend_label_en || null,
       })),
     };
@@ -1287,7 +1290,12 @@ function buildServicerInterval() {
       for (let j = 0; j < b.fields.length; j++) {
         const f = b.fields[j];
         const fieldIndex = blocks.slice(0, i).reduce((n, bb) => n + bb.fields.length, 0) + j;
-        if (f.wire_type === "ASCII") {
+        if (f.credential_status_only) {
+          // Credential: the raw bytes are deliberately never decoded -- only
+          // a content-independent "read succeeded" status is published.
+          if (f.domain !== "text_sensor") throw new Error(`READ_PLAN_CREDENTIAL_DOMAIN: "${f.key}" must publish its status on a text_sensor.`);
+          L(`          id(${f.entity_id})->publish_state(std::string("${CREDENTIAL_STATUS_MARKER}"));  // credential: raw value never decoded or published`);
+        } else if (f.wire_type === "ASCII") {
           L(`          { char buf[17]; jk_poll_scheduler::decode_ascii(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
         } else if (f.wire_type === "HEX") {
           L(`          { char buf[64]; jk_poll_scheduler::decode_hex_string(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);

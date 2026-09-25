@@ -201,6 +201,25 @@ for (const r of routes) {
   claim(`${r.domain}-${r.entityId}`, r.key);
 }
 
+// Retired secret publishers (security remediation 2026-09-25): entities that
+// older firmware used to publish a credential field's raw value through
+// (canonical retired_secret_read_entities). They get NO route; jk_bms.js
+// registers their wire forms only to drop such payloads unrecorded.
+const retiredSecretRoutes = [];
+for (const reg of canonical.registers) {
+  for (const f of reg.fields || []) {
+    for (const e of f.retired_secret_read_entities || []) {
+      if (f.write_safety_class !== "credential") {
+        throw new Error(`PROTOCOL_ENTITY_ROUTES_RETIRED_SECRET_NOT_CREDENTIAL: "${f.key}" lists retired secret entities but is not credential-class.`);
+      }
+      retiredSecretRoutes.push({ field: f.key, domain: e.domain, entityId: e.entity_id, configuredName: e.configured_name });
+      claim(`${e.domain}/${e.configured_name}`, `retired-credential-publisher/${f.key}`);
+      claim(`${e.domain}-${e.entity_id}`, `retired-credential-publisher/${f.key}`);
+    }
+  }
+}
+retiredSecretRoutes.sort((a, b) => (a.entityId < b.entityId ? -1 : a.entityId > b.entityId ? 1 : 0));
+
 const contentHash = sha256(READ_PLAN_PATH) + sha256(CANONICAL_PATH) + sha256(NON_REGISTER_PATH);
 const shortHash = crypto.createHash("sha256").update(contentHash).digest("hex").slice(0, 16);
 
@@ -210,6 +229,7 @@ const outDoc = {
   source_hash: shortHash,
   route_count: routes.length,
   routes,
+  retired_secret_routes: retiredSecretRoutes,
 };
 const outJson = JSON.stringify(outDoc, null, 2) + "\n";
 
@@ -233,6 +253,12 @@ const jsBlock = `${JS_BEGIN}
   // Each tuple: [canonicalKey, esphomeDomain, entityId, configuredName].
   const PROTOCOL_ENTITY_ROUTES = Object.freeze([
 ${jsRoutes}
+  ]);
+  // Retired credential publishers (canonical retired_secret_read_entities):
+  // wire forms registered ONLY so ingestPayload() drops the payload unrecorded.
+  // Each tuple: [credentialFieldKey, esphomeDomain, entityId, configuredName].
+  const RETIRED_SECRET_ENTITY_ROUTES = Object.freeze([
+${retiredSecretRoutes.map((r) => `    [${jsStringLiteral(r.field)}, ${jsStringLiteral(r.domain)}, ${jsStringLiteral(r.entityId)}, ${jsStringLiteral(r.configuredName)}],`).join("\n")}
   ]);
 ${JS_END}`;
 

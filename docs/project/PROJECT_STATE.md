@@ -40,6 +40,12 @@ generated inventories linked below, not in prose.
 - **Service actions:** [`stage5_service_action_inventory.json`](../../protocol/generated/stage5_service_action_inventory.json);
   all are blocked, and local evidence is exhausted.
 
+## Open security item
+
+The setup-passcode exposure is remediated in code, but **not yet on the
+device**: see `CURRENT_LIMITATIONS.md` → "Security: setup passcode exposure"
+for the required order (flash, then rotate, then clean HA history).
+
 ## Standing owner rules (do not relax without an explicit owner instruction)
 
 - No device access, Modbus write, service action, firmware compile, flash or

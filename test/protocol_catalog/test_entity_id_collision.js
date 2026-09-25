@@ -87,31 +87,21 @@ for (const c of calls.filter((item) => item.legacyObjectId)) {
   callsByKey.get(c.key).push(c);
 }
 const canonicalFields = canonical.registers.flatMap((r) => r.fields);
-// read_plan.json's entity_id is the authoritative read contract for
-// generic-block fields; where it deliberately overrides canonical
-// esphome_read_entity_id (documented in generate_read_plan.js, e.g.
-// setup_passcode -> setup_passcode_readback), a registration matching the read
-// plan is correct. Each such override is named in the check output.
-const readPlanEntity = new Map();
-for (const block of JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.json"), "utf8")).blocks) {
-  for (const f of block.fields) readPlanEntity.set(f.key, f.entity_id);
-}
-const readPlanOverrides = [];
+// Strict: canonical esphome_read_entity_id must name the real registered read
+// entity -- no generator override is tolerated (the former setup_passcode
+// exception was removed by the 2026-09-25 security remediation).
+const mismatchedKeys = [];
 let readEntityMismatches = 0;
 for (const field of canonicalFields) {
   if (!field.esphome_read_entity_id) continue;
   const keyCalls = callsByKey.get(field.key);
   if (!keyCalls) continue; // no registration for this key -- nothing to cross-check here
   if (keyCalls.some((call) => call.legacyObjectId === field.esphome_read_entity_id)) continue;
-  const planned = readPlanEntity.get(field.key);
-  if (planned && planned !== field.esphome_read_entity_id && keyCalls.some((call) => call.legacyObjectId === planned)) {
-    readPlanOverrides.push(`${field.key}->${planned}`);
-    continue;
-  }
   readEntityMismatches += 1;
+  mismatchedKeys.push(field.key);
 }
-check("every canonical esphome_read_entity_id matches the real wire id registered for it (or the read plan's documented override)",
-  readEntityMismatches === 0, `mismatches=${readEntityMismatches} read-plan overrides=${JSON.stringify(readPlanOverrides)}`);
+check("every canonical esphome_read_entity_id matches the real wire id registered for it (no override exceptions)",
+  readEntityMismatches === 0, `mismatches=${readEntityMismatches} ${JSON.stringify(mismatchedKeys)}`);
 
 // P1-05 (2026-09-10): cellResistanceKeys[i] is "cell_resistance_${index}"
 // (jk_bms.js's own registerEntity() call site and registers.canonical.json's

@@ -24,8 +24,40 @@ Planned fixes are in
 | L7 | Six internal raw read-plan sensors are republished to HA/browser by hand-written template `binary_sensor`s (a second, hand-maintained transform layer) | maintenance risk | `read_plan.json` fields with `internal: true`; `batterylifepo4.yaml` template binary sensors | Stage 6 |
 | L8 | The 18 legacy hardware-verified writes use a second encoder (`SETTING_DEFS` plus hand YAML `set_action`), separate from `write_registry` | maintenance risk | `jk_bms.js` `SETTING_DEFS`; `protocol/generated/write_registry.json` | Stage 7 (hardware) |
 | L9 | `protocol/generated/read_plan.yaml`'s header comment still says it is "NOT YET !include'd"; it is included at `batterylifepo4.yaml` (`packages: register_reads`) | misleading comment | generator module comment in `tools/protocol/generate_read_plan.js` | next generator touch |
-| L10 | `setup_passcode`'s canonical `esphome_read_entity_id` is `setup_passcode`, which names the always-masked write-side `text` entity; its real read entity is `setup_passcode_readback`. `generate_read_plan.js` deliberately overrides it (documented there), so the route is correct, but the canonical metadata is stale | misleading metadata | `test_entity_id_collision.js` names it as a read-plan override | credential field; fix with its own evidence pass |
+| L10 | **Closed (security remediation, 2026-09-25).** `setup_passcode`'s canonical read metadata now names its real read entity, `setup_passcode_status` (`esphome_read_domain: text_sensor`). That entity publishes only a content-independent `hidden` status, and the read-plan generator no longer overrides this field. Write-side metadata is unchanged. `test_entity_id_collision.js` checks strictly with no exception | — | `test_credential_redaction.js`, `test_entity_id_collision.js` | done |
 | L11 | `demo/mock-server.js` never publishes `display_cell_count` (production does, `batterylifepo4.yaml:3605`), so in the demo `activeCellCount()` is 0 and the Cells chart/matrix render no channels. Predates Stage 2 (absent at `b36a4a8`) | demo only | `grep display_cell_count demo/mock-server.js` | small mock fix |
+
+## Security: setup passcode exposure (remediated in code 2026-09-25, device still pending)
+
+- **What happened:** earlier generated firmware decoded the BMS setup passcode
+  (register 0x1470) and published it on a non-internal `text_sensor`
+  (`setup_passcode_readback`). It reached Home Assistant (native API, and
+  likely its recorder history), the web UI's SSE stream, Settings
+  (`PWD_Config`) and Diagnostics. The values also ended up in four committed
+  hardware SSE captures.
+- **Code remediation:**
+  - Credential-class fields are never decoded or published: the read plan
+    publishes only a constant `hidden` status (`setup_passcode_status`).
+  - The browser drops any payload from the retired entity, and masks every
+    credential key before diagnostics and state. Settings and Diagnostics
+    render a localized "Hidden" marker.
+  - The repository secret scan has a structural detector for readback records,
+    including files over 2 MB.
+  - Write authorization, password masking and the fail-closed passcode write
+    path are unchanged.
+  - Tests: `test_credential_redaction.js` (artificial sentinel), plus rendered
+    checks in `test_settings_catalog.js` and
+    `test_diagnostic_software_variables_scroll.js`.
+- **History:** the four affected captures were redacted in local history, a
+  targeted rewrite with only the readback records changed. No affected commit
+  had been pushed. The old local objects were pruned.
+- **Still pending (owner actions, in this order):**
+  1. Review and explicitly approve a firmware compile and flash; **until then
+     the installed device keeps publishing the passcode**.
+  2. Only after that firmware is installed, rotate the BMS setup passcode.
+     Rotating earlier would expose the new value the same way.
+  3. Clean the old value from Home Assistant's recorder/history (the retired
+     `setup passcode readback` entity).
 
 ## Write and hardware-evidence limits
 

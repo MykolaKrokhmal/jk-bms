@@ -119,6 +119,20 @@
                   "enum": ["sensor", "binary_sensor", "text_sensor", "number", "select", "text", null]
                 },
                 "esphome_read_entity_id": { "type": ["string", "null"] },
+                "retired_secret_read_entities": {
+                  "type": "array",
+                  "description": "Entities that OLDER firmware used to publish this credential field's raw value through (security remediation 2026-09-25). The browser registers their wire ids only to drop the payload before any recording or state write; never routed to a key.",
+                  "items": {
+                    "type": "object",
+                    "required": ["domain", "entity_id", "configured_name"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "domain": { "type": "string", "enum": ["sensor", "binary_sensor", "text_sensor", "number", "select", "text"] },
+                      "entity_id": { "type": "string", "minLength": 1 },
+                      "configured_name": { "type": "string", "minLength": 1 }
+                    }
+                  }
+                },
                 "esphome_read_domain": {
                   "type": ["string", "null"],
                   "enum": ["sensor", "binary_sensor", "text_sensor", "number", "select", "text", null],

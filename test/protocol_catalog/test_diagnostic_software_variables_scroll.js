@@ -399,6 +399,27 @@ async function main() {
   check("every rendered scoped diagnostic row is read-only (label + value, no input/select/button)",
     scopedRows.every((row) => row.querySelector("input, select, button, .register-toggle") === null && row.childNodes.length === 2));
 
+  // --- Security remediation (2026-09-25): the rendered Diagnostics lists never
+  // show a credential value, from the routed status entity or the retired
+  // secret publisher. Artificial sentinel only; failures name the channel.
+  const SENTINEL = "ARTIFICIAL-SENTINEL-PASSCODE-0000";
+  ingestPayload({ id: "text_sensor/setup passcode status", domain: "text_sensor", value: SENTINEL, state: SENTINEL });
+  ingestPayload({ id: "text_sensor/setup passcode readback", domain: "text_sensor", value: SENTINEL, state: SENTINEL });
+  await flush();
+  const credValueNode = diagnosticReadoutRows.get("text_sensor/setup passcode status");
+  const credRow = credValueNode && credValueNode.parentNode;
+  const rowText = (row) => (row ? row.childNodes.map((n) => `${n.textContent} ${n.title || ""}`).join(" ") : "");
+  check("credential status renders one Diagnostics row, showing the hidden marker",
+    !!credRow && /hidden/i.test(rowText(credRow)) && !rowText(credRow).includes(SENTINEL), rowText(credRow).includes(SENTINEL) ? "channel: Diagnostics row" : "");
+  check("the retired secret publisher renders no Diagnostics row at all",
+    !diagnosticReadoutRows.has("text_sensor/setup passcode readback") && !diagSoftwareVarRows.has("text_sensor/setup passcode readback"));
+  // Walk every descendant (the register list nests rows inside group
+  // containers; this shim's textContent does not recurse).
+  const deepText = (node) => `${node._text || ""} ${node.title || ""} ` + node.childNodes.map(deepText).join(" ");
+  const allRendered = deepText(regList) + deepText(list);
+  check("no rendered Diagnostics row (register list or software list) contains a credential value", !allRendered.includes(SENTINEL),
+    allRendered.includes(SENTINEL) ? "channel: Diagnostics lists" : "");
+
   console.log("\nNOTE: this test drives jk_bms.js against a small purpose-built DOM-node shim (real");
   console.log("parent/child/sibling semantics), not a full browser layout engine -- it proves the DOM-");
   console.log("mutation behavior that caused the scroll jump is gone, not the pixel-level rendering");

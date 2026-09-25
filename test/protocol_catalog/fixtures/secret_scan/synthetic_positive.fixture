@@ -1,2 +1,4 @@
 # This value is intentionally fictional and exists only to prove the detector trips.
 api_key: synthetic-fixture-value-49A7
+# Synthetic, fictional setup-passcode-readback SSE record (credential-record detector).
+data: {"id":"text_sensor/setup passcode readback","domain":"text_sensor","value":"synthetic-fixture-passcode-0000","state":"synthetic-fixture-passcode-0000"}
