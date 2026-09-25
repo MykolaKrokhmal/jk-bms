@@ -75,8 +75,21 @@ for (const reg of canonical.registers) for (const f of reg.fields || []) canonic
 // ---------------------------------------------------------------------------
 check("zero `__legacy_companion` synthetic keys in PROTOCOL_ENTITY_ROUTES", routesDoc.routes.every((r) => !r.key.endsWith("__legacy_companion")));
 const routeKeys = routesDoc.routes.map((r) => r.key);
-check("no duplicate canonical key across routes", new Set(routeKeys).size === routeKeys.length, `unique=${new Set(routeKeys).size} total=${routeKeys.length}`);
-check("zero routes for a non_register_entities.canonical.json key", routesDoc.routes.every((r) => !nonRegister.entities.some((e) => e.key === r.key)));
+// RS485 plan Stage 2: a register key has exactly one route tuple; a
+// non-register key may have one tuple per accepted object id (name slug +
+// YAML id), all sharing one domain and configured name.
+const nonRegisterByKey = new Map(nonRegister.entities.map((e) => [e.key, e]));
+const registerRouteKeys = routeKeys.filter((k) => !nonRegisterByKey.has(k));
+check("no duplicate register key across routes", new Set(registerRouteKeys).size === registerRouteKeys.length,
+  `unique=${new Set(registerRouteKeys).size} total=${registerRouteKeys.length}`);
+const repeatedNonRegister = [...new Set(routeKeys.filter((k, i) => routeKeys.indexOf(k) !== i))];
+check("a repeated non-register key's tuples share domain + configured name and differ only by object id",
+  repeatedNonRegister.every((k) => {
+    const t = routesDoc.routes.filter((r) => r.key === k);
+    return nonRegisterByKey.has(k) && new Set(t.map((r) => `${r.domain}|${r.configuredName}`)).size === 1 && new Set(t.map((r) => r.entityId)).size === t.length;
+  }), JSON.stringify(repeatedNonRegister));
+check("non-register routes exist exactly for entries with a production esphome_configured_name",
+  nonRegister.entities.every((e) => routesDoc.routes.some((r) => r.key === e.key) === (e.esphome_configured_name !== null)));
 
 // Zero conflicting routes: no two DIFFERENT canonical keys share the same
 // (domain, entityId) wire identity.
@@ -107,13 +120,24 @@ const readPlanFieldByKey = new Map();
 for (const block of readPlan.blocks) for (const f of block.fields) if (!f.key.endsWith("__legacy_companion")) readPlanFieldByKey.set(f.key, f);
 const excludedBespokeKeys = new Set(readPlan.excluded_bespoke_keys || []);
 
+const esphomeObjectId = (name) => name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
 for (const r of routesDoc.routes) {
+  const nr = nonRegisterByKey.get(r.key);
+  if (nr) {
+    // Non-register route: sourced from non_register_entities.canonical.json.
+    const okObjectId = r.entityId === esphomeObjectId(nr.esphome_configured_name || "") || r.entityId === nr.esphome_yaml_id;
+    if (nr.esphome_domain !== r.domain || nr.esphome_configured_name !== r.configuredName || !okObjectId) {
+      noMisroute = false;
+      misroutes.push({ key: r.key, source: "non_register", route: r, canonical: { domain: nr.esphome_domain, name: nr.esphome_configured_name, yamlId: nr.esphome_yaml_id } });
+    }
+    continue;
+  }
   if (excludedBespokeKeys.has(r.key)) {
     // Bespoke-reader route: sourced directly from registers.canonical.json
     // (read_plan.json deliberately excludes these -- no generic block).
     const field = canonicalFieldByKey.get(r.key);
     const expectedConfiguredName = field && (field.esphome_configured_name || r.entityId.replace(/_/g, " "));
-    if (!field || field.esphome_read_entity_id !== r.entityId || field.esphome_domain !== r.domain || expectedConfiguredName !== r.configuredName) {
+    if (!field || field.esphome_read_entity_id !== r.entityId || (field.esphome_read_domain || field.esphome_domain) !== r.domain || expectedConfiguredName !== r.configuredName) {
       noMisroute = false;
       misroutes.push({ key: r.key, source: "bespoke", route: r, canonical: field ? { domain: field.esphome_domain, entityId: field.esphome_read_entity_id, expectedConfiguredName } : "NO_CANONICAL_FIELD" });
     }
@@ -145,7 +169,7 @@ for (const r of routesDoc.routes) {
     misroutes.push({ key: r.key, source: "read_plan", route: r, readPlan: { domain: f.domain, entityId: f.entity_id, configuredName: f.configured_name } });
   }
 }
-check("every route's domain/entityId/configuredName exactly matches its own authoritative source (read_plan.json for generic-block fields, registers.canonical.json for bespoke-reader fields)",
+check("every route's domain/entityId/configuredName exactly matches its own authoritative source (read_plan.json for generic-block fields, registers.canonical.json for bespoke-reader fields, non_register_entities.canonical.json for non-register entities)",
   noMisroute, JSON.stringify(misroutes.slice(0, 5)));
 
 // ---------------------------------------------------------------------------

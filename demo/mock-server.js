@@ -866,8 +866,10 @@ function seedEntities() {
   setEntity("text_sensor-control_override_reason", "");
   setEntity("text_sensor-write_tx_snapshot", "[]");
   setEntity("sensor-setup_passcode_tx_status_code", "0");
-  setEntity("number-heating_activation_temperature", "5");
-  setEntity("number-heating_deactivation_temperature", "15");
+  // Production publishes these read-only readbacks as `sensor` entities
+  // (protocol/generated/read_plan.yaml), not `number`.
+  setEntity("sensor-heating_activation_temperature", "5");
+  setEntity("sensor-heating_deactivation_temperature", "15");
   setEntity("sensor-dry_contact_1_trigger_source", "0");
   setEntity("sensor-dry_contact_2_trigger_source", "0");
   setEntity("sensor-dry_contact_1_trigger_value", "0");
@@ -1294,7 +1296,14 @@ function tick() {
   set("sensor-alarms_bitmask", alarmText ? "1" : "0");
   set("sensor-current", current.toFixed(2));
   set("sensor-state_of_charge", Math.round(soc));
-  set("sensor-power", Math.round(current * num("sensor-total_voltage")));
+  const mockPower = Math.round(current * num("sensor-total_voltage"));
+  set("sensor-power", mockPower);
+  // Charge/discharge splits, mirroring the production template sensors
+  // (charging = positive part, discharging = positive part of the negation).
+  set("sensor-charging_current", Math.max(current, 0).toFixed(3));
+  set("sensor-discharging_current", Math.max(-current, 0).toFixed(3));
+  set("sensor-charging_power", Math.max(mockPower, 0).toFixed(2));
+  set("sensor-discharging_power", Math.max(-mockPower, 0).toFixed(2));
   set("sensor-capacity_remaining", (num("sensor-battery_capacity") * soc / 100).toFixed(1));
   set("sensor-charge_status_time_elapsed", String(Number(entities["sensor-charge_status_time_elapsed"].value) + 1));
   // Two SEPARATE clocks, matching the real device's battery_state/
@@ -1349,6 +1358,23 @@ function tick() {
   if (activeVoltagesForStats.length) {
     set("sensor-average_cell_voltage", (physicalActiveSum / activeVoltagesForStats.length).toFixed(3));
     set("sensor-delta_cell_voltage", (Math.max(...activeVoltagesForStats) - Math.min(...activeVoltagesForStats)).toFixed(3));
+  }
+  // Backend cell-voltage extremes, mirroring batterylifepo4.yaml's cell-block
+  // decode: over the active channels, only plausible cells (>= 0.5 V), 1-based
+  // index; left untouched when no cell is plausible (production returns early).
+  // The browser displays these, never its own recomputation.
+  let extremeMin = null, extremeMax = null;
+  for (let i = 0; i < physicalTopologyCount; i += 1) {
+    const v = Number(entities[`sensor-cell_voltage_${i + 1}`] && entities[`sensor-cell_voltage_${i + 1}`].value);
+    if (!(Number.isFinite(v) && v >= 0.5)) continue;
+    if (!extremeMin || v < extremeMin.v) extremeMin = { v, index: i + 1 };
+    if (!extremeMax || v > extremeMax.v) extremeMax = { v, index: i + 1 };
+  }
+  if (extremeMin && extremeMax) {
+    set("sensor-min_cell_voltage", extremeMin.v.toFixed(3));
+    set("sensor-max_cell_voltage", extremeMax.v.toFixed(3));
+    set("sensor-min_voltage_cell", String(extremeMin.index));
+    set("sensor-max_voltage_cell", String(extremeMax.index));
   }
   const packV = packVoltageOverride !== null ? packVoltageOverride : physicalActiveSum;
   set("sensor-total_voltage", packV.toFixed(2));

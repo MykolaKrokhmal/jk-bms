@@ -98,7 +98,7 @@ function baseDoc(registers) {
 
 const EMPTY_NON_REGISTER_DOC = { catalog_version: "1.0.0", entities: [{
   key: "example_non_register", category: "calculated_esphome", esphome_domain: "sensor",
-  esphome_entity_id: "example", unit: "", uk_display_unit: "", en_display_unit: "",
+  esphome_entity_id: "example", esphome_configured_name: null, esphome_yaml_id: null, unit: "", uk_display_unit: "", en_display_unit: "",
   frontend_label_uk: "Приклад", frontend_label_en: "Example", note: "test fixture",
 }] };
 

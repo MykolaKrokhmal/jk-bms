@@ -10,8 +10,8 @@ generated inventories linked below, not in prose.
   cleanup on `codex/repository-cleanup`. Development history before that is on
   `bms-v1.1-manifest-audit`.
 - **Active plan:** [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
-  Stage 1 is done on `codex/rs485-unified-pipeline`. The next task is Stage 2,
-  which starts only after owner review.
+  Stages 1–2 are done on `codex/rs485-unified-pipeline`. The next task is
+  Stage 3, which starts only after owner review.
 - **Known limitations:** [`CURRENT_LIMITATIONS.md`](CURRENT_LIMITATIONS.md).
 - **Architecture decisions:** [`DECISIONS.md`](DECISIONS.md) (principles) and
   [`docs/adr/0001-protocol-catalog.md`](../adr/0001-protocol-catalog.md)

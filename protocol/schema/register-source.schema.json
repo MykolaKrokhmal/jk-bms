@@ -119,6 +119,11 @@
                   "enum": ["sensor", "binary_sensor", "text_sensor", "number", "select", "text", null]
                 },
                 "esphome_read_entity_id": { "type": ["string", "null"] },
+                "esphome_read_domain": {
+                  "type": ["string", "null"],
+                  "enum": ["sensor", "binary_sensor", "text_sensor", "number", "select", "text", null],
+                  "description": "Domain of the production entity named by esphome_read_entity_id, stated only when it differs from esphome_domain (e.g. an RW field whose esphome_domain is its write entity's `number` while its readback is published by a bespoke `sensor`). Used by build_protocol_entity_routes.js for bespoke-read routes; verified against the real publisher by test_entity_route_publishers.js."
+                },
                 "esphome_configured_name": { "type": ["string", "null"] },
                 "esphome_write_entity_id": { "type": ["string", "null"] },
                 "backend_key": { "type": ["string", "null"] },

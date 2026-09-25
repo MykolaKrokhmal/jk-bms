@@ -14,7 +14,7 @@
       "items": {
         "type": "object",
         "required": [
-          "key", "category", "esphome_domain", "esphome_entity_id", "unit", "uk_display_unit", "en_display_unit",
+          "key", "category", "esphome_domain", "esphome_entity_id", "esphome_configured_name", "esphome_yaml_id", "unit", "uk_display_unit", "en_display_unit",
           "frontend_label_uk", "frontend_label_en", "note"
         ],
         "additionalProperties": false,
@@ -26,6 +26,14 @@
             "enum": ["sensor", "binary_sensor", "text_sensor", "number", "select", "text", null]
           },
           "esphome_entity_id": { "type": ["string", "null"] },
+          "esphome_configured_name": {
+            "type": ["string", "null"],
+            "description": "Exact `name:` of the production ESPHome entity (batterylifepo4.yaml or a generated include) that publishes this key, which must be non-internal. null when no production publisher exists (browser-only, mock-only, unpublished). tools/protocol/authoring/build_protocol_entity_routes.js generates a browser route ONLY for non-null values; web_server SSE ids and ESPHome's object_id (slug of this name) derive from it."
+          },
+          "esphome_yaml_id": {
+            "type": ["string", "null"],
+            "description": "The publisher's YAML `id:` (null if it has none, or no publisher). Used only to also route the id-form wire ids the browser already accepted where the YAML id differs from ESPHome's name-derived object_id."
+          },
           "unit": { "type": "string" },
           "uk_display_unit": { "type": "string" },
           "en_display_unit": { "type": "string" },

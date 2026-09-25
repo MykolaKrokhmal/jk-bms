@@ -35,15 +35,22 @@ function extractCalls(src) {
   return calls;
 }
 
-const calls = extractCalls(source);
-check("entity registrations extracted", calls.length > 100, `count=${calls.length}`);
+// RS485 plan Stage 2: canonical routes are generated (protocol_entity_routes.json,
+// embedded as PROTOCOL_ENTITY_ROUTES); hand calls remain only for non-production
+// keys. Both are real registrations, so both are checked.
+const generatedRoutes = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "protocol_entity_routes.json"), "utf8")).routes;
+const calls = extractCalls(source).concat(generatedRoutes.map((r) => ({
+  key: r.key, domain: r.domain, configuredName: r.configuredName || r.entityId, legacyObjectId: r.entityId,
+})));
+check("entity registrations extracted (hand + generated routes)", calls.length > 100, `count=${calls.length}`);
 
 for (const [wireObjectId, expectedKey] of [["cell_rcv", "cell_rcv"], ["cell_rfv", "cell_rfv"]]) {
   const owners = calls.filter((call) => call.domain === "sensor" && (
     call.legacyObjectId === wireObjectId || call.configuredName.toLowerCase().replaceAll(" ", "_") === wireObjectId
   ));
-  check(`${wireObjectId} has one wire owner`, owners.length === 1, `owners=${owners.map((item) => item.key).join(",")}`);
-  check(`${wireObjectId} owner is canonical`, owners.length === 1 && owners[0].key === expectedKey);
+  const ownerKeys = [...new Set(owners.map((item) => item.key))];
+  check(`${wireObjectId} has one wire owner`, ownerKeys.length === 1, `owners=${ownerKeys.join(",")}`);
+  check(`${wireObjectId} owner is canonical`, ownerKeys.length === 1 && ownerKeys[0] === expectedKey);
 }
 
 check("charge target consumers use canonical keys",
@@ -74,17 +81,37 @@ check("obsolete alias keys are absent from live state consumers",
 // diagnosticObjectId()/entityByWireId resolution actually runs on, not the YAML's
 // internal `id:` (a C++ config-reference name, never sent over the wire) and not
 // assumed to equal the field's own key.
-const callsByKey = new Map(calls.filter((c) => c.legacyObjectId).map((c) => [c.key, c]));
+const callsByKey = new Map();
+for (const c of calls.filter((item) => item.legacyObjectId)) {
+  if (!callsByKey.has(c.key)) callsByKey.set(c.key, []);
+  callsByKey.get(c.key).push(c);
+}
 const canonicalFields = canonical.registers.flatMap((r) => r.fields);
+// read_plan.json's entity_id is the authoritative read contract for
+// generic-block fields; where it deliberately overrides canonical
+// esphome_read_entity_id (documented in generate_read_plan.js, e.g.
+// setup_passcode -> setup_passcode_readback), a registration matching the read
+// plan is correct. Each such override is named in the check output.
+const readPlanEntity = new Map();
+for (const block of JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.json"), "utf8")).blocks) {
+  for (const f of block.fields) readPlanEntity.set(f.key, f.entity_id);
+}
+const readPlanOverrides = [];
 let readEntityMismatches = 0;
 for (const field of canonicalFields) {
   if (!field.esphome_read_entity_id) continue;
-  const call = callsByKey.get(field.key);
-  if (!call) continue; // no explicit remap for this key -- nothing to cross-check here
-  if (call.legacyObjectId !== field.esphome_read_entity_id) readEntityMismatches += 1;
+  const keyCalls = callsByKey.get(field.key);
+  if (!keyCalls) continue; // no registration for this key -- nothing to cross-check here
+  if (keyCalls.some((call) => call.legacyObjectId === field.esphome_read_entity_id)) continue;
+  const planned = readPlanEntity.get(field.key);
+  if (planned && planned !== field.esphome_read_entity_id && keyCalls.some((call) => call.legacyObjectId === planned)) {
+    readPlanOverrides.push(`${field.key}->${planned}`);
+    continue;
+  }
+  readEntityMismatches += 1;
 }
-check("every canonical esphome_read_entity_id with a registerEntity() remap matches the REAL wire id it registers",
-  readEntityMismatches === 0, `mismatches=${readEntityMismatches}`);
+check("every canonical esphome_read_entity_id matches the real wire id registered for it (or the read plan's documented override)",
+  readEntityMismatches === 0, `mismatches=${readEntityMismatches} read-plan overrides=${JSON.stringify(readPlanOverrides)}`);
 
 // P1-05 (2026-09-10): cellResistanceKeys[i] is "cell_resistance_${index}"
 // (jk_bms.js's own registerEntity() call site and registers.canonical.json's
@@ -171,8 +198,17 @@ const ukKeys = new Set([...labelsBlock.slice(ukSubStart).matchAll(/\b([a-zA-Z0-9
 const NUMBERED_OR_SPECIAL_CASED = /^(cell_voltage_\d+|cell_resistance_\d+|temperature_\d+)$/;
 const SPECIAL_SELECT = new Set(["charging", "discharging", "balancing"]);
 const SPECIAL_BINARY = new Set(["charging", "discharging"]);
-function dictionaryGaps(keys) {
+// diagnosticEntityLabel() resolves the canonical PROTOCOL_CATALOG.fieldMeta
+// label FIRST and only falls back to DIAGNOSTIC_ENTITY_LABELS, so a routed key
+// is labeled when either source has it.
+function catalogLabelKeys(field) {
+  return new Set([...source.matchAll(new RegExp(`\\n\\s+([a-z0-9_]+): \\{[^\\n]*\\b${field}: "[^"]+"`, "g"))].map((m) => m[1]));
+}
+const catalogEn = catalogLabelKeys("labelEn");
+const catalogUk = catalogLabelKeys("labelUk");
+function dictionaryGaps(keys, catalogKeys) {
   return calls.filter(({ key, domain, legacyObjectId }) => {
+    if (catalogKeys.has(key)) return false;
     if (!legacyObjectId) return false; // skip the loop-generated cell-voltage/resistance rows already covered above
     if (NUMBERED_OR_SPECIAL_CASED.test(key)) return false;
     if (domain === "select" && SPECIAL_SELECT.has(key)) return false;
@@ -180,11 +216,12 @@ function dictionaryGaps(keys) {
     return !keys.has(key);
   });
 }
-const enGaps = dictionaryGaps(enKeys);
-const ukGaps = dictionaryGaps(ukKeys);
-check("every reachable registerEntity() key has an EN DIAGNOSTIC_ENTITY_LABELS entry",
+const enGaps = dictionaryGaps(enKeys, catalogEn);
+const ukGaps = dictionaryGaps(ukKeys, catalogUk);
+check(`catalog label source parsed (${catalogEn.size} EN / ${catalogUk.size} UK fieldMeta labels)`, catalogEn.size > 250 && catalogUk.size > 250);
+check("every reachable registered key has an EN label (catalog fieldMeta or DIAGNOSTIC_ENTITY_LABELS)",
   enGaps.length === 0, `missing=${enGaps.map((g) => g.key).join(",")}`);
-check("every reachable registerEntity() key has a UK DIAGNOSTIC_ENTITY_LABELS entry",
+check("every reachable registered key has a UK label (catalog fieldMeta or DIAGNOSTIC_ENTITY_LABELS)",
   ukGaps.length === 0, `missing=${ukGaps.map((g) => g.key).join(",")}`);
 
 console.log(`\n${checks} checks run, ${failures} failed.`);

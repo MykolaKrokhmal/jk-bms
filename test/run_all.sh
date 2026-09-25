@@ -269,6 +269,10 @@ echo "=== protocol catalog: exhaustive runtime key-space invariant (RS485 plan S
 node test/protocol_catalog/test_runtime_key_space.js
 
 echo
+echo "=== protocol catalog: generated entity routes vs real ESPHome publishers (RS485 plan Stage 2) ==="
+node test/protocol_catalog/test_entity_route_publishers.js
+
+echo
 echo "=== protocol catalog: generated wire-object-id alias coverage/collision + resolution regression ==="
 node test/protocol_catalog/test_wire_object_id_aliases.js
 

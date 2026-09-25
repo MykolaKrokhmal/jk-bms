@@ -83,7 +83,24 @@ runtime behaviour — no audit-only stages.
 - **Done when:** the invariant passes, and all gates are green.
 - **Hardware:** none.
 
-### Stage 2 — Generate non-register routes; remove hand route duplication
+### Stage 2 — Generate non-register routes; remove hand route duplication — DONE (2026-09-25)
+
+> Implemented on `codex/rs485-unified-pipeline`. Non-register canonical entries
+> gained `esphome_configured_name` / `esphome_yaml_id` (from the real publishers).
+> `build_protocol_entity_routes.js` now routes them too, and refuses to generate
+> if any wire form would collide. All hand `registerEntity()` calls for
+> canonical keys are removed; only the mock-only `control_override_reason`
+> remains. Route parity against the pre-change resolution: 0 changed, 0
+> collisions. The lost ids were only wrong-domain `number/…` forms that no
+> production entity publishes. All 266 wire ids in the committed hardware
+> captures resolve. Two evidence-backed corrections: `write_tx_snapshot`'s
+> domain (`text_sensor`) and a new `esphome_read_domain` (`sensor`) for the 32
+> RW wire-resistance channels, whose read route had wrongly used their write
+> domain `number`. **Owner decision (2026-09-25):** the browser consumes
+> backend-published calculated values as authoritative, matching HA. The Cells
+> voltage Min/Max/extreme cells/spread now use them. Tests:
+> `test_entity_route_publishers.js`, plus updated `test_protocol_entity_routes.js`
+> and `test_entity_id_collision.js`.
 
 - **Objective:** routes for non-register entities come from canonical data;
   hand `registerEntity()` calls for canonical keys are removed.
@@ -162,8 +179,9 @@ runtime behaviour — no audit-only stages.
 ## Open owner decisions
 
 1. The authoritative runtime write axis (Stage 5).
-2. Whether the browser consumes the backend's calculated values rather than
-   computing its own (Stage 2).
+2. ~~Whether the browser consumes the backend's calculated values rather than
+   computing its own (Stage 2).~~ Decided 2026-09-25: yes, backend values are
+   authoritative.
 3. The compile/flash window for Stages 4 and 6 (read-only).
 4. Per-field hardware-write approval for Stage 7.
 5. Whether the "confirmed toggles" UI decision in

@@ -47,8 +47,12 @@ generated block, the firmware publishes `read_plan_success` and updates the
 - **Home Assistant** through the native API;
 - **the browser** through `web_server` v2 `/events` (SSE) →
   `ingestPayload()` → `state[key]`. Routing uses the generated
-  `PROTOCOL_ENTITY_ROUTES` plus a few hand `registerEntity()` calls (see
-  `docs/project/CURRENT_LIMITATIONS.md` L1, L4).
+  `PROTOCOL_ENTITY_ROUTES`, which covers every register field and every
+  production-published non-register entity (from its
+  `esphome_configured_name`), with collisions rejected at generation time.
+  The only hand `registerEntity()` is the mock-only `control_override_reason`.
+  Backend-published calculated values (e.g. cell-voltage extremes, charge and
+  discharge splits) are authoritative in the browser, exactly as in HA.
 
 There is no browser polling of register data. The only HTTP reads are the
 freshness snapshot when the SSE connection opens, and the write-transaction
