@@ -28,7 +28,7 @@ function check(name, condition, detail = "") {
 function parse(text) {
   const rules = [];
   let i = 0;
-  function block(media) {
+  function block(media, outer = []) {
     while (i < text.length) {
       const open = text.indexOf("{", i);
       const close = text.indexOf("}", i);
@@ -36,7 +36,7 @@ function parse(text) {
       if (open === -1) { i = text.length; return; }
       const head = text.slice(i, open).trim();
       i = open + 1;
-      if (head.startsWith("@media") || head.startsWith("@supports")) { block(head); continue; }
+      if (head.startsWith("@media") || head.startsWith("@supports") || head.startsWith("@container")) { block(head, media ? [...outer, media] : outer); continue; }
       if (head.startsWith("@")) { // @keyframes etc.: skip the balanced block
         for (let depth = 1; depth > 0 && i < text.length; i += 1) {
           if (text[i] === "{") depth += 1;
@@ -45,7 +45,7 @@ function parse(text) {
         continue;
       }
       const end = text.indexOf("}", i);
-      rules.push({ media, selectors: head.split(",").map((s) => s.trim()).filter(Boolean), body: text.slice(i, end).trim() });
+      rules.push({ media, outer, selectors: head.split(",").map((s) => s.trim()).filter(Boolean), body: text.slice(i, end).trim() });
       i = end + 1;
     }
   }
@@ -172,7 +172,7 @@ check("stale and unavailable are visibly different (warning vs neutral grey)",
 const cellRow = bodyOf(".cell-composite-row");
 check("cell row is a grid: label | voltage | resistance | calibration, ch-sized numeric tracks, tabular figures",
   decl(cellRow, "display") === "grid" &&
-  decl(cellRow, "grid-template-columns") === "minmax(0, 1fr) var(--cc-volt-w) var(--cc-res-w) auto" &&
+  decl(cellRow, "grid-template-columns") === "minmax(max-content, 1fr) var(--cc-volt-w) var(--cc-res-w) auto" &&
   ["--cc-volt-w", "--cc-res-w"].every((v) => /^\d+ch$/.test(decl(cellRow, v) || "")) &&
   decl(cellRow, "--cc-field-w") === "var(--cell-calibration-width)" &&
   decl(cellRow, "font-variant-numeric") === "tabular-nums" && decl(cellRow, "align-items") === "center");
@@ -184,24 +184,76 @@ check("voltage and resistance are right-aligned in their tracks",
 const calib = bodyOf(".cell-composite-calibration");
 check("calibration is [field (audited width) | action (shared 44 px)]", decl(calib, "display") === "grid" &&
   decl(calib, "grid-template-columns") === "var(--cc-field-w) var(--cc-action-w)" && decl(cellRow, "--cc-action-w") === "var(--settings-action-width)");
-const phone = "@media (max-width:560px)";
-check("phone: values stay on the label line; field + action move together to their own right-aligned line",
-  decl(bodyOf(".cell-composite-row", phone), "grid-template-columns") === "minmax(0, 1fr) var(--cc-volt-w) var(--cc-res-w)" &&
-  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", phone), "grid-column") === "1 / -1" &&
-  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", phone), "justify-self") === "end");
-const tiny = "@media (max-width:420px)";
-check("very narrow: label line, values line (content-sized, cannot overflow at large text), field + action line",
-  decl(bodyOf(".cell-composite-row", tiny), "grid-template-columns") === "minmax(0, 1fr) auto auto" &&
-  decl(bodyOf(".cell-composite-label", tiny), "grid-column") === "1 / -1" &&
-  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", tiny), "grid-row") === "3");
-check("phone Settings rows: the same compact [field | action] pair, right-aligned, shrinking only when the row is narrower",
-  decl(bodyOf(".settings-catalog-editor-group", phone), "flex-basis") === "100%" &&
-  decl(bodyOf(".settings-catalog-editor-group", phone), "justify-content") === "end" &&
-  decl(bodyOf(".settings-catalog-editor-group", phone), "grid-template-columns") === "minmax(0, var(--sc-field-w)) var(--sc-action-w)");
-const tinyPhone = "@media (max-width:360px)";
-check("narrowest phones: tighter shell chrome and field-action gap keep the audited widths beside the action",
-  decl(bodyOf(".settings-field-shell", tinyPhone), "padding") === "0 6px" &&
-  find(".settings-catalog-editor-group", tinyPhone).some((r) => r.selectors.includes(".cell-composite-calibration") && decl(r.body, "column-gap") === "4px"));
+// 6. Layout states follow the width of the list itself (container queries),
+// not the viewport: in the two-column deck (viewport 860-1100 px) the right
+// column is narrower than a single-column 820 px page, and browser zoom
+// changes both, so viewport breakpoints chose the wrong state.
+check("the cell list and the Settings list are inline-size containers whose em is the value font",
+  decl(bodyOf(".cell-composite-list"), "container-type") === "inline-size" && decl(bodyOf(".cell-composite-list"), "container-name") === "cells" &&
+  decl(bodyOf(".cell-composite-list"), "font-size") === "var(--fs-body)" &&
+  decl(bodyOf("#settingsCatalogList"), "container-type") === "inline-size" && decl(bodyOf("#settingsCatalogList"), "container-name") === "settings" &&
+  decl(bodyOf("#settingsCatalogList"), "font-size") === "var(--fs-body)");
+check("labels never wrap inside a state: nowrap, and the label track never shrinks below its content (wide/intermediate)",
+  decl(bodyOf(".cell-composite-label"), "white-space") === "nowrap" && /^minmax\(max-content, 1fr\)/.test(decl(cellRow, "grid-template-columns")));
+check("no viewport-only breakpoint drives the cell/Settings layout (only the @supports fallback may)",
+  css.includes("@supports not (container-type:inline-size)") &&
+  !rules.some((r) => r.media && r.media.startsWith("@media") &&
+    !r.outer.includes("@supports not (container-type:inline-size)") &&
+    r.selectors.some((sel) => /cell-composite-(row|label|calibration|voltage|resistance)|settings-catalog-editor-group|settings-field-shell/.test(sel))));
+
+// Thresholds come from measured minimum content widths at 15 px (Chromium,
+// UK -- the longer language: label "Комірка 32" 81.8 px, 9ch 82.9 px, 11ch
+// 101.4 px, 18 px row padding each side, 14 px gaps; Settings label basis
+// 140 px). The field widths come from the audited CSS tokens themselves.
+const px = (v) => Number(v.replace("px", ""));
+const tokenPx = (name) => { const m = css.match(new RegExp(`${name}:calc\\((\\d+(?:\\.\\d+)?)px \\+ var\\(--fs-body\\) \\* (\\d+(?:\\.\\d+)?)\\)`)); return Number(m[1]) + 15 * Number(m[2]); };
+const actionPx = px(css.match(/--settings-action-width:\s*([\d.]+px)/)[1]);
+const calibPx = tokenPx("--cell-calibration-width") + 8 + actionPx;
+const M = { label: 81.8, volt: 82.9, res: 101.4, pad: 18 * 2, gap: 14, settingsLabel: 140 };
+const needWide = M.pad + M.label + M.gap + M.volt + M.gap + M.res + M.gap + calibPx;
+const needIntermediate = Math.max(M.pad + M.label + M.gap + M.volt + M.gap + M.res, M.pad + calibPx);
+const needSettings = M.pad + M.settingsLabel + M.gap + tokenPx("--settings-control-width") + 8 + actionPx;
+const threshold = (name, maxEm) => rules.some((r) => r.media === `@container ${name} (max-width:${maxEm}em)`);
+const em = (maxEm) => (maxEm + 0.01) * 15;
+// Each state switches at the first 0.5em step at or above its requirement:
+// never earlier (it would overflow), and less than 1em later (no arbitrary slack).
+const fits = (maxEm, need) => em(maxEm) >= need && em(maxEm) - need < 15;
+check("wide -> intermediate at 37.5em, derived from the measured five-column minimum",
+  threshold("cells", 37.49) && fits(37.49, needWide), `${needWide.toFixed(1)} px needed, switch at ${em(37.49).toFixed(1)} px`);
+check("intermediate -> narrow at 22.5em, derived from the measured three-column minimum",
+  threshold("cells", 22.49) && fits(22.49, needIntermediate), `${needIntermediate.toFixed(1)} px needed, switch at ${em(22.49).toFixed(1)} px`);
+check("Settings group drops under its label at 26.5em, derived from label basis + audited field + action",
+  threshold("settings", 26.49) && fits(26.49, needSettings), `${needSettings.toFixed(1)} px needed, switch at ${em(26.49).toFixed(1)} px`);
+
+const mid = "@container cells (max-width:37.49em)";
+check("intermediate: values stay on the label line; field + action move together to their own right-aligned line",
+  decl(bodyOf(".cell-composite-row", mid), "grid-template-columns") === "minmax(max-content, 1fr) var(--cc-volt-w) var(--cc-res-w)" &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", mid), "grid-column") === "1 / -1" &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", mid), "grid-row") === "2" &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", mid), "justify-self") === "end");
+const narrow = "@container cells (max-width:22.49em)";
+check("narrow: label line, values line (content-sized, cannot overflow at large text), field + action line",
+  decl(bodyOf(".cell-composite-row", narrow), "grid-template-columns") === "minmax(0, 1fr) auto auto" &&
+  decl(bodyOf(".cell-composite-label", narrow), "grid-column") === "1 / -1" &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", narrow), "grid-row") === "3");
+check("the lock/OK never separates from its field: calibration stays one [field | action] grid in every state",
+  [null, mid, narrow].every((m) => !find(".cell-composite-calibration > .settings-action-lock", m).some((r) => /grid-row:\s*[2-9]/.test(r.body))) &&
+  decl(bodyOf(".cell-composite-calibration", narrow), "grid-template-columns") === "minmax(0, var(--cc-field-w)) var(--cc-action-w)");
+const settingsNarrow = "@container settings (max-width:26.49em)";
+check("narrow Settings rows: the same compact [field | action] pair, right-aligned, shrinking only when the row is narrower",
+  decl(bodyOf(".settings-catalog-editor-group", settingsNarrow), "flex-basis") === "100%" &&
+  decl(bodyOf(".settings-catalog-editor-group", settingsNarrow), "justify-content") === "end" &&
+  decl(bodyOf(".settings-catalog-editor-group", settingsNarrow), "grid-template-columns") === "minmax(0, var(--sc-field-w)) var(--sc-action-w)");
+check("narrowest lists (< 16.5em): tighter shell chrome and field-action gap keep the audited widths beside the action",
+  ["cells", "settings"].every((n) => decl(bodyOf(".settings-field-shell", `@container ${n} (max-width:16.49em)`), "padding") === "0 6px") &&
+  decl(bodyOf(".cell-composite-calibration", "@container cells (max-width:16.49em)"), "column-gap") === "4px" &&
+  decl(bodyOf(".settings-catalog-editor-group", "@container settings (max-width:16.49em)"), "column-gap") === "4px");
+check("fallback without container queries keeps the previous viewport states",
+  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", "@media (max-width:560px)"), "grid-row") === "2" &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", "@media (max-width:420px)"), "grid-row") === "3" &&
+  decl(bodyOf(".settings-catalog-editor-group", "@media (max-width:560px)"), "flex-basis") === "100%");
+check("inside the containers the header and unconfirmed text keep their previous absolute size (em would now follow --fs-body)",
+  decl(bodyOf(".settings-catalog-group-header"), "font-size") === "12.48px" && decl(bodyOf(".cell-composite-unconfirmed"), "font-size") === "14.4px");
 
 console.log(`\nsettings controls CSS: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);
