@@ -64,6 +64,12 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
 "$BUILD_DIR/test_jk_write_tx_rmw_core"
 
 echo
+echo "=== Wire-resistance calibration units: raw uOhm <-> displayed mOhm round trip (real encoder + generated rows) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" -I "$REPO_ROOT/protocol/generated" \
+  "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_wire_resistance_units.cpp" -o "$BUILD_DIR/test_jk_write_tx_wire_resistance_units"
+"$BUILD_DIR/test_jk_write_tx_wire_resistance_units"
+
+echo
 echo "=== jk_write_tx_core width-aware preflight-geometry unit tests (2026-09-21 hardware-acceptance corrective pass) ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
   "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_preflight_geometry.cpp" -o "$BUILD_DIR/test_jk_write_tx_preflight_geometry"

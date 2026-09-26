@@ -2280,7 +2280,11 @@ interval:
                     const size_t off = size_t(i) * (size_t(registers_per_channel) * 2U);
                     const uint32_t microohms = (uint32_t(data[off]) << 24) | (uint32_t(data[off + 1U]) << 16) |
                                                 (uint32_t(data[off + 2U]) << 8) | uint32_t(data[off + 3U]);
-                    calibration_sensors[i]->publish_state(float(microohms));
+                    // Raw register unit is 1 uOhm (official V1.1 PDF / V2 workbook);
+                    // the owner-facing unit is mOhm (V2 workbook: display x0.001),
+                    // matching the measured wire resistance at 0x124A. Writes
+                    // encode back with round(mOhm / 0.001) and confirm on raw bits.
+                    calibration_sensors[i]->publish_state(float(double(microohms) * 0.001));
                   }
                 } else {
                   ESP_LOGW("jk_cellconwireres", "CellConWireRes0-31 response length mismatch: %u/%u bytes",
@@ -4020,261 +4024,263 @@ sensor:
   # config_slow_300s -- calibration constants, not live telemetry, never
   # 1Hz) -- see that command's own comment for the full bounded-probe
   # policy shared with CellWireRes16-31 above (jk_capability_core.h).
+  # Raw unit uOhm; published in mOhm (x0.001, accuracy 3) -- see the
+  # CellConWireRes0-31 read lambda above.
   # 0x1088   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes0   µΩ
   - platform: template
     id: cell_connection_wire_resistance_1
     name: "cell connection wire resistance 1"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x108C   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes1   µΩ
   - platform: template
     id: cell_connection_wire_resistance_2
     name: "cell connection wire resistance 2"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x1090   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes2   µΩ
   - platform: template
     id: cell_connection_wire_resistance_3
     name: "cell connection wire resistance 3"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x1094   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes3   µΩ
   - platform: template
     id: cell_connection_wire_resistance_4
     name: "cell connection wire resistance 4"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x1098   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes4   µΩ
   - platform: template
     id: cell_connection_wire_resistance_5
     name: "cell connection wire resistance 5"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x109C   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes5   µΩ
   - platform: template
     id: cell_connection_wire_resistance_6
     name: "cell connection wire resistance 6"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10A0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes6   µΩ
   - platform: template
     id: cell_connection_wire_resistance_7
     name: "cell connection wire resistance 7"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10A4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes7   µΩ
   - platform: template
     id: cell_connection_wire_resistance_8
     name: "cell connection wire resistance 8"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10A8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes8   µΩ
   - platform: template
     id: cell_connection_wire_resistance_9
     name: "cell connection wire resistance 9"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10AC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes9   µΩ
   - platform: template
     id: cell_connection_wire_resistance_10
     name: "cell connection wire resistance 10"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10B0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes10   µΩ
   - platform: template
     id: cell_connection_wire_resistance_11
     name: "cell connection wire resistance 11"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10B4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes11   µΩ
   - platform: template
     id: cell_connection_wire_resistance_12
     name: "cell connection wire resistance 12"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10B8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes12   µΩ
   - platform: template
     id: cell_connection_wire_resistance_13
     name: "cell connection wire resistance 13"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10BC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes13   µΩ
   - platform: template
     id: cell_connection_wire_resistance_14
     name: "cell connection wire resistance 14"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10C0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes14   µΩ
   - platform: template
     id: cell_connection_wire_resistance_15
     name: "cell connection wire resistance 15"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10C4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes15   µΩ
   - platform: template
     id: cell_connection_wire_resistance_16
     name: "cell connection wire resistance 16"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10C8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes16   µΩ
   - platform: template
     id: cell_connection_wire_resistance_17
     name: "cell connection wire resistance 17"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10CC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes17   µΩ
   - platform: template
     id: cell_connection_wire_resistance_18
     name: "cell connection wire resistance 18"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10D0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes18   µΩ
   - platform: template
     id: cell_connection_wire_resistance_19
     name: "cell connection wire resistance 19"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10D4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes19   µΩ
   - platform: template
     id: cell_connection_wire_resistance_20
     name: "cell connection wire resistance 20"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10D8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes20   µΩ
   - platform: template
     id: cell_connection_wire_resistance_21
     name: "cell connection wire resistance 21"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10DC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes21   µΩ
   - platform: template
     id: cell_connection_wire_resistance_22
     name: "cell connection wire resistance 22"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10E0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes22   µΩ
   - platform: template
     id: cell_connection_wire_resistance_23
     name: "cell connection wire resistance 23"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10E4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes23   µΩ
   - platform: template
     id: cell_connection_wire_resistance_24
     name: "cell connection wire resistance 24"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10E8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes24   µΩ
   - platform: template
     id: cell_connection_wire_resistance_25
     name: "cell connection wire resistance 25"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10EC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes25   µΩ
   - platform: template
     id: cell_connection_wire_resistance_26
     name: "cell connection wire resistance 26"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10F0   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes26   µΩ
   - platform: template
     id: cell_connection_wire_resistance_27
     name: "cell connection wire resistance 27"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10F4   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes27   µΩ
   - platform: template
     id: cell_connection_wire_resistance_28
     name: "cell connection wire resistance 28"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10F8   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes28   µΩ
   - platform: template
     id: cell_connection_wire_resistance_29
     name: "cell connection wire resistance 29"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x10FC   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes29   µΩ
   - platform: template
     id: cell_connection_wire_resistance_30
     name: "cell connection wire resistance 30"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x1100   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes30   µΩ
   - platform: template
     id: cell_connection_wire_resistance_31
     name: "cell connection wire resistance 31"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # 0x1104   UINT32    4    RW(decl.)/R(impl.)    CellConWireRes31   µΩ
   - platform: template
     id: cell_connection_wire_resistance_32
     name: "cell connection wire resistance 32"
     update_interval: never
-    unit_of_measurement: "µΩ"
-    accuracy_decimals: 0
+    unit_of_measurement: "mΩ"
+    accuracy_decimals: 3
 
   # Diagnostic instrumentation (2026-09-18, user-directed) for the
   # CellConWireRes0-31 read -- does NOT add any new Modbus traffic, new

@@ -344,7 +344,7 @@ function main() {
   setDisplayCellCount(4);
   ingestVoltage(4, 3.452);
   ingestResistance(4, 0.0401);
-  ingestCalibration(4, 1234);
+  ingestCalibration(4, 0.055); // mΩ (raw 55 µΩ) -- the owner-reported real magnitude
   renderCellCompositeList();
   const row4 = rowFor(4);
   check("row 4 exists after building N=4", !!row4);
@@ -362,10 +362,13 @@ function main() {
   const calibInput4 = row4.querySelector(".cell-composite-calibration-editor");
   check("calibration input for row 4 exists and is disabled (authorizationRequired)", !!calibInput4 && calibInput4.disabled === true);
   check("calibration input is populated with the real current CellConWireRes4 value, not left blank",
-    calibInput4 && calibInput4.value === "1234", calibInput4 && calibInput4.value);
+    calibInput4 && calibInput4.value === "0.055", calibInput4 && calibInput4.value);
   const calibUnit4 = row4.querySelector(".cell-composite-calibration-unit");
-  check("calibration unit element renders the generated localized unit (µΩ, not a hardcoded fallback)",
-    calibUnit4 && calibUnit4.textContent === "µΩ", calibUnit4 && calibUnit4.textContent);
+  // Unit normalization (2026-09-26): raw register unit is 1 µΩ, the
+  // owner-facing (and HA) unit is mΩ at scale 0.001 -- same as the measured
+  // wire resistance beside it.
+  check("calibration unit element renders the generated localized unit (mΩ, not a hardcoded fallback)",
+    calibUnit4 && calibUnit4.textContent === "mΩ", calibUnit4 && calibUnit4.textContent);
 
   // =========================================================================
   // 13/14. Write-policy branches -- real data has every
