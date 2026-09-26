@@ -1,5 +1,5 @@
 {
-  "$comment": "Measured width audit for Settings editors (2026-09-26). Each requiredPx = shell chrome (padding+border) + widest candidate value text (15px tabular) + 2px caret + [6px gap + widest localized unit (13px)], or for selects chrome + widest localized option + 16px chevron zone. Measured in the mock browser with getBoundingClientRect on hidden spans using the editors' computed fonts. Re-measure when a range, precision, unit or option changes (test_settings_control_widths.js enforces this).",
+  "$comment": "Measured width audit for Settings editors (2026-09-26). Each requiredPx = shell chrome (padding+border) + widest candidate value text (15px tabular) + 2px caret + [6px gap + widest visible unit suffix (13px; 'raw' for raw-value fields)], or for selects chrome + widest localized option + 16px chevron zone. Measured in the mock browser with getBoundingClientRect on hidden spans using the editors' computed fonts. Re-measure when a range, precision, unit or option changes (test_settings_control_widths.js enforces this).",
   "measuredAt": "2026-09-26",
   "environment": {
     "valueFont": "-apple-system, system-ui, SF Pro Display, Segoe UI, sans-serif / 15px / tabular-nums",
@@ -706,11 +706,11 @@
         "16777215"
       ],
       "units": [
-        "необроблено",
         "raw"
       ],
-      "widest": "-16777215 необроблено",
-      "requiredPx": 195.05
+      "widest": "-16777215 raw",
+      "requiredPx": 132.21,
+      "note": "canonical unit raw: the visible suffix is the compact marker 'raw' in both languages; the localized explanation is the accessible description (re-measured 2026-09-26)"
     },
     "dry_contact_1_recovery_value": {
       "kind": "number",
@@ -719,11 +719,11 @@
         "16777215"
       ],
       "units": [
-        "необроблено",
         "raw"
       ],
-      "widest": "-16777215 необроблено",
-      "requiredPx": 195.05
+      "widest": "-16777215 raw",
+      "requiredPx": 132.21,
+      "note": "canonical unit raw: the visible suffix is the compact marker 'raw' in both languages; the localized explanation is the accessible description (re-measured 2026-09-26)"
     },
     "dry_contact_2_trigger_value": {
       "kind": "number",
@@ -732,11 +732,11 @@
         "16777215"
       ],
       "units": [
-        "необроблено",
         "raw"
       ],
-      "widest": "-16777215 необроблено",
-      "requiredPx": 195.05
+      "widest": "-16777215 raw",
+      "requiredPx": 132.21,
+      "note": "canonical unit raw: the visible suffix is the compact marker 'raw' in both languages; the localized explanation is the accessible description (re-measured 2026-09-26)"
     },
     "dry_contact_2_recovery_value": {
       "kind": "number",
@@ -745,11 +745,11 @@
         "16777215"
       ],
       "units": [
-        "необроблено",
         "raw"
       ],
-      "widest": "-16777215 необроблено",
-      "requiredPx": 195.05
+      "widest": "-16777215 raw",
+      "requiredPx": 132.21,
+      "note": "canonical unit raw: the visible suffix is the compact marker 'raw' in both languages; the localized explanation is the accessible description (re-measured 2026-09-26)"
     },
     "tim_prodischarge": {
       "kind": "number",

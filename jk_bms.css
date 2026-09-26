@@ -23,11 +23,11 @@
      separators, uk/en units, every localized option, 22px shell padding +
      border, 6px unit gap, 2px caret, +2px rendering margin), expressed as
      30px fixed chrome + k x the value font so they grow with larger text:
-       ordinary  145.84px needed ("2147483647 мкс") -> k 7.9  = 148.5px
-       raw-value 195.05px needed ("-16777215 необроблено") -> k 11.2 = 198px
+       ordinary  145.85px needed ("2147483647 мкс") -> k 7.9  = 148.5px
+                 (raw values show the compact marker "raw", so "-16777215
+                 raw" fits the same width; see settingsRowUnit())
        cell cal. 155.85px needed ("4294967.295 мОм") -> k 8.6  = 159px */
   --settings-control-width:calc(30px + var(--fs-body) * 7.9);
-  --settings-control-width-raw:calc(30px + var(--fs-body) * 11.2);
   --cell-calibration-width:calc(30px + var(--fs-body) * 8.6);
   --settings-action-width:44px;
   --hair:rgba(255,255,255,.09);
@@ -1365,8 +1365,6 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
    screen readers (visually hidden). Rows that never have an action have no
    action slot. */
 .settings-catalog-row{ --sc-field-w:var(--settings-control-width); --sc-action-w:var(--settings-action-width); flex-wrap:wrap; gap:8px 14px; min-height:58px; }
-/* The four raw-value fields (dry-contact thresholds) need the wider audited width. */
-.settings-catalog-row[data-value-unit="raw"]{ --sc-field-w:var(--settings-control-width-raw); }
 .settings-catalog-label{ font-weight:500; flex:1 1 140px; min-width:0; }
 .settings-catalog-row > .settings-catalog-value{ margin-left:auto; min-width:0; text-align:right; font-variant-numeric:tabular-nums; }
 .settings-catalog-row > .settings-catalog-dash{ margin-left:auto; color:var(--ink-faint); }

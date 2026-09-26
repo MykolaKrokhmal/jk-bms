@@ -1095,9 +1095,26 @@ function runControlsSimplificationScenario() {
   check("X2: the framed lock is a non-interactive indicator -- not a button, not focusable, hidden from the accessibility tree",
     allLocks.length > 40 && allLocks.every((l) => l.tagName === "span" && l.getAttribute("role") === null &&
       l.getAttribute("tabindex") === null && l.getAttribute("aria-hidden") === "true"));
-  check("X2: exactly the four raw-value rows are marked for the wide audited width",
-    JSON.stringify(rows.filter((el) => el.dataset.valueUnit === "raw").map((el) => el.dataset.canonicalKey).sort()) ===
-    JSON.stringify(["dry_contact_1_recovery_value", "dry_contact_1_trigger_value", "dry_contact_2_recovery_value", "dry_contact_2_trigger_value"]));
+  // Raw values: compact visible suffix, full meaning in the accessibility tree.
+  const rawRows = SETTINGS_CATALOG_ROWS.filter((r) => r.unit === "raw")
+    .map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId)).filter(Boolean);
+  const rawOk = (lang) => rawRows.length === 4 && rawRows.every((el) => {
+    const ed = el.querySelector(".settings-catalog-editor");
+    const unit = el.querySelector(".settings-catalog-unit");
+    const note = el.querySelector(".settings-raw-unit-note");
+    const ids = (ed.getAttribute("aria-describedby") || "").split(" ");
+    return unit.textContent === "raw" && note && note.classList.contains("sr-only") && ids.includes(note.id) &&
+      idRegistry.get(note.id) === note && unit.title === note.textContent &&
+      (lang === "uk" ? note.textContent.startsWith("необроблене значення") : note.textContent.startsWith("raw register value")) &&
+      !visibleText(el).includes("необроблено");
+  });
+  check("X2: raw-value fields show the compact 'raw' suffix (EN), with the full meaning as a resolved hidden description", rawOk("en"));
+  setLanguage("uk");
+  relocalizeSettingsCatalog();
+  check("X2: ...and the same 'raw' suffix in Ukrainian, with the Ukrainian explanation only in the accessibility tree", rawOk("uk"));
+  setLanguage("en");
+  relocalizeSettingsCatalog();
+  check("X2: no row is marked for a special wide width any more", rows.every((el) => el.dataset.valueUnit === undefined));
   check("X2: read-only rows have no action slot and no field shell (plain values)",
     rows.filter((el) => el.dataset.access === "R").every((el) => !el.querySelector(".settings-field-shell") &&
       !el.querySelector(".settings-lock") && !el.querySelector("button")));
