@@ -602,11 +602,112 @@ function main() {
   runGlobalFreshnessScenarios();
   runCredentialRenderScenario();
   runControlsSimplificationScenario();
+  runFalseStaleScenario();
 
   runRealReconnectScenario().then(() => {
     console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
     process.exit(failures ? 1 : 0);
   }, (error) => { console.error(error); process.exit(1); });
+}
+
+// Transient yellow (owner report 2026-09-26: the 0x1114 fields briefly
+// turned yellow). Stale yellow must mean exactly one thing -- a missed read
+// budget. Pending/offline keep their own muted look, the dirty draft marker
+// comes only from a real user input event, and a successful read clears the
+// warning in the same synchronous step that records it (no timer race, no
+// grace period, write gate unchanged).
+function runFalseStaleScenario() {
+  fakeNow = 900000;
+  const p = bootStartupPage();
+  const { ingestPayload, acceptReadBlockSnapshot, readBlockSuccess, sweepDiagnosticStaleness, setBrowserLink,
+    setLanguage, renderSettingsCatalog, settingsFieldFreshness } = p.hooks;
+  ingestStartupValues(p);
+  ingestPayload({ id: "sensor/cell 4 wire resistance", state: "0.040 mΩ", value: 0.040 });
+  acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  health(p, "LIVE");
+  const allEditors = () => [...idRegistry.get("settingsCatalogList").querySelectorAll(".settings-catalog-editor"),
+    ...p.cellList.querySelectorAll(".cell-composite-calibration-editor")];
+  const dirtyEditors = () => allEditors().filter((ed) => ed.dataset.dirty === "true");
+  const lcd = () => idRegistry.get("settingsCatalogList").querySelectorAll(".settings-catalog-row")
+    .find((r) => r.dataset.manifestId === "LCD Always On");
+  const lcdSelect = () => lcd().querySelector(".settings-catalog-editor");
+  const lcdButton = () => lcd().querySelector(".settings-catalog-action");
+  p.cell4();
+  check("F1: SSE population marks no editor dirty", allEditors().length > 0 && dirtyEditors().length === 0,
+    dirtyEditors().map((e) => e.dataset.canonicalKey || e.id).join(","));
+  setLanguage("uk");
+  setLanguage("en");
+  check("F1: relocalization marks no editor dirty", dirtyEditors().length === 0);
+  renderSettingsCatalog();
+  p.cell4();
+  check("F1: rerender marks no editor dirty", dirtyEditors().length === 0);
+  setBrowserLink("reconnecting");
+  setBrowserLink("connected");
+  ingestStartupValues(p);
+  health(p, "LIVE");
+  check("F1: reconnect + value snapshot marks no editor dirty", dirtyEditors().length === 0);
+  // Only the user's input event sets the draft marker (delegated handler).
+  const dirtyWrites = source.match(/\.dataset\.dirty = "true"/g) || [];
+  check("F1: exactly two code paths set dirty: the user 'input' handler and the rebuild that re-applies an existing draft",
+    dirtyWrites.length === 2 &&
+    /addEventListener\("input", \(event\) => \{\n\s+const input = event\.target;\n\s+if \(input instanceof HTMLInputElement \|\| input instanceof HTMLSelectElement\) \{ input\.dataset\.dirty = "true";/.test(source) &&
+    /for \(const \[wireId, pending\] of preservedDirty\) \{[\s\S]{0,200}node\.dataset\.dirty = "true";/.test(source));
+
+  // Fresh baseline for 0x1114 (budget 30 s): record the read at T0.
+  fakeNow += 1;
+  readBlockSuccess(`${0x1114}:2`);
+  const t0 = fakeNow;
+  check("F2: 0x1114 field fresh after its read", lcdSelect().dataset.freshness === "fresh" &&
+    !lcdSelect().classList.contains("is-stale") && lcdButton().disabled === false);
+  fakeNow = t0 + 30000;
+  sweepDiagnosticStaleness();
+  check("F2: exactly at the 30 s budget the field is still fresh (strictly-greater rule)",
+    lcdSelect().dataset.freshness === "fresh" && lcdButton().disabled === false);
+  // Read success lands between two sweep ticks just after the budget: the
+  // next tick must never show a stale frame.
+  fakeNow = t0 + 30001;
+  readBlockSuccess(`${0x1114}:3`);
+  sweepDiagnosticStaleness();
+  check("F3: a read recorded before the sweep tick never produces a stale frame",
+    lcdSelect().dataset.freshness === "fresh" && !lcdSelect().classList.contains("is-stale"));
+  // Genuine stale: no read for more than the budget.
+  const t1 = fakeNow;
+  fakeNow = t1 + 30001;
+  sweepDiagnosticStaleness();
+  check("F4: genuine missed budget is stale (yellow kept) and the write gate closes",
+    lcdSelect().dataset.freshness === "stale" && lcdSelect().classList.contains("is-stale") && lcdButton().disabled === true &&
+    settingsFieldFreshness("lcd_always_on").kind === "stale");
+  const before = fetchCallLog.length;
+  attemptAllSubmits(p);
+  check("F4: stale submit attempts produce zero GET/POST", fetchCallLog.length === before);
+  readBlockSuccess(`${0x1114}:4`);
+  check("F5: the successful read clears stale synchronously, in the same step (no sweep needed, no delay)",
+    lcdSelect().dataset.freshness === "fresh" && !lcdSelect().classList.contains("is-stale") && lcdButton().disabled === false);
+  readBlockSuccess(`${0x1114}:4`);
+  fakeNow += 30001;
+  sweepDiagnosticStaleness();
+  check("F5: a replayed (non-increasing) read revision cannot refresh the block",
+    lcdSelect().dataset.freshness === "stale");
+  fakeNow += 1;
+  readBlockSuccess(`${0x1114}:5`);
+
+  // Offline: muted, never the stale yellow; gate closed.
+  setBrowserLink("reconnecting");
+  const cell = p.cell4();
+  check("F6: offline Settings editor/select are not yellow",
+    p.legacyInput.dataset.freshness === "offline" && !p.legacyInput.classList.contains("is-stale") &&
+    lcdSelect().dataset.freshness === "offline" && !lcdSelect().classList.contains("is-stale"),
+    `${p.legacyInput.className} / ${lcdSelect().className}`);
+  check("F6: offline read-only cell values are not yellow",
+    cell.voltage.dataset.freshness === "offline" && !cell.voltage.classList.contains("is-stale"), cell.voltage.className);
+  check("F6: offline keeps the write gate closed", p.legacyButton.disabled === true && lcdButton().disabled === true);
+  const beforeOffline = fetchCallLog.length;
+  attemptAllSubmits(p);
+  check("F6: offline submit attempts produce zero GET/POST", fetchCallLog.length === beforeOffline);
+  setBrowserLink("connected");
+  health(p, "OFFLINE");
+  check("F7: BMS-offline (browser connected) is offline, not yellow",
+    lcdSelect().dataset.freshness === "offline" && !lcdSelect().classList.contains("is-stale") && lcdButton().disabled === true);
 }
 
 // Startup ordering (owner report 2026-09-25: Settings/cell values briefly

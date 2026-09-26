@@ -255,5 +255,12 @@ check("fallback without container queries keeps the previous viewport states",
 check("inside the containers the header and unconfirmed text keep their previous absolute size (em would now follow --fs-body)",
   decl(bodyOf(".settings-catalog-group-header"), "font-size") === "12.48px" && decl(bodyOf(".cell-composite-unconfirmed"), "font-size") === "14.4px");
 
+// 7. Freshness states: only stale is the warning colour.
+check("offline read-only values are muted grey, not the stale warning",
+  /var\(--ink-faint\)/.test(bodyOf('.settings-catalog-value[data-freshness="offline"]')) &&
+  /var\(--ink-faint\)/.test(bodyOf('.cell-composite-row b[data-freshness="offline"]')) &&
+  !/--warn/.test(bodyOf('.settings-field-shell:has(> [data-freshness="offline"])')) &&
+  !/--warn/.test(bodyOf('.settings-field-shell:has(> [data-freshness="pending"])')));
+
 console.log(`\nsettings controls CSS: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);

@@ -1,0 +1,290 @@
+{
+ "observedMs": 360017,
+ "stateEvents": 27845,
+ "pings": 37,
+ "healthTransitions": [
+  [
+   8404,
+   "LIVE"
+  ]
+ ],
+ "cellVoltage": {
+  "keys": 32,
+  "budgetS": 3,
+  "maxGapMs": 5439,
+  "keysOverBudget": 32,
+  "overBudgetEvents": [
+   {
+    "key": "cell_voltage_1",
+    "atMs": 10784,
+    "gapMs": 5439
+   },
+   {
+    "key": "cell_voltage_2",
+    "atMs": 10785,
+    "gapMs": 5434
+   },
+   {
+    "key": "cell_voltage_3",
+    "atMs": 10785,
+    "gapMs": 5412
+   },
+   {
+    "key": "cell_voltage_4",
+    "atMs": 10785,
+    "gapMs": 5390
+   },
+   {
+    "key": "cell_voltage_5",
+    "atMs": 10785,
+    "gapMs": 5372
+   },
+   {
+    "key": "cell_voltage_6",
+    "atMs": 10785,
+    "gapMs": 5349
+   },
+   {
+    "key": "cell_voltage_7",
+    "atMs": 10785,
+    "gapMs": 5328
+   },
+   {
+    "key": "cell_voltage_8",
+    "atMs": 10785,
+    "gapMs": 5306
+   },
+   {
+    "key": "cell_voltage_9",
+    "atMs": 10785,
+    "gapMs": 5286
+   },
+   {
+    "key": "cell_voltage_10",
+    "atMs": 10785,
+    "gapMs": 5266
+   },
+   {
+    "key": "cell_voltage_11",
+    "atMs": 10785,
+    "gapMs": 5242
+   },
+   {
+    "key": "cell_voltage_12",
+    "atMs": 10786,
+    "gapMs": 5233
+   },
+   {
+    "key": "cell_voltage_13",
+    "atMs": 10786,
+    "gapMs": 5210
+   },
+   {
+    "key": "cell_voltage_14",
+    "atMs": 10838,
+    "gapMs": 5248
+   },
+   {
+    "key": "cell_voltage_15",
+    "atMs": 10838,
+    "gapMs": 5219
+   },
+   {
+    "key": "cell_voltage_16",
+    "atMs": 10838,
+    "gapMs": 5204
+   },
+   {
+    "key": "cell_voltage_17",
+    "atMs": 10969,
+    "gapMs": 5246
+   },
+   {
+    "key": "cell_voltage_18",
+    "atMs": 10969,
+    "gapMs": 5230
+   },
+   {
+    "key": "cell_voltage_19",
+    "atMs": 10969,
+    "gapMs": 5218
+   },
+   {
+    "key": "cell_voltage_20",
+    "atMs": 10969,
+    "gapMs": 5197
+   }
+  ]
+ },
+ "keysOverBudget": [
+  {
+   "key": "cell_resistance_1",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4459
+  },
+  {
+   "key": "cell_resistance_2",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4322
+  },
+  {
+   "key": "cell_resistance_3",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4322
+  },
+  {
+   "key": "cell_resistance_4",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4322
+  },
+  {
+   "key": "cell_resistance_5",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4322
+  },
+  {
+   "key": "cell_resistance_6",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4322
+  },
+  {
+   "key": "cell_resistance_7",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4322
+  },
+  {
+   "key": "cell_resistance_8",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4322
+  },
+  {
+   "key": "cell_resistance_9",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4316
+  },
+  {
+   "key": "cell_resistance_10",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4301
+  },
+  {
+   "key": "cell_resistance_11",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4276
+  },
+  {
+   "key": "cell_resistance_12",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4247
+  },
+  {
+   "key": "cell_resistance_13",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4233
+  },
+  {
+   "key": "cell_resistance_14",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4278
+  },
+  {
+   "key": "cell_resistance_15",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4263
+  },
+  {
+   "key": "cell_resistance_16",
+   "budgetS": 3,
+   "n": 1,
+   "maxGapMs": 4236
+  }
+ ],
+ "blocksSeen": 70,
+ "blocksOverBudget": [
+  {
+   "block": "0x12a4",
+   "maxGapMs": 32752,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x12ac",
+   "maxGapMs": 30890,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x12da",
+   "maxGapMs": 30103,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x12dc",
+   "maxGapMs": 30459,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x12e4",
+   "maxGapMs": 30693,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x12e6",
+   "maxGapMs": 30475,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x12ee",
+   "maxGapMs": 30022,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x12f0",
+   "maxGapMs": 32618,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x12f8",
+   "maxGapMs": 32209,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x12fa",
+   "maxGapMs": 30005,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x1420",
+   "maxGapMs": 30044,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x1424",
+   "maxGapMs": 30111,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x1470",
+   "maxGapMs": 30032,
+   "budgetMs": 30000
+  },
+  {
+   "block": "0x1244",
+   "maxGapMs": 32879,
+   "budgetMs": 30000
+  }
+ ]
+}
