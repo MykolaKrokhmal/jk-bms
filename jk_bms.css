@@ -18,6 +18,18 @@
   --panel:#1e222c;        /* lifted well clear of --void — cards read as cards */
   --panel-2:#262b37;      /* recessed well, e.g. inputs, one step lighter still */
   --field-bg:var(--panel-2); /* editable form control surface */
+  /* Settings control widths, derived from a measured audit of every RW
+     Settings editor (min/max at its precision, sign, both decimal
+     separators, uk/en units, every localized option, 22px shell padding +
+     border, 6px unit gap, 2px caret, +2px rendering margin), expressed as
+     30px fixed chrome + k x the value font so they grow with larger text:
+       ordinary  145.84px needed ("2147483647 мкс") -> k 7.9  = 148.5px
+       raw-value 195.05px needed ("-16777215 необроблено") -> k 11.2 = 198px
+       cell cal. 155.85px needed ("4294967.295 мОм") -> k 8.6  = 159px */
+  --settings-control-width:calc(30px + var(--fs-body) * 7.9);
+  --settings-control-width-raw:calc(30px + var(--fs-body) * 11.2);
+  --cell-calibration-width:calc(30px + var(--fs-body) * 8.6);
+  --settings-action-width:44px;
   --hair:rgba(255,255,255,.09);
   --hair-strong:rgba(255,255,255,.2);
   --ink:#f2f3f5;
@@ -1303,7 +1315,7 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
    one compact right-hand cluster whose column starts are identical in every
    row (fixed ch tracks, tabular figures, one vertical centre line). */
 .cell-composite-row{
-  --cc-volt-w:9ch; --cc-res-w:11ch; --cc-field-w:14ch; --cc-action-w:44px;
+  --cc-volt-w:9ch; --cc-res-w:11ch; --cc-field-w:var(--cell-calibration-width); --cc-action-w:var(--settings-action-width);
   display:grid; grid-template-columns:minmax(0, 1fr) var(--cc-volt-w) var(--cc-res-w) auto;
   align-items:center; column-gap:14px; row-gap:6px; font-size:var(--fs-body); font-variant-numeric:tabular-nums;
 }
@@ -1352,7 +1364,9 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
    column: state is drawn on the value/field itself and spelled out for
    screen readers (visually hidden). Rows that never have an action have no
    action slot. */
-.settings-catalog-row{ --sc-field-w:16ch; --sc-action-w:44px; flex-wrap:wrap; gap:8px 14px; min-height:58px; }
+.settings-catalog-row{ --sc-field-w:var(--settings-control-width); --sc-action-w:var(--settings-action-width); flex-wrap:wrap; gap:8px 14px; min-height:58px; }
+/* The four raw-value fields (dry-contact thresholds) need the wider audited width. */
+.settings-catalog-row[data-value-unit="raw"]{ --sc-field-w:var(--settings-control-width-raw); }
 .settings-catalog-label{ font-weight:500; flex:1 1 140px; min-width:0; }
 .settings-catalog-row > .settings-catalog-value{ margin-left:auto; min-width:0; text-align:right; font-variant-numeric:tabular-nums; }
 .settings-catalog-row > .settings-catalog-dash{ margin-left:auto; color:var(--ink-faint); }
@@ -1388,7 +1402,8 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 .settings-field-shell > input::-webkit-outer-spin-button,
 .settings-field-shell > input::-webkit-inner-spin-button{ -webkit-appearance:none; appearance:none; margin:0; }
 .settings-field-shell > input::placeholder{ color:var(--ink-faint); opacity:1; }
-.settings-field-shell > select{
+/* Higher specificity than the bare-editor rule above: keeps the chevron zone. */
+.settings-field-shell > select.settings-catalog-editor{
   -webkit-appearance:none; appearance:none; padding-right:16px; text-align:left; cursor:pointer; text-overflow:ellipsis;
   background-image:linear-gradient(45deg, transparent 50%, var(--ink-dim) 50%), linear-gradient(135deg, var(--ink-dim) 50%, transparent 50%);
   background-position:calc(100% - 5px) 50%, calc(100% - 0px) 50%; background-size:5px 5px; background-repeat:no-repeat;
@@ -1406,7 +1421,7 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 /* Locked: unfilled, hairline border -- quieter than an editable field. */
 .settings-field-shell.is-locked{ background-color:transparent; border-color:var(--hair); color:var(--ink-dim); cursor:not-allowed; }
 .settings-field-shell.is-locked > :disabled{ cursor:not-allowed; opacity:1; color:var(--ink-dim); -webkit-text-fill-color:var(--ink-dim); }
-.settings-field-shell.is-locked > select{ background-image:none; padding-right:0; }
+.settings-field-shell.is-locked > select.settings-catalog-editor{ background-image:none; padding-right:0; }
 /* A locked value without an editor (text/credential rows): no box. */
 .settings-field-shell.is-static{ height:auto; min-height:38px; padding-right:0; border-color:transparent; background-color:transparent; justify-content:flex-end; }
 .settings-field-shell.is-static > .settings-catalog-value,
@@ -1443,7 +1458,8 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 .cell-composite-action:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .settings-action-lock{
   box-sizing:border-box; display:flex; align-items:center; justify-content:center; width:var(--sc-action-w, 44px); height:38px;
-  color:var(--ink-faint); cursor:default;
+  margin:0; padding:0; border:1px solid var(--hair-strong); border-radius:8px; background-color:transparent;
+  color:var(--ink-faint); cursor:default; pointer-events:none; user-select:none; transition:none;
 }
 .settings-action-lock svg{ display:block; width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
 
@@ -1451,10 +1467,16 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
    [field | action]; nothing else is reserved. */
 @media (max-width:560px){
   .settings-catalog-editor-group{
-    flex-basis:100%; margin-left:0; min-width:0;
-    grid-template-columns:minmax(0, 1fr) var(--sc-action-w);
+    flex-basis:100%; margin-left:0; min-width:0; justify-content:end;
+    grid-template-columns:minmax(0, var(--sc-field-w)) var(--sc-action-w);
   }
   .settings-catalog-editor-group > .settings-catalog-message{ text-align:left; }
+}
+/* The narrowest phones (320 px leaves ~202 px of row): tighter field chrome
+   and field-action gap, so the audited widths still fit beside the action. */
+@media (max-width:360px){
+  .settings-field-shell{ padding:0 6px; gap:4px; }
+  .settings-catalog-editor-group, .cell-composite-calibration{ column-gap:4px; }
 }
 /* Value column widened 15% (94px -> 108px) across every breakpoint below. */
 .register-editor{ display:grid; grid-template-columns:108px 54px; align-items:center; gap:8px; flex:none; }

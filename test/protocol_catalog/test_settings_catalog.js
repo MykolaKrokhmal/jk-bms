@@ -1091,6 +1091,13 @@ function runControlsSimplificationScenario() {
       return slot && ok + locks === 1 && (slot.classList.contains("settings-catalog-action") || slot.classList.contains("settings-action-lock"));
     }));
   check("X2: no lock is ever inside a field shell", list.querySelectorAll(".settings-field-shell").every((sh) => !sh.querySelector(".settings-lock")));
+  const allLocks = list.querySelectorAll(".settings-lock");
+  check("X2: the framed lock is a non-interactive indicator -- not a button, not focusable, hidden from the accessibility tree",
+    allLocks.length > 40 && allLocks.every((l) => l.tagName === "span" && l.getAttribute("role") === null &&
+      l.getAttribute("tabindex") === null && l.getAttribute("aria-hidden") === "true"));
+  check("X2: exactly the four raw-value rows are marked for the wide audited width",
+    JSON.stringify(rows.filter((el) => el.dataset.valueUnit === "raw").map((el) => el.dataset.canonicalKey).sort()) ===
+    JSON.stringify(["dry_contact_1_recovery_value", "dry_contact_1_trigger_value", "dry_contact_2_recovery_value", "dry_contact_2_trigger_value"]));
   check("X2: read-only rows have no action slot and no field shell (plain values)",
     rows.filter((el) => el.dataset.access === "R").every((el) => !el.querySelector(".settings-field-shell") &&
       !el.querySelector(".settings-lock") && !el.querySelector("button")));

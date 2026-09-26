@@ -75,9 +75,14 @@ check("number values are right-aligned against the unit; spinners removed",
   rules.some((r) => r.selectors.includes(".settings-field-shell > input::-webkit-inner-spin-button")));
 const unit = bodyOf(".settings-field-shell > .settings-catalog-unit");
 check("unit suffix is inside the shell, never shrinks and never wraps", decl(unit, "flex") === "none" && decl(unit, "white-space") === "nowrap");
-const select = bodyOf(".settings-field-shell > select");
-check("select keeps its native element, drawn inside the shell with a chevron", decl(select, "appearance") === "none" &&
-  /linear-gradient/.test(decl(select, "background-image") || ""));
+const select = bodyOf(".settings-field-shell > select.settings-catalog-editor");
+check("select keeps its native element, drawn inside the shell with a chevron and a 16 px chevron zone", decl(select, "appearance") === "none" &&
+  /linear-gradient/.test(decl(select, "background-image") || "") && decl(select, "padding-right") === "16px");
+// The chevron zone must out-rank the bare-editor rule that zeroes padding
+// (a bare `.settings-field-shell > select` lost to it and let text run under the chevron).
+check("the select chevron-zone rule is more specific than the bare-editor padding rule",
+  rules.some((r) => r.selectors.includes(".settings-field-shell > select.settings-catalog-editor")) &&
+  !rules.some((r) => r.selectors.includes(".settings-field-shell > select") && /padding-right/.test(r.body)));
 
 check("an editable value is full-contrast ink even inside a generic .diag-row (which dims spans)",
   decl(bodyOf(".diag-row .settings-field-shell"), "color") === "var(--ink)" &&
@@ -89,14 +94,21 @@ const lockSlot = bodyOf(".settings-action-lock");
 const lockSvg = bodyOf(".settings-action-lock svg");
 check("OK and lock share one footprint: same width variable (44 px) and 38 px height",
   decl(okBtn, "width") === "var(--sc-action-w, 44px)" && decl(lockSlot, "width") === "var(--sc-action-w, 44px)" &&
-  decl(okBtn, "height") === "38px" && decl(lockSlot, "height") === "38px" && decl(bodyOf(".settings-catalog-row"), "--sc-action-w") === "44px");
+  decl(okBtn, "height") === "38px" && decl(lockSlot, "height") === "38px" &&
+  decl(bodyOf(".settings-catalog-row"), "--sc-action-w") === "var(--settings-action-width)" && /--settings-action-width:44px/.test(css));
 check("cell OK buttons use the same action rule", find(".cell-composite-action").some((r) => r.body === okBtn));
 check("lock icon is 18 px, centred, neutral ink, outline style",
   decl(lockSvg, "width") === "18px" && decl(lockSvg, "height") === "18px" && decl(lockSlot, "justify-content") === "center" &&
   decl(lockSlot, "align-items") === "center" && decl(lockSlot, "color") === "var(--ink-faint)" &&
   decl(lockSvg, "fill") === "none" && decl(lockSvg, "stroke") === "currentColor");
-check("lock is not styled as an action or a badge (no pointer, no background, no border)",
-  decl(lockSlot, "cursor") === "default" && !decl(lockSlot, "background") && !decl(lockSlot, "background-color") && !decl(lockSlot, "border"));
+check("the lock is framed with the OK button's exact geometry (1 px border, 8 px radius, 44 x 38, border-box)",
+  decl(lockSlot, "box-sizing") === "border-box" && decl(okBtn, "box-sizing") === "border-box" &&
+  decl(lockSlot, "border-radius") === decl(okBtn, "border-radius") && /^1px solid /.test(decl(lockSlot, "border") || "") &&
+  /^1px solid /.test(decl(okBtn, "border") || "") && decl(lockSlot, "margin") === "0" && decl(okBtn, "margin") === "0");
+check("the lock frame is neutral only (grey border, transparent fill, no accent/warning) and never looks clickable",
+  decl(lockSlot, "border") === "1px solid var(--hair-strong)" && decl(lockSlot, "background-color") === "transparent" &&
+  !/accent|warn|danger|shadow/.test(lockSlot) && decl(lockSlot, "cursor") === "default" && decl(lockSlot, "pointer-events") === "none" &&
+  !rules.some((r) => r.selectors.some((sel) => /settings-action-lock:(hover|active|focus)/.test(sel))));
 check("no lock styling exists inside the field shell",
   !rules.some((r) => r.selectors.some((sel) => /settings-field-shell[^,]*settings-lock|settings-field-shell > \.settings-lock/.test(sel))));
 check("no badge/pill styling remains for write-status notes",
@@ -139,8 +151,9 @@ check("--field-bg is defined for default, prefers-light, data-theme=light and da
 const group = bodyOf(".settings-catalog-editor-group");
 check("desktop: exactly two tracks (field shell | action slot) -- no reserved status column",
   decl(group, "display") === "grid" && decl(group, "grid-template-columns") === "var(--sc-field-w) var(--sc-action-w)");
-check("field width is content-driven (ch), action fixed (px)",
-  /^\d+ch$/.test(decl(bodyOf(".settings-catalog-row"), "--sc-field-w") || "") && decl(bodyOf(".settings-catalog-row"), "--sc-action-w") === "44px");
+check("field width is the audited shared token (see test_settings_control_widths.js), action fixed",
+  decl(bodyOf(".settings-catalog-row"), "--sc-field-w") === "var(--settings-control-width)" &&
+  decl(bodyOf(".settings-catalog-row"), "--sc-action-w") === "var(--settings-action-width)");
 check("OK and lock both sit in track 2, the shell in track 1",
   decl(bodyOf(".settings-catalog-editor-group > .settings-field-shell"), "grid-column") === "1" &&
   find(".settings-catalog-editor-group > .settings-action-lock").some((r) => r.selectors.includes(".settings-catalog-editor-group > .settings-catalog-action") && decl(r.body, "grid-column") === "2"));
@@ -160,7 +173,8 @@ const cellRow = bodyOf(".cell-composite-row");
 check("cell row is a grid: label | voltage | resistance | calibration, ch-sized numeric tracks, tabular figures",
   decl(cellRow, "display") === "grid" &&
   decl(cellRow, "grid-template-columns") === "minmax(0, 1fr) var(--cc-volt-w) var(--cc-res-w) auto" &&
-  ["--cc-volt-w", "--cc-res-w", "--cc-field-w"].every((v) => /^\d+ch$/.test(decl(cellRow, v) || "")) &&
+  ["--cc-volt-w", "--cc-res-w"].every((v) => /^\d+ch$/.test(decl(cellRow, v) || "")) &&
+  decl(cellRow, "--cc-field-w") === "var(--cell-calibration-width)" &&
   decl(cellRow, "font-variant-numeric") === "tabular-nums" && decl(cellRow, "align-items") === "center");
 check("voltage and resistance are right-aligned in their tracks",
   ["voltage", "resistance"].every((k) => {
@@ -168,8 +182,8 @@ check("voltage and resistance are right-aligned in their tracks",
     return decl(b, "justify-self") === "end" && decl(b, "text-align") === "right" && decl(b, "white-space") === "nowrap";
   }));
 const calib = bodyOf(".cell-composite-calibration");
-check("calibration is [field (ch) | action (44 px)]", decl(calib, "display") === "grid" &&
-  decl(calib, "grid-template-columns") === "var(--cc-field-w) var(--cc-action-w)" && decl(cellRow, "--cc-action-w") === "44px");
+check("calibration is [field (audited width) | action (shared 44 px)]", decl(calib, "display") === "grid" &&
+  decl(calib, "grid-template-columns") === "var(--cc-field-w) var(--cc-action-w)" && decl(cellRow, "--cc-action-w") === "var(--settings-action-width)");
 const phone = "@media (max-width:560px)";
 check("phone: values stay on the label line; field + action move together to their own right-aligned line",
   decl(bodyOf(".cell-composite-row", phone), "grid-template-columns") === "minmax(0, 1fr) var(--cc-volt-w) var(--cc-res-w)" &&
@@ -180,9 +194,14 @@ check("very narrow: label line, values line (content-sized, cannot overflow at l
   decl(bodyOf(".cell-composite-row", tiny), "grid-template-columns") === "minmax(0, 1fr) auto auto" &&
   decl(bodyOf(".cell-composite-label", tiny), "grid-column") === "1 / -1" &&
   decl(bodyOf(".cell-composite-row > .cell-composite-calibration", tiny), "grid-row") === "3");
-check("phone Settings rows: [field | action] under the label",
+check("phone Settings rows: the same compact [field | action] pair, right-aligned, shrinking only when the row is narrower",
   decl(bodyOf(".settings-catalog-editor-group", phone), "flex-basis") === "100%" &&
-  decl(bodyOf(".settings-catalog-editor-group", phone), "grid-template-columns") === "minmax(0, 1fr) var(--sc-action-w)");
+  decl(bodyOf(".settings-catalog-editor-group", phone), "justify-content") === "end" &&
+  decl(bodyOf(".settings-catalog-editor-group", phone), "grid-template-columns") === "minmax(0, var(--sc-field-w)) var(--sc-action-w)");
+const tinyPhone = "@media (max-width:360px)";
+check("narrowest phones: tighter shell chrome and field-action gap keep the audited widths beside the action",
+  decl(bodyOf(".settings-field-shell", tinyPhone), "padding") === "0 6px" &&
+  find(".settings-catalog-editor-group", tinyPhone).some((r) => r.selectors.includes(".cell-composite-calibration") && decl(r.body, "column-gap") === "4px"));
 
 console.log(`\nsettings controls CSS: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);

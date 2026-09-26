@@ -367,6 +367,10 @@ echo "=== Settings controls simplification: one control style, distinct states, 
 node test/protocol_catalog/test_settings_controls_css.js
 
 echo
+echo "=== Settings control widths: CSS tokens vs the measured editor-width audit (every RW editor, min/max, units, options) ==="
+node test/protocol_catalog/test_settings_control_widths.js
+
+echo
 echo "=== Finish-Settings-architecture batch: Settings ownership invariant (N=0/8/16/24/32, no gaps/duplicates) ==="
 node test/protocol_catalog/test_settings_ownership.js
 

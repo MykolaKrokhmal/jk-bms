@@ -1,0 +1,858 @@
+{
+  "$comment": "Measured width audit for Settings editors (2026-09-26). Each requiredPx = shell chrome (padding+border) + widest candidate value text (15px tabular) + 2px caret + [6px gap + widest localized unit (13px)], or for selects chrome + widest localized option + 16px chevron zone. Measured in the mock browser with getBoundingClientRect on hidden spans using the editors' computed fonts. Re-measure when a range, precision, unit or option changes (test_settings_control_widths.js enforces this).",
+  "measuredAt": "2026-09-26",
+  "environment": {
+    "valueFont": "-apple-system, system-ui, SF Pro Display, Segoe UI, sans-serif / 15px / tabular-nums",
+    "unitFontPx": 13,
+    "shellChromePx": 22,
+    "unitGapPx": 6,
+    "caretPx": 2,
+    "selectChevronPx": 16,
+    "browser": "Chromium 152 (Claude in-app browser pane, macOS)",
+    "renderingMarginPx": 2
+  },
+  "controls": {
+    "charging_float_mode": {
+      "kind": "select",
+      "strings": [
+        "Yes",
+        "No",
+        "Так",
+        "Ні"
+      ],
+      "widest": "Так",
+      "requiredPx": 62.43
+    },
+    "heat_en": {
+      "kind": "select",
+      "strings": [
+        "Yes",
+        "No",
+        "Так",
+        "Ні"
+      ],
+      "widest": "Так",
+      "requiredPx": 62.43
+    },
+    "disable_temp_sensor": {
+      "kind": "select",
+      "strings": [
+        "Yes",
+        "No",
+        "Так",
+        "Ні"
+      ],
+      "widest": "Так",
+      "requiredPx": 62.43
+    },
+    "gps_heartbeat": {
+      "kind": "select",
+      "strings": [
+        "Yes",
+        "No",
+        "Так",
+        "Ні"
+      ],
+      "widest": "Так",
+      "requiredPx": 62.43
+    },
+    "port_switch": {
+      "kind": "select",
+      "strings": [
+        "CAN",
+        "RS485"
+      ],
+      "widest": "RS485",
+      "requiredPx": 84.54
+    },
+    "lcd_always_on": {
+      "kind": "select",
+      "strings": [
+        "Yes",
+        "No",
+        "Так",
+        "Ні"
+      ],
+      "widest": "Так",
+      "requiredPx": 62.43
+    },
+    "special_charger": {
+      "kind": "select",
+      "strings": [
+        "Yes",
+        "No",
+        "Так",
+        "Ні"
+      ],
+      "widest": "Так",
+      "requiredPx": 62.43
+    },
+    "smart_sleep_enabled": {
+      "kind": "select",
+      "strings": [
+        "Yes",
+        "No",
+        "Так",
+        "Ні"
+      ],
+      "widest": "Так",
+      "requiredPx": 62.43
+    },
+    "disable_pcl_module": {
+      "kind": "select",
+      "strings": [
+        "Yes",
+        "No",
+        "Так",
+        "Ні"
+      ],
+      "widest": "Так",
+      "requiredPx": 62.43
+    },
+    "timed_stored_data": {
+      "kind": "select",
+      "strings": [
+        "Yes",
+        "No",
+        "Так",
+        "Ні"
+      ],
+      "widest": "Так",
+      "requiredPx": 62.43
+    },
+    "smart_sleep_timeout_hours": {
+      "kind": "number",
+      "values": [
+        "0",
+        "255"
+      ],
+      "units": [
+        "год",
+        "h"
+      ],
+      "widest": "255 год",
+      "requiredPx": 78.99
+    },
+    "smart_sleep": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "cell_count": {
+      "kind": "number",
+      "values": [
+        "1"
+      ],
+      "units": [],
+      "widest": "1",
+      "requiredPx": 33.22
+    },
+    "cell_uvp": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "cell_uvpr": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "cell_ovp": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "cell_ovpr": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "start_balance_trigger": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "1.000",
+        "1,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "soc_100": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "soc_0": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "cell_rcv": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "cell_rfv": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "system_power_off": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "continued_charge_current": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "2000.000",
+        "2000,000"
+      ],
+      "units": [
+        "А",
+        "A"
+      ],
+      "widest": "2000.000 А",
+      "requiredPx": 107.54
+    },
+    "charge_ocp_delay": {
+      "kind": "number",
+      "values": [
+        "0",
+        "2147483647"
+      ],
+      "units": [
+        "с",
+        "s"
+      ],
+      "widest": "2147483647 с",
+      "requiredPx": 129.47
+    },
+    "charge_ocpr_time": {
+      "kind": "number",
+      "values": [
+        "0",
+        "2147483647"
+      ],
+      "units": [
+        "с",
+        "s"
+      ],
+      "widest": "2147483647 с",
+      "requiredPx": 129.47
+    },
+    "continued_discharge_current": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "2000.000",
+        "2000,000"
+      ],
+      "units": [
+        "А",
+        "A"
+      ],
+      "widest": "2000.000 А",
+      "requiredPx": 107.54
+    },
+    "discharge_ocp_delay": {
+      "kind": "number",
+      "values": [
+        "0",
+        "2147483647"
+      ],
+      "units": [
+        "с",
+        "s"
+      ],
+      "widest": "2147483647 с",
+      "requiredPx": 129.47
+    },
+    "discharge_ocpr_time": {
+      "kind": "number",
+      "values": [
+        "0",
+        "2147483647"
+      ],
+      "units": [
+        "с",
+        "s"
+      ],
+      "widest": "2147483647 с",
+      "requiredPx": 129.47
+    },
+    "scpr_time": {
+      "kind": "number",
+      "values": [
+        "0",
+        "2147483647"
+      ],
+      "units": [
+        "с",
+        "s"
+      ],
+      "widest": "2147483647 с",
+      "requiredPx": 129.47
+    },
+    "max_balance_current": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "20.000",
+        "20,000"
+      ],
+      "units": [
+        "А",
+        "A"
+      ],
+      "widest": "20.000 А",
+      "requiredPx": 89.11
+    },
+    "charge_otp": {
+      "kind": "number",
+      "values": [
+        "-100.0",
+        "-100,0",
+        "200.0",
+        "200,0"
+      ],
+      "units": [
+        "°C",
+        "°C"
+      ],
+      "widest": "-100.0 °C",
+      "requiredPx": 93.22
+    },
+    "charge_otpr": {
+      "kind": "number",
+      "values": [
+        "-100.0",
+        "-100,0",
+        "200.0",
+        "200,0"
+      ],
+      "units": [
+        "°C",
+        "°C"
+      ],
+      "widest": "-100.0 °C",
+      "requiredPx": 93.22
+    },
+    "discharge_otp": {
+      "kind": "number",
+      "values": [
+        "-100.0",
+        "-100,0",
+        "200.0",
+        "200,0"
+      ],
+      "units": [
+        "°C",
+        "°C"
+      ],
+      "widest": "-100.0 °C",
+      "requiredPx": 93.22
+    },
+    "discharge_otpr": {
+      "kind": "number",
+      "values": [
+        "-100.0",
+        "-100,0",
+        "200.0",
+        "200,0"
+      ],
+      "units": [
+        "°C",
+        "°C"
+      ],
+      "widest": "-100.0 °C",
+      "requiredPx": 93.22
+    },
+    "charge_utp": {
+      "kind": "number",
+      "values": [
+        "-100.0",
+        "-100,0",
+        "200.0",
+        "200,0"
+      ],
+      "units": [
+        "°C",
+        "°C"
+      ],
+      "widest": "-100.0 °C",
+      "requiredPx": 93.22
+    },
+    "charge_utpr": {
+      "kind": "number",
+      "values": [
+        "-100.0",
+        "-100,0",
+        "200.0",
+        "200,0"
+      ],
+      "units": [
+        "°C",
+        "°C"
+      ],
+      "widest": "-100.0 °C",
+      "requiredPx": 93.22
+    },
+    "mos_otp": {
+      "kind": "number",
+      "values": [
+        "-100.0",
+        "-100,0",
+        "200.0",
+        "200,0"
+      ],
+      "units": [
+        "°C",
+        "°C"
+      ],
+      "widest": "-100.0 °C",
+      "requiredPx": 93.22
+    },
+    "mos_otpr": {
+      "kind": "number",
+      "values": [
+        "-100.0",
+        "-100,0",
+        "200.0",
+        "200,0"
+      ],
+      "units": [
+        "°C",
+        "°C"
+      ],
+      "widest": "-100.0 °C",
+      "requiredPx": 93.22
+    },
+    "battery_capacity": {
+      "kind": "number",
+      "values": [
+        "1.000",
+        "1,000",
+        "2000.000",
+        "2000,000"
+      ],
+      "units": [
+        "А·год",
+        "Ah"
+      ],
+      "widest": "2000.000 А·год",
+      "requiredPx": 132.65
+    },
+    "scp_delay": {
+      "kind": "number",
+      "values": [
+        "0",
+        "2147483647"
+      ],
+      "units": [
+        "мкс",
+        "µs"
+      ],
+      "widest": "2147483647 мкс",
+      "requiredPx": 145.85
+    },
+    "start_balance": {
+      "kind": "number",
+      "values": [
+        "0.000",
+        "0,000",
+        "6.000",
+        "6,000"
+      ],
+      "units": [
+        "В",
+        "V"
+      ],
+      "widest": "0.000 V",
+      "requiredPx": 79.77
+    },
+    "charging": {
+      "kind": "select",
+      "strings": [
+        "Off",
+        "On",
+        "Увімк",
+        "Вимк"
+      ],
+      "widest": "Увімк",
+      "requiredPx": 77.41
+    },
+    "discharging": {
+      "kind": "select",
+      "strings": [
+        "Off",
+        "On",
+        "Увімк",
+        "Вимк"
+      ],
+      "widest": "Увімк",
+      "requiredPx": 77.41
+    },
+    "balancing": {
+      "kind": "select",
+      "strings": [
+        "Off",
+        "On",
+        "Увімк",
+        "Вимк"
+      ],
+      "widest": "Увімк",
+      "requiredPx": 77.41
+    },
+    "heating_activation_temperature": {
+      "kind": "number",
+      "values": [
+        "-40",
+        "100"
+      ],
+      "units": [
+        "°C",
+        "°C"
+      ],
+      "widest": "100 °C",
+      "requiredPx": 72.94
+    },
+    "heating_deactivation_temperature": {
+      "kind": "number",
+      "values": [
+        "-40",
+        "100"
+      ],
+      "units": [
+        "°C",
+        "°C"
+      ],
+      "widest": "100 °C",
+      "requiredPx": 72.94
+    },
+    "rcv_time": {
+      "kind": "number",
+      "values": [
+        "0.0",
+        "0,0",
+        "25.5",
+        "25,5"
+      ],
+      "units": [
+        "год",
+        "h"
+      ],
+      "widest": "25.5 год",
+      "requiredPx": 83.21
+    },
+    "rfv_time": {
+      "kind": "number",
+      "values": [
+        "0.0",
+        "0,0",
+        "25.5",
+        "25,5"
+      ],
+      "units": [
+        "год",
+        "h"
+      ],
+      "widest": "25.5 год",
+      "requiredPx": 83.21
+    },
+    "lcd_buzzer_trigger": {
+      "kind": "number",
+      "values": [
+        "0",
+        "255"
+      ],
+      "units": [],
+      "widest": "255",
+      "requiredPx": 51.65
+    },
+    "dry_contact_1_trigger_source": {
+      "kind": "number",
+      "values": [
+        "0",
+        "12"
+      ],
+      "units": [],
+      "widest": "12",
+      "requiredPx": 42.43
+    },
+    "dry_contact_2_trigger_source": {
+      "kind": "number",
+      "values": [
+        "0",
+        "12"
+      ],
+      "units": [],
+      "widest": "12",
+      "requiredPx": 42.43
+    },
+    "dry_contact_1_trigger_value": {
+      "kind": "number",
+      "values": [
+        "-16777215",
+        "16777215"
+      ],
+      "units": [
+        "необроблено",
+        "raw"
+      ],
+      "widest": "-16777215 необроблено",
+      "requiredPx": 195.05
+    },
+    "dry_contact_1_recovery_value": {
+      "kind": "number",
+      "values": [
+        "-16777215",
+        "16777215"
+      ],
+      "units": [
+        "необроблено",
+        "raw"
+      ],
+      "widest": "-16777215 необроблено",
+      "requiredPx": 195.05
+    },
+    "dry_contact_2_trigger_value": {
+      "kind": "number",
+      "values": [
+        "-16777215",
+        "16777215"
+      ],
+      "units": [
+        "необроблено",
+        "raw"
+      ],
+      "widest": "-16777215 необроблено",
+      "requiredPx": 195.05
+    },
+    "dry_contact_2_recovery_value": {
+      "kind": "number",
+      "values": [
+        "-16777215",
+        "16777215"
+      ],
+      "units": [
+        "необроблено",
+        "raw"
+      ],
+      "widest": "-16777215 необроблено",
+      "requiredPx": 195.05
+    },
+    "tim_prodischarge": {
+      "kind": "number",
+      "values": [
+        "4294967295"
+      ],
+      "units": [
+        "с",
+        "s"
+      ],
+      "widest": "4294967295 с",
+      "requiredPx": 129.47,
+      "rangeSource": "wireType:U32 (no established min/max: worst case of the wire type)"
+    },
+    "data_stored_period": {
+      "kind": "number",
+      "values": [
+        "-2147483648",
+        "2147483647"
+      ],
+      "units": [
+        "с",
+        "s"
+      ],
+      "widest": "-2147483648 с",
+      "requiredPx": 136.32,
+      "rangeSource": "wireType:S32 (no established min/max: worst case of the wire type)"
+    },
+    "dev_addr": {
+      "kind": "number",
+      "values": [
+        "4294967295"
+      ],
+      "units": [],
+      "widest": "4294967295",
+      "requiredPx": 116.15,
+      "rangeSource": "wireType:U32 (no established min/max: worst case of the wire type)"
+    },
+    "lcd_buzzer_trigger_val": {
+      "kind": "number",
+      "values": [
+        "-2147483648",
+        "2147483647"
+      ],
+      "units": [],
+      "widest": "-2147483648",
+      "requiredPx": 122.99,
+      "rangeSource": "wireType:S32 (no established min/max: worst case of the wire type)"
+    },
+    "lcd_buzzer_release_val": {
+      "kind": "number",
+      "values": [
+        "-2147483648",
+        "2147483647"
+      ],
+      "units": [],
+      "widest": "-2147483648",
+      "requiredPx": 122.99,
+      "rangeSource": "wireType:S32 (no established min/max: worst case of the wire type)"
+    },
+    "uart1_mprtol_nbr": {
+      "kind": "number",
+      "values": [
+        "255"
+      ],
+      "units": [],
+      "widest": "255",
+      "requiredPx": 51.65,
+      "rangeSource": "wireType:U8 (no established min/max: worst case of the wire type)"
+    },
+    "can_mprtol_nbr": {
+      "kind": "number",
+      "values": [
+        "255"
+      ],
+      "units": [],
+      "widest": "255",
+      "requiredPx": 51.65,
+      "rangeSource": "wireType:U8 (no established min/max: worst case of the wire type)"
+    },
+    "uart2_mprtol_nbr": {
+      "kind": "number",
+      "values": [
+        "255"
+      ],
+      "units": [],
+      "widest": "255",
+      "requiredPx": 51.65,
+      "rangeSource": "wireType:U8 (no established min/max: worst case of the wire type)"
+    }
+  },
+  "cellCalibration": {
+    "values": [
+      "0.000",
+      "0,000",
+      "4294967.295",
+      "4294967,295"
+    ],
+    "units": [
+      "мОм",
+      "mΩ"
+    ],
+    "widest": "4294967.295 мОм",
+    "requiredPx": 155.86
+  }
+}
