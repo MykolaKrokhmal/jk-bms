@@ -1377,7 +1377,7 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
    screen readers (visually hidden). Rows that never have an action have no
    action slot. */
 .settings-catalog-row{ --sc-field-w:var(--settings-control-width); --sc-action-w:var(--settings-action-width); flex-wrap:wrap; gap:8px 14px; min-height:58px; }
-.settings-catalog-label{ font-weight:500; flex:1 1 140px; min-width:0; }
+.settings-catalog-label{ font-weight:500; flex:1 1 140px; min-width:0; overflow-wrap:anywhere; }
 .settings-catalog-row > .settings-catalog-value{ margin-left:auto; min-width:0; text-align:right; font-variant-numeric:tabular-nums; }
 .settings-catalog-row > .settings-catalog-dash{ margin-left:auto; color:var(--ink-faint); }
 .settings-catalog-editor-group{
@@ -1487,16 +1487,61 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
   }
   .settings-catalog-editor-group > .settings-catalog-message{ text-align:left; }
 }
-/* The narrowest lists (a 320 px phone leaves ~238 px): tighter field chrome and
-   field-action gap, so the audited widths still fit beside the action
-   (calibration needs 36 + 159 + 8 + 44 = 247 px with normal chrome). */
+/* Tight: below the side-by-side minimum with normal chrome (cells
+   36 + 159 + 8 + 44 = 247 px = 16.47em; Settings 36 + 148.5 + 8 + 44 =
+   236.5 px = 15.77em) the field chrome and the field-action gap tighten
+   (shell padding 6 px, gaps 4 px: 10 px less chrome), so the audited
+   content still fits beside the action -- a 320 px phone at 100 % (236 px
+   list) stays here. */
 @container cells (max-width:16.49em){
   .settings-field-shell{ padding:0 6px; gap:4px; }
   .cell-composite-calibration{ column-gap:4px; }
 }
-@container settings (max-width:16.49em){
+@container settings (max-width:15.99em){
   .settings-field-shell{ padding:0 6px; gap:4px; }
   .settings-catalog-editor-group{ column-gap:4px; }
+}
+/* Ultra-narrow (browser zoom on a phone: 320/375 px at 125-200 % leaves a
+   160-300 CSS px page). Below the side-by-side minimum with tight chrome
+   (cells 36 + (155.86 - 10 + 2) + 4 + 44 = 231.86 px = 15.46em; Settings
+   36 + (145.85 - 10 + 2) + 4 + 44 = 221.85 px = 14.79em; audited widths
+   from settings_control_width_audit.json) the pair is stacked inside its own
+   wrapper: the field takes min(audited width, 100 %), the same framed OK/lock
+   sits directly below it, right-aligned. Row padding tightens to 8 px; the
+   font size does not change. The label may wrap here, deliberately. */
+@container cells (max-width:15.49em){
+  .cell-composite-row{ padding-left:8px; padding-right:8px; }
+  .cell-composite-label{ white-space:normal; overflow-wrap:anywhere; }
+  .cell-composite-calibration{ grid-template-columns:minmax(0, var(--cc-field-w)); justify-content:end; row-gap:6px; }
+  .cell-composite-calibration > .cell-composite-action,
+  .cell-composite-calibration > .settings-action-lock{ grid-column:1; grid-row:2; justify-self:end; }
+  .cell-composite-calibration > .cell-composite-write-state.request-message{ grid-row:3; }
+}
+/* Voltage | resistance side by side needs 8 + 9ch + 8 + 11ch + 8 = 208.3 px
+   (13.89em); below that each value takes its own right-aligned line. */
+@container cells (max-width:13.99em){
+  .cell-composite-row{ grid-template-columns:minmax(0, 1fr); }
+  .cell-composite-row > .cell-composite-voltage{ grid-column:1; grid-row:2; }
+  .cell-composite-row > .cell-composite-resistance{ grid-column:1; grid-row:3; }
+  .cell-composite-row > .cell-composite-calibration{ grid-column:1; grid-row:4; }
+}
+@container settings (max-width:14.99em){
+  .settings-catalog-row{ padding-left:8px; padding-right:8px; }
+  .settings-catalog-row > .settings-catalog-value{ overflow-wrap:anywhere; }
+  .settings-catalog-editor-group{ grid-template-columns:minmax(0, var(--sc-field-w)); row-gap:6px; }
+  .settings-catalog-editor-group > .settings-catalog-action,
+  .settings-catalog-editor-group > .settings-action-lock{ grid-column:1; grid-row:2; justify-self:end; }
+  .settings-catalog-editor-group > .settings-catalog-message{ grid-row:3; }
+}
+/* Page chrome at an ultra-narrow page (only reachable through zoom): the
+   outer paddings would otherwise leave a 40 px row at 160 CSS px. */
+@media (max-width:300px){
+  .stage{ padding-left:4px; padding-right:4px; }
+  .topbar{ padding:14px 10px 12px; gap:8px; }
+  .col-right{ padding:16px 8px; }
+  .rail{ padding:0 4px; gap:4px; }
+  .rail-group-system{ padding-left:4px; }
+  .rail button{ padding:12px 0; }
 }
 /* Fallback for browsers without container queries: the previous viewport rules. */
 @supports not (container-type:inline-size){
@@ -1515,6 +1560,13 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
   @media (max-width:360px){
     .settings-field-shell{ padding:0 6px; gap:4px; }
     .settings-catalog-editor-group, .cell-composite-calibration{ column-gap:4px; }
+  }
+  @media (max-width:300px){
+    .cell-composite-label{ white-space:normal; overflow-wrap:anywhere; }
+    .cell-composite-calibration{ grid-template-columns:minmax(0, var(--cc-field-w)); justify-content:end; }
+    .settings-catalog-editor-group{ grid-template-columns:minmax(0, var(--sc-field-w)); }
+    .cell-composite-calibration > .cell-composite-action, .cell-composite-calibration > .settings-action-lock,
+    .settings-catalog-editor-group > .settings-catalog-action, .settings-catalog-editor-group > .settings-action-lock{ grid-column:1; grid-row:2; justify-self:end; }
   }
 }
 /* Value column widened 15% (94px -> 108px) across every breakpoint below. */

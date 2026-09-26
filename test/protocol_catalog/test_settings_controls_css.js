@@ -205,7 +205,7 @@ check("no viewport-only breakpoint drives the cell/Settings layout (only the @su
 // UK -- the longer language: label "Комірка 32" 81.8 px, 9ch 82.9 px, 11ch
 // 101.4 px, 18 px row padding each side, 14 px gaps; Settings label basis
 // 140 px). The field widths come from the audited CSS tokens themselves.
-const px = (v) => Number(v.replace("px", ""));
+const px = (v) => (v == null ? NaN : Number(v.replace("px", "")));
 const tokenPx = (name) => { const m = css.match(new RegExp(`${name}:calc\\((\\d+(?:\\.\\d+)?)px \\+ var\\(--fs-body\\) \\* (\\d+(?:\\.\\d+)?)\\)`)); return Number(m[1]) + 15 * Number(m[2]); };
 const actionPx = px(css.match(/--settings-action-width:\s*([\d.]+px)/)[1]);
 const calibPx = tokenPx("--cell-calibration-width") + 8 + actionPx;
@@ -244,14 +244,63 @@ check("narrow Settings rows: the same compact [field | action] pair, right-align
   decl(bodyOf(".settings-catalog-editor-group", settingsNarrow), "flex-basis") === "100%" &&
   decl(bodyOf(".settings-catalog-editor-group", settingsNarrow), "justify-content") === "end" &&
   decl(bodyOf(".settings-catalog-editor-group", settingsNarrow), "grid-template-columns") === "minmax(0, var(--sc-field-w)) var(--sc-action-w)");
-check("narrowest lists (< 16.5em): tighter shell chrome and field-action gap keep the audited widths beside the action",
-  ["cells", "settings"].every((n) => decl(bodyOf(".settings-field-shell", `@container ${n} (max-width:16.49em)`), "padding") === "0 6px") &&
-  decl(bodyOf(".cell-composite-calibration", "@container cells (max-width:16.49em)"), "column-gap") === "4px" &&
-  decl(bodyOf(".settings-catalog-editor-group", "@container settings (max-width:16.49em)"), "column-gap") === "4px");
+// Tight and ultra-narrow states (browser zoom on a phone: 320/375 px at
+// 125-200 % leaves a 160-300 CSS px page). Every threshold is derived from
+// the audited field widths and the CSS itself.
+const audit = JSON.parse(fs.readFileSync(path.join(ROOT, "test/protocol_catalog/fixtures/settings_control_width_audit.json"), "utf8"));
+const auditMargin = audit.environment.renderingMarginPx;
+const shellPadPx = (media) => px(decl(bodyOf(".settings-field-shell", media), "padding").split(/\s+/)[1]);
+const shellGapPx = (media) => px(decl(bodyOf(".settings-field-shell", media), "gap"));
+const tightCells = "@container cells (max-width:16.49em)", tightSettings = "@container settings (max-width:15.99em)";
+const chromeSaved = 2 * (shellPadPx(null) - shellPadPx(tightCells)) + (shellGapPx(null) - shellGapPx(tightCells));
+const tightGap = px(decl(bodyOf(".cell-composite-calibration", tightCells), "column-gap"));
+const needPairCells = M.pad + tokenPx("--cell-calibration-width") + 8 + actionPx;
+const needPairSettings = M.pad + tokenPx("--settings-control-width") + 8 + actionPx;
+const cellReq = audit.cellCalibration.requiredPx;
+const ordReq = Math.max(...Object.values(audit.controls).map((c) => c.requiredPx));
+const needTightCells = M.pad + (cellReq - chromeSaved + auditMargin) + tightGap + actionPx;
+const needTightSettings = M.pad + (ordReq - chromeSaved + auditMargin) + tightGap + actionPx;
+const ultraPad = px(decl(bodyOf(".cell-composite-row", "@container cells (max-width:15.49em)"), "padding-left"));
+const needValuesSide = 2 * ultraPad + M.volt + 8 + M.res;
+check("tight: below the normal side-by-side minimum the shell padding/gaps tighten (same chrome in both lists)",
+  threshold("cells", 16.49) && fits(16.49, needPairCells) && threshold("settings", 15.99) && fits(15.99, needPairSettings) &&
+  [tightCells, tightSettings].every((m) => shellPadPx(m) === 6 && shellGapPx(m) === 4) && chromeSaved === 10 &&
+  decl(bodyOf(".settings-catalog-editor-group", tightSettings), "column-gap") === "4px" && tightGap === 4,
+  `pair needs cells ${needPairCells.toFixed(1)} / Settings ${needPairSettings.toFixed(1)} px; tight chrome saves ${chromeSaved} px`);
+check("ultra-narrow stacking switches at the tight side-by-side minimum derived from the audited widths",
+  threshold("cells", 15.49) && fits(15.49, needTightCells) && threshold("settings", 14.99) && fits(14.99, needTightSettings),
+  `cells ${needTightCells.toFixed(2)} px (switch ${em(15.49).toFixed(1)}), Settings ${needTightSettings.toFixed(2)} px (switch ${em(14.99).toFixed(1)})`);
+check("a 320 px phone at 100 % (236 px list) keeps the side-by-side pair", 236 > em(15.49) && 238 > em(14.99));
+const ultraCells = "@container cells (max-width:15.49em)", ultraSettings = "@container settings (max-width:14.99em)";
+check("ultra cells: field = min(audited, 100 %) with the same framed action directly below it, right-aligned, in one wrapper",
+  decl(bodyOf(".cell-composite-calibration", ultraCells), "grid-template-columns") === "minmax(0, var(--cc-field-w))" &&
+  decl(bodyOf(".cell-composite-calibration", ultraCells), "justify-content") === "end" &&
+  find(".cell-composite-calibration > .settings-action-lock", ultraCells).some((r) => r.selectors.includes(".cell-composite-calibration > .cell-composite-action") &&
+    decl(r.body, "grid-column") === "1" && decl(r.body, "grid-row") === "2" && decl(r.body, "justify-self") === "end"));
+check("ultra Settings: the same stacked [field / action] composition",
+  decl(bodyOf(".settings-catalog-editor-group", ultraSettings), "grid-template-columns") === "minmax(0, var(--sc-field-w))" &&
+  find(".settings-catalog-editor-group > .settings-action-lock", ultraSettings).some((r) => r.selectors.includes(".settings-catalog-editor-group > .settings-catalog-action") &&
+    decl(r.body, "grid-column") === "1" && decl(r.body, "grid-row") === "2" && decl(r.body, "justify-self") === "end") &&
+  decl(bodyOf(".settings-catalog-editor-group > .settings-catalog-message", ultraSettings), "grid-row") === "3");
+check("ultra: the label wraps deliberately; long unbreakable Settings labels may break anywhere",
+  decl(bodyOf(".cell-composite-label", ultraCells), "white-space") === "normal" && decl(bodyOf(".cell-composite-label", ultraCells), "overflow-wrap") === "anywhere" &&
+  decl(bodyOf(".settings-catalog-label"), "overflow-wrap") === "anywhere");
+check("voltage | resistance stack one per line below their measured side-by-side minimum",
+  threshold("cells", 13.99) && fits(13.99, needValuesSide) &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-voltage", "@container cells (max-width:13.99em)"), "grid-row") === "2" &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-resistance", "@container cells (max-width:13.99em)"), "grid-row") === "3" &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", "@container cells (max-width:13.99em)"), "grid-row") === "4",
+  `${needValuesSide.toFixed(1)} px needed`);
+check("no ultra/tight rule changes a font size (zoom is never bypassed) or hides a unit/control",
+  rules.filter((r) => /^@container (cells|settings)/.test(r.media || "")).every((r) => !/font-size|display\s*:\s*none|visibility/.test(r.body)));
+check("page chrome tightens only on an ultra-narrow page (<= 300 CSS px, reachable only through zoom)",
+  decl(bodyOf(".stage", "@media (max-width:300px)"), "padding-left") === "4px" && decl(bodyOf(".col-right", "@media (max-width:300px)"), "padding") === "16px 8px" &&
+  !!decl(bodyOf(".rail", "@media (max-width:300px)"), "padding"));
 check("fallback without container queries keeps the previous viewport states",
   decl(bodyOf(".cell-composite-row > .cell-composite-calibration", "@media (max-width:560px)"), "grid-row") === "2" &&
   decl(bodyOf(".cell-composite-row > .cell-composite-calibration", "@media (max-width:420px)"), "grid-row") === "3" &&
-  decl(bodyOf(".settings-catalog-editor-group", "@media (max-width:560px)"), "flex-basis") === "100%");
+  decl(bodyOf(".settings-catalog-editor-group", "@media (max-width:560px)"), "flex-basis") === "100%" &&
+  decl(bodyOf(".cell-composite-calibration > .cell-composite-action", "@media (max-width:300px)"), "grid-row") === "2");
 check("inside the containers the header and unconfirmed text keep their previous absolute size (em would now follow --fs-body)",
   decl(bodyOf(".settings-catalog-group-header"), "font-size") === "12.48px" && decl(bodyOf(".cell-composite-unconfirmed"), "font-size") === "14.4px");
 
