@@ -1298,16 +1298,46 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
    group is given room to drop to its own line first (flex-basis:100%)
    since it is the widest element (input + button/note). */
 .cell-composite-list{ margin-top:4px; }
-.cell-composite-row{ flex-wrap:wrap; gap:8px 14px; }
-.cell-composite-label{ font-weight:500; min-width:84px; }
-.cell-composite-voltage, .cell-composite-resistance{ min-width:72px; text-align:right; }
-.cell-composite-calibration{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; flex:1 1 220px; justify-content:flex-end; }
-.cell-composite-calibration > .settings-field-shell{ flex:0 0 160px; width:160px; }
-.cell-composite-calibration > .settings-field-shell.is-static{ flex:0 1 auto; width:auto; }
+/* Cell rows: an instrument-panel grid. The label stays left; voltage,
+   measured wire resistance, the calibration field and its action slot form
+   one compact right-hand cluster whose column starts are identical in every
+   row (fixed ch tracks, tabular figures, one vertical centre line). */
+.cell-composite-row{
+  --cc-volt-w:9ch; --cc-res-w:11ch; --cc-field-w:14ch; --cc-action-w:44px;
+  display:grid; grid-template-columns:minmax(0, 1fr) var(--cc-volt-w) var(--cc-res-w) auto;
+  align-items:center; column-gap:14px; row-gap:6px; font-size:var(--fs-body); font-variant-numeric:tabular-nums;
+}
+.cell-composite-label{ grid-column:1; grid-row:1; font-weight:500; min-width:0; }
+.cell-composite-row > .cell-composite-voltage{ grid-column:2; grid-row:1; justify-self:end; text-align:right; white-space:nowrap; }
+.cell-composite-row > .cell-composite-resistance{ grid-column:3; grid-row:1; justify-self:end; text-align:right; white-space:nowrap; }
+.cell-composite-row > .cell-composite-calibration{ grid-column:4; grid-row:1; }
+.cell-composite-calibration{
+  display:grid; grid-template-columns:var(--cc-field-w) var(--cc-action-w); column-gap:8px; row-gap:4px;
+  align-items:center; font-size:var(--fs-body);
+}
+.cell-composite-calibration > .settings-field-shell{ grid-column:1; grid-row:1; }
+.cell-composite-calibration > .cell-composite-action,
+.cell-composite-calibration > .settings-action-lock{ grid-column:2; grid-row:1; }
+.cell-composite-calibration > .cell-composite-write-state.request-message{ grid-column:1 / -1; grid-row:2; margin:0; text-align:right; font-size:12.5px; }
 .cell-composite-calibration > .cell-composite-write-state.request-message:empty{ display:none; }
 .cell-composite-unconfirmed{ color:var(--ink-faint); font-size:.9em; padding:13px 18px; margin:0; }
+/* Narrow: values stay on the label's line; the calibration field and its
+   action slot move together to their own right-aligned line. */
 @media (max-width:560px){
-  .cell-composite-calibration{ flex-basis:100%; justify-content:flex-start; }
+  .cell-composite-row{ grid-template-columns:minmax(0, 1fr) var(--cc-volt-w) var(--cc-res-w); column-gap:10px; }
+  .cell-composite-row > .cell-composite-calibration{ grid-column:1 / -1; grid-row:2; justify-self:end; }
+}
+/* Very narrow: label line, then the values, then field + action. */
+@media (max-width:420px){
+  .cell-composite-row{ grid-template-columns:minmax(0, 1fr) auto auto; column-gap:8px; }
+  /* Only at very large text on the narrowest phones may a unit wrap under its number. */
+  .cell-composite-row > .cell-composite-voltage,
+  .cell-composite-row > .cell-composite-resistance{ white-space:normal; min-width:0; }
+  .cell-composite-calibration{ grid-template-columns:minmax(0, var(--cc-field-w)) var(--cc-action-w); max-width:100%; }
+  .cell-composite-label{ grid-column:1 / -1; }
+  .cell-composite-row > .cell-composite-voltage,
+  .cell-composite-row > .cell-composite-resistance{ grid-row:2; }
+  .cell-composite-row > .cell-composite-calibration{ grid-row:3; }
 }
 
 /* Generic Settings catalog (Phase B, 2026-09-22) -- catalog-first
@@ -1316,38 +1346,34 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
    compact-desktop / wrap-on-narrow rhythm; no nested cards. */
 .settings-catalog-group-header{ padding:16px 18px 6px; font-size:.78em; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--ink-faint); }
 /* Settings parameter rows: label | control group. The group is a fixed grid
-   -- field shell | action | status -- so fields, units, locks and status
-   line up across rows. The shell carries the field's boundary: the
-   editable value, then the unit suffix, then (when the field cannot be
-   written) one lock indicator, all inside the same border. A status
-   appearing or clearing never moves the desktop layout (its track is
-   always reserved). Why a field is locked is its accessible description
-   (visually hidden) and the lock's tooltip, never row text. */
-.settings-catalog-row{
-  --sc-field-w:160px; --sc-action-w:52px; --sc-status-w:76px;
-  flex-wrap:wrap; gap:8px 14px; min-height:58px;
-}
+   -- field shell | action slot -- aligned to the right. The shell holds the
+   value and its unit; the action slot holds OK, or, when the field cannot be
+   written, a lock in exactly the same 44 x 38 footprint. There is no status
+   column: state is drawn on the value/field itself and spelled out for
+   screen readers (visually hidden). Rows that never have an action have no
+   action slot. */
+.settings-catalog-row{ --sc-field-w:16ch; --sc-action-w:44px; flex-wrap:wrap; gap:8px 14px; min-height:58px; }
 .settings-catalog-label{ font-weight:500; flex:1 1 140px; min-width:0; }
-.settings-catalog-row > .settings-catalog-value{ margin-left:auto; min-width:72px; text-align:right; }
-.settings-catalog-editor-group > .settings-catalog-locked-mark{ grid-column:1; grid-row:1; justify-self:end; margin-right:11px; }
-.settings-catalog-editor-group > .settings-catalog-dash{ color:var(--ink-faint); }
+.settings-catalog-row > .settings-catalog-value{ margin-left:auto; min-width:0; text-align:right; font-variant-numeric:tabular-nums; }
+.settings-catalog-row > .settings-catalog-dash{ margin-left:auto; color:var(--ink-faint); }
 .settings-catalog-editor-group{
-  display:grid; grid-template-columns:var(--sc-field-w) var(--sc-action-w) var(--sc-status-w);
+  display:grid; grid-template-columns:var(--sc-field-w) var(--sc-action-w);
   align-items:center; column-gap:8px; row-gap:4px; flex:0 0 auto; margin-left:auto; font-size:var(--fs-body);
 }
 .settings-catalog-editor-group > .settings-field-shell{ grid-column:1; grid-row:1; }
-.settings-catalog-editor-group > .settings-catalog-action{ grid-column:2; grid-row:1; justify-self:start; }
-.settings-catalog-editor-group > .settings-freshness-note{ grid-column:3; grid-row:1; }
+.settings-catalog-editor-group > .settings-catalog-action,
+.settings-catalog-editor-group > .settings-action-lock{ grid-column:2; grid-row:1; }
 .settings-catalog-editor-group > .settings-catalog-message{ grid-column:1 / -1; grid-row:2; margin:0; text-align:right; font-size:12.5px; }
 .settings-catalog-message:empty{ display:none; }
 
 /* Visually hidden, still in the accessibility tree. */
-.sr-only{
+.sr-only,
+.settings-freshness-note{
   position:absolute !important; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
   clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
 }
 
-/* The field shell: one box for value + unit + lock. */
+/* The field shell: one box for value + unit. */
 .settings-field-shell{
   box-sizing:border-box; display:flex; align-items:center; gap:6px; width:100%; min-width:0; height:38px; margin:0;
   padding:0 10px; border:1px solid var(--hair-strong); border-radius:8px; background-color:var(--field-bg); color:var(--ink);
@@ -1369,64 +1395,66 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 }
 .settings-field-shell > .settings-catalog-unit,
 .settings-field-shell > .cell-composite-calibration-unit{ flex:none; color:var(--ink-faint); font-size:13px; line-height:1; white-space:nowrap; }
-.settings-lock{ flex:none; display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; color:var(--ink-faint); cursor:default; }
-.settings-lock svg{ display:block; width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
-
 /* The shell is a <span>: beat the generic `.diag-row span` faint ink so an
    editable value reads at full contrast (a locked one at --ink-dim). */
 .diag-row .settings-field-shell{ color:var(--ink); font-size:var(--fs-body); }
 .diag-row .settings-field-shell.is-locked{ color:var(--ink-dim); }
 
-/* Interaction and state, drawn on the shell. */
+/* Interaction and state, drawn on the shell and its value. */
 .settings-field-shell:hover:not(.is-locked){ border-color:var(--ink-faint); }
 .settings-field-shell:has(> :focus-visible){ outline:2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset:1px; border-color:var(--accent); }
-/* Locked: flat, quieter than an editable field; the lock replaces the chevron. */
+/* Locked: unfilled, hairline border -- quieter than an editable field. */
 .settings-field-shell.is-locked{ background-color:transparent; border-color:var(--hair); color:var(--ink-dim); cursor:not-allowed; }
 .settings-field-shell.is-locked > :disabled{ cursor:not-allowed; opacity:1; color:var(--ink-dim); -webkit-text-fill-color:var(--ink-dim); }
 .settings-field-shell.is-locked > select{ background-image:none; padding-right:0; }
-/* A locked value without an editor (text/credential rows): no box, lock after the value. */
+/* A locked value without an editor (text/credential rows): no box. */
 .settings-field-shell.is-static{ height:auto; min-height:38px; padding-right:0; border-color:transparent; background-color:transparent; justify-content:flex-end; }
 .settings-field-shell.is-static > .settings-catalog-value,
 .settings-field-shell.is-static > .cell-composite-calibration-value{ min-width:0; text-align:right; overflow-wrap:anywhere; color:var(--ink-dim); }
-/* Link/read state of the value (also spelled out in the status track). */
 .settings-field-shell:has(> [data-dirty="true"]){ border-color:color-mix(in srgb, var(--accent) 60%, var(--hair-strong)); }
 .settings-field-shell:has(> [data-freshness="pending"]){ border-style:dashed; }
+.settings-field-shell:has(> [data-freshness="pending"]) > :not(:disabled){ color:var(--ink-dim); -webkit-text-fill-color:var(--ink-dim); }
 .settings-field-shell:has(> [data-freshness="offline"]){ border-style:dotted; }
-.settings-field-shell:has(> [data-freshness="offline"]) > input:not(:disabled){ color:var(--ink-faint); -webkit-text-fill-color:var(--ink-faint); }
+.settings-field-shell:has(> [data-freshness="offline"]) > :not(:disabled){ color:var(--ink-faint); -webkit-text-fill-color:var(--ink-faint); }
+.settings-field-shell:has(> [data-freshness="unavailable"]) > *{ color:var(--ink-faint); -webkit-text-fill-color:var(--ink-faint); }
 .settings-field-shell:not(.is-locked):has(> [data-freshness="unavailable"]){ border-style:dashed; background-color:transparent; }
 .settings-field-shell:not(.is-locked):has(> [data-freshness="stale"]){ border-color:var(--warn); background-color:var(--warn-dim); }
+.settings-field-shell:has(> [data-freshness="stale"]) > .settings-catalog-editor,
+.settings-field-shell:has(> [data-freshness="stale"]) > .cell-composite-calibration-editor{ color:var(--warn); -webkit-text-fill-color:var(--warn); }
 .settings-field-shell:has(> .invalid){ border-color:var(--danger); background-color:var(--danger-dim); }
 .settings-field-shell > .invalid{ color:var(--danger); -webkit-text-fill-color:var(--danger); }
 .settings-field-shell > .is-stale::after{ content:none; }
+/* Read-only values: the same semantic colors directly on the value. */
+.settings-catalog-value[data-freshness="unavailable"],
+.cell-composite-row b[data-freshness="unavailable"]{ color:var(--ink-faint); }
+.settings-catalog-value[data-freshness="pending"],
+.cell-composite-row b[data-freshness="pending"]{ color:var(--ink-dim); }
 
-.settings-catalog-action{
-  min-width:44px; height:38px; padding:0 12px; border:1px solid color-mix(in srgb, var(--accent) 55%, var(--hair));
-  border-radius:8px; background-color:var(--accent-dim); color:var(--accent); font:inherit; font-size:var(--fs-body); font-weight:600; cursor:pointer;
+/* The action slot: OK, or the lock that replaces it, in one footprint. */
+.settings-catalog-action,
+.cell-composite-action{
+  box-sizing:border-box; width:var(--sc-action-w, 44px); min-width:0; height:38px; padding:0; margin:0;
+  border:1px solid color-mix(in srgb, var(--accent) 55%, var(--hair)); border-radius:8px; background-color:var(--accent-dim);
+  color:var(--accent); font:inherit; font-size:var(--fs-body); font-weight:600; line-height:1; text-align:center; cursor:pointer;
 }
-.settings-catalog-action:disabled{ opacity:.45; cursor:not-allowed; }
-.settings-catalog-action:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.settings-catalog-action:disabled,
+.cell-composite-action:disabled{ opacity:.45; cursor:not-allowed; }
+.settings-catalog-action:focus-visible,
+.cell-composite-action:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.settings-action-lock{
+  box-sizing:border-box; display:flex; align-items:center; justify-content:center; width:var(--sc-action-w, 44px); height:38px;
+  color:var(--ink-faint); cursor:default;
+}
+.settings-action-lock svg{ display:block; width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
 
-/* Freshness status: shared with the cell rows; inside Settings rows it has
-   its own reserved track and may wrap to two short lines. */
-.settings-freshness-note{ font-size:.75em; color:var(--warn); line-height:1.25; white-space:nowrap; }
-.settings-freshness-note[hidden]{ display:none; }
-.settings-catalog-row .settings-freshness-note{ font-size:12px; white-space:normal; }
-.settings-catalog-row .settings-freshness-note[hidden]{ display:block; visibility:hidden; }
-.settings-catalog-row > .settings-freshness-note{ flex:0 0 var(--sc-status-w); }
-.settings-catalog-row .settings-freshness-note[data-freshness="pending"]{ color:var(--ink-dim); }
-.settings-catalog-row .settings-freshness-note[data-freshness="unavailable"]{ color:var(--ink-faint); }
-.cell-composite-calibration .settings-freshness-note{ flex:0 0 auto; }
 /* Narrow screens: the group takes its own line under the label as
-   [field | action]; a status line appears below only while there is a
-   status to show (no empty rows). */
+   [field | action]; nothing else is reserved. */
 @media (max-width:560px){
   .settings-catalog-editor-group{
     flex-basis:100%; margin-left:0; min-width:0;
     grid-template-columns:minmax(0, 1fr) var(--sc-action-w);
   }
-  .settings-catalog-editor-group > .settings-freshness-note{ grid-column:1 / -1; grid-row:2; }
-  .settings-catalog-editor-group > .settings-freshness-note[hidden]{ display:none; }
-  .settings-catalog-editor-group > .settings-catalog-message{ grid-row:3; text-align:left; }
+  .settings-catalog-editor-group > .settings-catalog-message{ text-align:left; }
 }
 /* Value column widened 15% (94px -> 108px) across every breakpoint below. */
 .register-editor{ display:grid; grid-template-columns:108px 54px; align-items:center; gap:8px; flex:none; }

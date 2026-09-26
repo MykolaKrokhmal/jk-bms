@@ -1,7 +1,7 @@
 {
   "$comment": "GENERATED -- Stage 3 (typed-petting-puzzle plan) preflight deliverable: wire-position-based status of every one of the 265 manifest parameters against the CURRENT registers.canonical.json and CURRENT open protocol_blockers.json entries. 'Wire-position' means bit/byte-half/whole-register slot identity, not proven semantic identity -- a status is implemented_* only when exactly one canonical field occupies a parameter's own wire position; more than one such field yields status=missing with an explicit AMBIGUOUS note rather than a guess (see tools/protocol/authoring/build_stage3_status_map.js's own header comment). NOT a mechanical manifest-count-vs-canonical-count comparison -- packed fields, aliases, and derived entities have a different structure between the two catalogs. DO NOT EDIT BY HAND. Regenerate with tools/protocol/authoring/build_stage3_status_map.js. Because this reads the CURRENT canonical/blocker state (which Stage 3 itself will change), this file's own committed content reflects one snapshot in the stage's history -- re-run this generator (and its own --check) after each canonical/blocker change within Stage 3, exactly like every other generator in this pipeline.",
   "manifest_source_sha256": "23b07669074e51b20cc1e915f202c1dd2b14f911e0da641a2091a44dc14a3ba7",
-  "canonical_source_sha256": "6cccca4cedb00541c97ccbb647deac79fb4dbeadb94dc19e456780b01ada7477",
+  "canonical_source_sha256": "170e1eda85dbaecc3ba0946a577dda3b9b32df91aaf9a54c28e9c52b15bc2567",
   "blockers_source_sha256": "738424020b5b099713d32a9d11e336c9556e7f0f5d60542828de985bf292ed9a",
   "parameter_count": 265,
   "counts": {

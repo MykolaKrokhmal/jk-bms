@@ -83,20 +83,28 @@ check("an editable value is full-contrast ink even inside a generic .diag-row (w
   decl(bodyOf(".diag-row .settings-field-shell"), "color") === "var(--ink)" &&
   decl(bodyOf(".diag-row .settings-field-shell.is-locked"), "color") === "var(--ink-dim)");
 
-// 2. The lock: one small neutral icon, not a control or a badge.
-const lock = bodyOf(".settings-lock");
-const lockSvg = bodyOf(".settings-lock svg");
-check("lock is 14 px, neutral ink, never shrinks", decl(lock, "width") === "14px" && decl(lock, "height") === "14px" &&
-  decl(lock, "color") === "var(--ink-faint)" && decl(lock, "flex") === "none");
-check("lock uses the project's outline icon style (no fill, currentColor stroke, round caps)",
-  decl(lockSvg, "fill") === "none" && decl(lockSvg, "stroke") === "currentColor" && decl(lockSvg, "stroke-linecap") === "round");
-check("lock is not styled as an action (no pointer cursor, no background, no border)",
-  decl(lock, "cursor") === "default" && !decl(lock, "background") && !decl(lock, "border"));
+// 2. The action slot: OK, or the lock that replaces it, in one footprint.
+const okBtn = bodyOf(".settings-catalog-action");
+const lockSlot = bodyOf(".settings-action-lock");
+const lockSvg = bodyOf(".settings-action-lock svg");
+check("OK and lock share one footprint: same width variable (44 px) and 38 px height",
+  decl(okBtn, "width") === "var(--sc-action-w, 44px)" && decl(lockSlot, "width") === "var(--sc-action-w, 44px)" &&
+  decl(okBtn, "height") === "38px" && decl(lockSlot, "height") === "38px" && decl(bodyOf(".settings-catalog-row"), "--sc-action-w") === "44px");
+check("cell OK buttons use the same action rule", find(".cell-composite-action").some((r) => r.body === okBtn));
+check("lock icon is 18 px, centred, neutral ink, outline style",
+  decl(lockSvg, "width") === "18px" && decl(lockSvg, "height") === "18px" && decl(lockSlot, "justify-content") === "center" &&
+  decl(lockSlot, "align-items") === "center" && decl(lockSlot, "color") === "var(--ink-faint)" &&
+  decl(lockSvg, "fill") === "none" && decl(lockSvg, "stroke") === "currentColor");
+check("lock is not styled as an action or a badge (no pointer, no background, no border)",
+  decl(lockSlot, "cursor") === "default" && !decl(lockSlot, "background") && !decl(lockSlot, "background-color") && !decl(lockSlot, "border"));
+check("no lock styling exists inside the field shell",
+  !rules.some((r) => r.selectors.some((sel) => /settings-field-shell[^,]*settings-lock|settings-field-shell > \.settings-lock/.test(sel))));
 check("no badge/pill styling remains for write-status notes",
   !rules.some((r) => r.selectors.some((sel) => /settings-catalog-note|cell-composite-write-state/.test(sel)) && /border-radius|background/.test(r.body)));
 const srOnly = bodyOf(".sr-only");
-check("reasons are visually hidden but kept in the accessibility tree (sr-only, not display:none)",
-  /clip/.test(srOnly) && decl(srOnly, "width") === "1px" && !/display\s*:\s*none/.test(srOnly) && !/visibility/.test(srOnly));
+check("reasons and freshness status are visually hidden but kept in the accessibility tree",
+  find(".settings-freshness-note").some((r) => r.body === srOnly) && /clip/.test(srOnly) && decl(srOnly, "width") === "1px" &&
+  !/display\s*:\s*none/.test(srOnly));
 
 // 3. Focus and states on the shell.
 check("keyboard focus draws a 2 px accent ring on the shell",
@@ -119,7 +127,7 @@ check("locked = no field fill, hairline border, not-allowed: quieter than an edi
   decl(states.locked, "background-color") === "transparent" && decl(states.locked, "border-color") === "var(--hair)" &&
   decl(states.locked, "cursor") === "not-allowed");
 check("warning color only for stale data, danger only for errors; neither on a normally locked field",
-  /var\(--warn\)/.test(states.stale) && /var\(--danger\)/.test(states.error) && !/warn|danger/.test(states.locked) && !/warn|danger/.test(lock));
+  /var\(--warn\)/.test(states.stale) && /var\(--danger\)/.test(states.error) && !/warn|danger/.test(states.locked) && !/warn|danger/.test(lockSlot));
 check("offline = dotted, pending = dashed", decl(states.offline, "border-style") === "dotted" && decl(states.pending, "border-style") === "dashed");
 const order = (sel) => rules.findIndex((r) => r.selectors.includes(sel));
 check("error styling is declared after the freshness states",
@@ -127,23 +135,54 @@ check("error styling is declared after the freshness states",
 const fieldBgDefs = rules.filter((r) => /--field-bg\s*:/.test(r.body));
 check("--field-bg is defined for default, prefers-light, data-theme=light and data-theme=dark", fieldBgDefs.length === 4);
 
-// 4. Alignment grid.
+// 4. Settings grid: field | action, no status column.
 const group = bodyOf(".settings-catalog-editor-group");
-check("desktop: three fixed tracks (field shell | action | status)", decl(group, "display") === "grid" &&
-  decl(group, "grid-template-columns") === "var(--sc-field-w) var(--sc-action-w) var(--sc-status-w)" &&
-  ["--sc-field-w", "--sc-action-w", "--sc-status-w"].every((v) => /^\d+px$/.test(decl(bodyOf(".settings-catalog-row"), v) || "")));
-const reserved = bodyOf(".settings-catalog-row .settings-freshness-note[hidden]");
-check("desktop: a hidden status keeps its space (no layout jump)", decl(reserved, "visibility") === "hidden" && decl(reserved, "display") === "block");
-check("an empty write-result message takes no space", decl(bodyOf(".settings-catalog-message:empty"), "display") === "none");
+check("desktop: exactly two tracks (field shell | action slot) -- no reserved status column",
+  decl(group, "display") === "grid" && decl(group, "grid-template-columns") === "var(--sc-field-w) var(--sc-action-w)");
+check("field width is content-driven (ch), action fixed (px)",
+  /^\d+ch$/.test(decl(bodyOf(".settings-catalog-row"), "--sc-field-w") || "") && decl(bodyOf(".settings-catalog-row"), "--sc-action-w") === "44px");
+check("OK and lock both sit in track 2, the shell in track 1",
+  decl(bodyOf(".settings-catalog-editor-group > .settings-field-shell"), "grid-column") === "1" &&
+  find(".settings-catalog-editor-group > .settings-action-lock").some((r) => r.selectors.includes(".settings-catalog-editor-group > .settings-catalog-action") && decl(r.body, "grid-column") === "2"));
+check("no rule reserves visible space for a status note",
+  !rules.some((r) => r.selectors.some((sel) => /settings-freshness-note\[hidden\]/.test(sel))) &&
+  !rules.some((r) => r.selectors.some((sel) => /settings-freshness-note/.test(sel)) && /grid-column|flex\s*:/.test(r.body)));
+check("an empty write-result message takes no space",
+  decl(bodyOf(".settings-catalog-message:empty"), "display") === "none" &&
+  decl(bodyOf(".cell-composite-calibration > .cell-composite-write-state.request-message:empty"), "display") === "none");
+check("stale and unavailable are visibly different (warning vs neutral grey)",
+  /var\(--warn\)/.test(bodyOf('.settings-field-shell:not(.is-locked):has(> [data-freshness="stale"])')) &&
+  /var\(--ink-faint\)/.test(bodyOf('.settings-field-shell:has(> [data-freshness="unavailable"]) > *')) &&
+  /var\(--ink-faint\)/.test(bodyOf('.settings-catalog-value[data-freshness="unavailable"]')));
 
-// 5. Phone layout: no empty badge/status rows.
+// 5. Cell rows: an explicit instrument grid.
+const cellRow = bodyOf(".cell-composite-row");
+check("cell row is a grid: label | voltage | resistance | calibration, ch-sized numeric tracks, tabular figures",
+  decl(cellRow, "display") === "grid" &&
+  decl(cellRow, "grid-template-columns") === "minmax(0, 1fr) var(--cc-volt-w) var(--cc-res-w) auto" &&
+  ["--cc-volt-w", "--cc-res-w", "--cc-field-w"].every((v) => /^\d+ch$/.test(decl(cellRow, v) || "")) &&
+  decl(cellRow, "font-variant-numeric") === "tabular-nums" && decl(cellRow, "align-items") === "center");
+check("voltage and resistance are right-aligned in their tracks",
+  ["voltage", "resistance"].every((k) => {
+    const b = bodyOf(`.cell-composite-row > .cell-composite-${k}`);
+    return decl(b, "justify-self") === "end" && decl(b, "text-align") === "right" && decl(b, "white-space") === "nowrap";
+  }));
+const calib = bodyOf(".cell-composite-calibration");
+check("calibration is [field (ch) | action (44 px)]", decl(calib, "display") === "grid" &&
+  decl(calib, "grid-template-columns") === "var(--cc-field-w) var(--cc-action-w)" && decl(cellRow, "--cc-action-w") === "44px");
 const phone = "@media (max-width:560px)";
-const phoneGroup = bodyOf(".settings-catalog-editor-group", phone);
-check("phone: the group takes its own line as [field | action]", decl(phoneGroup, "flex-basis") === "100%" &&
-  decl(phoneGroup, "grid-template-columns") === "minmax(0, 1fr) var(--sc-action-w)");
-check("phone: a hidden status takes no line (display:none)",
-  decl(bodyOf(".settings-catalog-editor-group > .settings-freshness-note[hidden]", phone), "display") === "none");
-check("cell calibration controls wrap instead of overflowing narrow rows", decl(bodyOf(".cell-composite-calibration"), "flex-wrap") === "wrap");
+check("phone: values stay on the label line; field + action move together to their own right-aligned line",
+  decl(bodyOf(".cell-composite-row", phone), "grid-template-columns") === "minmax(0, 1fr) var(--cc-volt-w) var(--cc-res-w)" &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", phone), "grid-column") === "1 / -1" &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", phone), "justify-self") === "end");
+const tiny = "@media (max-width:420px)";
+check("very narrow: label line, values line (content-sized, cannot overflow at large text), field + action line",
+  decl(bodyOf(".cell-composite-row", tiny), "grid-template-columns") === "minmax(0, 1fr) auto auto" &&
+  decl(bodyOf(".cell-composite-label", tiny), "grid-column") === "1 / -1" &&
+  decl(bodyOf(".cell-composite-row > .cell-composite-calibration", tiny), "grid-row") === "3");
+check("phone Settings rows: [field | action] under the label",
+  decl(bodyOf(".settings-catalog-editor-group", phone), "flex-basis") === "100%" &&
+  decl(bodyOf(".settings-catalog-editor-group", phone), "grid-template-columns") === "minmax(0, 1fr) var(--sc-action-w)");
 
 console.log(`\nsettings controls CSS: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);

@@ -375,14 +375,35 @@ function main() {
   // branch logic, not a reimplementation).
   // =========================================================================
   const calib4 = row4.querySelector(".cell-composite-calibration");
+  // Layout contract (2026-09-26): every cell row is label | voltage |
+  // resistance | calibration, and the calibration is [field shell][action
+  // slot] -- OK or the lock that replaces it, never both, never a lock in the shell.
+  const allRows = rows();
+  check("every cell row: label, voltage, resistance, calibration in that order",
+    allRows.length >= 4 && allRows.every((r) => {
+      const cls = r.childNodes.filter((k) => !k.classList.contains("settings-freshness-note")).map((k) => k.className);
+      return /cell-composite-label/.test(cls[0]) && /cell-composite-voltage/.test(cls[1]) && /cell-composite-resistance/.test(cls[2]) &&
+        /cell-composite-calibration/.test(cls[3]) && cls.length === 4;
+    }));
+  check("every cell calibration: one field shell followed by exactly one action slot (OK or lock)",
+    allRows.every((r) => {
+      const c = r.querySelector(".cell-composite-calibration");
+      const i = c.childNodes.findIndex((k) => k.classList.contains("settings-field-shell"));
+      const slot = c.childNodes[i + 1];
+      const n = c.querySelectorAll(".cell-composite-action").length + c.querySelectorAll(".settings-lock").length;
+      return i === 0 && n === 1 && slot && (slot.classList.contains("cell-composite-action") || slot.classList.contains("settings-action-lock")) &&
+        !c.querySelector(".settings-field-shell").querySelector(".settings-lock");
+    }));
   check("authorizationRequired: calibration input is disabled", !!calib4.querySelector("input") && calib4.querySelector("input").disabled === true);
   check("authorizationRequired: no submit button is ever created", !calib4.querySelector(".cell-composite-action"));
   // Settings controls simplification (2026-09-25): a short visible status;
   // the full safety-class sentence is the badge's title (hover/screen reader).
   const authState4 = calib4.querySelector(".cell-composite-write-state");
-  check("authorizationRequired: no visible badge -- one lock indicator inside the locked field shell",
+  check("authorizationRequired: no visible badge -- one lock in the action slot right after the locked field shell",
     !!authState4 && authState4.classList.contains("sr-only") && calib4.querySelectorAll(".settings-lock").length === 1 &&
-    calib4.querySelector(".settings-lock").parentNode.classList.contains("is-locked"));
+    calib4.querySelector(".settings-lock").parentNode === calib4 &&
+    calib4.childNodes[calib4.childNodes.findIndex((k) => k.classList.contains("settings-field-shell")) + 1] === calib4.querySelector(".settings-lock") &&
+    !calib4.querySelector(".settings-field-shell").querySelector(".settings-lock"));
   check("authorizationRequired: the real safety class sentence is the input's accessible description and the lock's tooltip",
     !!authState4 && authState4.textContent.includes("disruptive") && calib4.querySelector("input").getAttribute("aria-describedby") === authState4.id &&
     calib4.querySelector(".settings-lock").title === authState4.textContent, authState4 && authState4.textContent);

@@ -374,9 +374,11 @@ function main() {
     !!authSelect && authSelect.disabled === true && authSelect.childNodes.some((o) => o.textContent === "CAN") && authSelect.childNodes.some((o) => o.textContent === "RS485"));
   check("authorization_required row: no button anywhere (cannot dispatch)", !authRow.querySelector("button"));
   const authNote = authRow.querySelector(".settings-catalog-note");
-  check("authorization_required row: no visible badge -- exactly one lock indicator inside the locked field shell",
+  check("authorization_required row: no visible badge -- exactly one lock, in the action slot beside the locked shell",
     authNote && authNote.classList.contains("sr-only") && authRow.querySelectorAll(".settings-lock").length === 1 &&
-    authRow.querySelector(".settings-lock").parentNode.classList.contains("is-locked"));
+    authRow.querySelector(".settings-lock").classList.contains("settings-action-lock") &&
+    authRow.querySelector(".settings-lock").parentNode.classList.contains("settings-catalog-editor-group") &&
+    !authRow.querySelector(".settings-field-shell").querySelector(".settings-lock"));
   check("authorization_required row: the full safety-class reason is the select's accessible description",
     authNote && authNote.textContent.startsWith("Authorization required. ") && authNote.textContent.includes("disruptive") &&
     authSelect.getAttribute("aria-describedby").split(" ").includes(authNote.id), authNote && authNote.textContent);
@@ -1071,9 +1073,27 @@ function runControlsSimplificationScenario() {
       return m && m.getAttribute("role") === "status" && m.getAttribute("aria-live") === "polite" && m.id.startsWith("wrMsg_");
     }));
   const wRows = SETTINGS_CATALOG_ROWS.filter((r) => r.access === "W").map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId));
-  check("X2: write-only commands show one lock and keep the reason as the row description",
-    wRows.length > 0 && wRows.every((el) => el.querySelectorAll(".settings-lock").length === 1 &&
-      idRegistry.get(el.getAttribute("aria-describedby")) === el.querySelector(".settings-catalog-note")));
+  check("X2: service commands show only their label -- no lock, no action placeholder -- and keep the reason as the row description",
+    wRows.length > 0 && wRows.every((el) => el.querySelectorAll(".settings-lock").length === 0 &&
+      !el.querySelector(".settings-catalog-editor-group") && !el.querySelector("button") &&
+      visibleText(el) === visibleText(el.querySelector(".settings-catalog-label")) &&
+      idRegistry.get(el.getAttribute("aria-describedby")) === el.querySelector(".settings-catalog-note") &&
+      el.querySelector(".settings-catalog-note").textContent.length > 20));
+  // One action slot per writable row: OK when writable, the lock otherwise,
+  // always the element right after the field shell; never a lock in a shell.
+  const writableRows = rows.filter((el) => el.dataset.access === "RW" && el.querySelector(".settings-field-shell"));
+  const slotOf = (el) => { const g = el.querySelector(".settings-catalog-editor-group"); const i = g.childNodes.findIndex((k) => k.classList.contains("settings-field-shell")); return g.childNodes[i + 1]; };
+  check("X2: every RW row has exactly one action slot right after its field: OK when writable, lock otherwise",
+    writableRows.length > 60 && writableRows.every((el) => {
+      const slot = slotOf(el);
+      const ok = el.querySelectorAll(".settings-catalog-action").length;
+      const locks = el.querySelectorAll(".settings-lock").length;
+      return slot && ok + locks === 1 && (slot.classList.contains("settings-catalog-action") || slot.classList.contains("settings-action-lock"));
+    }));
+  check("X2: no lock is ever inside a field shell", list.querySelectorAll(".settings-field-shell").every((sh) => !sh.querySelector(".settings-lock")));
+  check("X2: read-only rows have no action slot and no field shell (plain values)",
+    rows.filter((el) => el.dataset.access === "R").every((el) => !el.querySelector(".settings-field-shell") &&
+      !el.querySelector(".settings-lock") && !el.querySelector("button")));
 
   // Units: inside the shell, outside the editable value; selects get none.
   const shells = list.querySelectorAll(".settings-field-shell");
@@ -1151,10 +1171,16 @@ function runControlsSimplificationScenario() {
   health(p, "LIVE");
   fakeNow += 1;
   p.hooks.readBlockSuccess(`${0x1000}:9`);
-  p.legacyInput.value = "3.33";
+  p.legacyInput.value = "999";
   p.legacyInput.dataset.dirty = "true";
   fetchCallLog = [];
+  try { p.hooks.submitRegisterSetting("smart_sleep", p.legacyButton); } catch (_) { /* never reaches fetch */ }
+  check("X7: an out-of-range value is marked invalid for sight AND for screen readers (aria-invalid), with no request",
+    p.legacyInput.classList.contains("invalid") && p.legacyInput.getAttribute("aria-invalid") === "true" && fetchCallLog.length === 0);
+  p.legacyInput.value = "3.33";
   try { p.hooks.submitRegisterSetting("smart_sleep", p.legacyButton); } catch (_) { /* fetch shim throws by design */ }
+  check("X7: a valid value clears both the invalid class and aria-invalid",
+    !p.legacyInput.classList.contains("invalid") && p.legacyInput.getAttribute("aria-invalid") !== "true");
   const sent = fetchCallLog.map((f) => f.url).join(" ");
   check("X7: a legacy submit sends the bare number (value=3.33), never the unit", /[?&]value=3\.33(&|$)/.test(sent) && !/value=[^&]*[A-Za-zВ]/.test(sent), sent);
   fetchCallLog = [];
