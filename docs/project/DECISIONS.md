@@ -430,3 +430,47 @@
 **Rejected approaches:** compile/mock/read-only 16S as Ready.
 
 **Status:** Active.
+
+## Decision: Freshness budget = cadence + one absolute scheduling allowance
+
+**Context:** The owner saw the 0x1114 Settings fields briefly turn yellow. A
+10-minute read-only hardware observation (2026-09-27) showed the scheduler
+does read every "15 s" block about every 15 s (median 15.02 s, p99 15.87 s).
+The 30-33 s gaps the page saw carried a revision +2: the device had read the
+block on time, and the success event was dropped in transit. ESPHome's SSE
+server keeps one deferred event per entity while the socket is backed up,
+and every block's success shares the one `read_plan_success` entity. The old
+15 s-group budget of 30 s was exactly 2 x cadence, so a genuinely missed
+read showed stale for only a few milliseconds.
+
+**Decision:** A scheduler-read block is fresh for its cadence plus
+J = (shortest scheduler cadence) / 2 = 7.5 s. This gives 15 → 22.5 s,
+75 → 82.5 s and 300 → 307.5 s. `generate_read_plan.js` derives it, rejects any
+canonical `freshness_budget_s` that differs, and emits
+`kBlockFreshnessBudgetMs`. The UI, the write registry's RMW STALE_RAW gate
+and diagnostics all consume that one canonical value. The firmware numbers
+every success (`read_plan_success` = `<address>:<revision>:<sequence>`). After
+a jump in the sequence (or a skipped block revision) the page re-reads the
+read-only `/settings/read-freshness` snapshot, forward-only. It fetches at
+most once per 5 s, and nothing unless successes were actually lost.
+
+**Reason:** Scheduling lateness is absolute, because a due block waits behind
+other due blocks one 200 ms slot at a time. Measured lateness is at most
++3 s, and the calibrated model gives at most +6 s with write pauses, forced
+readbacks or another block's timeout. One missed read makes the next success
+arrive one full cadence later, so the budget must stay below 2 x cadence.
+The chosen value sits at the midpoint for the fastest group.
+
+**Alternatives considered:** keeping 30 s (a miss is invisible); 1.5 x
+cadence for every group (it would loosen the 75 s and 300 s write gates to
+112.5 s and 450 s); 15 s → 30 s cadence reclassification (disproved by
+hardware: the scheduler meets 15 s); restoring 15 s by a faster scheduler (not
+needed: 3.62 reads/s already meets the 3.67/s demand).
+
+**Rejected approaches:** a UI grace period; hiding stale; polling register
+data; a time-gap heuristic on the stream (on the demo stream it re-fetched
+every 7–15 s, i.e. polling in effect); a per-block digest published every
+second (more SSE traffic than the one sequence number).
+
+**Status:** Active. Evidence:
+`protocol/evidence/stage1_corrective_evidence/poll_cadence_freshness_20260927.md`.

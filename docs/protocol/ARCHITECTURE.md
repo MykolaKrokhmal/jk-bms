@@ -65,12 +65,27 @@ read-block success newer than the loss boundary. No reconnect reloads the
 page or touches drafts.
 
 There is no browser polling of register data. The only HTTP reads are the
-freshness snapshot when the SSE connection opens, and the write-transaction
-status calls.
+freshness snapshot (when the SSE connection opens, and again after evidence
+that success events were coalesced in transit -- see below), and the
+write-transaction status calls.
 
 **Freshness.** Each Settings value is fresh only when its read block succeeded
 within its `freshness_budget_s`, the BMS link health (`bms_health`) is
-observed LIVE/DELAYED, and the browser link is connected. Before the first
+observed LIVE/DELAYED, and the browser link is connected. For every
+scheduler-read block the budget is its cadence plus one absolute scheduling
+allowance, J = (shortest scheduler cadence) / 2 = 7.5 s: 15 → 22.5 s,
+75 → 82.5 s, 300 → 307.5 s. `generate_read_plan.js` derives it and rejects any
+other canonical value. It is above the measured healthy lateness (≤ 3 s) and
+below 2 × cadence, so one missed read shows stale for ~7.5 s instead of a
+flicker. While the SSE socket is backed up, ESPHome keeps only one deferred
+event per entity, and every block success shares `read_plan_success`, so
+successes can be coalesced away in transit. The firmware therefore publishes
+`<address>:<revision>:<sequence>`, where the sequence counts every block's
+successes. After a jump in the sequence (or a skipped block revision) the
+page re-reads the read-only snapshot. It fetches at most once per 5 s, one
+request at a time, plus one trailing run, and only when successes were
+actually lost. It merges forward only, so a read from before a loss boundary
+can never unlock a field. Before the first
 valid `bms_health`, values are `pending`, not offline. Only `kind === "fresh"`
 values can be submitted.
 

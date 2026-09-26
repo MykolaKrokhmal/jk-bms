@@ -145,6 +145,15 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT" -I "$REPO_ROOT/components/jk_poll_s
 "$BUILD_DIR/test_read_plan_decode"
 
 echo
+echo "=== read plan: scheduler cadence vs freshness budget simulation ==="
+# Real pick_next_block() + real generated kBlocks/kBlockFreshnessBudgetMs on a
+# modelled 200 ms servicer and shared Modbus bus, calibrated on hardware
+# (poll_cadence_freshness_20260927.md).
+g++ -std=c++17 -O2 -Wall -Wextra -I "$REPO_ROOT/protocol/generated" -I "$REPO_ROOT/components/jk_poll_scheduler" \
+  "$REPO_ROOT/test/jk_poll_scheduler/test_poll_cadence_simulation.cpp" -o "$BUILD_DIR/test_poll_cadence_simulation"
+"$BUILD_DIR/test_poll_cadence_simulation"
+
+echo
 echo "=== protocol catalog: schema + semantic + cross-file validator ==="
 node test/register_catalog/validate.js
 

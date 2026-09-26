@@ -1043,7 +1043,9 @@ const clients = new Set();
 // is a harmless no-op, exactly like ESPHome publishing before any client
 // has connected).
 seedEntities();
-setEntity("text_sensor-read_plan_success", `${readPlanFreshness[0].address}:1`);
+// Same "<address>:<revision>:<success sequence>" format as the firmware.
+let readPlanSuccessSeq = 1;
+setEntity("text_sensor-read_plan_success", `${readPlanFreshness[0].address}:1:${readPlanSuccessSeq}`);
 
 // NOTE on wire-format fidelity: real ESPHome's web_server component
 // actually publishes each entity's "id" as "<domain>/<configured name>"
@@ -1104,7 +1106,8 @@ function tick() {
       if (tickNow - block.lastSuccessMs < block.cadenceMs) continue;
       block.lastSuccessMs = tickNow;
       block.revision += 1;
-      setEntity("text_sensor-read_plan_success", `${block.address}:${block.revision}`);
+      readPlanSuccessSeq += 1;
+      setEntity("text_sensor-read_plan_success", `${block.address}:${block.revision}:${readPlanSuccessSeq}`);
       broadcastEntity("text_sensor-read_plan_success");
     }
   }

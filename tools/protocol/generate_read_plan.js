@@ -618,6 +618,35 @@ const POLL_GROUP_CADENCE_MS = {
   cell_block_1s: null, // bespoke-excluded; never reached if BESPOKE_EXCLUDED_KEYS is correct
 };
 
+// Freshness budget derivation (2026-09-27; evidence:
+// protocol/evidence/stage1_corrective_evidence/poll_cadence_freshness_20260927.md).
+// A scheduler-read block is fresh for its cadence plus ONE absolute
+// scheduling allowance J, the same for every group:
+//   freshness_budget = cadence + J,   J = (shortest scheduler cadence) / 2.
+// Why absolute, not proportional: a due block waits behind the other due
+// blocks one 200 ms servicer slot at a time, so its lateness does not scale
+// with its own cadence (measured on hardware over 10 min: max healthy
+// lateness +2.97 s at 15 s, +0.35 s at 75 s, +0.82 s at 300 s; calibrated
+// model with 1 s write pauses/forced readbacks/another block's timeout:
+// <= +6.0 s). Why half the shortest cadence: one missed read of a block
+// (timeout, or no success for one cycle) makes the next success arrive one
+// full cadence later -- a 2 x cadence gap -- so the budget must stay below
+// 2 x cadence for every group; cadence + C_min/2 is the midpoint for the
+// fastest group (15 -> 22.5 s) and leaves the slower groups the same
+// absolute allowance (75 -> 82.5 s, 300 -> 307.5 s). The canonical
+// freshness_budget_s must equal this value (checked below); the UI, the
+// write registry's RMW STALE_RAW gate and diagnostics all consume that
+// one canonical number.
+const SCHEDULER_CADENCES_MS = Object.values(POLL_GROUP_CADENCE_MS).filter((ms) => Number.isFinite(ms) && ms > 0);
+const FRESHNESS_JITTER_ALLOWANCE_MS = Math.min(...SCHEDULER_CADENCES_MS) / 2;
+function derivedFreshnessBudgetMs(cadenceMs) {
+  const budget = cadenceMs + FRESHNESS_JITTER_ALLOWANCE_MS;
+  if (!(budget < 2 * cadenceMs)) {
+    throw new Error(`READ_PLAN_FRESHNESS_BUDGET_MISSES_ONE_CYCLE: cadence ${cadenceMs}ms -> budget ${budget}ms is not below 2 x cadence`);
+  }
+  return budget;
+}
+
 // Extra verbatim ESPHome YAML (already correctly indented for a package's
 // sensor: list item body) appended to one generated entity, preserving a
 // pre-existing on_value: trigger this migration must not silently drop.
@@ -708,6 +737,12 @@ for (const { field: f, register: r } of allRegisterFields) {
   }
   if (cadenceMs > 0 && Number(r.freshness_budget_s) * 1000 < cadenceMs) {
     throw new Error(`READ_PLAN_FRESHNESS_BELOW_CADENCE: ${r.register_id} budget ${r.freshness_budget_s}s < ${cadenceMs}ms cadence`);
+  }
+  if (cadenceMs > 0 && Number(r.freshness_budget_s) * 1000 !== derivedFreshnessBudgetMs(cadenceMs)) {
+    throw new Error(
+      `READ_PLAN_FRESHNESS_BUDGET_NOT_DERIVED: ${r.register_id} budget ${r.freshness_budget_s}s != cadence ${cadenceMs}ms + ` +
+      `${FRESHNESS_JITTER_ALLOWANCE_MS}ms (see derivedFreshnessBudgetMs)`
+    );
   }
 
   planFields.push({ field: f, register: r, entityId, domain, cadenceMs });
@@ -811,6 +846,7 @@ const blocks = [...blocksByAddress.values()]
       strict_length: true,
       exception_reason: null,
       cadence_ms: b.cadenceMs,
+      freshness_budget_ms: derivedFreshnessBudgetMs(b.cadenceMs),
       ui_group: aggregateUiGroup(b.fields.map((pf) => pf.field.ui_group)),
       fields: b.fields.map((pf) => ({
         key: pf.field.key,
@@ -920,6 +956,7 @@ for (const cb of CUSTOM_DECODE_BLOCKS) {
     strict_length: cb.blockClass !== BLOCK_CLASS.CLUSTERED_GAP_AWARE,
     exception_reason: cb.exceptionReason,
     cadence_ms: cb.cadenceMs,
+    freshness_budget_ms: derivedFreshnessBudgetMs(cb.cadenceMs),
     ui_group: aggregateUiGroup(cb.coversKeys.map((k) => (fieldByKey.get(k) || {}).ui_group ?? null)),
     fields: [],
     custom_decode: cb.decodeCode,
@@ -1003,6 +1040,14 @@ function buildDecodeHeader() {
     );
     offset += b.fields.length;
   }
+  lines.push("};");
+  lines.push("");
+  lines.push("// Freshness contract per block (cadence + one absolute scheduling allowance;");
+  lines.push("// see generate_read_plan.js derivedFreshnessBudgetMs). Data only: consumed by");
+  lines.push("// the host-side cadence simulation, never by the firmware servicer itself.");
+  lines.push(`constexpr uint32_t kFreshnessJitterAllowanceMs = ${FRESHNESS_JITTER_ALLOWANCE_MS}u;`);
+  lines.push("constexpr uint32_t kBlockFreshnessBudgetMs[kBlockCount] = {");
+  for (const b of blocks) lines.push(`    ${b.freshness_budget_ms}u,  // ${b.address}`);
   lines.push("};");
   lines.push("");
   lines.push("} // namespace jk_read_plan");
@@ -1164,6 +1209,16 @@ function buildServicerGlobals() {
   lines.push("    restore_value: false");
   lines.push('    initial_value: "-1"');
   lines.push("  - id: g_rp_pending_started_ms");
+  lines.push("    type: uint32_t");
+  lines.push("    restore_value: false");
+  lines.push('    initial_value: "0"');
+  lines.push("  # One counter over EVERY block's successful read, published as the third");
+  lines.push("  # field of read_plan_success. ESPHome's SSE server keeps one deferred event");
+  lines.push("  # per entity while a socket is backed up, so successes of other blocks can");
+  lines.push("  # be coalesced away in transit; a jump in this counter lets the browser see");
+  lines.push("  # that at once and re-read /settings/read-freshness. Diagnostic only: it");
+  lines.push("  # changes no read, no cadence and no Modbus traffic.");
+  lines.push("  - id: g_rp_success_seq");
   lines.push("    type: uint32_t");
   lines.push("    restore_value: false");
   lines.push('    initial_value: "0"');
@@ -1342,7 +1397,8 @@ function buildServicerInterval() {
   L("      }");
   L("      id(g_rp_last_success_ms)[chosen] = millis();");
   L("      id(g_rp_revision)[chosen] = id(g_rp_revision)[chosen] + 1;");
-  L("      id(read_plan_success)->publish_state(std::to_string(jk_read_plan::kBlocks[chosen].address) + \":\" + std::to_string(id(g_rp_revision)[chosen]));");
+  L("      id(g_rp_success_seq) = id(g_rp_success_seq) + 1;");
+  L("      id(read_plan_success)->publish_state(std::to_string(jk_read_plan::kBlocks[chosen].address) + \":\" + std::to_string(id(g_rp_revision)[chosen]) + \":\" + std::to_string(id(g_rp_success_seq)));");
   L("      id(g_rp_transport_state)[chosen] = jk_poll_scheduler::IDLE;");
   L("      if (id(g_rp_pending_index) == chosen) id(g_rp_pending_index) = -1;");
   L("    });");

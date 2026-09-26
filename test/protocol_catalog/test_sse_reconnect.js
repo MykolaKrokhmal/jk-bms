@@ -46,6 +46,8 @@ function boot() {
   let snapshotAgeMs = 0;
   let snapshotRevision = 1;
   let snapshotFails = false;
+  let holdNext = false;
+  const held = [];
   const window = {
     __JK_BMS_TEST_HOOKS__: {},
     location: { href: "http://jk-bms.local/" },
@@ -70,7 +72,10 @@ function boot() {
     fetchLog.push({ url: String(url), method });
     if (method === "GET" && String(url).endsWith("/settings/read-freshness")) {
       if (snapshotFails) return { ok: false, status: 503, json: async () => ({}) };
-      return { ok: true, status: 200, json: async () => ({ blocks: [[SMART_SLEEP_BLOCK, snapshotAgeMs, snapshotRevision]] }) };
+      const response = { ok: true, status: 200, json: async () => ({ blocks: [[SMART_SLEEP_BLOCK, snapshotAgeMs, snapshotRevision]] }) };
+      // A held response resolves only when the test releases it (in flight).
+      if (holdNext) { holdNext = false; return new Promise((resolve) => { held.push(() => resolve(response)); }); }
+      return response;
     }
     throw new Error(`unexpected ${method} ${url}`);
   }
@@ -86,6 +91,8 @@ function boot() {
     h, clock, timers, winListeners, docListeners, fetchLog, navigator, document,
     setSnapshot(ageMs, revision) { snapshotAgeMs = ageMs; snapshotRevision = revision; },
     failSnapshot(value) { snapshotFails = value; },
+    holdNextSnapshot() { holdNext = true; },
+    releaseHeld() { const all = held.splice(0); all.forEach((fn) => fn()); return all.length; },
     es() { return FakeEventSource.instances[FakeEventSource.instances.length - 1]; },
     count() { return FakeEventSource.instances.length; },
     live() { return FakeEventSource.live().length; },
@@ -369,6 +376,199 @@ async function main() {
 
   check("13: only GET /settings/read-freshness was ever fetched",
     p.fetchLog.every((f) => f.method === "GET" && f.url.endsWith("/settings/read-freshness")));
+
+  // C. Coalesced success events (2026-09-27). ESPHome keeps one deferred
+  // event per entity while the SSE socket is backed up, so successes of other
+  // blocks that share read_plan_success are dropped in transit. The firmware
+  // numbers every success ("<address>:<revision>:<sequence>"); after a jump
+  // in the sequence (or a skipped block revision) the page re-reads the
+  // read-only freshness snapshot and merges it forward only.
+  // Block 0x1000 (smart_sleep): budget 307.5 s.
+  {
+    const p = boot();
+    let es = await establish(p);
+    const gets = () => p.fetchLog.filter((f) => f.method === "GET" && f.url.endsWith("/settings/read-freshness")).length;
+    const budgetMs = p.h.PROTOCOL_CATALOG.fieldMeta.smart_sleep.freshnessBudgetS * 1000;
+    const spacing = p.h.READ_FRESHNESS_RESYNC_SPACING_MS;
+    const OTHER = 0x1114;
+    let seq = 100, otherRev = 1, blockRev = 2;
+    const success = (source, address, revision) => {
+      seq += 1;
+      const value = `${address}:${revision}:${seq}`;
+      source.emit("state", { id: "text_sensor/read plan success", state: value, value });
+    };
+    // A healthy stream: another block's success every 280 ms (3.6/s), timers running.
+    const healthy = async (ms, source = es) => {
+      for (let t = 0; t < ms; t += 280) { p.timers.advance(280); success(source, OTHER, ++otherRev); }
+      await flush();
+    };
+    // `lost` successes coalesced away in transit, then the next one arrives.
+    const coalesced = async (lost, source = es) => { seq += lost; success(source, OTHER, ++otherRev); await flush(); };
+    check("C: budget and spacing come from the generated contract (307.5 s; 5 s)", budgetMs === 307500 && spacing === 5000);
+
+    success(es, SMART_SLEEP_BLOCK, blockRev);  // sequence baseline on this connection
+    await healthy(60000);
+    check("C1: a healthy numbered stream never fetches anything (60 s, ~214 successes)", gets() === 1 && p.writes() === 0);
+    p.clock.value += 20000; success(es, OTHER, ++otherRev); await flush();
+    check("C1: ... not even after a long quiet gap without a lost success", gets() === 1);
+
+    // The device reads 0x1000 revision 3; that success (and 4 others) is
+    // coalesced away. The next delivered success shows the jump.
+    const tRead = p.clock.now();
+    await healthy(1500);
+    let n = gets();
+    p.setSnapshot(p.clock.now() - tRead, 3);
+    await coalesced(5);
+    check("C2: a jump in the success sequence triggers exactly one snapshot GET", gets() === n + 1 && p.writes() === 0);
+    p.clock.value = tRead + budgetMs;
+    check("C2: the merged snapshot carries the device's real read time: fresh up to that read's budget", p.fresh() === "fresh");
+    p.clock.value = tRead + budgetMs + 1;
+    check("C2: ... and stale one ms later (nothing invented)", p.fresh() === "stale");
+    success(es, SMART_SLEEP_BLOCK, blockRev = 4);
+    await healthy(spacing * 2);
+
+    // Throttle: more evidence inside the spacing window runs once, trailing.
+    n = gets();
+    await coalesced(2);
+    check("C3: a lost success fetches once", gets() === n + 1);
+    await coalesced(1);
+    await coalesced(3);
+    check("C3: more evidence inside the spacing window does not fetch immediately", gets() === n + 1);
+    await healthy(spacing);
+    check("C3: ... one trailing resync runs after the spacing", gets() === n + 2);
+    await healthy(spacing * 3);
+    check("C3: ... and nothing more without new evidence (no loop)", gets() === n + 2);
+
+    // Evidence while a resync is in flight runs exactly one trailing resync.
+    n = gets();
+    p.holdNextSnapshot();
+    await coalesced(1);
+    check("C3b: a jump starts a resync (held in flight)", gets() === n + 1);
+    await coalesced(1);
+    check("C3b: evidence while in flight does not start a second request", gets() === n + 1);
+    await healthy(spacing * 2);
+    await coalesced(1);
+    check("C3b: ... not even when the request outlives the spacing (never two in flight)", gets() === n + 1);
+    p.releaseHeld();
+    await flush();
+    await healthy(spacing);
+    check("C3b: ... one trailing resync runs after the in-flight one", gets() === n + 2);
+    await healthy(spacing * 3);
+    check("C3b: ... and then nothing more", gets() === n + 2);
+
+    // A pending (throttled) resync is dropped when the link is lost.
+    {
+      const q = boot();
+      const qes = await establish(q);
+      const qgets = () => q.fetchLog.filter((f) => f.method === "GET").length;
+      let qseq = 1;
+      const qsuccess = (lost) => { qseq += 1 + lost; const v = `${OTHER}:${qseq}:${qseq}`; qes.emit("state", { id: "text_sensor/read plan success", state: v, value: v }); };
+      qsuccess(0);
+      q.timers.advance(10000); qsuccess(2); await flush();
+      const m = qgets();
+      q.timers.advance(1000); qsuccess(2); await flush();  // throttled: a timer is pending
+      qes.fail();
+      q.timers.advance(spacing);
+      await flush();
+      check("C3c: a throttled resync whose timer fires after the link was lost fetches nothing", qgets() === m,
+        `${qgets() - m} extra GET`);
+    }
+
+    // A skipped revision is evidence on its own, also in the older
+    // "<address>:<revision>" form without a sequence.
+    n = gets();
+    es.emit("state", { id: "text_sensor/read plan success", state: `${SMART_SLEEP_BLOCK}:6`, value: `${SMART_SLEEP_BLOCK}:6` });
+    blockRev = 6;
+    await flush();
+    check("C4: a skipped block revision alone triggers a snapshot GET (legacy format too)", gets() === n + 1);
+    await healthy(spacing * 2);
+
+    // Merge only moves forward.
+    success(es, SMART_SLEEP_BLOCK, blockRev = 7);
+    const tFresh = p.clock.now();
+    n = gets();
+    p.setSnapshot(200000, 5);  // older revision, older read
+    await coalesced(1);
+    check("C5: the stale-looking snapshot was really fetched", gets() === n + 1);
+    p.clock.value = tFresh + budgetMs;
+    check("C5: an older snapshot revision can never regress a block", p.fresh() === "fresh");
+    p.clock.value += spacing * 2;  // now past tFresh + budget
+    n = gets();
+    p.setSnapshot(0, 7);  // same revision, "read just now": still not a new read
+    await coalesced(1);
+    check("C5: a same-revision snapshot cannot extend it (stale on its own budget)", gets() === n + 1 && p.fresh() === "stale");
+
+    // A failed resync keeps the evidence it has: a real miss still turns stale.
+    success(es, SMART_SLEEP_BLOCK, blockRev = 8);
+    const tLast = p.clock.now();
+    await healthy(spacing * 2);
+    n = gets();
+    p.failSnapshot(true);
+    p.setSnapshot(0, 9);
+    await coalesced(1);
+    p.failSnapshot(false);
+    p.clock.value = tLast + budgetMs + 1;
+    check("C6: a failed resync is attempted, changes nothing; a block without a read goes stale", gets() === n + 1 &&
+      p.fresh() === "stale" && p.writes() === 0);
+
+    // Reconnect: the sequence baseline and the floor belong to one connection.
+    success(es, SMART_SLEEP_BLOCK, blockRev = 9);
+    await healthy(spacing * 2);
+    es.fail();
+    n = gets();
+    await coalesced(3);
+    check("C7: while the link is down, lost successes fetch nothing", gets() === n);
+    p.timers.advance(p.h.SSE_TIMING.RECONNECT_BASE_MS);
+    es = p.es();
+    p.setSnapshot(60000, 10);  // read 60 s ago: before the loss boundary
+    es.open();
+    await flush();
+    p.health(es, "LIVE");
+    n = gets();
+    seq += 500;  // the new connection starts wherever the device's counter is
+    success(es, OTHER, ++otherRev);
+    await flush();
+    check("C7: the first success on a new connection only sets its baseline (no fetch)", gets() === n);
+    seq = 3;  // the device rebooted: its counter restarted
+    success(es, OTHER, ++otherRev);
+    await flush();
+    success(es, OTHER, ++otherRev);
+    await flush();
+    check("C7: a restarted counter becomes the new baseline (no fetch, and later jumps still count)", gets() === n);
+    await healthy(spacing * 2);
+    n = gets();
+    p.setSnapshot(61000, 11);  // a newer revision, but also read before the loss
+    await coalesced(1);
+    check("C7: after reconnect a lost success fetches the snapshot again", gets() === n + 1);
+    check("C7: ... and a merged pre-loss read keeps the field offline (fail closed)", p.fresh() === "offline");
+    p.clock.value += 1;
+    success(es, SMART_SLEEP_BLOCK, blockRev = 12);
+    check("C7: a post-boundary read on this connection unlocks it", p.fresh() === "fresh");
+
+    // A resync still in flight when the link drops must not land in the new
+    // connection, even if its answer arrives after the new bootstrap.
+    await healthy(spacing * 2);
+    n = gets();
+    p.holdNextSnapshot();
+    await coalesced(1);
+    check("C8: a resync is in flight", gets() === n + 1);
+    es.fail();
+    p.timers.advance(p.h.SSE_TIMING.RECONNECT_BASE_MS);
+    es = p.es();
+    p.setSnapshot(60000, 12);  // the new bootstrap: last read before the loss
+    es.open();
+    await flush();
+    p.health(es, "LIVE");
+    p.setSnapshot(0, 20);  // the old request's answer: "read just now"
+    check("C8: the old request is released", p.releaseHeld() === 1);
+    await flush();
+    check("C8: an answer from the previous connection cannot unlock the field", p.fresh() === "offline");
+    p.clock.value += 1;
+    success(es, SMART_SLEEP_BLOCK, blockRev = 13);
+    check("C8: this connection's own post-boundary read unlocks it", p.fresh() === "fresh");
+    check("C: only read-only GETs of the freshness snapshot, zero writes", p.writes() === 0 &&
+      p.fetchLog.every((f) => f.method === "GET" && f.url.endsWith("/settings/read-freshness")));
+  }
 
   console.log(`\nSSE reconnect: ${checks - failures}/${checks} passed`);
   process.exit(failures ? 1 : 0);

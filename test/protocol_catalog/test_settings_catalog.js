@@ -463,7 +463,9 @@ function main() {
 
   // Controlled-clock integration: real production closures, not a copied
   // freshness algorithm. Canonical poll groups are 1s/15s/300s; their
-  // authoritative fieldMeta budgets are 3s/30s/320s respectively.
+  // authoritative fieldMeta budgets are 3s (bespoke cell reader) and
+  // cadence + 7.5 s for the scheduler groups (22.5 s / 307.5 s; derived in
+  // generate_read_plan.js, poll_cadence_freshness_20260927.md).
   const { setBrowserLink, sweepDiagnosticStaleness, settingsFieldFreshness,
     renderCellCompositeList, submitRegisterSetting, submitRegisterWrite,
     registerEntity, PROTOCOL_CATALOG, acceptReadBlockSnapshot, readBlockSuccess } = hooks;
@@ -496,10 +498,10 @@ function main() {
   const cellCalibration = cell4.querySelector(".cell-composite-calibration-editor");
   check("16S visibility uses protocol display_cell_count; channels 17+ absent", cellRows.length === 16 &&
     !cellRows.some((r) => Number(r.dataset.cellIndex) > 16));
-  check("canonical 1s/15s/300s groups retain their own 3s/30s/320s budgets",
+  check("canonical budgets: 3 s for the 1 s cell reader, cadence + 7.5 s for the 15 s/300 s scheduler groups",
     PROTOCOL_CATALOG.fieldMeta.cell_voltage_4.freshnessBudgetS === 3 &&
-    PROTOCOL_CATALOG.fieldMeta.total_voltage_raw.freshnessBudgetS === 30 &&
-    PROTOCOL_CATALOG.fieldMeta.smart_sleep.freshnessBudgetS === 320);
+    PROTOCOL_CATALOG.fieldMeta.total_voltage_raw.freshnessBudgetS === 22.5 &&
+    PROTOCOL_CATALOG.fieldMeta.smart_sleep.freshnessBudgetS === 307.5);
   check("clustered current_raw uses the physical 0x1290 block, not its own 0x1298 register address",
     PROTOCOL_CATALOG.fieldMeta.current_raw.readAddress === 0x1290 &&
     readValue("current_raw").dataset.freshness === "fresh");
@@ -524,9 +526,13 @@ function main() {
   ingestPayload({ id: "sensor/cell voltage 4", state: "3.452 V", value: 3.452 });
   check("unchanged-value SSE clears only its own cell field, not its sibling", cellVoltage.dataset.freshness === "fresh" &&
     cellResistance.dataset.freshness === "stale");
-  fakeNow = 230001;
+  fakeNow = 222500;
   sweepDiagnosticStaleness();
-  check("15s group stale only after its 30s budget", readValue("total_voltage_raw").dataset.freshness === "stale" &&
+  check("15s group still fresh exactly at its 22.5 s budget", readValue("total_voltage_raw").dataset.freshness === "fresh" &&
+    readValue("current_raw").dataset.freshness === "fresh");
+  fakeNow = 222501;
+  sweepDiagnosticStaleness();
+  check("15s group stale only after its 22.5 s budget", readValue("total_voltage_raw").dataset.freshness === "stale" &&
     readValue("current_raw").dataset.freshness === "stale" && legacyInput.dataset.freshness === "fresh" &&
     readValue("cell_connected_mask").dataset.freshness === "stale");
   readBlockSuccess(`${0x1290}:2`);
@@ -653,26 +659,28 @@ function runFalseStaleScenario() {
     /addEventListener\("input", \(event\) => \{\n\s+const input = event\.target;\n\s+if \(input instanceof HTMLInputElement \|\| input instanceof HTMLSelectElement\) \{ input\.dataset\.dirty = "true";/.test(source) &&
     /for \(const \[wireId, pending\] of preservedDirty\) \{[\s\S]{0,200}node\.dataset\.dirty = "true";/.test(source));
 
-  // Fresh baseline for 0x1114 (budget 30 s): record the read at T0.
+  // Fresh baseline for 0x1114 (budget 22.5 s): record the read at T0.
+  const B = p.hooks.PROTOCOL_CATALOG.fieldMeta.lcd_always_on.freshnessBudgetS * 1000;
+  check("F2: the 0x1114 budget is the derived 15 s + 7.5 s", B === 22500);
   fakeNow += 1;
   readBlockSuccess(`${0x1114}:2`);
   const t0 = fakeNow;
   check("F2: 0x1114 field fresh after its read", lcdSelect().dataset.freshness === "fresh" &&
     !lcdSelect().classList.contains("is-stale") && lcdButton().disabled === false);
-  fakeNow = t0 + 30000;
+  fakeNow = t0 + B;
   sweepDiagnosticStaleness();
-  check("F2: exactly at the 30 s budget the field is still fresh (strictly-greater rule)",
+  check("F2: exactly at the budget the field is still fresh (strictly-greater rule)",
     lcdSelect().dataset.freshness === "fresh" && lcdButton().disabled === false);
   // Read success lands between two sweep ticks just after the budget: the
   // next tick must never show a stale frame.
-  fakeNow = t0 + 30001;
+  fakeNow = t0 + B + 1;
   readBlockSuccess(`${0x1114}:3`);
   sweepDiagnosticStaleness();
   check("F3: a read recorded before the sweep tick never produces a stale frame",
     lcdSelect().dataset.freshness === "fresh" && !lcdSelect().classList.contains("is-stale"));
   // Genuine stale: no read for more than the budget.
   const t1 = fakeNow;
-  fakeNow = t1 + 30001;
+  fakeNow = t1 + B + 1;
   sweepDiagnosticStaleness();
   check("F4: genuine missed budget is stale (yellow kept) and the write gate closes",
     lcdSelect().dataset.freshness === "stale" && lcdSelect().classList.contains("is-stale") && lcdButton().disabled === true &&
@@ -684,7 +692,7 @@ function runFalseStaleScenario() {
   check("F5: the successful read clears stale synchronously, in the same step (no sweep needed, no delay)",
     lcdSelect().dataset.freshness === "fresh" && !lcdSelect().classList.contains("is-stale") && lcdButton().disabled === false);
   readBlockSuccess(`${0x1114}:4`);
-  fakeNow += 30001;
+  fakeNow += B + 1;
   sweepDiagnosticStaleness();
   check("F5: a replayed (non-increasing) read revision cannot refresh the block",
     lcdSelect().dataset.freshness === "stale");
@@ -1385,8 +1393,13 @@ async function runRealReconnectScenario() {
     FakeEventSource.live().length === 1 && first.readyState === 2);
   check("R: while unconfirmed every submit is blocked and zero GET/POST", p.legacyInput.dataset.freshness === "offline" &&
     p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
+  // The new connection's snapshot is the device's truth: revision 2 of both
+  // blocks, read an hour ago, before the loss boundary.
+  harness.snapshot = { blocks: [[0x1000, 3600000, 2], [0x1114, 3600000, 2], [0x1200, 3600000, 1], [0x1240, 3600000, 1], [0x1290, 3600000, 1]] };
   second.open();
   await flush();
+  check("R: the reconnect snapshot's pre-loss reads (an hour old) do not unlock anything", p.legacyInput.dataset.freshness === "offline" &&
+    p.legacyButton.disabled === true);
   fakeNow += 1;
   p.hooks.readBlockSuccess(`${0x1000}:3`);
   check("R: reconnect + block read but no health on this connection -> still blocked", p.legacyButton.disabled === true);

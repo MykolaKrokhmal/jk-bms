@@ -1,5 +1,18 @@
 # Transient yellow Settings fields — diagnosis (2026-09-26)
 
+> **Correction (2026-09-27).** Two conclusions below are wrong. The first is
+> "real successful-read intervals of the 15 s blocks are ≈ 30 s". The second is
+> that the owner's yellow was "genuine stale by the current contract".
+>
+> A 10-minute follow-up observation recorded every block revision. The device
+> reads every 15 s block on time: median 15.02 s, p99 15.87 s. Each 30–33 s gap
+> carried a revision +2, so the success event was dropped in transit and the
+> read was never missed. ESPHome's SSE server keeps one deferred event per
+> entity, and all block successes share `read_plan_success`.
+>
+> The offline-yellow fix in this file stands. For the corrected analysis and
+> fix, see `poll_cadence_freshness_20260927.md`.
+
 Owner report: on the device the 0x1114 fields (Heating, Temp. sensor, GPS
 heartbeat, Port switch, LCD always on, Special charger, SmartSleep, PCL
 module, Timed stored data, Charging float mode) briefly turned yellow — live

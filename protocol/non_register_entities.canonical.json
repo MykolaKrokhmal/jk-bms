@@ -381,7 +381,7 @@
       "en_display_unit": "",
       "frontend_label_uk": "Успішне читання блоку",
       "frontend_label_en": "Read-plan block success",
-      "note": "Production: batterylifepo4.yaml template text_sensor id read_plan_success (entity_category diagnostic, not internal, so it is currently visible in HA). Published as '<block address>:<revision>' after every successful generated read-plan block read, even when no decoded value changed. The browser consumes it only as block freshness: ingestPayload() dispatches it to readBlockSuccess() before any diagnostic recording. Never a user-facing parameter."
+      "note": "Production: batterylifepo4.yaml template text_sensor id read_plan_success (entity_category diagnostic, not internal, so it is currently visible in HA). Published as '<block address>:<revision>:<success sequence>' after every successful generated read-plan block read, even when no decoded value changed; the sequence counts every block's successes, so a jump shows that SSE coalesced success events in transit (the browser then re-reads /settings/read-freshness). The browser also accepts the older '<block address>:<revision>' form. The browser consumes it only as block freshness: ingestPayload() dispatches it to readBlockSuccess() before any diagnostic recording. Never a user-facing parameter."
     },
     {
       "key": "cellcount_tx_id",
