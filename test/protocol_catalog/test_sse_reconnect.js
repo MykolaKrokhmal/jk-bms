@@ -209,7 +209,9 @@ async function main() {
   check("reconnect failure: the next success resets the backoff only after real traffic",
     p.dbg().reconnectAttempt > 0 && p.count() === beforeRecovery);
   p.ping(p.es());
-  check("reconnect failure: first real traffic resets the backoff", p.dbg().reconnectAttempt === 0);
+  check("reconnect failure: a ping alone does not reset the backoff (no application data yet)", p.dbg().reconnectAttempt > 0);
+  p.health(p.es(), "LIVE");
+  check("reconnect failure: first real data resets the backoff", p.dbg().reconnectAttempt === 0);
 
   // 3. offline -> online.
   p = boot();
@@ -266,14 +268,24 @@ async function main() {
   p.timers.advance(0);
   check("6: a late watchdog tick after a silent sleep reconnects immediately (no backoff wait)",
     p.count() === 2 && p.live() === 1 && first.readyState === 2);
-  // A jump while the stream kept progressing does not disturb it.
+  // A late tick while the stream kept delivering (timers throttled, the
+  // machine awake) does not disturb it.
+  p = boot();
+  first = await establish(p);
+  p.timers.advance(T.SSE_WATCHDOG_INTERVAL_MS);
+  for (let i = 0; i < 8; i += 1) { p.clock.value += 2000; p.health(first, "LIVE"); }
+  p.timers.advance(0);
+  check("6: a late tick with continuous traffic keeps the working connection", p.count() === 1 && first.readyState === 1);
+  // But traffic that is the first thing to run after a real gap is a sleep
+  // boundary, not proof that the pre-sleep stream still works.
   p = boot();
   first = await establish(p);
   p.timers.advance(T.SSE_WATCHDOG_INTERVAL_MS);
   p.timers.suspend(T.DISCONNECTED_ESCALATION_MS * 2);
-  p.ping(first); // traffic arrived right after resume
+  p.ping(first); // the old socket's ping ran before the late tick
   p.timers.advance(0);
-  check("6: a clock jump with fresh traffic keeps the working connection", p.count() === 1 && first.readyState === 1);
+  check("6: a ping arriving first after a sleep gap replaces the stream (one new EventSource)",
+    p.count() === 2 && p.live() === 1 && first.readyState === 2 && p.tier() !== "live");
 
   // 7. EventSource that stays OPEN but delivers nothing.
   p = boot();
@@ -285,11 +297,11 @@ async function main() {
     first.readyState === 2 && p.dbg().browserLink === "reconnecting" && p.fresh() === "offline");
   p.timers.advance(T.RECONNECT_BASE_MS);
   check("7: and replaced by exactly one new EventSource through the backoff", p.count() === 2 && p.live() === 1);
-  // Pings alone keep a quiet stream alive.
+  // Pings plus the firmware's 2 s bms_health keep a stream alive.
   p = boot();
   first = await establish(p);
-  for (let i = 0; i < 20; i += 1) { p.timers.advance(10000); p.ping(first); }
-  check("7: ESPHome pings every 10 s keep the stream alive for 200 s", p.count() === 1 && first.readyState === 1);
+  for (let i = 0; i < 100; i += 1) { p.timers.advance(2000); p.health(first, "LIVE"); if (i % 5 === 0) p.ping(first); }
+  check("7: ESPHome pings every 10 s plus bms_health every 2 s keep the stream alive for 200 s", p.count() === 1 && first.readyState === 1);
 
   // 8. Several resume/online events arriving together.
   p = boot();
@@ -377,6 +389,220 @@ async function main() {
   check("13: only GET /settings/read-freshness was ever fetched",
     p.fetchLog.every((f) => f.method === "GET" && f.url.endsWith("/settings/read-freshness")));
 
+  // R. Real Mac sleep/resume (owner report 2026-09-27: after wake the header
+  // said LIVE while Settings cell values stayed stale/amber and writes stayed
+  // locked; it recovered by itself after ~57 s). While the machine sleeps no
+  // JavaScript runs, so a stream gap cannot be told apart from a lost
+  // connection. The first thing to run after wake may be SSE traffic (a
+  // ping, bms_health, a read success) rather than the watchdog timer.
+  {
+    const sleepFor = 10 * 60 * 1000;
+    const health = (p, es, v = "LIVE") => p.health(es, v);
+    const healthy = async (p, es, ms) => {  // a real stream: data every 2 s, ping every 10 s
+      for (let t = 0; t < ms; t += 2000) {
+        p.timers.advance(2000);
+        health(p, es);
+        if (t % 10000 === 0) p.ping(es);
+      }
+      await flush();
+    };
+    const wakeScenario = async (first) => {
+      const p = boot();
+      const es = await establish(p);
+      await healthy(p, es, 20000);
+      check(`R[${first}]: before sleep the page is live and fresh`, p.tier() === "live" && p.fresh() === "fresh");
+      p.timers.suspend(sleepFor);  // no timer, no event handler runs
+      if (first === "ping") p.ping(es);
+      else if (first === "health") health(p, es);
+      else if (first === "read") p.blockRead(es, 99);
+      await flush();
+      return { p, es };
+    };
+    for (const first of ["ping", "health", "read"]) {
+      const { p, es } = await wakeScenario(first);
+      check(`R[${first}]: the first post-wake ${first} event cannot hide the sleep boundary (new connection generation, old one closed)`,
+        p.count() === 2 && es.readyState === 2 && p.live() === 1, `count=${p.count()} old=${es.readyState}`);
+      check(`R[${first}]: pre-sleep health cannot keep the header LIVE (reconnecting until this connection's own health)`,
+        p.tier() !== "live", `tier=${p.tier()}`);
+      check(`R[${first}]: pre-sleep freshness cannot unlock writes`, p.fresh() !== "fresh", p.fresh());
+      // The new connection recovers both global health and Settings freshness.
+      const t0 = p.clock.now();
+      const next = p.es();
+      p.setSnapshot(500, 7);  // the device kept reading while we slept
+      next.open();
+      await flush();
+      const tOpen = p.clock.now() - t0;
+      health(p, next);
+      const tHealth = p.clock.now() - t0;
+      p.clock.value += 1;
+      p.blockRead(next, 8);  // a post-boundary read success on this connection
+      await flush();
+      check(`R[${first}]: after the new connection's health + post-boundary snapshot -> live and fresh`,
+        p.tier() === "live" && p.fresh() === "fresh", `tier=${p.tier()} fresh=${p.fresh()} open=${tOpen}ms health=${tHealth}ms`);
+      p.timers.advance(0);
+      check(`R[${first}]: the late watchdog tick after wake adds no second new connection`, p.count() === 2 && p.live() === 1);
+    }
+
+    // The dropped boundary event (possibly buffered before the sleep) never
+    // reaches the page state, not only the freshness gates.
+    {
+      const p = boot();
+      const es = await establish(p);
+      await healthy(p, es, 10000);
+      const before = p.h.state.smart_sleep.value;
+      p.timers.suspend(sleepFor);
+      es.emit("state", { id: "smart_sleep", state: "9.999 V", value: 9.999 });
+      await flush();
+      check("R[dropped]: the first post-wake event is dropped, not ingested", p.count() === 2 && before === 3.321 && p.h.state.smart_sleep.value === before,
+        `${before} -> ${p.h.state.smart_sleep.value}`);
+    }
+
+    // Hidden, sleep, then visible (visibilitychange first).
+    {
+      const p = boot();
+      const es = await establish(p);
+      p.document.visibilityState = "hidden";
+      p.docListeners.dispatch("visibilitychange");
+      p.timers.suspend(sleepFor);
+      p.document.visibilityState = "visible";
+      p.docListeners.dispatch("visibilitychange");
+      p.ping(es);  // then the old stream's ping
+      await flush();
+      check("R[hidden]: visible after sleep opens exactly one new connection; the late ping changes nothing",
+        p.count() === 2 && es.readyState === 2 && p.live() === 1 && p.tier() !== "live");
+    }
+
+    // pageshow + resume + visible + late tick burst after a ping-first wake.
+    {
+      const { p } = await wakeScenario("ping");
+      p.winListeners.dispatch("pageshow", { persisted: false });
+      p.docListeners.dispatch("resume");
+      p.docListeners.dispatch("visibilitychange");
+      p.winListeners.dispatch("online");
+      p.timers.advance(0);
+      await flush();
+      check("R[burst]: a ping-first wake plus a lifecycle burst still yields exactly one new EventSource and no reconnect timer",
+        p.count() === 2 && p.live() === 1 && !p.dbg().reconnectTimerActive);
+    }
+
+    // A healthy uninterrupted stream is never reconnected (30 min).
+    {
+      const p = boot();
+      const es = await establish(p);
+      await healthy(p, es, 30 * 60 * 1000);
+      check("R[healthy]: 30 min of normal traffic (health every 2 s, ping every 10 s) never reconnects", p.count() === 1 && es.readyState === 1 && p.tier() === "live");
+    }
+    // Timers late (throttled) while traffic kept flowing: not a sleep.
+    {
+      const p = boot();
+      const es = await establish(p);
+      await healthy(p, es, 10000);
+      for (let t = 0; t < 40000; t += 2000) { p.clock.value += 2000; health(p, es); }  // timers frozen 40 s, events continuous
+      p.timers.advance(0);
+      await flush();
+      check("R[throttled]: a late watchdog tick with continuous traffic keeps the connection", p.count() === 1 && es.readyState === 1 && p.tier() === "live");
+    }
+    // An awake page (timers running) with a 20 s quiet spell is not a sleep:
+    // only the watchdog's 30 s limit decides, so the stream is kept.
+    {
+      const p = boot();
+      const es = await establish(p);
+      await healthy(p, es, 10000);
+      p.timers.advance(20000);
+      health(p, es);
+      await flush();
+      check("R[awake-gap]: a 20 s quiet spell with timers running keeps the stream and ingests the next event",
+        p.count() === 1 && es.readyState === 1 && p.tier() === "live");
+    }
+    // Pings but no application data (bms_health is published every 2 s by the firmware).
+    {
+      const p = boot();
+      const es = await establish(p);
+      let replacedAt = null;
+      for (let t = 0; t < 120000 && replacedAt === null; t += 1000) {
+        p.timers.advance(1000);
+        if (t % 10000 === 0) p.ping(es);
+        if (es.readyState === 2) replacedAt = t;
+      }
+      check("R[ping-only]: a stream delivering only pings is declared lost within the stall limit",
+        replacedAt !== null && replacedAt <= T.SSE_STALL_MS + T.SSE_WATCHDOG_INTERVAL_MS, `replaced at ${replacedAt} ms`);
+    }
+
+    // Wake with a dead socket while Wi-Fi/routing is still recovering.
+    const recoverAfterWake = async (networkUpAfterMs) => {
+      const p = boot();
+      const es = await establish(p);
+      await healthy(p, es, 10000);
+      p.timers.suspend(sleepFor);
+      const tWake = p.clock.now();
+      const seen = new Set([es]);
+      let tOpen = null;
+      for (let t = 0; t <= 180000 && tOpen === null; t += 250) {
+        p.timers.advance(250);
+        const cur = p.es();
+        if (!seen.has(cur)) {
+          seen.add(cur);
+          if (p.clock.now() - tWake < networkUpAfterMs) cur.fail();
+          else { p.setSnapshot(500, 7); cur.open(); await flush(); tOpen = p.clock.now() - tWake; }
+        }
+      }
+      return { p, tOpen, attempts: seen.size - 1 };
+    };
+    {
+      const r = await recoverAfterWake(35000);
+      check("R[network-35s]: after wake the first successful reconnect follows the network within 6 s (not the 30 s backoff cap)",
+        r.tOpen !== null && r.tOpen <= 35000 + 6000, `open after ${r.tOpen} ms, ${r.attempts} attempts`);
+      r.p.health(r.p.es(), "LIVE");
+      await flush();
+      r.p.clock.value += 1;
+      r.p.blockRead(r.p.es(), 8);
+      await flush();
+      check("R[network-35s]: then health and Settings recover on that connection", r.p.tier() === "live" && r.p.fresh() === "fresh", `tier=${r.p.tier()} fresh=${r.p.fresh()}`);
+    }
+    {
+      // A genuine prolonged outage keeps bounded exponential backoff after the wake window.
+      const p = boot();
+      const es = await establish(p);
+      es.fail();
+      const created = [];
+      let last = p.clock.now();
+      for (let t = 0; t < 10 * 60 * 1000; t += 250) {
+        const before = p.count();
+        p.timers.advance(250);
+        if (p.count() !== before) { created.push(p.clock.now() - last); last = p.clock.now(); p.es().fail(); }
+      }
+      const tail = created.slice(-5).map((d) => Math.round(d / 1000));
+      check("R[outage]: a real outage (no wake) still backs off to the 30 s cap and never loops tightly",
+        tail.every((d) => d === 30) && created.every((d) => d >= 1000), JSON.stringify(created.map((d) => Math.round(d / 1000))));
+      // A lifecycle signal while a 30 s timer is pending: one immediate safe retry.
+      check("R[outage]: a reconnect timer is pending", p.dbg().reconnectTimerActive);
+      const n = p.count();
+      p.setSnapshot(500, 7);
+      p.document.visibilityState = "visible";
+      p.docListeners.dispatch("visibilitychange");
+      p.winListeners.dispatch("online");
+      check("R[outage]: visible/online while a long timer is pending retries once, immediately, without duplicates",
+        p.count() === n + 1 && p.live() === 1 && !p.dbg().reconnectTimerActive);
+      p.es().open();
+      await flush();
+      p.health(p.es(), "LIVE");
+      p.clock.value += 1;
+      p.blockRead(p.es(), 8);
+      await flush();
+      check("R[outage]: that retry recovers global health and Settings freshness", p.tier() === "live" && p.fresh() === "fresh");
+    }
+    // Stale callbacks from the superseded stream after a sleep boundary.
+    {
+      const { p, es } = await wakeScenario("ping");
+      health(p, es, "OFFLINE");
+      p.blockRead(es, 150);
+      p.ping(es);
+      await flush();
+      check("R[superseded]: events from the pre-sleep stream after the boundary change nothing",
+        p.count() === 2 && p.live() === 1 && p.tier() !== "live" && p.fresh() !== "fresh");
+    }
+  }
+
   // C. Coalesced success events (2026-09-27). ESPHome keeps one deferred
   // event per entity while the SSE socket is backed up, so successes of other
   // blocks that share read_plan_success are dropped in transit. The firmware
@@ -409,7 +635,7 @@ async function main() {
     success(es, SMART_SLEEP_BLOCK, blockRev);  // sequence baseline on this connection
     await healthy(60000);
     check("C1: a healthy numbered stream never fetches anything (60 s, ~214 successes)", gets() === 1 && p.writes() === 0);
-    p.clock.value += 20000; success(es, OTHER, ++otherRev); await flush();
+    p.timers.advance(20000); success(es, OTHER, ++otherRev); await flush();
     check("C1: ... not even after a long quiet gap without a lost success", gets() === 1);
 
     // The device reads 0x1000 revision 3; that success (and 4 others) is
@@ -420,9 +646,15 @@ async function main() {
     p.setSnapshot(p.clock.now() - tRead, 3);
     await coalesced(5);
     check("C2: a jump in the success sequence triggers exactly one snapshot GET", gets() === n + 1 && p.writes() === 0);
-    p.clock.value = tRead + budgetMs;
+    // Time passes on a working stream (timers running, other blocks'
+    // successes); jumping the clock alone would be a system sleep.
+    const runTo = (target) => {
+      while (p.clock.now() + 280 < target) { p.timers.advance(280); success(es, OTHER, ++otherRev); }
+      p.timers.advance(target - p.clock.now());
+    };
+    runTo(tRead + budgetMs);
     check("C2: the merged snapshot carries the device's real read time: fresh up to that read's budget", p.fresh() === "fresh");
-    p.clock.value = tRead + budgetMs + 1;
+    runTo(tRead + budgetMs + 1);
     check("C2: ... and stale one ms later (nothing invented)", p.fresh() === "stale");
     success(es, SMART_SLEEP_BLOCK, blockRev = 4);
     await healthy(spacing * 2);
@@ -490,9 +722,9 @@ async function main() {
     p.setSnapshot(200000, 5);  // older revision, older read
     await coalesced(1);
     check("C5: the stale-looking snapshot was really fetched", gets() === n + 1);
-    p.clock.value = tFresh + budgetMs;
+    runTo(tFresh + budgetMs);
     check("C5: an older snapshot revision can never regress a block", p.fresh() === "fresh");
-    p.clock.value += spacing * 2;  // now past tFresh + budget
+    runTo(p.clock.now() + spacing * 2);  // now past tFresh + budget
     n = gets();
     p.setSnapshot(0, 7);  // same revision, "read just now": still not a new read
     await coalesced(1);
@@ -507,7 +739,7 @@ async function main() {
     p.setSnapshot(0, 9);
     await coalesced(1);
     p.failSnapshot(false);
-    p.clock.value = tLast + budgetMs + 1;
+    runTo(tLast + budgetMs + 1);
     check("C6: a failed resync is attempted, changes nothing; a block without a read goes stale", gets() === n + 1 &&
       p.fresh() === "stale" && p.writes() === 0);
 

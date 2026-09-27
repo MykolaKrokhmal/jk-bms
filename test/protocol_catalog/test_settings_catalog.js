@@ -610,7 +610,7 @@ function main() {
   runControlsSimplificationScenario();
   runFalseStaleScenario();
 
-  runRealReconnectScenario().then(() => {
+  runRealReconnectScenario("visible").then(() => runRealReconnectScenario("ping")).then(() => {
     console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
     process.exit(failures ? 1 : 0);
   }, (error) => { console.error(error); process.exit(1); });
@@ -1357,7 +1357,11 @@ function document_list() {
 // draft values, focus + selection, dropdown choice, dirty flags, the 16S
 // active-cell rows -- and nothing is re-rendered from scratch. Writes stay
 // blocked until the new connection's health and post-boundary block reads.
-async function runRealReconnectScenario() {
+// wake: "visible" -- the page's visibilitychange runs first after the sleep;
+// "ping" -- the old socket's ESPHome ping runs first, before any timer or
+// lifecycle event (owner report 2026-09-27: header LIVE, Settings stale).
+async function runRealReconnectScenario(wake) {
+  const tag = wake === "ping" ? "R[ping-first]" : "R";
   fakeNow = 1900000;
   const clock = { now: () => fakeNow, get value() { return fakeNow; }, set value(v) { fakeNow = v; } };
   harness = { timers: new TimerQueue(clock), win: new ListenerRegistry(), doc: new ListenerRegistry(), snapshotGets: 0,
@@ -1373,7 +1377,7 @@ async function runRealReconnectScenario() {
   fakeNow += 1;
   p.hooks.readBlockSuccess(`${0x1000}:2`);
   p.hooks.readBlockSuccess(`${0x1114}:2`);
-  check("R: real connect() -> LIVE and writable", p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === false &&
+  check(`${tag}: real connect() -> LIVE and writable`, p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === false &&
     p.binarySelect.dataset.freshness === "fresh");
   // The user is mid-edit in the open Settings page.
   p.legacyInput.value = "3.250";
@@ -1387,36 +1391,37 @@ async function runRealReconnectScenario() {
   const rowCount = p.cell4().count;
   // Mac sleeps for an hour; the socket is half-open (no error, no data).
   harness.timers.suspend(60 * 60 * 1000);
-  document_visible(p);
+  if (wake === "ping") first.emit("ping", JSON.stringify({ uptime: 1 }));
+  else document_visible(p);
   const second = FakeEventSource.instances[FakeEventSource.instances.length - 1];
-  check("R: wake reconnects by itself (no reload): exactly one new EventSource", FakeEventSource.instances.length === 2 &&
+  check(`${tag}: wake reconnects by itself (no reload): exactly one new EventSource`, FakeEventSource.instances.length === 2 &&
     FakeEventSource.live().length === 1 && first.readyState === 2);
-  check("R: while unconfirmed every submit is blocked and zero GET/POST", p.legacyInput.dataset.freshness === "offline" &&
+  check(`${tag}: while unconfirmed every submit is blocked and zero GET/POST`, p.legacyInput.dataset.freshness === "offline" &&
     p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
   // The new connection's snapshot is the device's truth: revision 2 of both
   // blocks, read an hour ago, before the loss boundary.
   harness.snapshot = { blocks: [[0x1000, 3600000, 2], [0x1114, 3600000, 2], [0x1200, 3600000, 1], [0x1240, 3600000, 1], [0x1290, 3600000, 1]] };
   second.open();
   await flush();
-  check("R: the reconnect snapshot's pre-loss reads (an hour old) do not unlock anything", p.legacyInput.dataset.freshness === "offline" &&
+  check(`${tag}: the reconnect snapshot's pre-loss reads (an hour old) do not unlock anything`, p.legacyInput.dataset.freshness === "offline" &&
     p.legacyButton.disabled === true);
   fakeNow += 1;
   p.hooks.readBlockSuccess(`${0x1000}:3`);
-  check("R: reconnect + block read but no health on this connection -> still blocked", p.legacyButton.disabled === true);
+  check(`${tag}: reconnect + block read but no health on this connection -> still blocked`, p.legacyButton.disabled === true);
   health(p, "LIVE");
   p.hooks.readBlockSuccess(`${0x1114}:3`);
   p.hooks.updateSettingsCatalogValue("VolSmartSleep");
   p.hooks.updateSettingsCatalogValue("LCD Always On");
   const cell = p.cell4();
-  check("R: after health + post-boundary reads the fields are writable again", p.legacyInput.dataset.freshness === "fresh" &&
+  check(`${tag}: after health + post-boundary reads the fields are writable again`, p.legacyInput.dataset.freshness === "fresh" &&
     p.legacyButton.disabled === false && p.binarySelect.dataset.freshness === "fresh");
-  check("R: the same DOM nodes survive (no rebuild), with draft, dirty flag, focus and selection intact",
+  check(`${tag}: the same DOM nodes survive (no rebuild), with draft, dirty flag, focus and selection intact`,
     p.legacyInput === legacyNode && p.binarySelect === selectNode && p.legacyInput.value === "3.250" &&
     p.legacyInput.dataset.dirty === "true" && activeElement === legacyNode &&
     p.legacyInput.selectionStart === 2 && p.legacyInput.selectionEnd === 4);
-  check("R: the dropdown draft selection survives", p.binarySelect.value === "0" && p.binarySelect.dataset.dirty === "true");
-  check("R: 16S active-cell rows unchanged", cell.count === rowCount && cell.count === 16 && cell.maxIndex === 16);
-  check("R: only the read-only freshness snapshot was fetched (twice), never a write", harness.snapshotGets === 2 && fetchCallLog.length === 0);
+  check(`${tag}: the dropdown draft selection survives`, p.binarySelect.value === "0" && p.binarySelect.dataset.dirty === "true");
+  check(`${tag}: 16S active-cell rows unchanged`, cell.count === rowCount && cell.count === 16 && cell.maxIndex === 16);
+  check(`${tag}: only the read-only freshness snapshot was fetched (twice), never a write`, harness.snapshotGets === 2 && fetchCallLog.length === 0);
   harness = null;
 }
 
