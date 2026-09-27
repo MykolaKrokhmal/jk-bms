@@ -101,6 +101,16 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_history" \
 "$BUILD_DIR/test_jk_history_format"
 
 echo
+echo "=== jk_diag_probe_core unit tests (read-only clustered-read measurement build, plan M0) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_diag_probe" -I "$REPO_ROOT/components/jk_capability" \
+  "$REPO_ROOT/test/jk_diag_probe/test_jk_diag_probe_core.cpp" -o "$BUILD_DIR/test_jk_diag_probe_core"
+"$BUILD_DIR/test_jk_diag_probe_core"
+
+echo
+echo "=== diagnostic probe contract: allowlist vs canonical geometry + static audit of jk_bms_probe.yaml ==="
+node test/protocol_catalog/test_diag_probe_contract.js
+
+echo
 echo "=== jk_poll_scheduler_core unit tests ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" \
   "$REPO_ROOT/test/jk_poll_scheduler/test_jk_poll_scheduler_core.cpp" -o "$BUILD_DIR/test_jk_poll_scheduler_core"

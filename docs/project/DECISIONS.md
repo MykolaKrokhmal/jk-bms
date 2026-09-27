@@ -500,8 +500,9 @@ payload bytes, dominates the bus time.
 
 The discovery pass found that the agreed C1 `0x1000 × 125` / C2
 `0x10FA × 18` boundary cuts the 32-bit register 0x10F8. The proposed
-correction is C1 `0x1000 × 124` / C2 `0x10F8 × 19`, pending owner
-confirmation.
+correction is C1 `0x1000 × 124` / C2 `0x10F8 × 19`. The owner accepted it on
+2026-09-27 and chose the isolated diagnostic build for the gate
+measurements.
 
 **Reason:** measured and modelled evidence shows transaction count, not
 bytes, limits the bus. Wide reads promise 1 Hz telemetry at a similar or

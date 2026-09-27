@@ -89,10 +89,10 @@ The mΩ cell-resistance label fix (`faed82d`) is a closed prerequisite.
 - `protocol/generated/read_plan.yaml` header "NOT YET !include'd by …" (L9;
   the package is included) and the servicer comment "ui_group population is
   Stage 2's own deliverable, not yet done". Both come from the generator.
-- `docs/project/PROJECT_STATE.md` names `be99c96` as the deployed baseline.
-  The owner's last hardware-tested firmware in the 2026-09-27 deployment
-  hand-off is `8fbe54f`. This needs owner confirmation before the next
-  deployment record.
+- **Resolved 2026-09-27:** the owner confirmed `8fbe54f` as the last
+  hardware-tested deployment baseline (it contains the earlier security
+  baseline `be99c96`). `PROJECT_STATE.md` and `docs/guides/BUILD_AND_DEPLOY.md`
+  record it.
 - `DECISIONS.md` → "Freshness budget = cadence + one absolute scheduling
   allowance" and `derivedFreshnessBudgetMs()` apply to the current
   per-address scheduler only. The cluster budgets replace them (§7).
@@ -105,7 +105,7 @@ The mΩ cell-resistance label fix (`faed82d`) is a closed prerequisite.
 
 - **The agreed C1/C2 split cuts a 32-bit register.** `0x1000 × 125` ends at
   0x10F9, but `cell_connection_wire_resistance_29` at 0x10F8 is two words
-  (0x10F8, 0x10FA). **Required correction [proposal, owner confirmation]:**
+  (0x10F8, 0x10FA). **Correction, accepted by the owner on 2026-09-27:**
   C1 = `0x1000 × 124` (0x1000–0x10F7, 248 bytes), C2 = `0x10F8 × 19`
   (0x10F8–0x111D, 38 bytes). A1/A2 split no register (checked against
   `registers.canonical.json`).
@@ -197,7 +197,8 @@ Notes:
 - Moving odd run time, power-on count and CAN protocol version from 15 s to
   300 s is a deliberate cadence change. Owner confirmation is required
   (they are counters or constants).
-- The C1/C2 correction must be confirmed by the owner before Phase A runs.
+- The owner accepted the C1/C2 correction on 2026-09-27; the diagnostic
+  allowlist (M0) uses it.
 
 ## 3. Load and capacity model [model]
 
@@ -468,8 +469,8 @@ Fallback rules:
 | Tooling | the owner's ESPHome 2026.9.0 | a host script. Serial access with the Python stdlib alone (`termios`) is possible; `pyserial` is a third-party package and against project policy |
 | Risk | a flash cycle, rolled back to the known image | disconnecting the monitor, manual wiring |
 
-**Recommendation: option 1**, because the tick/callback decision needs ESP32
-timing. The final choice is the owner's.
+**Owner decision (2026-09-27): option 1**, the isolated diagnostic build,
+because the tick/callback decision needs ESP32 timing. Implemented in M0.
 
 Diagnostic firmware contract:
 - only an enumerated list of FC03 reads (the cluster table in §2, P
@@ -597,30 +598,86 @@ Rules that apply to every phase:
 - No phase relies on chat context. Its inputs are this plan, the committed
   evidence and the listed files.
 
-### M0 — Diagnostic measurement mechanism (execution step 3)
-- **Prerequisite:** this plan's commit. The owner has chosen the §12
-  option and confirmed the C1/C2 correction.
-- **Files:** a new diagnostic ESPHome configuration and a pure measurement
-  header (for example under `components/`) with a host test under `test/`.
-  Exact names are chosen in this phase. Production `batterylifepo4.yaml`
-  is unchanged.
+### M0 — Diagnostic measurement mechanism (execution step 3) — IMPLEMENTED (host-only)
+
+> **Status:** implemented and host-tested in the M0 commit on top of `35bea1d`.
+> Not compiled, not flashed, never run on hardware. No production file
+> changed.
+
+- **Prerequisite:** this plan's commit `35bea1d`. The owner chose option 1
+  and accepted the C1/C2 correction.
+- **Files:**
+  - `components/jk_diag_probe/jk_diag_probe_core.h` — pure core:
+    - the static allowlist with compile-time checks;
+    - classification and the exception-line parser;
+    - the bounded A/B/C scheduler;
+    - statistics;
+    - metadata-only formatting.
+  - `jk_bms_probe.yaml` — the separate diagnostic configuration, placed next
+    to `batterylifepo4.yaml` so that it shares `secrets.yaml`.
+  - `test/jk_diag_probe/test_jk_diag_probe_core.cpp`.
+  - `test/protocol_catalog/test_diag_probe_contract.js` — the allowlist
+    against canonical geometry, plus a static audit of the configuration.
+  - `test/run_all.sh`.
 - **Reuse:**
-  - `esphome::modbus_controller::ModbusCommandItem::create_read_command`
-    (as in the bespoke readers in `batterylifepo4.yaml`);
-  - `jk_capability::classify_response()`;
-  - the pure-core + host-test pattern.
-- **Deliverables:**
-  - the enumerated request list (the §2 clusters, P excluded);
-  - per-request length/L/exception/timeout reporting;
-  - redaction;
-  - a bounded run.
-- **Verification:** host tests for the list, redaction and bounds; no
-  production diff.
-- **Mutations:** P added to the list; a write function code allowed; raw
-  frame logging; an unbounded run.
+  - `ModbusCommandItem::create_read_command` (the production pattern);
+  - `jk_capability::classify_response()` (the exact-length rule) and
+    `jk_capability::callback_matches_pending_attempt()` (late replies);
+  - `ModbusController::add_on_command_sent_callback()` (the frame-on-wire
+    time: queue delay vs BMS latency);
+  - `logger: on_message` (ESPHome reports an exception response only as a
+    WARN line, which the core parses strictly).
+- **Allowlist:**
+  - the seven wide reads of §2 (C1 `0x1000 × 124`, C2 `0x10F8 × 19`);
+  - 14 narrow comparison reads, each a whole-register sub-range of one wide
+    read. All but `0x10F8 × 2` are reads production already performs.
+  - The setup passcode 0x1470–0x147F is excluded (compile-time and runtime
+    checks).
+  - The only other functionality is logging and OTA: no web server,
+    entities, API services or write path. `modbus_controller` polls nothing
+    (`update_interval: never`).
+- **Phase selection (compile-time only):** substitution `probe_mode`:
+  - `A_COMPATIBILITY` (gate A): one pass over every allowlisted read, ≥ 1 s
+    apart, ending within 5 min;
+  - `B_TELEMETRY_SOAK` (gate B): A1 then A2 every 1 s, 10 min;
+  - `C_COEXISTENCE` (gate C): gate B plus C1 then C2 every 3 s, staggered
+    500 ms, 20 min.
+
+  `probe_run_ms` (0 = mode default) is clamped to 30 min, and
+  `probe_start_delay_ms` defaults to 20 s. Nothing on the network can change
+  a mode, an address or a count.
+- **Termination:** the run latches FINISHED at its deadline (mode A: after
+  the pass). Then it logs the summary (`diag run/stat/cmp/sum` lines) and
+  issues no Modbus request until a reboot; a reboot repeats the same
+  bounded run.
+- **Evidence per request:**
+  - identity, expected and actual length, class
+    (OK/SHORT/LONG/EXCEPTION/TIMEOUT), exception code and hub re-sends;
+  - queue delay (issue → first frame on the wire);
+  - BMS latency (last frame → response) and total;
+  - callback processing time;
+  - OK-to-OK interval statistics (p99, max, > 1.5 × cadence, missed cycles);
+  - narrow/wide equal-word counts (stable vs live);
+  - zero-word counts for inactive channels 17–32 and gap words.
+
+  No response bytes are ever logged.
+- **Verification:**
+  - `test_jk_diag_probe_core.cpp` (64 checks);
+  - `test_diag_probe_contract.js` (32 checks);
+  - 15 mutations, all caught: credential entry added (wide or narrow);
+    credential check removed; write function allowed; raw-frame logging;
+    YAML payload logging; clamp removed; no deadline; length check
+    weakened, in the core or in the shared rule; requests after finish;
+    endless pass; late generation accepted; YAML write path; allowlist
+    re-check removed; `web_server` added;
+  - full `run_all.sh`.
 - **Hardware:** none in this phase.
-- **Commit:** `feat(diag): add read-only cluster measurement build`.
-- **Deploy:** nothing to production.
+- **Commit:** `feat(diag): add bounded clustered-read measurement build`.
+- **Deploy:** nothing to production. For M1 only, the owner copies
+  `jk_bms_probe.yaml` (next to `batterylifepo4.yaml`) and
+  `components/jk_diag_probe/jk_diag_probe_core.h`.
+  `components/jk_capability/jk_capability_core.h` is already part of the
+  production set.
 
 ### M1 — Hardware gates A–C (execution step 4)
 - **Prerequisite:** M0.

@@ -42,7 +42,11 @@ in the same commit.
 
 ## Deployed baseline (test ESP32)
 
-- **Currently deployed code:** commit `be99c96` (`fix(mock): publish
+- **Currently deployed code (owner-confirmed, 2026-09-27):** commit `8fbe54f`
+  (`style(settings): replace blocked badges with lock affordance`). This is
+  the last hardware-tested deployment the owner has confirmed. It contains
+  the security baseline `be99c96`, which is recorded below.
+- **Earlier security baseline:** commit `be99c96` (`fix(mock): publish
   configured cell count`, on top of the security fix `70a6aae`). The owner
   transferred the complete 14-file compile/runtime set above (every row
   except the local `secrets.yaml`), compiled it with ESPHome **2026.9.0** in
@@ -73,7 +77,7 @@ in the same commit.
   the observation window. No endpoint required authentication (the overlay
   above).
 - **Delta reports:** until the owner deploys a newer commit, every deployment
-  delta is computed against `be99c96`. A commit is recorded here as deployed
+  delta is computed against `8fbe54f`. A commit is recorded here as deployed
   only after the owner has transferred, compiled and uploaded it.
 - **Local YAML:** when `batterylifepo4.yaml` did not change since the
   deployed baseline, the owner keeps their local copy (with the overlay). When
@@ -82,7 +86,7 @@ in the same commit.
 ## Deployment-delta reporting rule
 
 Every change that touches the build must be reported as an exact deployment
-delta against the previously deployed commit (currently `be99c96`, see
+delta against the previously deployed commit (currently `8fbe54f`, see
 above). For each changed file in the set above, give its path, size, full
 SHA-256 and its destination in the owner's layout (the `jk_bms_ui/` mapping). Exclude tests, docs,
 evidence-only files, `demo/mock-server.js` and unchanged files. For example:
@@ -114,3 +118,30 @@ repository: compare the SHA-256 of `/0.js` with the local `jk_bms.js`.
 
 For first USB flash, OTA, USB/serial recovery, credential rotation and
 rollback, see [`AUTH_AND_HISTORY.md`](AUTH_AND_HISTORY.md).
+
+## Diagnostic measurement build (not production)
+
+`jk_bms_probe.yaml` is a separate, read-only ESPHome configuration for the
+clustered-read hardware gates (see
+[`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](../project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md),
+M0/M1). It is **not** part of the production file set above and is never
+deployed as production firmware.
+
+- **Files, only for an owner-authorized measurement run:**
+
+  | Repository path | Owner's ESPHome layout |
+  |---|---|
+  | `jk_bms_probe.yaml` | next to `batterylifepo4.yaml` (it uses the same `secrets.yaml`) |
+  | `components/jk_diag_probe/jk_diag_probe_core.h` | the same relative path |
+
+- **Phase selection is compile-time only.** Set the `probe_mode`
+  substitution to `A_COMPATIBILITY`, `B_TELEMETRY_SOAK` or `C_COEXISTENCE`,
+  or pass it with `-s`. `probe_run_ms: "0"` uses the mode default (A ≤ 5 min,
+  B 10 min, C 20 min); values above 30 min are clamped to 30 min.
+- **Termination:** after one bounded run the build logs its summary and
+  issues no further Modbus request until the next reboot. A reboot starts
+  the same bounded run again.
+- **Evidence:** the `diag …` lines of the device log (metadata only).
+- **Rollback:** flash the production build again.
+- Compile, upload and every run each need separate owner authorization.
+

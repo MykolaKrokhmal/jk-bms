@@ -54,7 +54,8 @@ Planned fixes are in
 - **History:** the four affected captures were redacted in local history, a
   targeted rewrite with only the readback records changed. No affected commit
   had been pushed. The old local objects were pruned.
-- **Device:** the remediated firmware (`be99c96`) was deployed to the test
+- **Device:** the remediated firmware (`be99c96`, contained in the later
+  owner-confirmed deployment `8fbe54f`) was deployed to the test
   ESP32 on 2026-09-25. A read-only check confirmed that the retired entity no
   longer publishes and that `setup_passcode_status` publishes only `hidden`
   (see `docs/guides/BUILD_AND_DEPLOY.md` -> "Deployed baseline").

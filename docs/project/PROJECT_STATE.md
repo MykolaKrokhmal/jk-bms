@@ -14,10 +14,13 @@ generated inventories linked below, not in prose.
   Stage 3, which starts only after owner review.
 - **Active architecture-migration sub-plan:**
   [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md)
-  (clustered RS485 reads). It is an approved design (2026-09-27, baseline
-  `faed82d`), not yet implemented or hardware-proven. Its next step is M0
-  (the diagnostic measurement mechanism), after the owner chooses the
-  mechanism and confirms the C1/C2 boundary correction.
+  (clustered RS485 reads). It is an approved design (2026-09-27); `35bea1d`
+  is its planning checkpoint. The owner accepted the C1/C2 boundary
+  correction and chose the isolated diagnostic build. **M0 is implemented
+  (host-only):** the read-only measurement build (`jk_bms_probe.yaml` +
+  `components/jk_diag_probe/`) has not been compiled or run on hardware.
+  **Next: M1** (gates A–C), which needs owner authorization. No production
+  runtime has changed.
 - **Known limitations:** [`CURRENT_LIMITATIONS.md`](CURRENT_LIMITATIONS.md).
 - **Architecture decisions:** [`DECISIONS.md`](DECISIONS.md) (principles) and
   [`docs/adr/0001-protocol-catalog.md`](../adr/0001-protocol-catalog.md)
@@ -48,9 +51,11 @@ generated inventories linked below, not in prose.
 
 ## Deployment and open security items
 
-- **Deployed baseline:** `be99c96` on the test ESP32 since 2026-09-25, with
-  the owner's local overlay (web auth commented out, UI files under
-  `jk_bms_ui/`). Later commits are not deployed. Details and the delta rule:
+- **Deployed baseline:** `8fbe54f` is the last owner-confirmed,
+  hardware-tested deployment on the test ESP32. It contains the earlier
+  security baseline `be99c96` (deployed 2026-09-25). The owner's local
+  overlay applies (web auth commented out, UI files under `jk_bms_ui/`).
+  Later commits are not deployed. Details and the delta rule:
   [`docs/guides/BUILD_AND_DEPLOY.md`](../guides/BUILD_AND_DEPLOY.md).
 - **Setup passcode:** the remediated firmware is on the device; rotating the
   passcode and cleaning HA history remain owner actions (see

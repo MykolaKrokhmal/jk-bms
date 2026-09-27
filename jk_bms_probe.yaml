@@ -1,0 +1,187 @@
+# READ-ONLY clustered-read measurement build for JK-PB BMS
+# (docs/project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md, step M0 -> hardware
+# gates A-C). This is NOT the production firmware and must not replace it
+# beyond a measurement run.
+#
+# What it does:
+#   - issues only the FC03 reads statically allowlisted in
+#     components/jk_diag_probe/jk_diag_probe_core.h (7 wide clusters + narrow
+#     comparison reads); the setup passcode 0x1470-0x147F is never read;
+#   - runs ONE bounded measurement (mode chosen at compile time below), logs
+#     metadata-only result lines ("diag ...") and a final summary, then
+#     issues no further Modbus request until the next reboot;
+#   - has no web server, no sensors/switches/numbers/buttons, no API
+#     services and no write path of any kind.
+#
+# Phase selection is compile-time only (edit the substitutions, or pass
+# `-s probe_mode B_TELEMETRY_SOAK` on the esphome command line); nothing on
+# the network can change the mode, an address or a count.
+#   probe_mode: A_COMPATIBILITY  -> gate A: one pass over every allowlisted
+#                                   read, >= 1 s apart (ends <= 5 min)
+#               B_TELEMETRY_SOAK -> gate B: A1 + A2 every 1 s (default 10 min)
+#               C_COEXISTENCE    -> gate C: gate B + C1/C2 every 3 s,
+#                                   staggered 500 ms (default 20 min)
+#   probe_run_ms: 0 = mode default; values above 30 min are clamped to 30 min.
+#   probe_start_delay_ms: wait after boot before the first request.
+#
+# Evidence: capture the device log (`esphome logs jk_bms_probe.yaml`)
+# from boot until the "diag run ... finished=1" line and the summary lines
+# after it. Restore production afterwards by flashing the production build.
+
+substitutions:
+  name: jk-bms
+  friendly_name: "JK BMS (diagnostic probe)"
+  tx_pin: GPIO22
+  rx_pin: GPIO21
+  flow_control_pin: GPIO17
+  device_addr: "1"
+  probe_mode: A_COMPATIBILITY
+  probe_run_ms: "0"
+  probe_start_delay_ms: "20000"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  comment: "READ-ONLY RS485 clustered-read measurement build (not production)"
+  includes:
+    - components/jk_capability/jk_capability_core.h
+    - components/jk_diag_probe/jk_diag_probe_core.h
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          jk_diag_probe::g_probe.begin(jk_diag_probe::Mode::${probe_mode}, millis(), ${probe_start_delay_ms}UL, ${probe_run_ms}UL);
+          // Frame-on-the-wire notifications (fires again for each hub retry).
+          id(bms0)->add_on_command_sent_callback([](int function_code, int address) {
+            jk_diag_probe::g_probe.on_frame_sent(millis(), uint8_t(function_code), uint16_t(address));
+          });
+          char line[160];
+          jk_diag_probe::format_run(line, sizeof(line), jk_diag_probe::g_probe);
+          ESP_LOGI("diag", "%s", line);
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  min_auth_mode: WPA2
+
+ota:
+  - platform: esphome
+    password: !secret jk_bms_ota_password
+
+api:
+  encryption:
+    key: !secret jk_bms_api_key
+  # No reboot when no API client is connected: a reboot would restart the
+  # bounded run.
+  reboot_timeout: 0s
+
+logger:
+  level: INFO
+  # ESPHome's modbus_controller reports an exception response only as this
+  # WARN log line; it is parsed (strictly) into the probe's EXCEPTION class.
+  # No logging happens inside this callback (the record is queued).
+  on_message:
+    level: WARN
+    then:
+      - lambda: |-
+          if (tag == nullptr || std::strcmp(tag, "modbus_controller") != 0) return;
+          uint8_t fc = 0, exc = 0;
+          uint16_t addr = 0;
+          if (!jk_diag_probe::parse_modbus_error_line(message, fc, addr, exc)) return;
+          const jk_diag_probe::Terminal t = jk_diag_probe::g_probe.on_exception(millis(), fc, addr, exc);
+          if (t.valid) jk_diag_probe::g_log_queue.push(t);
+
+uart:
+  - id: uart_0
+    baud_rate: 115200
+    rx_buffer_size: 384
+    tx_pin: ${tx_pin}
+    rx_pin: ${rx_pin}
+
+modbus:
+  - id: modbus0
+    uart_id: uart_0
+    flow_control_pin: ${flow_control_pin}
+    turnaround_time: 50ms
+
+modbus_controller:
+  - id: bms0
+    address: ${device_addr}
+    modbus_id: modbus0
+    setup_priority: -10
+    # No polled entities exist in this build; the probe is the only request source.
+    update_interval: never
+
+interval:
+  - interval: 10ms
+    then:
+      - lambda: |-
+          using namespace jk_diag_probe;
+          static bool summary_logged = false;
+          static uint32_t last_progress_ms = 0;
+          char line[400];
+          const uint32_t now = millis();
+
+          Terminal queued;
+          while (g_log_queue.pop(queued)) {
+            format_terminal(line, sizeof(line), queued);
+            ESP_LOGW("diag", "%s", line);
+          }
+
+          Terminal timed_out;
+          const int idx = g_probe.poll(now, timed_out);
+          if (timed_out.valid) {
+            format_terminal(line, sizeof(line), timed_out);
+            ESP_LOGW("diag", "%s", line);
+          }
+          if (idx >= 0) {
+            const Request &r = kRequests[idx];
+            // Defense in depth: only an exact allowlisted FC03 read is ever queued.
+            if (find_allowed(r.function, r.address, r.count) != idx) return;
+            const uint32_t gen = g_probe.generation();
+            auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+                id(bms0), esphome::modbus::EntityType::HOLDING, r.address, r.count,
+                [idx, gen](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
+                  const uint32_t started_us = micros();
+                  const Terminal t = g_probe.on_response(millis(), idx, gen, data.data(), data.size(), 0);
+                  g_probe.note_callback_us(idx, micros() - started_us);
+                  if (!t.valid) return;
+                  if (g_probe.mode() == Mode::A_COMPATIBILITY || t.outcome != Outcome::OK) g_log_queue.push(t);
+                });
+            id(bms0)->queue_command(std::move(command));
+          }
+
+          // Progress every 60 s during a soak (metadata only).
+          if (!g_probe.finished() && g_probe.mode() != Mode::A_COMPATIBILITY && now - last_progress_ms >= 60000U) {
+            last_progress_ms = now;
+            for (std::size_t i = 0; i < kWideCount; i++) {
+              if (g_probe.stats(i).issued == 0) continue;
+              format_request_stats(line, sizeof(line), g_probe, i);
+              ESP_LOGI("diag", "%s", line);
+            }
+          }
+
+          if (g_probe.finished() && !summary_logged) {
+            summary_logged = true;
+            format_run(line, sizeof(line), g_probe);
+            ESP_LOGI("diag", "%s", line);
+            for (std::size_t i = 0; i < kRequestCount; i++) {
+              if (g_probe.stats(i).issued == 0) continue;
+              format_request_stats(line, sizeof(line), g_probe, i);
+              ESP_LOGI("diag", "%s", line);
+            }
+            for (std::size_t c = 0; c < kComparisonCount; c++) {
+              format_comparison(line, sizeof(line), g_probe, c);
+              ESP_LOGI("diag", "%s", line);
+            }
+            for (std::size_t s = 0; s < kSummaryCount; s++) {
+              format_summary(line, sizeof(line), g_probe, s);
+              ESP_LOGI("diag", "%s", line);
+            }
+            ESP_LOGI("diag", "diag done: no further Modbus requests until reboot (log queue drops=%u)", unsigned(g_log_queue.dropped()));
+          }
