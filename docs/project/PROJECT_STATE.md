@@ -12,6 +12,12 @@ generated inventories linked below, not in prose.
 - **Active plan:** [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
   Stages 1–2 are done on `codex/rs485-unified-pipeline`. The next task is
   Stage 3, which starts only after owner review.
+- **Active architecture-migration sub-plan:**
+  [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md)
+  (clustered RS485 reads). It is an approved design (2026-09-27, baseline
+  `faed82d`), not yet implemented or hardware-proven. Its next step is M0
+  (the diagnostic measurement mechanism), after the owner chooses the
+  mechanism and confirms the C1/C2 boundary correction.
 - **Known limitations:** [`CURRENT_LIMITATIONS.md`](CURRENT_LIMITATIONS.md).
 - **Architecture decisions:** [`DECISIONS.md`](DECISIONS.md) (principles) and
   [`docs/adr/0001-protocol-catalog.md`](../adr/0001-protocol-catalog.md)

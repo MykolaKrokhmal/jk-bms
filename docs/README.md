@@ -12,6 +12,7 @@ artifact owns which fact.
 |---|---|
 | [`project/PROJECT_STATE.md`](project/PROJECT_STATE.md) | where the project stands; standing owner rules |
 | [`project/RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](project/RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md) | **the active implementation plan** |
+| [`project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md) | **active architecture-migration sub-plan**: clustered RS485 reads (approved design, not yet implemented or hardware-proven) |
 | [`project/CURRENT_LIMITATIONS.md`](project/CURRENT_LIMITATIONS.md) | verified known limitations, each with a re-check source |
 | [`project/DECISIONS.md`](project/DECISIONS.md) | architecture and product decisions (principles) |
 | [`protocol/ARCHITECTURE.md`](protocol/ARCHITECTURE.md) | artifact roles and runtime data flow |

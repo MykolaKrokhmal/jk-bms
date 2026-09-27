@@ -474,3 +474,53 @@ second (more SSE traffic than the one sequence number).
 
 **Status:** Active. Evidence:
 `protocol/evidence/stage1_corrective_evidence/poll_cadence_freshness_20260927.md`.
+
+## Decision: Migrate RS485 reads to wide clusters (approved design, not hardware-proven)
+
+**Context:** today the read path issues one FC03 read per canonical register
+address: 103 scheduler blocks plus bespoke readers, ≈ 54 % modelled bus
+occupancy, and telemetry every 15 s. Transaction overhead (~110 ms), not
+payload bytes, dominates the bus time.
+
+**Decision (2026-09-27, owner + Codex + Claude review):**
+- Clusters:
+  - telemetry A1 `0x1200 × 125` + A2 `0x12FA × 10`, target 1 Hz;
+  - Settings C1 + C2, background every 300 s, immediate + every 3 s under one
+    bounded active-view lease;
+  - static S1–S3, at startup and every 300 s;
+  - the setup passcode 0x1470–0x147F isolated from every cluster and cache.
+- Explicit scheduler priority tiers with phase staggering.
+- Writes own the bus while a command is outstanding. At most one read-only
+  telemetry read may use a proven write idle window; otherwise use an
+  explicit bounded write pause.
+- Freshness only from physical cluster success, with evidence-derived
+  budgets. RMW gates always use the strict active budget.
+- Publish-on-change only after cluster freshness exists.
+- Legacy readers kept only as a latched, visible fallback.
+
+The discovery pass found that the agreed C1 `0x1000 × 125` / C2
+`0x10FA × 18` boundary cuts the 32-bit register 0x10F8. The proposed
+correction is C1 `0x1000 × 124` / C2 `0x10F8 × 19`, pending owner
+confirmation.
+
+**Reason:** measured and modelled evidence shows transaction count, not
+bytes, limits the bus. Wide reads promise 1 Hz telemetry at a similar or
+lower load (32.8 % to 56.8 % depending on the unmeasured wide-response
+latency).
+
+**Alternatives considered:**
+- reading the whole 0x1000–0x1507 span every 1–1.5 s (≥ 6 reads, too much
+  load, needless configuration traffic);
+- trimming read length per cell count (saves ≈ 0.5 % bus, adds dynamic
+  lengths).
+
+**Rejected approaches:** guessed geometry, budgets or deadbands; freshness
+from value publication; a background budget as a write gate; credential
+bytes in shared caches.
+
+**Status:** Approved design, not implemented or hardware-proven. Plan and
+gates:
+[`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md).
+The existing "Freshness budget = cadence + one absolute scheduling
+allowance" decision stays in force for the current per-address scheduler
+until the cluster budgets replace it.

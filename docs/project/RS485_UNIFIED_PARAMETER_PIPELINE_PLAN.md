@@ -50,6 +50,17 @@ gaps each stage closes are listed in
   every `--check`, `pipeline.js check`, the fingerprint workflow when covered
   code changes, and the full `bash test/run_all.sh`.
 
+## Architecture-migration sub-plan
+
+The read architecture is being migrated from one FC03 read per register
+address to a small set of wide clusters. That work has its own active
+sub-plan:
+[`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md).
+It is an approved design (2026-09-27), not yet implemented or
+hardware-proven. Stage 4 below (freshness from physical reads for the
+bespoke cell keys) is delivered by that sub-plan's step M6 (cells on
+cluster freshness), unless the owner decides otherwise.
+
 ## Stages
 
 Each stage is one logical commit and must change code, a generator, a test or
@@ -141,6 +152,9 @@ runtime behaviour — no audit-only stages.
 - **Hardware:** none.
 
 ### Stage 4 — Freshness from successful physical reads for bespoke fields
+
+> Planned to be delivered by the clustered-read sub-plan, step M6
+> ([`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md)).
 
 - **Objective:** the 98 bespoke-read keys (96 cell channels plus
   `min_voltage_cell_index_native` / `max_voltage_cell_index_native`) are fresh
