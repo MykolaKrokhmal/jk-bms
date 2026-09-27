@@ -364,6 +364,10 @@ echo "=== Cell-composite batch: composite cell-row DOM behavior (N=8/16/24/32, S
 node test/protocol_catalog/test_cell_composite_rows.js
 
 echo
+echo "=== Cells tab: cell wire resistance shown in mΩ / мОм (row, summary, placeholder, metrics, history; no scaling) ==="
+node test/protocol_catalog/test_cell_resistance_units.js
+
+echo
 echo "=== Finish-Settings-architecture batch: generic Settings catalog DOM behavior (catalog-first, R/RW/W shapes, SSE, dirty/focus, i18n) ==="
 node test/protocol_catalog/test_settings_catalog.js
 
