@@ -16,11 +16,24 @@ generated inventories linked below, not in prose.
   [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md)
   (clustered RS485 reads). It is an approved design (2026-09-27); `35bea1d`
   is its planning checkpoint. The owner accepted the C1/C2 boundary
-  correction and chose the isolated diagnostic build. **M0 is implemented
-  (host-only):** the read-only measurement build (`jk_bms_probe.yaml` +
-  `components/jk_diag_probe/`) has not been compiled or run on hardware.
-  **Next: M1** (gates A–C), which needs owner authorization. No production
-  runtime has changed.
+  correction and chose the isolated diagnostic build.
+  **M0 status (2026-09-27):**
+  - The read-only measurement build (`jk_bms_probe.yaml` +
+    `components/jk_diag_probe/`) compiled on ESPHome 2026.9.0.
+  - An accidental OTA of it reset before boot validation and was rolled back
+    automatically. The cause was a ~32 KB stack temporary in
+    `Probe::begin()` against the 8 KB loopTask stack.
+  - The fix, with a firmware-stack regression test, is source-proven, not
+    yet device-confirmed.
+  - **Next: a new compile-only validation of the corrected probe.** Gate A
+    (M1) is incomplete, has no measurement evidence, and needs separate
+    owner authorization.
+  - Evidence:
+    `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_rollback_20260927.md`.
+
+  ESPHome 2026.9.0 is the controlled build baseline. Do not adopt 2027.3.0+
+  before the Modbus API migration in the plan. No production runtime has
+  changed.
 - **Known limitations:** [`CURRENT_LIMITATIONS.md`](CURRENT_LIMITATIONS.md).
 - **Architecture decisions:** [`DECISIONS.md`](DECISIONS.md) (principles) and
   [`docs/adr/0001-protocol-catalog.md`](../adr/0001-protocol-catalog.md)

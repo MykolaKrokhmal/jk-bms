@@ -136,12 +136,24 @@ deployed as production firmware.
 
 - **Phase selection is compile-time only.** Set the `probe_mode`
   substitution to `A_COMPATIBILITY`, `B_TELEMETRY_SOAK` or `C_COEXISTENCE`,
-  or pass it with `-s`. `probe_run_ms: "0"` uses the mode default (A ≤ 5 min,
-  B 10 min, C 20 min); values above 30 min are clamped to 30 min.
+  or pass it with `-s`. `probe_run_ms: "0"` uses the mode default (B 10 min,
+  C 20 min); values above 30 min are clamped to 30 min. Mode A ends as soon
+  as its single pass completes, normally ≈ 40–50 s after boot (5 min is
+  only its deadline). Capture the log from boot.
 - **Termination:** after one bounded run the build logs its summary and
   issues no further Modbus request until the next reboot. A reboot starts
   the same bounded run again.
 - **Evidence:** the `diag …` lines of the device log (metadata only).
 - **Rollback:** flash the production build again.
 - Compile, upload and every run each need separate owner authorization.
+- **Use a compile-only action for a compile check.** "Install" also uploads
+  by OTA, and that happened by accident on 2026-09-27.
+- **Build directory:** both configurations are named `jk-bms`, and the
+  Device Builder builds both in `/data/build/jk-bms`, so one can overwrite
+  the other's artifacts. Before the next diagnostic build, give the probe
+  its own build directory in the way ESPHome 2026.9.0 supports. Verify it
+  with a config check; it was not verifiable on the development host.
+  Until then, compile production again before installing production.
+- **ESPHome version:** builds are validated on 2026.9.0. Do not use 2027.3.0
+  or newer until the Modbus API migration in the plan is complete.
 

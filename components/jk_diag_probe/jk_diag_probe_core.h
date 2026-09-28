@@ -294,6 +294,12 @@ struct Histogram {
   std::array<uint16_t, kHistBuckets> b{};
   uint32_t n = 0, min = 0xFFFFFFFFu, max = 0;
   uint64_t sum = 0;
+  // In-place reset to the default member values (no temporary; see Probe::begin).
+  void reset() {
+    b.fill(0);
+    n = 0; min = 0xFFFFFFFFu; max = 0;
+    sum = 0;
+  }
   void add(uint32_t v) {
     std::size_t i = v / kHistBucketMs;
     if (i >= kHistBuckets) i = kHistBuckets - 1;
@@ -319,6 +325,10 @@ constexpr std::size_t kIntervalBuckets = 200;  // 0..10 s
 struct IntervalStats {
   std::array<uint16_t, kIntervalBuckets> b{};
   uint32_t n = 0, max = 0, over_1_5x = 0, missed = 0;  // missed = interval >= 2 x cadence
+  void reset() {
+    b.fill(0);
+    n = 0; max = 0; over_1_5x = 0; missed = 0;
+  }
   void add(uint32_t v, uint32_t cadence) {
     std::size_t i = v / kIntervalBucketMs;
     if (i >= kIntervalBuckets) i = kIntervalBuckets - 1;
@@ -349,6 +359,15 @@ struct RequestStats {
   uint32_t last_ok_ms = 0;
   bool has_ok = false;
   IntervalStats ok_interval;
+  void reset() {
+    outcomes.fill(0);
+    issued = 0; resends = 0; late = 0;
+    bms_ms.reset(); total_ms.reset(); queue_ms.reset();
+    callback_us_max = 0;
+    last_ok_ms = 0;
+    has_ok = false;
+    ok_interval.reset();
+  }
 };
 
 // One terminal event, as a metadata-only record for the log line.
@@ -366,7 +385,13 @@ struct Terminal {
 class Probe {
  public:
   void begin(Mode mode, uint32_t now_ms, uint32_t start_delay_ms, uint32_t requested_run_ms) {
-    *this = Probe();
+    // Reset in place. `*this = Probe();` materialised a ~32 KB temporary on
+    // the caller's stack -- 4x the ESP32 loopTask stack (8 KB) -- and, as the
+    // first statement of on_boot, crashed the diagnostic image on every boot
+    // before ESPHome marked the OTA valid (automatic rollback, 2026-09-27).
+    // test/jk_diag_probe/test_jk_diag_probe_stack.sh bounds every entry
+    // point's frame; the reset-equivalence tests pin reset() to the defaults.
+    reset();
     mode_ = mode;
     run_ms_ = effective_run_ms(mode, requested_run_ms);
     start_ms_ = now_ms + start_delay_ms;
@@ -545,6 +570,24 @@ class Probe {
     return t;
   }
 
+  // Every member back to its default initializer below, field by field.
+  void reset() {
+    mode_ = Mode::A_COMPATIBILITY;
+    begun_ = false; finished_ = false;
+    run_ms_ = 0; start_ms_ = 0; deadline_ms_ = 0;
+    outstanding_ = -1;
+    generation_ = 0; issued_ms_ = 0; first_sent_ms_ = 0; last_sent_ms_ = 0;
+    sends_ = 0; exception_code_ = 0;
+    exception_seen_ = false;
+    pass_cursor_ = 0;
+    next_pass_ms_ = 0; tele_due_ms_ = 0; settings_due_ms_ = 0;
+    tele_pending_a2_ = false; settings_pending_c2_ = false;
+    total_issued_ = 0;
+    for (RequestStats &s : stats_) s.reset();
+    for (auto &p : payload_) p.fill(0);
+    have_payload_.fill(false);
+  }
+
   uint32_t cadence_of(int i) const {
     if (mode_ == Mode::A_COMPATIBILITY) return 0;
     const Request &r = kRequests[i];
@@ -568,6 +611,9 @@ class Probe {
   std::array<bool, kRequestCount> have_payload_{};
 };
 
+// Object size and stack-frame size are separate invariants: this bounds the
+// static object (it lives in .data/.bss as g_probe); the per-function stack
+// frames are bounded by test/jk_diag_probe/test_jk_diag_probe_stack.sh.
 static_assert(sizeof(Probe) < 40 * 1024, "the probe state must stay small enough for ESP32 static RAM");
 
 // Terminal records produced inside a logger callback are queued and logged

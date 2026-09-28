@@ -598,11 +598,25 @@ Rules that apply to every phase:
 - No phase relies on chat context. Its inputs are this plan, the committed
   evidence and the listed files.
 
-### M0 — Diagnostic measurement mechanism (execution step 3) — IMPLEMENTED (host-only)
+### M0 — Diagnostic measurement mechanism (execution step 3) — CORRECTED, awaiting a new compile-only validation
 
-> **Status:** implemented and host-tested in the M0 commit on top of `35bea1d`.
-> Not compiled, not flashed, never run on hardware. No production file
-> changed.
+> **Status (2026-09-27):**
+> - Implemented in `5cead7e`. It compiled on ESPHome 2026.9.0: RAM 43.1 %,
+>   flash 44.6 %.
+> - An accidental OTA then showed a **real embedded-stack defect**.
+>   `Probe::begin()`'s `*this = Probe();` put a ~32 KB temporary on the
+>   8 KB ESP32 loopTask stack. The image reset before ESPHome marked the
+>   OTA valid, and the bootloader rolled back to production. No `diag`
+>   line was logged.
+> - The host functional tests did not catch it: they run on an 8 MB stack.
+> - Fixed in `fix(diag): avoid probe startup stack overflow`: in-place
+>   `reset()`, plus a firmware-stack regression test and reset-equivalence
+>   tests.
+> - The fix is source-proven. There is no device confirmation yet (no
+>   serial crash record, no Xtensa ELF).
+> - Evidence: `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_rollback_20260927.md`.
+> - **M0 still requires a new compile-only validation** of the corrected
+>   probe (no install, no OTA). No production file changed.
 
 - **Prerequisite:** this plan's commit `35bea1d`. The owner chose option 1
   and accepted the C1/C2 correction.
@@ -638,7 +652,10 @@ Rules that apply to every phase:
     (`update_interval: never`).
 - **Phase selection (compile-time only):** substitution `probe_mode`:
   - `A_COMPATIBILITY` (gate A): one pass over every allowlisted read, ≥ 1 s
-    apart, ending within 5 min;
+    apart. It finishes as soon as the pass completes, normally ≈ 40–50 s
+    after boot: 20 s delay + 21 × (1 s spacing + latency). The worst case,
+    with every request timing out at 3 s, is ≈ 104 s. 5 min is only the
+    deadline.
   - `B_TELEMETRY_SOAK` (gate B): A1 then A2 every 1 s, 10 min;
   - `C_COEXISTENCE` (gate C): gate B plus C1 then C2 every 3 s, staggered
     500 ms, 20 min.
@@ -662,7 +679,15 @@ Rules that apply to every phase:
 
   No response bytes are ever logged.
 - **Verification:**
-  - `test_jk_diag_probe_core.cpp` (64 checks);
+  - `test_jk_diag_probe_core.cpp`: 64 checks at `5cead7e`, 73 after the
+    stack fix. The new checks are the reset-equivalence ones: a byte-equal
+    default state after `begin()` on used probes in every transient state.
+  - `test/jk_diag_probe/test_jk_diag_probe_stack.sh` (added by the stack
+    fix):
+    - every YAML-facing entry point, and every function in the harness unit,
+      must stay ≤ 2,048 B of stack at `-O3`/`-O2`/`-Os`;
+    - also enforced with `-Wframe-larger-than=2048 -Werror`;
+    - it rejects `*this = Probe();` with a 31,824 B frame at `-O3`.
   - `test_diag_probe_contract.js` (32 checks);
   - 15 mutations, all caught: credential entry added (wide or narrow);
     credential check removed; write function allowed; raw-frame logging;
@@ -680,7 +705,18 @@ Rules that apply to every phase:
   production set.
 
 ### M1 — Hardware gates A–C (execution step 4)
-- **Prerequisite:** M0.
+
+> **Status (2026-09-27): gate A incomplete and not authorized.**
+> - One accidental install booted the defective `5cead7e` image, which
+>   rolled back. It produced **no gate A measurement evidence**.
+> - A retry needs the corrected M0 to pass a compile-only validation first,
+>   then separate, explicit owner authorization.
+> - Before the next diagnostic build, the owner must give the probe its own
+>   build directory. Both configurations are named `jk-bms` and shared
+>   `/data/build/jk-bms`; see the evidence file, §5.
+
+- **Prerequisite:** M0, including the compile-only validation of the
+  corrected probe.
 - **Files:** evidence files under
   `protocol/evidence/stage1_corrective_evidence/` (or a new evidence
   folder) and the fixture lists if a new evidence file must be copied
@@ -846,6 +882,28 @@ Rules that apply to every phase:
 - **Hardware:** **owner authorization** for the soak.
 - **Commit:** `docs(project): accept clustered read architecture`.
 - **Deploy:** only if the cleanup regenerates files.
+
+### Future: ESPHome Modbus API migration (not scheduled; blocks upgrading ESPHome)
+
+- **Baseline:** ESPHome **2026.9.0** is the current controlled build
+  baseline for production and the diagnostic probe.
+- **The change:** ESPHome 2026.9.0 deprecates `ModbusCommandItem`, its
+  factories (`create_read_command`, `create_write_multiple_command`, …),
+  `queue_command()`, `unqueue_command()` and related APIs. Their documented
+  removal is in **2027.3.0**. The replacements are the entity write helpers
+  and `modbus_client` actions.
+- **Scope:** every production and diagnostic use:
+  - `batterylifepo4.yaml`;
+  - `components/jk_capability`, `components/jk_write_tx`,
+    `components/jk_diag`, `components/jk_diag_probe`;
+  - `jk_bms_probe.yaml`;
+  - the generator `tools/protocol/generate_read_plan.js`, never its output
+    `protocol/generated/read_plan.yaml`;
+  - including write acknowledgements and recovery reads.
+- **Required tests:** equivalent coverage for clustered reads, forced
+  readback, RMW, timeout/retry handling, diagnostics and writes.
+- **Rule:** do not adopt ESPHome 2027.3.0 or newer until this migration is
+  complete and verified. It does not interrupt M0–M10.
 
 ## 17. Non-goals
 

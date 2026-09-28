@@ -55,6 +55,66 @@ struct Harness {
     }
   }
 };
+// Drives any probe (including the static ones below) through a scripted bus
+// that exercises every state field: retries (resends), exceptions, timeouts,
+// late responses from an older generation, payloads and callback timing.
+// `rough` = mixed outcomes; otherwise every request is answered on time.
+// `stop`: 0 = run to until_ms; 1 = stop right after request `stop_index` is
+// issued (its follow-up still pending); 2 = stop right after an exception.
+void drive(Probe &p, uint32_t from_ms, uint32_t until_ms, bool rough, std::string *log = nullptr, int stop = 0, int stop_index = -1) {
+  int pending = -1; uint32_t pending_gen = 0, reply_at = 0, n_issued = 0;
+  int stale = -1; uint32_t stale_gen = 0;
+  char b[512];
+  for (uint32_t now = from_ms; now <= until_ms; now += 10) {
+    Terminal to;
+    const int idx = p.poll(now, to);
+    if (to.valid) { pending = -1; if (log) { format_terminal(b, sizeof(b), to); *log += b; } }
+    if (idx >= 0) {
+      const Request &r = kRequests[idx];
+      p.on_frame_sent(now + 2, r.function, r.address);
+      if (rough && n_issued % 3 == 0) p.on_frame_sent(now + 40, r.function, r.address);  // a hub retry
+      if (stale >= 0) p.on_response(now, stale, stale_gen, nullptr, 0, 5);  // late answer, older generation
+      stale = idx; stale_gen = p.generation();
+      pending = idx; pending_gen = p.generation(); reply_at = now + 60;
+      n_issued++;
+      if (stop == 1 && idx == stop_index) return;
+    }
+    if (pending >= 0 && now >= reply_at) {
+      const Request &r = kRequests[pending];
+      const uint32_t kind = rough ? (n_issued % 5) : 2;
+      Terminal t;
+      if (kind == 0) {
+        char line[96];
+        std::snprintf(line, sizeof(line), "Modbus error function code: 0x%X register 0x%X exception: %d", r.function, r.address, 2);
+        uint8_t fc = 0, exc = 0; uint16_t addr = 0;
+        if (parse_modbus_error_line(line, fc, addr, exc)) t = p.on_exception(now, fc, addr, exc);
+        if (stop == 2 && t.valid) return;
+      } else if (kind == 1) {
+        continue;  // no answer: the poll() timeout resolves it
+      } else {
+        std::vector<uint8_t> data(r.expected_bytes, uint8_t(0x30 + pending));
+        t = p.on_response(now, pending, pending_gen, data.data(), kind == 3 ? r.expected_bytes - 2 : r.expected_bytes, 0);
+        p.note_callback_us(pending, 40 + pending);
+      }
+      if (t.valid && log) { format_terminal(b, sizeof(b), t); *log += b; }
+      pending = -1;
+    }
+  }
+}
+std::string render(const Probe &p) {
+  std::string all;
+  char b[512];
+  format_run(b, sizeof(b), p); all += b;
+  for (std::size_t i = 0; i < kRequestCount; i++) { format_request_stats(b, sizeof(b), p, i); all += b; }
+  for (std::size_t c = 0; c < kComparisonCount; c++) { format_comparison(b, sizeof(b), p, c); all += b; }
+  for (std::size_t s = 0; s < kSummaryCount; s++) { format_summary(b, sizeof(b), p, s); all += b; }
+  return all;
+}
+
+// Static storage, like g_probe on the device (and far too large for a
+// firmware stack -- which is the point of this section).
+Probe g_fresh, g_dirty;
+Probe g_dirty_states[5];
 }  // namespace
 
 int main() {
@@ -272,6 +332,57 @@ int main() {
     p.note_callback_us(0, 90);
     check(p.stats(0).callback_us_max == 250, "the callback processing time keeps its maximum");
     check(sizeof(Probe) < 40 * 1024, "probe state fits the ESP32 static-RAM budget (" + std::to_string(sizeof(Probe)) + " bytes)");
+  }
+
+  // 11. begin() resets in place (2026-09-27: `*this = Probe();` put a ~32 KB
+  // temporary on the 8 KB ESP32 loopTask stack; the image crashed on every
+  // boot). The in-place reset must restore exactly the default state: a
+  // probe dirtied by a mode-C run with retries, exceptions, timeouts, late
+  // answers and payloads, then begun, must equal a never-used probe begun
+  // the same way -- byte for byte (both are static objects whose padding was
+  // zero-initialised and is never written by the run; any difference is a
+  // field reset() forgot) and in every rendered line of a later run.
+  {
+    g_dirty.begin(Mode::C_COEXISTENCE, 0, 0, 0);
+    drive(g_dirty, 0, 45000, true);
+    const Probe &d = g_dirty;
+    bool dirty = d.total_issued() > 30 && d.stats(0).issued > 0 && d.stats(0).resends > 0 &&
+                 d.comparison_equal_words(0) != 0;
+    std::size_t exc = 0, to = 0, late = 0, ok = 0;
+    for (std::size_t i = 0; i < kRequestCount; i++) {
+      exc += d.stats(i).outcomes[std::size_t(Outcome::EXCEPTION)];
+      to += d.stats(i).outcomes[std::size_t(Outcome::TIMEOUT)];
+      late += d.stats(i).late;
+      ok += d.stats(i).ok_interval.n;
+    }
+    check(dirty && exc > 0 && to > 0 && late > 0 && ok > 0,
+          "reset: the dirty run touched retries, exceptions, timeouts, late answers, intervals and payloads");
+    // Transient fields are only non-default at particular moments: stop other
+    // used probes exactly there (pending A2 / C2 follow-up, a just-recorded
+    // exception, a finished run, a partial gate A pass).
+    const char *names[5] = {"A1 issued (A2 pending)", "C1 issued (C2 pending)", "right after an exception",
+                            "a finished run", "a partial gate A pass"};
+    g_dirty_states[0].begin(Mode::C_COEXISTENCE, 0, 0, 0); drive(g_dirty_states[0], 0, 45000, true, nullptr, 1, index_of("A1"));
+    g_dirty_states[1].begin(Mode::C_COEXISTENCE, 0, 0, 0); drive(g_dirty_states[1], 0, 45000, true, nullptr, 1, index_of("C1"));
+    g_dirty_states[2].begin(Mode::C_COEXISTENCE, 0, 0, 0); drive(g_dirty_states[2], 0, 45000, true, nullptr, 2);
+    g_dirty_states[3].begin(Mode::B_TELEMETRY_SOAK, 0, 0, 20000); drive(g_dirty_states[3], 0, 30000, true);
+    g_dirty_states[4].begin(Mode::A_COMPATIBILITY, 0, 0, 0); drive(g_dirty_states[4], 0, 6000, true);
+    check(g_dirty_states[0].outstanding() == index_of("A1") && g_dirty_states[1].outstanding() == index_of("C1") &&
+          g_dirty_states[3].finished() && g_dirty_states[4].total_issued() > 0 && !g_dirty_states[4].finished(),
+          "reset: the used probes stopped in their transient states");
+    g_fresh.begin(Mode::A_COMPATIBILITY, 1000, 20000, 0);
+    g_dirty.begin(Mode::A_COMPATIBILITY, 1000, 20000, 0);
+    check(std::memcmp(&g_fresh, &g_dirty, sizeof(Probe)) == 0, "reset: begin() on a used probe restores the exact default state (byte-equal)");
+    for (int i = 0; i < 5; i++) {
+      g_dirty_states[i].begin(Mode::A_COMPATIBILITY, 1000, 20000, 0);
+      check(std::memcmp(&g_fresh, &g_dirty_states[i], sizeof(Probe)) == 0, std::string("reset: byte-equal default state after ") + names[i]);
+    }
+    std::string log_fresh, log_dirty;
+    drive(g_fresh, 1000, 90000, false, &log_fresh);
+    drive(g_dirty, 1000, 90000, false, &log_dirty);
+    check(g_fresh.finished() && g_dirty.finished() && log_fresh == log_dirty && render(g_fresh) == render(g_dirty) &&
+          render(g_dirty).find("finished=1") != std::string::npos,
+          "reset: a gate A run after the reset logs exactly what a never-used probe logs");
   }
 
   std::printf("diag probe core: %d/%d checks passed\n", g_checks - g_failures, g_checks);

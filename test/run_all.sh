@@ -107,6 +107,10 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_diag_probe" -I "$REPO_
 "$BUILD_DIR/test_jk_diag_probe_core"
 
 echo
+echo "=== jk_diag_probe firmware stack frames (every YAML entry point <= 2048 B at -O3/-O2/-Os; ESP32 loopTask stack is 8 KB) ==="
+bash "$REPO_ROOT/test/jk_diag_probe/test_jk_diag_probe_stack.sh"
+
+echo
 echo "=== diagnostic probe contract: allowlist vs canonical geometry + static audit of jk_bms_probe.yaml ==="
 node test/protocol_catalog/test_diag_probe_contract.js
 
