@@ -842,7 +842,29 @@ Rules that apply to every phase:
 - **Commit:** `feat(protocol): define canonical read clusters`.
 - **Deploy:** generated files, if their bytes changed.
 
-### M3 — Scheduler tiers, staggering and dispatch (host only)
+### M3 — Scheduler tiers, staggering and dispatch (host only) — DONE (host)
+
+> **Status (2026-09-28):** implemented in
+> `components/jk_poll_scheduler/jk_cluster_scheduler_core.h`, driven only by
+> the generated cluster table.
+> - One outstanding request; a write in flight pauses every read.
+> - A pending follower (A2 after A1, C2 after C1) runs before anything else.
+>   An earlier draft let the overdue lead win the tie-break on a slow bus;
+>   the simulation caught it.
+> - Tiers: telemetry > active Settings > background Settings > static,
+>   aged one tier per 2 s waited.
+> - Settings and static run on the 500 ms phase.
+> - The lease gives C1 on the next phase slot, then every 3 s, and the
+>   normal cadence after it ends.
+> - Missed slots are skipped, never replayed.
+> - Simulation with gate A-measured latencies (20 ms tick, 50 ms turnaround,
+>   1.5 s timeout): A1 exactly every 1000 ms, modelled bus occupancy ≈ 4–5 %.
+>   The slow-bus, saturated-bus, write-pause and timeout scenarios hold.
+> - Tests: `test/jk_poll_scheduler/test_jk_cluster_scheduler_core.cpp`
+>   (30 checks); 12/12 mutations caught.
+> - Dispatch: a 20 ms servicer tick (callback-triggered dispatch not needed
+>   at the measured latencies).
+
 - **Prerequisite:** M2.
 - **Files:** `components/jk_poll_scheduler/jk_poll_scheduler_core.h`,
   `test/jk_poll_scheduler/test_jk_poll_scheduler_core.cpp`,

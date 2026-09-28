@@ -121,6 +121,12 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" \
 "$BUILD_DIR/test_jk_poll_scheduler_core"
 
 echo
+echo "=== jk_cluster_scheduler_core: tiers, aging, stagger, lease, skip-not-replay + gate A latency simulation (plan M3) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" -I "$REPO_ROOT/protocol/generated" \
+  "$REPO_ROOT/test/jk_poll_scheduler/test_jk_cluster_scheduler_core.cpp" -o "$BUILD_DIR/test_jk_cluster_scheduler_core"
+"$BUILD_DIR/test_jk_cluster_scheduler_core"
+
+echo
 echo "=== electrical_metrics_scan golden-vector decode tests ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" \
   "$REPO_ROOT/test/jk_poll_scheduler/test_electrical_metrics_decode.cpp" -o "$BUILD_DIR/test_electrical_metrics_decode"
