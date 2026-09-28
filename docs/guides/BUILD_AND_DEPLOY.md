@@ -145,6 +145,37 @@ deployed as production firmware.
   - Timing: `send_wait_time: 500ms`, `max_cmd_retries: 0`, probe timeout
     1.5 s.
   - Capture the log from boot until `diag done`.
+- **Gate B (`B_TELEMETRY_SOAK`)** is host-prepared but not compiled or
+  authorized.
+  - **Selection:** it is never the default. The YAML stays on
+    `A_COMPATIBILITY`, and gate B is selected only on the command line:
+
+    ```bash
+    esphome -s probe_mode B_TELEMETRY_SOAK -s probe_run_ms 0 compile jk_bms_probe.yaml
+    ```
+
+  - **Run it as compile only.** The command above does not upload. Do not
+    use `run` or `upload`, or Device Builder's "Install", and do not edit
+    the YAML default to select gate B.
+  - **The compile log must show:**
+    - the probe build path (`…/jk-bms-probe`);
+    - no errors;
+    - only the known deprecation warnings.
+  - **Behaviour:**
+    - A1 `0x1200 × 120` (240 B) then A2′ `0x12F0 × 15` (30 B), every 1 s,
+      for 10 min;
+    - FC03 only, one frame per request, one request outstanding;
+    - statistics for A1 and A2 every 60 s, and the full summary at the end;
+    - no Modbus request after the deadline, until reboot.
+  - **Pass criteria (after a separately authorized run):**
+    - the 10 min run completes: `diag run mode=B run_ms=600000 … finished=1
+      unexpected=0 aborted=no`, then `diag done … (log queue drops=0)`;
+    - A1 and A2 each have about 600 reads with `ok` equal to `issued`, and
+      `short=0 long=0 exc=0 timeout=0 resends=0 late=0`;
+    - `ok_interval_ms` p99 and max ≈ 1000 ms, with `over1.5x=0 missed=0`;
+    - no queue growth: `queue_ms max` stays small and flat across the
+      60 s progress lines;
+    - no "interval took a long time" warning.
 - **Termination:** after one bounded run the build logs its summary and
   issues no further Modbus request until the next reboot. A reboot starts
   the same bounded run again.

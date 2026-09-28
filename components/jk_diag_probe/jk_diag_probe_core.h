@@ -42,13 +42,16 @@ constexpr uint16_t kCredentialStart = 0x1470;   // setup passcode, 8 registers
 constexpr uint16_t kCredentialEndExclusive = 0x1480;
 constexpr uint32_t kHardMaxRunMs = 30UL * 60UL * 1000UL;  // 30 min, never exceeded
 
-// CANDIDATE operational limit -- NOT a proven device limit and NOT a request
-// validation rule. Gate A on 2026-09-28 got exception 2 for 0x1200 x 125 and
-// 0x1000 x 124, while 0x1200 x 106 was accepted historically (c722f5a). The
-// gate A boundary controls below read one register more (x 121) to test it.
-// Only the cluster geometry is held to it; the protocol limit stays
-// kMaxRegistersPerRead so the x 121 controls are legal requests.
-constexpr uint16_t kCandidateOperationalRegisters = 120;
+// VERIFIED CONSERVATIVE OPERATIONAL MAXIMUM per read (owner decision
+// 2026-09-28) -- a design limit, NOT the BMS device/protocol limit and NOT a
+// request validation rule. Gate A (2026-09-28): 0x1200 x 125 and 0x1000 x 124
+// got exception 2; the x 120 clusters AND all four x 121 boundary controls
+// below succeeded with exact lengths. For the tested ranges the largest
+// confirmed successful length is 121 and the smallest observed failing length
+// is 124; the exact device limit was not determined. Only the cluster
+// geometry is held to it; the protocol limit stays kMaxRegistersPerRead so
+// the x 121 controls remain legal requests.
+constexpr uint16_t kOperationalMaxRegisters = 120;
 
 // Deterministic request timing. jk_bms_probe.yaml sets the same values (the
 // contract test compares them): the hub sends each frame exactly once
@@ -67,13 +70,15 @@ static_assert(kRequestTimeoutMs >= (kHubMaxRetries + 1U) * kHubSendWaitMs + kTim
 constexpr bool kLogRawFrames = false;
 static_assert(!kLogRawFrames, "the diagnostic build must never log raw response frames");
 
-// WIDE = a (candidate) cluster; BOUNDARY = a gate A boundary control, one
-// register above the candidate limit; NARROW = a comparison read.
+// WIDE = a cluster (<= kOperationalMaxRegisters); BOUNDARY = a gate A boundary
+// control, one register above it; NARROW = a comparison read.
 enum class Kind : uint8_t { WIDE = 0, BOUNDARY = 1, NARROW = 2 };
-// The outcome gate A expects. Regular reads must answer OK; a boundary
-// control is expected to be refused with exception 2 IF the candidate limit
-// holds. Any other outcome is recorded as unexpected (match=0) -- it is data,
-// not by itself a communication failure (only a failed liveness step is).
+// The outcome gate A expects. Regular reads must answer OK. A boundary
+// control's EXCEPTION_2 expectation is the hypothesis gate A tested ("120 is
+// the hardware limit"); on 2026-09-28 all four controls answered OK
+// (match=0), which disproved it. Any unexpected outcome is recorded
+// (match=0) -- it is data, not by itself a communication failure (only a
+// failed liveness step is).
 enum class Expect : uint8_t { OK = 0, EXCEPTION_2 = 1 };
 inline const char *expect_name(Expect e) { return e == Expect::OK ? "OK" : "EXC2"; }
 
@@ -163,10 +168,10 @@ constexpr bool allowlist_is_valid() {
     const Request &r = kRequests[i];
     if (!request_is_valid(r)) return false;
     if (r.kind != kind_at(i)) return false;
-    // Clusters stay within the candidate limit; each control is exactly one
-    // register above it and is the only kind expected to be refused.
-    if (r.kind == Kind::WIDE && r.count > kCandidateOperationalRegisters) return false;
-    if ((r.kind == Kind::BOUNDARY) != (r.count == kCandidateOperationalRegisters + 1)) return false;
+    // Clusters stay within the operational maximum; each control is exactly
+    // one register above it and is the only kind expected to be refused.
+    if (r.kind == Kind::WIDE && r.count > kOperationalMaxRegisters) return false;
+    if ((r.kind == Kind::BOUNDARY) != (r.count == kOperationalMaxRegisters + 1)) return false;
     if ((r.kind == Kind::BOUNDARY) != (r.expect == Expect::EXCEPTION_2)) return false;
     for (std::size_t j = 0; j < i; j++) {
       if (kRequests[j].address == kRequests[i].address && kRequests[j].count == kRequests[i].count) return false;

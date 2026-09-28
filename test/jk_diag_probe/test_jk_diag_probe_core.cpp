@@ -23,7 +23,7 @@ std::string fmt_terminal(const Terminal &t) { char b[400]; format_terminal(b, si
 
 // Drives a probe with a scripted "bus": every issued request answers after
 // `latency_ms` with the expected length (or a scripted override). Optional:
-// boundary controls refused with exception 2 (the candidate limit holding),
+// boundary controls refused with exception 2 (the gate A hypothesis),
 // one call number left unanswered (timeout) or answered with an exception.
 // `overlaps` counts any request issued while an earlier one was unresolved.
 struct Harness {
@@ -38,6 +38,10 @@ struct Harness {
   int silent_call = -1;            // 0-based issue number that gets no answer
   int exc_call = -1;               // 0-based issue number answered with exc_code
   uint8_t exc_code = 2;
+  int bytes_call = -1;             // 0-based issue number answered with bytes_value data bytes
+  std::size_t bytes_value = 0;
+  int second_frame_call = -1;      // 0-based issue number that goes on the wire twice (a hub retry)
+  uint32_t silent_until_ms = 0;    // bus outage: nothing is answered before this time
   int overlaps = 0;
   uint32_t latency_ms = 80;
   uint8_t fill = 0x11;
@@ -52,11 +56,12 @@ struct Harness {
         if (was_outstanding && !to.valid) overlaps++;
         issued.push_back(idx); issued_at.push_back(now);
         p.on_frame_sent(now + 5, kRequests[idx].function, kRequests[idx].address);
+        if (int(issued.size()) - 1 == second_frame_call) p.on_frame_sent(now + 30, kRequests[idx].function, kRequests[idx].address);
         pending = idx; pending_call = int(issued.size()) - 1; pending_gen = p.generation(); reply_at = now + latency_ms;
       }
       if (pending >= 0 && answer && now >= reply_at) {
         const Request &r = kRequests[pending];
-        if (pending_call == silent_call) {
+        if (pending_call == silent_call || now < silent_until_ms) {
           // no answer: the poll() timeout resolves it
         } else if (pending_call == exc_call || (boundary_exc2 && r.kind == Kind::BOUNDARY)) {
           char line[96];
@@ -69,7 +74,8 @@ struct Harness {
           }
           pending = -1;
         } else {
-          const std::size_t n = answer_bytes_override >= 0 ? std::size_t(answer_bytes_override) : r.expected_bytes;
+          const std::size_t n = pending_call == bytes_call ? bytes_value
+                                : answer_bytes_override >= 0 ? std::size_t(answer_bytes_override) : r.expected_bytes;
           std::vector<uint8_t> data(n + 4, fill);
           const Terminal t = p.on_response(now, pending, pending_gen, data.data(), n, 120);
           if (t.valid) terminals.push_back(t);
@@ -176,8 +182,8 @@ int main() {
         "A1+A2 and C1+C2 are contiguous and cover exactly the old spans (135 and 143 words)");
   check(0x1202 >= 0x1200 && 0x1202 + 2 * 121 <= 0x12F0 + 2 * 15 && 0x1024 >= 0x1000 && 0x1024 + 2 * 121 <= 0x10F0 + 2 * 23,
         "every word of A121W / C121W lies inside A1 u A2 / C1 u C2 (independently readable if the clusters are)");
-  check(kMaxRegistersPerRead == 125 && kCandidateOperationalRegisters == 120 && request_is_valid(kRequests[index_of("A121")]),
-        "the protocol limit stays 125 (x121 controls are legal); 120 is only the candidate operational limit");
+  check(kMaxRegistersPerRead == 125 && kOperationalMaxRegisters == 120 && request_is_valid(kRequests[index_of("A121")]),
+        "the protocol limit stays 125 (x121 controls are legal); 120 is the operational maximum, not a protocol limit");
   bool all_fc3 = true, none_credential = true, lengths = true;
   for (std::size_t i = 0; i < kRequestCount; i++) {
     all_fc3 &= kRequests[i].function == 0x03;
@@ -443,7 +449,7 @@ int main() {
 
   // 13. Unexpected results elsewhere never abort the fixed schedule.
   {
-    Harness ok_controls;  // controls answer OK: the candidate limit is false
+    Harness ok_controls;  // controls answer OK (as on 2026-09-28): the 120-limit hypothesis is false
     ok_controls.p.begin(Mode::A_COMPATIBILITY, 0, 1000, 0);
     ok_controls.run_until(5UL * 60UL * 1000UL);
     std::size_t control_mismatch = 0;
@@ -505,6 +511,144 @@ int main() {
     check(first.rfind("diag run mode=A", 0) == 0 && first.find("finished=1 unexpected=0 aborted=no") != std::string::npos &&
               last.rfind("diag done:", 0) == 0 && last.find("drops=3") != std::string::npos,
           "the summary starts with the run line and ends with diag done (" + first + ")");
+  }
+
+  // 15. Gate B (B_TELEMETRY_SOAK): A1 0x1200 x120 then A2 0x12F0 x15 once per
+  //     second for the 10 min default, one frame per request, nothing else.
+  {
+    const int a1 = index_of("A1"), a2 = index_of("A2");
+    Harness h;
+    h.latency_ms = 30;  // gate A measured ~30 ms for x120
+    h.fill = 0x5A;
+    h.p.begin(Mode::B_TELEMETRY_SOAK, 0, 20000, 0);
+    h.run_until(20000 + default_run_ms(Mode::B_TELEMETRY_SOAK) + 60000);
+    bool alternating = !h.issued.empty() && h.issued.size() % 2 == 0;
+    for (std::size_t i = 0; alternating && i < h.issued.size(); i++) alternating &= h.issued[i] == (i % 2 == 0 ? a1 : a2);
+    check(alternating, "gate B: the exact repeating order A1, A2 (every cycle completes)");
+    const RequestStats &s1 = h.p.stats(std::size_t(a1)), &s2 = h.p.stats(std::size_t(a2));
+    check(s1.issued == 600 && s2.issued == 600 && h.p.total_issued() == 1200,
+          "gate B: A1 and A2 each run 600 times in the 10 min default (" + std::to_string(s1.issued) + "/" + std::to_string(s2.issued) + ")");
+    bool only_telemetry = true, lengths = true, one_frame = true;
+    for (int i : h.issued) only_telemetry &= (i == a1 || i == a2);
+    for (const Terminal &t : h.terminals) {
+      lengths &= t.outcome == Outcome::OK && t.match && t.got_bytes == (t.request == a1 ? 240 : 30);
+      one_frame &= t.sends == 1;
+    }
+    check(only_telemetry && kRequests[a1].address == 0x1200 && kRequests[a1].count == 120 && kRequests[a1].expected_bytes == 240 &&
+              kRequests[a2].address == 0x12F0 && kRequests[a2].count == 15 && kRequests[a2].expected_bytes == 30,
+          "gate B reads only A1 0x1200 x120 (240 B) and A2 0x12F0 x15 (30 B): no control, narrow read or Settings cluster");
+    check(lengths && h.terminals.size() == 1200, "gate B: every reply is OK with the exact length (A1 240, A2 30)");
+    check(one_frame && s1.resends == 0 && s2.resends == 0, "gate B: one frame per request, no resend");
+    check(h.overlaps == 0, "gate B: never more than one request outstanding");
+    bool one_hz = true;
+    uint32_t last_a1 = 0;
+    for (std::size_t i = 0; i < h.issued.size(); i += 2) {
+      if (i) one_hz &= h.issued_at[i] - last_a1 == 1000;
+      last_a1 = h.issued_at[i];
+    }
+    check(one_hz && s1.ok_interval.max <= 1010 && s1.ok_interval.missed == 0 && s1.ok_interval.over_1_5x == 0 &&
+              s2.ok_interval.missed == 0,
+          "gate B healthy: A1 exactly every 1000 ms; OK intervals ~1 s, no missed cycle");
+    check(h.p.finished() && !h.p.aborted() && h.p.unexpected() == 0 && h.issued_at.back() < 20000 + 600000,
+          "gate B stops at its 10 min deadline: finished, not aborted, 0 unexpected");
+    Terminal to;
+    bool none = true;
+    for (uint32_t t = h.now; t < h.now + 120000; t += 10) none &= h.p.poll(t, to) < 0;
+    check(none && h.p.total_issued() == 1200, "gate B: no request after FINISHED (until reboot)");
+    // Progress and final summaries carry A1/A2 statistics; no payload byte reaches a log line.
+    char b[400];
+    format_request_stats(b, sizeof(b), h.p, std::size_t(a1));
+    const std::string st1 = b;
+    format_request_stats(b, sizeof(b), h.p, std::size_t(a2));
+    const std::string st2 = b;
+    const std::string all = summary_text(h.p);
+    check(st1.rfind("diag stat req=A1 issued=600 ok=600 short=0 long=0 exc=0 timeout=0 resends=0 late=0", 0) == 0 &&
+              st2.rfind("diag stat req=A2 issued=600 ok=600 short=0 long=0 exc=0 timeout=0 resends=0 late=0", 0) == 0,
+          "gate B progress/final statistics lines for A1 and A2 (" + st1.substr(0, 90) + ")");
+    check(all.find("diag run mode=B run_ms=600000 issued=1200 finished=1 unexpected=0 aborted=no") != std::string::npos &&
+              all.find("diag stat req=A1 issued=600") != std::string::npos && all.find("diag stat req=A2 issued=600") != std::string::npos &&
+              all.find("diag done:") != std::string::npos,
+          "gate B final summary: run line, A1/A2 statistics, diag done");
+    check(all.find("diag sum set=A1_V17_32 words=16 zero=0\n") != std::string::npos &&
+              all.find("diag sum set=A1_R17_32 words=16 zero=0\n") != std::string::npos &&
+              all.find("diag sum set=A2_GAPS words=5 zero=0\n") != std::string::npos,
+          "gate B summaries report counts only (0x5A fill -> zero=0), never a data value");
+    std::string logs = all;
+    for (const Terminal &t : h.terminals) logs += fmt_terminal(t);
+    check(logs.find("5A5A") == std::string::npos && logs.find("ZZ") == std::string::npos && logs.find(std::string(4, char(0x5A))) == std::string::npos,
+          "gate B: no payload byte (0x5A fill) reaches any log line");
+  }
+  // 15b. Gate B with slow replies: a late cycle starts once, as soon as the
+  //      previous one ends; missed 1 s slots are skipped, never replayed.
+  //      Invariant: at most one A1 per 1 s grid slot.
+  {
+    const int a1 = index_of("A1");
+    Harness h;
+    h.latency_ms = 1300;  // A1 + A2 take 2.6 s: cycles are missed
+    h.p.begin(Mode::B_TELEMETRY_SOAK, 0, 0, 60000);
+    h.run_until(70000);
+    bool one_per_slot = true, ordered = true;
+    long last_slot = -1;
+    for (std::size_t i = 0; i < h.issued.size(); i++) {
+      ordered &= h.issued[i] == (i % 2 == 0 ? a1 : index_of("A2"));
+      if (h.issued[i] != a1) continue;
+      const long slot = long(h.issued_at[i] / 1000);
+      one_per_slot &= slot > last_slot;
+      last_slot = slot;
+    }
+    const RequestStats &s1 = h.p.stats(std::size_t(a1));
+    check(ordered && one_per_slot && s1.issued <= 24 && h.overlaps == 0,
+          "gate B slow replies: at most one A1 per 1 s slot, missed slots skipped, not replayed (" + std::to_string(s1.issued) + " A1 in 60 s)");
+    check(s1.ok_interval.missed >= 20 && s1.ok_interval.max >= 2000, "gate B slow replies: the missed cycles are counted, not hidden");
+  }
+  // 15c. Gate B outage then recovery: no burst of queued cycles afterwards.
+  {
+    const int a1 = index_of("A1");
+    Harness h;
+    h.silent_until_ms = 10000;  // 10 s with no reply at all
+    h.p.begin(Mode::B_TELEMETRY_SOAK, 0, 0, 30000);
+    h.run_until(40000);
+    bool no_burst = true;
+    long last_slot = -1;
+    for (std::size_t i = 0; i < h.issued.size(); i++) {
+      if (h.issued[i] != a1) continue;
+      const long slot = long(h.issued_at[i] / 1000);
+      no_burst &= slot > last_slot;  // at most one A1 per 1 s slot, before and after the outage
+      last_slot = slot;
+    }
+    const RequestStats &s1 = h.p.stats(std::size_t(a1));
+    check(no_burst && h.overlaps == 0 && s1.outcomes[std::size_t(Outcome::TIMEOUT)] >= 3 &&
+              s1.outcomes[std::size_t(Outcome::OK)] >= 15 && h.p.unexpected() >= 6,
+          "gate B outage: timeouts counted as unexpected, then 1 Hz resumes without a burst");
+  }
+  // 15d. Gate B outcome accounting: timeout, exception, short, long, resend.
+  {
+    const int a1 = index_of("A1"), a2 = index_of("A2");
+    Harness h;
+    h.silent_call = 2;              // 2nd cycle A1: no reply
+    h.exc_call = 5;                 // 3rd cycle A2: exception 4
+    h.exc_code = 4;
+    h.bytes_call = 6;               // 4th cycle A1: short (238 bytes)
+    h.bytes_value = 238;
+    h.second_frame_call = 8;        // 5th cycle A1: the frame goes out twice
+    h.p.begin(Mode::B_TELEMETRY_SOAK, 0, 0, 20000);
+    h.run_until(30000);
+    Harness l;
+    l.bytes_call = 1;               // 1st cycle A2: long (32 bytes)
+    l.bytes_value = 32;
+    l.p.begin(Mode::B_TELEMETRY_SOAK, 0, 0, 5000);
+    l.run_until(10000);
+    const RequestStats &s1 = h.p.stats(std::size_t(a1)), &s2 = h.p.stats(std::size_t(a2));
+    check(s1.outcomes[std::size_t(Outcome::TIMEOUT)] == 1 && s2.outcomes[std::size_t(Outcome::EXCEPTION)] == 1 &&
+              s1.outcomes[std::size_t(Outcome::SHORT)] == 1 && s1.resends == 1 &&
+              l.p.stats(std::size_t(a2)).outcomes[std::size_t(Outcome::LONG)] == 1,
+          "gate B: timeout, exception, short, long and resend are each counted exactly once");
+    check(h.p.unexpected() == 3 && l.p.unexpected() == 1 && !h.p.aborted() && h.p.finished(),
+          "gate B: each non-OK outcome is unexpected; gate B never aborts, it runs to its deadline");
+    char b[400];
+    format_request_stats(b, sizeof(b), h.p, std::size_t(a1));
+    check(std::string(b).find("short=1 long=0 exc=0 timeout=1 resends=1") != std::string::npos,
+          "gate B: the A1 statistics line reports short/timeout/resend (" + std::string(b).substr(0, 110) + ")");
   }
 
   // 11. begin() resets in place (2026-09-27: `*this = Probe();` put a ~32 KB

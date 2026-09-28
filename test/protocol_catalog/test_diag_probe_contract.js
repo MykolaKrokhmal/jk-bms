@@ -65,9 +65,9 @@ check("only the boundary controls expect exception 2; every other read expects O
   requests.every((r) => (r.kind === "BOUNDARY") === (r.expect === "EXCEPTION_2")));
 check("every request expects exactly 2 bytes per register and at most 125 registers (the protocol limit)",
   requests.every((r) => r.bytes === 2 * r.n && r.n >= 1 && r.n <= 125));
-check("the protocol limit stays 125 and 120 is only the candidate operational limit (not a request validation rule)",
-  constOf("kMaxRegistersPerRead") === 125 && constOf("kCandidateOperationalRegisters") === 120 &&
-  !/request_is_valid\([^)]*\)\s*\{[^}]*kCandidateOperationalRegisters/.test(core) &&
+check("the protocol limit stays 125 and 120 is the operational maximum (not a request validation rule, not a protocol limit)",
+  constOf("kMaxRegistersPerRead") === 125 && constOf("kOperationalMaxRegisters") === 120 &&
+  !/request_is_valid\([^)]*\)\s*\{[^}]*kOperationalMaxRegisters/.test(core) &&
   wide.every((r) => r.n <= 120) && boundary.every((r) => r.n === 121));
 check("the refused 2026-09-28 geometry (0x1200x125, 0x1000x124) is gone",
   !requests.some((r) => (r.a === 0x1200 && r.n === 125) || (r.a === 0x1000 && r.n === 124)));
@@ -138,6 +138,16 @@ check("deterministic timing constants: one hub frame (0 retries), 500 ms wait, 1
   constOf("kHubMaxRetries") === 0 && constOf("kHubSendWaitMs") === 500 && constOf("kRequestTimeoutMs") === 1500 &&
   constOf("kRequestTimeoutMs") >= (constOf("kHubMaxRetries") + 1) * constOf("kHubSendWaitMs") + constOf("kTimeoutMarginMs"));
 
+// --- 2c. Gate B (B_TELEMETRY_SOAK) ------------------------------------------------
+const chooseBody = (core.match(/int choose\(uint32_t now_ms\) \{([\s\S]*?)\n  \}\n/) || ["", ""])[1];
+check("gate B issues only A1 then A2 (1 s cadence); C1/C2 only inside the mode C branch; no control or narrow read outside mode A",
+  /if \(tele_pending_a2_\) \{ tele_pending_a2_ = false; return a2; \}/.test(chooseBody) &&
+  /while \(!before\(now_ms, tele_due_ms_\)\) tele_due_ms_ \+= kTelemetryCadenceMs;/.test(chooseBody) &&
+  /if \(mode_ == Mode::C_COEXISTENCE\) \{[\s\S]*return c1;[\s\S]*\}\s*return -1;\s*$/.test(chooseBody) &&
+  (chooseBody.match(/return /g) || []).length === 8 && /constexpr uint32_t kTelemetryCadenceMs = 1000;/.test(core));
+check("gate B default run is 10 min and every run is capped at 30 min",
+  /: m == Mode::B_TELEMETRY_SOAK \? 10UL \* 60UL \* 1000UL/.test(core) && /kHardMaxRunMs = 30UL \* 60UL \* 1000UL/.test(core));
+
 // --- 3. Static audit of the diagnostic configuration ----------------------------
 const topKeys = [...yaml.matchAll(/^([a-z0-9_]+):/gm)].map((m) => m[1]);
 const allowedTop = ["substitutions", "esphome", "esp32", "wifi", "ota", "api", "logger", "uart", "modbus", "modbus_controller", "interval"];
@@ -165,6 +175,13 @@ check("the probe build directory is a portable relative path (no absolute or mac
   typeof buildPath === "string" && !/^(\/|~|[A-Za-z]:[\\/]|\\\\)/.test(buildPath) && !buildPath.split("/").includes("..") && !/\$\{|\/Users\/|\/home\/|\/data\/|\/config\//.test(buildPath),
   String(buildPath));
 check("the controller polls nothing on its own", /modbus_controller:[\s\S]*update_interval: never/.test(yaml));
+check("gate B is never the default: probe_mode defaults to A_COMPATIBILITY and gate B is selected only with -s on the command line",
+  /^  probe_mode: A_COMPATIBILITY$/m.test(yaml) && !/^  probe_mode: B_TELEMETRY_SOAK/m.test(yaml) &&
+  /`-s probe_mode B_TELEMETRY_SOAK`/.test(yaml) && /^  probe_run_ms: "0"$/m.test(yaml));
+check("gate B logging: per-request lines only for non-OK outcomes; A1/A2 statistics every 60 s while running",
+  /if \(g_probe\.mode\(\) == Mode::A_COMPATIBILITY \|\| t\.outcome != Outcome::OK\) g_log_queue\.push\(t\);/.test(yaml) &&
+  /if \(!g_probe\.finished\(\) && g_probe\.mode\(\) != Mode::A_COMPATIBILITY && now - last_progress_ms >= 60000U\) \{/.test(yaml) &&
+  /for \(std::size_t i = 0; i < kWideCount; i\+\+\) \{\s*if \(g_probe\.stats\(i\)\.issued == 0\) continue;\s*format_request_stats\(line, sizeof\(line\), g_probe, i\);/.test(yaml));
 const yamlMs = (key) => { const m = yaml.match(new RegExp(`^\\s+${key}: (\\d+)ms\\s*$`, "m")); return m ? Number(m[1]) : null; };
 const yamlNum = (key) => { const m = yaml.match(new RegExp(`^\\s+${key}: (\\d+)\\s*$`, "m")); return m ? Number(m[1]) : null; };
 check("the hub timing in the YAML equals the core constants (send_wait_time == kHubSendWaitMs, max_cmd_retries == kHubMaxRetries)",

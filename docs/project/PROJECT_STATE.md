@@ -36,8 +36,12 @@ generated inventories linked below, not in prose.
       hardware limit.
     - **Owner decision:** 120 registers is the verified conservative
       operational maximum. The exact global device limit was not determined.
-    - **Next:** gate B (1 Hz A1 + A2′ soak). It needs separate owner
-      authorization, and production must be confirmed restored first.
+    - **Next:** gate B (1 Hz A1 + A2′ soak).
+      - It is host-prepared (`test(diag): harden gate B telemetry soak`) but
+        not compiled or authorized.
+      - Before any OTA, production must be confirmed restored, gate B must
+        pass a compile-only check, and the owner must give separate
+        authorization.
     - Evidence:
       `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_20260928.md`.
   - Evidence:

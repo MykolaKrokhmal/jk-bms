@@ -541,6 +541,20 @@ change. Compile and flash each need explicit owner authorization.
 - queue depth;
 - missed cycles.
 
+**Phase B status (2026-09-28): host-prepared only — not compiled, not
+authorized, not eligible for OTA until the owner confirms production is
+restored.**
+- `B_TELEMETRY_SOAK` issues only A1 `0x1200 × 120` then A2′ `0x12F0 × 15`
+  once per second, for a 10 min default. Each read is one FC03 frame with no
+  hub retry, and there is never more than one request outstanding.
+- A late cycle starts once, as soon as the previous one ends. Missed 1 s
+  slots are skipped (counted as `missed`), never replayed.
+- Every non-OK outcome counts as unexpected. Gate B never aborts; it stops
+  permanently at the deadline, until reboot.
+- Host tests prove this: the core suite's gate B section, the contract
+  checks and the gate B mutations. How to run it and the pass criteria are in
+  `docs/guides/BUILD_AND_DEPLOY.md` ("Gate B").
+
 **Phase C (read-only):** 1 Hz telemetry + Settings every 3 s for 15–30 min.
 Validate:
 - staggering;
