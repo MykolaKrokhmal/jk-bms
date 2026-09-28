@@ -711,9 +711,11 @@ Rules that apply to every phase:
 >   rolled back. It produced **no gate A measurement evidence**.
 > - A retry needs the corrected M0 to pass a compile-only validation first,
 >   then separate, explicit owner authorization.
-> - Before the next diagnostic build, the owner must give the probe its own
->   build directory. Both configurations are named `jk-bms` and shared
->   `/data/build/jk-bms`; see the evidence file, §5.
+> - Build isolation is resolved in the repository. Both configurations are
+>   named `jk-bms` and had shared `/data/build/jk-bms`. `jk_bms_probe.yaml`
+>   now sets `esphome.build_path: .esphome/build/jk-bms-probe`, and the
+>   contract test enforces it (evidence file, §5).
+> - The next compile log must show the `jk-bms-probe` build path.
 
 - **Prerequisite:** M0, including the compile-only validation of the
   corrected probe.

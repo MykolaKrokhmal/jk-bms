@@ -126,6 +126,21 @@ config check that is compile-only. Until then:
 - after any probe build, compile production again before installing
   production.
 
+**Update (commit `build(diag): isolate probe build artifacts`):**
+- ESPHome's official documentation confirms that `esphome.build_path`
+  customizes the build directory.
+- `jk_bms_probe.yaml` now sets `build_path: .esphome/build/jk-bms-probe`,
+  relative to the configuration folder. The production configuration and
+  the node name are unchanged.
+- `test/protocol_catalog/test_diag_probe_contract.js` requires the path to
+  be:
+  - explicit;
+  - distinct from production's `.esphome/build/jk-bms` / `/data/build/jk-bms`,
+    with production not given a `build_path` of its own;
+  - relative and portable: no absolute, home, `..` or machine-specific path.
+- Still unverified on ESPHome 2026.9.0 itself: the resolved directory must
+  appear in the next compile log (`Build path: …jk-bms-probe`).
+
 ## 6. ESPHome API baseline
 
 - ESPHome **2026.9.0** is the current controlled build baseline.

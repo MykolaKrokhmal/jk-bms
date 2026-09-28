@@ -108,6 +108,14 @@ check("no register address literal appears in the configuration (addresses come 
 check("the only includes are the probe core and the pure capability core it reuses",
   JSON.stringify([...yaml.matchAll(/^\s+- (components\/[^\s]+)$/gm)].map((m) => m[1])) ===
   JSON.stringify(["components/jk_capability/jk_capability_core.h", "components/jk_diag_probe/jk_diag_probe_core.h"]));
+const buildPath = ((yaml.match(/^esphome:\n((?:[ #].*\n|\n)*)/m) || ["", ""])[1].match(/^  build_path:\s*(\S+)\s*$/m) || [])[1];
+check("the probe has its own explicit build directory (esphome.build_path)", typeof buildPath === "string" && buildPath.length > 0, String(buildPath));
+check("the probe build directory is distinct from production's (.esphome/build/jk-bms, /data/build/jk-bms)",
+  typeof buildPath === "string" && !/(^|\/)build\/jk-bms\/?$/.test(buildPath.replace(/^\.\//, "")) && !/^\.esphome\/build\/?$/.test(buildPath) &&
+  !/^\s*build_path:/m.test(read("batterylifepo4.yaml")), String(buildPath));
+check("the probe build directory is a portable relative path (no absolute or machine-specific path)",
+  typeof buildPath === "string" && !/^(\/|~|[A-Za-z]:[\\/]|\\\\)/.test(buildPath) && !buildPath.split("/").includes("..") && !/\$\{|\/Users\/|\/home\/|\/data\/|\/config\//.test(buildPath),
+  String(buildPath));
 check("the controller polls nothing on its own", /modbus_controller:[\s\S]*update_interval: never/.test(yaml));
 check("mode selection is compile-time only, defaulting to gate A and a mode-default run length",
   /probe_mode: A_COMPATIBILITY/.test(yaml) && /probe_run_ms: "0"/.test(yaml) && /Mode::\$\{probe_mode\}/.test(yaml) &&

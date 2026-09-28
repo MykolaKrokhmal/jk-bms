@@ -17,7 +17,9 @@
 # `-s probe_mode B_TELEMETRY_SOAK` on the esphome command line); nothing on
 # the network can change the mode, an address or a count.
 #   probe_mode: A_COMPATIBILITY  -> gate A: one pass over every allowlisted
-#                                   read, >= 1 s apart (ends <= 5 min)
+#                                   read, >= 1 s apart; ends when the pass
+#                                   completes (~40-50 s after boot; 5 min
+#                                   is only its deadline)
 #               B_TELEMETRY_SOAK -> gate B: A1 + A2 every 1 s (default 10 min)
 #               C_COEXISTENCE    -> gate C: gate B + C1/C2 every 3 s,
 #                                   staggered 500 ms (default 20 min)
@@ -41,6 +43,10 @@ substitutions:
 
 esphome:
   name: ${name}
+  # Own build directory (relative to this file's folder): the node name is
+  # the same as production's (jk-bms), and a shared build directory let one
+  # configuration's artifacts replace the other's (2026-09-27).
+  build_path: .esphome/build/jk-bms-probe
   friendly_name: ${friendly_name}
   comment: "READ-ONLY RS485 clustered-read measurement build (not production)"
   includes:

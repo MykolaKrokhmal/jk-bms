@@ -148,12 +148,17 @@ deployed as production firmware.
 - Compile, upload and every run each need separate owner authorization.
 - **Use a compile-only action for a compile check.** "Install" also uploads
   by OTA, and that happened by accident on 2026-09-27.
-- **Build directory:** both configurations are named `jk-bms`, and the
-  Device Builder builds both in `/data/build/jk-bms`, so one can overwrite
-  the other's artifacts. Before the next diagnostic build, give the probe
-  its own build directory in the way ESPHome 2026.9.0 supports. Verify it
-  with a config check; it was not verifiable on the development host.
-  Until then, compile production again before installing production.
+- **Build directory:** both configurations are named `jk-bms`. Until
+  2026-09-27 the Device Builder built both in `/data/build/jk-bms`, so one
+  could replace the other's artifacts.
+  - `jk_bms_probe.yaml` now sets `esphome.build_path:
+    .esphome/build/jk-bms-probe`. The path is relative to the
+    configuration's folder, and production is unchanged.
+  - The diagnostic contract test requires an explicit, relative, portable
+    build path distinct from production's.
+  - Check it on the first compile: the log line `Compiling app... Build
+    path: …` must name a `jk-bms-probe` directory, not
+    `/data/build/jk-bms`.
 - **ESPHome version:** builds are validated on 2026.9.0. Do not use 2027.3.0
   or newer until the Modbus API migration in the plan is complete.
 
