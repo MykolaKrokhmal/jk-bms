@@ -137,9 +137,14 @@ deployed as production firmware.
 - **Phase selection is compile-time only.** Set the `probe_mode`
   substitution to `A_COMPATIBILITY`, `B_TELEMETRY_SOAK` or `C_COEXISTENCE`,
   or pass it with `-s`. `probe_run_ms: "0"` uses the mode default (B 10 min,
-  C 20 min); values above 30 min are clamped to 30 min. Mode A ends as soon
-  as its single pass completes, normally ≈ 40–50 s after boot (5 min is
-  only its deadline). Capture the log from boot.
+  C 20 min); values above 30 min are clamped to 30 min.
+  - Mode A runs one fixed 29-step pass: liveness reads, ×120 clusters, ×121
+    boundary controls, then the comparisons.
+  - It ends ≈ 50 s after boot (5 min is only its deadline) and aborts early
+    only if a liveness read fails.
+  - Timing: `send_wait_time: 500ms`, `max_cmd_retries: 0`, probe timeout
+    1.5 s.
+  - Capture the log from boot until `diag done`.
 - **Termination:** after one bounded run the build logs its summary and
   issues no further Modbus request until the next reboot. A reboot starts
   the same bounded run again.

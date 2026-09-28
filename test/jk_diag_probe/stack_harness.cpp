@@ -52,7 +52,7 @@ ENTRY void yaml_response(uint32_t now_ms, int idx, uint32_t gen, const uint8_t *
 // interval: 10ms lambda, without the ESPHome queue_command call (its
 // frame belongs to ESPHome; the probe side is find_allowed + generation).
 ENTRY int yaml_interval(uint32_t now) {
-  static bool summary_logged = false;
+  static std::size_t summary_line = 0;
   char line[400];
   int written = 0;
   Terminal queued;
@@ -68,14 +68,18 @@ ENTRY int yaml_interval(uint32_t now) {
   if (!g_probe.finished() && g_probe.mode() != Mode::A_COMPATIBILITY) {
     for (std::size_t i = 0; i < kWideCount; i++) written += format_request_stats(line, sizeof(line), g_probe, i);
   }
-  if (g_probe.finished() && !summary_logged) {
-    summary_logged = true;
-    written += format_run(line, sizeof(line), g_probe);
-    for (std::size_t i = 0; i < kRequestCount; i++) written += format_request_stats(line, sizeof(line), g_probe, i);
-    for (std::size_t c = 0; c < kComparisonCount; c++) written += format_comparison(line, sizeof(line), g_probe, c);
-    for (std::size_t s = 0; s < kSummaryCount; s++) written += format_summary(line, sizeof(line), g_probe, s);
-    written += int(g_log_queue.dropped());
+  if (g_probe.finished() && g_log_queue.empty() && summary_line < kSummaryLineCount) {
+    written += format_summary_line(line, sizeof(line), g_probe, summary_line, g_log_queue.dropped());
+    summary_line++;
   }
   __asm__ volatile("" : : "r"(line) : "memory");
   return written;
+}
+
+// The final-summary cursor on its own (each of its 46 lines, any order).
+ENTRY int yaml_summary_line(std::size_t n) {
+  char line[400];
+  const int w = format_summary_line(line, sizeof(line), g_probe, n, g_log_queue.dropped());
+  __asm__ volatile("" : : "r"(line) : "memory");
+  return w;
 }

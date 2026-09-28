@@ -32,8 +32,9 @@ function check(name, condition, detail = "") {
 }
 
 // --- Parse the C++ tables ---------------------------------------------------
-const requests = [...core.matchAll(/\{"([A-Z0-9_]+)", Kind::(WIDE|NARROW), FC_READ_HOLDING_REGISTERS, (0x[0-9A-F]+), (\d+), (\d+)\}/g)]
-  .map((m) => ({ id: m[1], kind: m[2], a: parseInt(m[3], 16), n: Number(m[4]), bytes: Number(m[5]) }));
+const requests = [...core.matchAll(/\{"([A-Z0-9_]+)", Kind::(WIDE|BOUNDARY|NARROW), FC_READ_HOLDING_REGISTERS, (0x[0-9A-F]+), (\d+), (\d+), Expect::(OK|EXCEPTION_2)\}/g)]
+  .map((m) => ({ id: m[1], kind: m[2], a: parseInt(m[3], 16), n: Number(m[4]), bytes: Number(m[5]), expect: m[6] }));
+const constOf = (name) => { const m = core.match(new RegExp(`constexpr uint(?:16|32)_t ${name} = (\\d+);`)); return m ? Number(m[1]) : null; };
 const byId = new Map(requests.map((r) => [r.id, r]));
 const wordsOf = (name) => {
   const m = core.match(new RegExp(`constexpr uint16_t ${name}\\[\\] = \\{([^}]*)\\}`));
@@ -49,16 +50,45 @@ for (const r of regs) for (let i = 0; i < r.w; i++) defined.add(r.a + 2 * i);
 const straddles = (a) => regs.some((r) => r.a < a && r.a + 2 * r.w > a);  // a register starts before a and ends after it
 
 // --- 1. Allowlist vs canonical ------------------------------------------------
-const planWide = [["A1", 0x1200, 125], ["A2", 0x12FA, 10], ["C1", 0x1000, 124], ["C2", 0x10F8, 19], ["S1", 0x1400, 20], ["S2", 0x14B2, 18], ["S3", 0x14E4, 18]];
+// 2026-09-28 corrected geometry (gate A refused A1 0x1200x125 / C1 0x1000x124 with exception 2).
+const planWide = [["A1", 0x1200, 120], ["A2", 0x12F0, 15], ["C1", 0x1000, 120], ["C2", 0x10F0, 23], ["S1", 0x1400, 20], ["S2", 0x14B2, 18], ["S3", 0x14E4, 18]];
+const planBoundary = [["A121", 0x1200, 121], ["A121W", 0x1202, 121], ["C121", 0x1000, 121], ["C121W", 0x1024, 121]];
 const wide = requests.filter((r) => r.kind === "WIDE");
-check("the wide allowlist is exactly the plan's 7 clusters (owner-confirmed C1 0x1000x124 / C2 0x10F8x19)",
-  JSON.stringify(wide.map((r) => [r.id, r.a, r.n])) === JSON.stringify(planWide), JSON.stringify(wide.map((r) => r.id)));
-check("every request expects exactly 2 bytes per register and at most 125 registers",
-  requests.length >= 7 && requests.every((r) => r.bytes === 2 * r.n && r.n >= 1 && r.n <= 125));
+const boundary = requests.filter((r) => r.kind === "BOUNDARY");
+check("the allowlist has 25 entries: 7 clusters, 4 boundary controls, 14 narrow reads",
+  requests.length === 25 && wide.length === 7 && boundary.length === 4 && requests.filter((r) => r.kind === "NARROW").length === 14);
+check("the clusters are exactly the corrected x120 geometry (A1 0x1200x120, A2 0x12F0x15, C1 0x1000x120, C2 0x10F0x23, S1-S3)",
+  JSON.stringify(wide.map((r) => [r.id, r.a, r.n])) === JSON.stringify(planWide), JSON.stringify(wide.map((r) => [r.id, r.n])));
+check("the boundary controls are exactly A121 0x1200x121, A121W 0x1202x121, C121 0x1000x121, C121W 0x1024x121",
+  JSON.stringify(boundary.map((r) => [r.id, r.a, r.n])) === JSON.stringify(planBoundary));
+check("only the boundary controls expect exception 2; every other read expects OK",
+  requests.every((r) => (r.kind === "BOUNDARY") === (r.expect === "EXCEPTION_2")));
+check("every request expects exactly 2 bytes per register and at most 125 registers (the protocol limit)",
+  requests.every((r) => r.bytes === 2 * r.n && r.n >= 1 && r.n <= 125));
+check("the protocol limit stays 125 and 120 is only the candidate operational limit (not a request validation rule)",
+  constOf("kMaxRegistersPerRead") === 125 && constOf("kCandidateOperationalRegisters") === 120 &&
+  !/request_is_valid\([^)]*\)\s*\{[^}]*kCandidateOperationalRegisters/.test(core) &&
+  wide.every((r) => r.n <= 120) && boundary.every((r) => r.n === 121));
+check("the refused 2026-09-28 geometry (0x1200x125, 0x1000x124) is gone",
+  !requests.some((r) => (r.a === 0x1200 && r.n === 125) || (r.a === 0x1000 && r.n === 124)));
 check("no request touches the setup-passcode range 0x1470-0x147F", requests.every((r) => !overlapsP(r.a, r.n)));
 check("the old split 0x1000x125 / 0x10FAx18 is absent", !requests.some((r) => (r.a === 0x1000 && r.n === 125) || (r.a === 0x10FA && r.n === 18)));
 check("no wide cluster starts or ends inside a canonical register (no split multi-word value)",
   wide.every((r) => !straddles(r.a) && !straddles(r.a + 2 * r.n)), wide.filter((r) => straddles(r.a) || straddles(r.a + 2 * r.n)).map((r) => r.id).join(","));
+const end = (r) => r.a + 2 * r.n;
+const byIdR = (id) => requests.find((r) => r.id === id);
+check("A1+A2 and C1+C2 are contiguous and cover exactly the old spans (0x1200..0x130C, 0x1000..0x111C)",
+  end(byIdR("A1")) === byIdR("A2").a && byIdR("A1").a === 0x1200 && end(byIdR("A2")) === 0x12FA + 2 * 10 &&
+  end(byIdR("C1")) === byIdR("C2").a && byIdR("C1").a === 0x1000 && end(byIdR("C2")) === 0x10F8 + 2 * 19);
+check("the whole-register controls cut no canonical register; the prefix controls cut exactly the U32 at 0x12F0 / 0x10F0",
+  !straddles(0x1202) && !straddles(0x1202 + 2 * 121) && !straddles(0x1024) && !straddles(0x1024 + 2 * 121) &&
+  straddles(0x1200 + 2 * 121) && straddles(0x1000 + 2 * 121) &&
+  regs.some((r) => r.a === 0x12F0 && r.w === 2) && regs.some((r) => r.a === 0x10F0 && r.w === 2));
+const inside = (x, r) => x >= r.a && x < end(r);
+const coveredBy = (c, ids) => { for (let x = c.a; x < end(c); x += 2) if (!ids.some((id) => inside(x, byIdR(id)))) return false; return true; };
+check("every word of every boundary control is independently read by the clusters (A1 u A2 / C1 u C2)",
+  coveredBy(byIdR("A121"), ["A1", "A2"]) && coveredBy(byIdR("A121W"), ["A1", "A2"]) &&
+  coveredBy(byIdR("C121"), ["C1", "C2"]) && coveredBy(byIdR("C121W"), ["C1", "C2"]));
 check("every canonical register except the passcode lies inside one wide cluster",
   regs.filter((r) => !overlapsP(r.a, r.w)).every((r) => wide.some((w) => r.a >= w.a && r.a + 2 * r.w <= w.a + 2 * w.n)));
 const gapsOf = (r) => { const g = []; for (let i = 0; i < r.n; i++) if (!defined.has(r.a + 2 * i)) g.push(r.a + 2 * i); return g; };
@@ -90,6 +120,24 @@ check("the run is bounded: 30 min hard maximum, clamp and latched FINISHED",
   /kHardMaxRunMs = 30UL \* 60UL \* 1000UL/.test(core) && /r > kHardMaxRunMs \? kHardMaxRunMs : r/.test(core) &&
   /if \(!begun_ \|\| finished_\) return -1;/.test(core));
 
+// --- 2b. The fixed gate A schedule ------------------------------------------------
+const steps = [...(core.match(/constexpr Step kPassA\[\] = \{([\s\S]*?)\n\};/) || ["", ""])[1].matchAll(/\{index_of\("([A-Z0-9_]+)"\), Role::([A-Z]+)\}/g)]
+  .map((m) => [m[1], m[2]]);
+const planSteps = [["N_SLEEP", "LIVENESS"], ["A2", "CLUSTER"], ["A1", "CLUSTER"], ["A121", "CONTROL"], ["N_SLEEP", "LIVENESS"],
+  ["A121W", "CONTROL"], ["N_SLEEP", "LIVENESS"], ["C2", "CLUSTER"], ["C1", "CLUSTER"], ["C121", "CONTROL"], ["N_SLEEP", "LIVENESS"],
+  ["C121W", "CONTROL"], ["N_SLEEP", "LIVENESS"], ["S1", "CLUSTER"], ["S2", "CLUSTER"], ["S3", "CLUSTER"],
+  ...["N_CELLS", "N_AVGV", "N_RES17", "N_1290", "N_T4", "N_PCL", "N_CHG", "N_CAL29", "N_FLAGS", "N_HEAT", "N_MODEL", "N_UART1", "N_CANVER"].map((id) => [id, "NARROW"])];
+check("the gate A schedule is exactly the approved 29 steps (liveness first and after every control)",
+  JSON.stringify(steps) === JSON.stringify(planSteps), `${steps.length} steps`);
+check("the liveness read is the production-identical 0x1000 x 2 (read-plan block 0)",
+  byIdR("N_SLEEP").a === 0x1000 && byIdR("N_SLEEP").n === 2 && /constexpr int kLivenessRequest = index_of\("N_SLEEP"\);/.test(core));
+check("only a failed liveness step aborts; there is no other abort and no run-time request generation",
+  /kPassA\[current_step_\]\.role == Role::LIVENESS &&\s*o != Outcome::OK\) \{\s*aborted_ = true;/.test(core) &&
+  (core.match(/aborted_ = true/g) || []).length === 1 && /return kPassA\[step_cursor_\+\+\]\.request;/.test(core));
+check("deterministic timing constants: one hub frame (0 retries), 500 ms wait, 1.5 s probe timeout",
+  constOf("kHubMaxRetries") === 0 && constOf("kHubSendWaitMs") === 500 && constOf("kRequestTimeoutMs") === 1500 &&
+  constOf("kRequestTimeoutMs") >= (constOf("kHubMaxRetries") + 1) * constOf("kHubSendWaitMs") + constOf("kTimeoutMarginMs"));
+
 // --- 3. Static audit of the diagnostic configuration ----------------------------
 const topKeys = [...yaml.matchAll(/^([a-z0-9_]+):/gm)].map((m) => m[1]);
 const allowedTop = ["substitutions", "esphome", "esp32", "wifi", "ota", "api", "logger", "uart", "modbus", "modbus_controller", "interval"];
@@ -117,6 +165,16 @@ check("the probe build directory is a portable relative path (no absolute or mac
   typeof buildPath === "string" && !/^(\/|~|[A-Za-z]:[\\/]|\\\\)/.test(buildPath) && !buildPath.split("/").includes("..") && !/\$\{|\/Users\/|\/home\/|\/data\/|\/config\//.test(buildPath),
   String(buildPath));
 check("the controller polls nothing on its own", /modbus_controller:[\s\S]*update_interval: never/.test(yaml));
+const yamlMs = (key) => { const m = yaml.match(new RegExp(`^\\s+${key}: (\\d+)ms\\s*$`, "m")); return m ? Number(m[1]) : null; };
+const yamlNum = (key) => { const m = yaml.match(new RegExp(`^\\s+${key}: (\\d+)\\s*$`, "m")); return m ? Number(m[1]) : null; };
+check("the hub timing in the YAML equals the core constants (send_wait_time == kHubSendWaitMs, max_cmd_retries == kHubMaxRetries)",
+  yamlMs("send_wait_time") === constOf("kHubSendWaitMs") && yamlNum("max_cmd_retries") === constOf("kHubMaxRetries") &&
+  /^modbus:[\s\S]*?send_wait_time: 500ms/m.test(yaml) && /^modbus_controller:[\s\S]*?max_cmd_retries: 0/m.test(yaml),
+  `${yamlMs("send_wait_time")} / ${yamlNum("max_cmd_retries")}`);
+check("the final summary is logged one line per interval tick through the cursor (no burst loop in the YAML)",
+  (yaml.match(/format_summary_line\(/g) || []).length === 1 && /summary_line\+\+;/.test(yaml) &&
+  /g_probe\.finished\(\) && g_log_queue\.empty\(\) && summary_line < kSummaryLineCount/.test(yaml) &&
+  !/kComparisonCount|kSummaryCount|format_comparison\(|format_summary\(/.test(yaml));
 check("mode selection is compile-time only, defaulting to gate A and a mode-default run length",
   /probe_mode: A_COMPATIBILITY/.test(yaml) && /probe_run_ms: "0"/.test(yaml) && /Mode::\$\{probe_mode\}/.test(yaml) &&
   !/http|endpoint|AsyncWebHandler|set_mode|register_service/i.test(yaml.replace(/^#.*$/gm, "")));

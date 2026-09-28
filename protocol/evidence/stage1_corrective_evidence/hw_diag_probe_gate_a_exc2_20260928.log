@@ -1,0 +1,78 @@
+INFO ESPHome 2026.9.0
+INFO Loaded validated config cache for jk_bms_probe.yaml, skipping validation.
+INFO Starting log output from 192.168.27.43 using esphome API
+INFO Successfully resolved jk-bms @ 192.168.27.43 in 0.000s
+INFO Successfully connected to jk-bms @ 192.168.27.43 in 4.263s
+INFO Successful handshake with jk-bms @ 192.168.27.43 in 0.079s
+[17:37:27.368][I][app:151]: ESPHome version 2026.9.0 compiled on 2026-09-28 11:06:47 +0300
+[17:37:27.368][I][app:158]: ESP32 Chip: ESP32 rev3.1, 2 core(s)
+[17:37:27.368][W][app:171]: Chip rev >= 3.0 detected. Set minimum_chip_revision: "3.1" under esp32 > framework > advanced to reduce binary size
+[17:37:27.368][W][app:198]: Bootloader supports SRAM1 as IRAM (+40KB). Set sram1_as_iram: true under esp32 > framework > advanced
+[17:37:42.491][W][modbus:377]: Error function code: 0x83 exception: 2, address: 1, 4663us after last send
+[17:37:42.543][W][modbus_controller:206]: Modbus error function code: 0x3 register 0x1200 exception: 2
+[17:37:42.633][W][diag:139]: diag req=A1 fc=3 addr=0x1200 n=125 exp=250 got=0 cls=EXCEPTION exc=2 sends=1 queue_ms=8 bms_ms=10 total_ms=18
+[17:37:43.517][W][diag:139]: diag req=A2 fc=3 addr=0x12FA n=10 exp=20 got=20 cls=OK exc=0 sends=1 queue_ms=10 bms_ms=7 total_ms=17
+[17:37:44.529][W][modbus:377]: Error function code: 0x83 exception: 2, address: 1, 4793us after last send
+[17:37:44.548][W][modbus_controller:206]: Modbus error function code: 0x3 register 0x1000 exception: 2
+[17:37:44.548][W][diag:139]: diag req=C1 fc=3 addr=0x1000 n=124 exp=248 got=0 cls=EXCEPTION exc=2 sends=1 queue_ms=6 bms_ms=10 total_ms=16
+[17:37:45.559][W][diag:139]: diag req=C2 fc=3 addr=0x10F8 n=19 exp=38 got=38 cls=OK exc=0 sends=1 queue_ms=8 bms_ms=9 total_ms=17
+[17:37:46.585][W][diag:139]: diag req=S1 fc=3 addr=0x1400 n=20 exp=40 got=40 cls=OK exc=0 sends=1 queue_ms=8 bms_ms=9 total_ms=17
+[17:37:47.653][W][diag:139]: diag req=S2 fc=3 addr=0x14B2 n=18 exp=36 got=36 cls=OK exc=0 sends=1 queue_ms=7 bms_ms=9 total_ms=16
+[17:37:48.633][W][diag:139]: diag req=S3 fc=3 addr=0x14E4 n=18 exp=36 got=36 cls=OK exc=0 sends=1 queue_ms=5 bms_ms=9 total_ms=14
+[17:37:49.657][W][diag:139]: diag req=N_CELLS fc=3 addr=0x1200 n=53 exp=106 got=106 cls=OK exc=0 sends=1 queue_ms=5 bms_ms=17 total_ms=22
+[17:37:50.656][W][diag:139]: diag req=N_AVGV fc=3 addr=0x1244 n=1 exp=2 got=2 cls=OK exc=0 sends=1 queue_ms=2 bms_ms=6 total_ms=8
+[17:37:51.676][W][diag:139]: diag req=N_RES17 fc=3 addr=0x126A n=16 exp=32 got=32 cls=OK exc=0 sends=1 queue_ms=8 bms_ms=9 total_ms=17
+[17:37:52.702][W][diag:139]: diag req=N_1290 fc=3 addr=0x1290 n=12 exp=24 got=24 cls=OK exc=0 sends=1 queue_ms=4 bms_ms=8 total_ms=12
+[17:37:53.711][W][diag:139]: diag req=N_T4 fc=3 addr=0x12FA n=1 exp=2 got=2 cls=OK exc=0 sends=1 queue_ms=2 bms_ms=6 total_ms=8
+[17:37:54.750][W][diag:139]: diag req=N_PCL fc=3 addr=0x130C n=1 exp=2 got=2 cls=OK exc=0 sends=1 queue_ms=6 bms_ms=6 total_ms=12
+[17:37:55.774][W][diag:139]: diag req=N_SLEEP fc=3 addr=0x1000 n=2 exp=4 got=4 cls=OK exc=0 sends=1 queue_ms=16 bms_ms=6 total_ms=22
+[17:37:56.776][W][diag:139]: diag req=N_CHG fc=3 addr=0x1070 n=2 exp=4 got=4 cls=OK exc=0 sends=1 queue_ms=2 bms_ms=6 total_ms=8
+[17:37:57.813][W][diag:139]: diag req=N_CAL29 fc=3 addr=0x10F8 n=2 exp=4 got=4 cls=OK exc=0 sends=1 queue_ms=7 bms_ms=6 total_ms=13
+[17:37:58.846][W][diag:139]: diag req=N_FLAGS fc=3 addr=0x1114 n=1 exp=2 got=2 cls=OK exc=0 sends=1 queue_ms=2 bms_ms=6 total_ms=8
+[17:37:59.854][W][diag:139]: diag req=N_HEAT fc=3 addr=0x111C n=1 exp=2 got=2 cls=OK exc=0 sends=1 queue_ms=7 bms_ms=6 total_ms=13
+[17:38:00.862][W][diag:139]: diag req=N_MODEL fc=3 addr=0x1400 n=8 exp=16 got=16 cls=OK exc=0 sends=1 queue_ms=2 bms_ms=8 total_ms=10
+[17:38:01.859][W][diag:139]: diag req=N_UART1 fc=3 addr=0x14B2 n=1 exp=2 got=2 cls=OK exc=0 sends=1 queue_ms=9 bms_ms=6 total_ms=15
+[17:38:02.883][W][diag:139]: diag req=N_CANVER fc=3 addr=0x1506 n=1 exp=2 got=2 cls=OK exc=0 sends=1 queue_ms=5 bms_ms=6 total_ms=11
+[17:38:02.891][I][diag:178]: diag run mode=A run_ms=300000 issued=21 finished=1
+[17:38:02.891][I][diag:182]: diag stat req=A1 issued=1 ok=0 short=0 long=0 exc=1 timeout=0 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:02.892][I][diag:182]: diag stat req=A2 issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=7 queue_ms max=10 total_ms max=17 cb_us max=94 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:02.903][I][diag:182]: diag stat req=C1 issued=1 ok=0 short=0 long=0 exc=1 timeout=0 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:02.942][I][diag:182]: diag stat req=C2 issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=9 queue_ms max=8 total_ms max=17 cb_us max=86 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:02.969][I][diag:182]: diag stat req=S1 issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=9 queue_ms max=8 total_ms max=17 cb_us max=95 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:02.969][I][diag:182]: diag stat req=S2 issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=9 queue_ms max=7 total_ms max=16 cb_us max=90 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:02.973][I][diag:182]: diag stat req=S3 issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=9 queue_ms max=5 total_ms max=14 cb_us max=94 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.011][I][diag:182]: diag stat req=N_CELLS issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=20 p95=20 p99=20 max=17 queue_ms max=5 total_ms max=22 cb_us max=90 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.018][I][diag:182]: diag stat req=N_AVGV issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=6 queue_ms max=2 total_ms max=8 cb_us max=86 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.044][I][diag:182]: diag stat req=N_RES17 issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=9 queue_ms max=8 total_ms max=17 cb_us max=86 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.076][I][diag:182]: diag stat req=N_1290 issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=8 queue_ms max=4 total_ms max=12 cb_us max=86 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.085][I][diag:182]: diag stat req=N_T4 issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=6 queue_ms max=2 total_ms max=8 cb_us max=86 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.114][I][diag:182]: diag stat req=N_PCL issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=6 queue_ms max=6 total_ms max=12 cb_us max=86 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.118][I][diag:182]: diag stat req=N_SLEEP issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=6 queue_ms max=16 total_ms max=22 cb_us max=91 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.147][I][diag:182]: diag stat req=N_CHG issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=6 queue_ms max=2 total_ms max=8 cb_us max=90 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.166][I][diag:182]: diag stat req=N_CAL29 issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=6 queue_ms max=7 total_ms max=13 cb_us max=95 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.174][I][diag:182]: diag stat req=N_FLAGS issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=6 queue_ms max=2 total_ms max=8 cb_us max=90 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.223][I][diag:182]: diag stat req=N_HEAT issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=6 queue_ms max=7 total_ms max=13 cb_us max=90 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.249][I][diag:182]: diag stat req=N_MODEL issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=8 queue_ms max=2 total_ms max=10 cb_us max=90 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.261][I][diag:182]: diag stat req=N_UART1 issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=6 queue_ms max=9 total_ms max=15 cb_us max=92 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.275][I][diag:182]: diag stat req=N_CANVER issued=1 ok=1 short=0 long=0 exc=0 timeout=0 resends=0 late=0 bms_ms p50=10 p95=10 p99=10 max=6 queue_ms max=5 total_ms max=11 cb_us max=94 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[17:38:03.292][I][diag:186]: diag cmp narrow=N_CELLS wide=A1 words=53 equal=-1 kind=live
+[17:38:03.298][I][diag:186]: diag cmp narrow=N_AVGV wide=A1 words=1 equal=-1 kind=live
+[17:38:03.298][I][diag:186]: diag cmp narrow=N_RES17 wide=A1 words=16 equal=-1 kind=live
+[17:38:03.308][I][diag:186]: diag cmp narrow=N_1290 wide=A1 words=12 equal=-1 kind=live
+[17:38:03.314][I][diag:186]: diag cmp narrow=N_T4 wide=A2 words=1 equal=1 kind=live
+[17:38:03.327][I][diag:186]: diag cmp narrow=N_PCL wide=A2 words=1 equal=1 kind=live
+[17:38:03.336][I][diag:186]: diag cmp narrow=N_SLEEP wide=C1 words=2 equal=-1 kind=stable
+[17:38:03.342][I][diag:186]: diag cmp narrow=N_CHG wide=C1 words=2 equal=-1 kind=stable
+[17:38:03.353][I][diag:186]: diag cmp narrow=N_CAL29 wide=C2 words=2 equal=2 kind=stable
+[17:38:03.362][I][diag:186]: diag cmp narrow=N_FLAGS wide=C2 words=1 equal=1 kind=stable
+[17:38:03.379][I][diag:186]: diag cmp narrow=N_HEAT wide=C2 words=1 equal=1 kind=stable
+[17:38:03.383][I][diag:186]: diag cmp narrow=N_MODEL wide=S1 words=8 equal=8 kind=stable
+[17:38:03.383][I][diag:186]: diag cmp narrow=N_UART1 wide=S2 words=1 equal=1 kind=stable
+[17:38:03.389][I][diag:186]: diag cmp narrow=N_CANVER wide=S3 words=1 equal=1 kind=stable
+[17:38:03.394][I][diag:190]: diag sum set=A1_V17_32 words=16 zero=-1
+[17:38:03.434][I][diag:190]: diag sum set=A1_R17_32 words=16 zero=-1
+[17:38:03.435][I][diag:190]: diag sum set=A1_GAPS words=7 zero=-1
+[17:38:03.438][I][diag:190]: diag sum set=A2_GAPS words=3 zero=1
+[17:38:03.438][I][diag:190]: diag sum set=C2_GAPS words=4 zero=1
+[17:38:03.438][I][diag:192]: diag done: no further Modbus requests until reboot (log queue drops=0)
+[17:38:03.438][W][component:419]: interval took a long time for an operation (559 ms), max is 50 ms

@@ -1,0 +1,99 @@
+INFO ESPHome 2026.9.0
+INFO Loaded validated config cache for jk_bms_probe.yaml, skipping validation.
+INFO Starting log output from 192.168.27.43 using esphome API
+INFO Successfully resolved jk-bms @ 192.168.27.43 in 0.000s
+INFO Successfully connected to jk-bms @ 192.168.27.43 in 5.145s
+INFO Successful handshake with jk-bms @ 192.168.27.43 in 0.089s
+[11:07:31.402][I][app:151]: ESPHome version 2026.9.0 compiled on 2026-09-28 11:06:47 +0300
+[11:07:31.402][I][app:158]: ESP32 Chip: ESP32 rev3.1, 2 core(s)
+[11:07:31.402][W][app:171]: Chip rev >= 3.0 detected. Set minimum_chip_revision: "3.1" under esp32 > framework > advanced to reduce binary size
+[11:07:31.403][W][app:198]: Bootloader supports SRAM1 as IRAM (+40KB). Set sram1_as_iram: true under esp32 > framework > advanced
+[11:07:47.767][W][modbus:096]: Stop waiting for response from 1 2015906us after last send
+[11:07:48.753][W][diag:146]: diag req=A1 fc=3 addr=0x1200 n=125 exp=250 got=0 cls=TIMEOUT exc=0 sends=2 queue_ms=11 bms_ms=970 total_ms=3002
+[11:07:49.766][W][modbus:096]: Stop waiting for response from 1 2000949us after last send
+[11:07:51.876][W][modbus:096]: Stop waiting for response from 1 2001668us after last send
+[11:07:52.818][W][diag:146]: diag req=A2 fc=3 addr=0x12FA n=10 exp=20 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=35 bms_ms=2969 total_ms=3004
+[11:07:53.780][W][modbus:096]: Stop waiting for response from 1 2002141us after last send
+[11:07:55.787][W][modbus:096]: Stop waiting for response from 1 2001979us after last send
+[11:07:55.807][W][modbus_controller:275]: Modbus device=1 set offline
+[11:07:56.747][W][diag:146]: diag req=C1 fc=3 addr=0x1000 n=124 exp=248 got=0 cls=TIMEOUT exc=0 sends=0 queue_ms=0 bms_ms=0 total_ms=3003
+[11:07:59.762][W][modbus:096]: Stop waiting for response from 1 2002037us after last send
+[11:08:00.765][W][diag:146]: diag req=C2 fc=3 addr=0x10F8 n=19 exp=38 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=15 bms_ms=2986 total_ms=3001
+[11:08:03.752][W][modbus:096]: Stop waiting for response from 1 2000027us after last send
+[11:08:04.759][W][diag:146]: diag req=S1 fc=3 addr=0x1400 n=20 exp=40 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=5 bms_ms=2996 total_ms=3001
+[11:08:07.756][W][modbus:096]: Stop waiting for response from 1 2000011us after last send
+[11:08:08.800][W][diag:146]: diag req=S2 fc=3 addr=0x14B2 n=18 exp=36 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=7 bms_ms=2994 total_ms=3001
+[11:08:11.764][W][modbus:096]: Stop waiting for response from 1 2001014us after last send
+[11:08:12.803][W][diag:146]: diag req=S3 fc=3 addr=0x14E4 n=18 exp=36 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=13 bms_ms=2991 total_ms=3004
+[11:08:15.759][W][modbus:096]: Stop waiting for response from 1 2001360us after last send
+[11:08:16.804][W][diag:146]: diag req=N_CELLS fc=3 addr=0x1200 n=53 exp=106 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=2 bms_ms=2999 total_ms=3001
+[11:08:19.778][W][modbus:096]: Stop waiting for response from 1 2015894us after last send
+[11:08:20.805][W][diag:146]: diag req=N_AVGV fc=3 addr=0x1244 n=1 exp=2 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=6 bms_ms=2994 total_ms=3000
+[11:08:23.792][W][modbus:096]: Stop waiting for response from 1 2015975us after last send
+[11:08:24.820][W][diag:146]: diag req=N_RES17 fc=3 addr=0x126A n=16 exp=32 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=13 bms_ms=2990 total_ms=3003
+[11:08:25.682][I][safe_mode:154]: Boot seems successful; resetting boot loop counter
+[11:08:27.837][W][modbus:096]: Stop waiting for response from 1 2015919us after last send
+[11:08:28.794][W][diag:146]: diag req=N_1290 fc=3 addr=0x1290 n=12 exp=24 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=9 bms_ms=2999 total_ms=3008
+[11:08:31.799][W][modbus:096]: Stop waiting for response from 1 2008010us after last send
+[11:08:32.787][W][diag:146]: diag req=N_T4 fc=3 addr=0x12FA n=1 exp=2 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=14 bms_ms=2987 total_ms=3001
+[11:08:35.795][W][modbus:096]: Stop waiting for response from 1 2001005us after last send
+[11:08:36.791][W][diag:146]: diag req=N_PCL fc=3 addr=0x130C n=1 exp=2 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=12 bms_ms=2989 total_ms=3001
+[11:08:39.785][W][modbus:096]: Stop waiting for response from 1 2000411us after last send
+[11:08:40.785][W][diag:146]: diag req=N_SLEEP fc=3 addr=0x1000 n=2 exp=4 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=2 bms_ms=2998 total_ms=3000
+[11:08:43.788][W][modbus:096]: Stop waiting for response from 1 2000101us after last send
+[11:08:44.807][W][diag:146]: diag req=N_CHG fc=3 addr=0x1070 n=2 exp=4 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=7 bms_ms=2995 total_ms=3002
+[11:08:47.802][W][modbus:096]: Stop waiting for response from 1 2000054us after last send
+[11:08:48.791][W][diag:146]: diag req=N_CAL29 fc=3 addr=0x10F8 n=2 exp=4 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=12 bms_ms=2990 total_ms=3002
+[11:08:51.789][W][modbus:096]: Stop waiting for response from 1 2000407us after last send
+[11:08:52.788][W][diag:146]: diag req=N_FLAGS fc=3 addr=0x1114 n=1 exp=2 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=2 bms_ms=2998 total_ms=3000
+[11:08:55.798][W][modbus:096]: Stop waiting for response from 1 2000057us after last send
+[11:08:56.793][W][diag:146]: diag req=N_HEAT fc=3 addr=0x111C n=1 exp=2 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=6 bms_ms=2996 total_ms=3002
+[11:08:59.904][W][modbus:096]: Stop waiting for response from 1 2000803us after last send
+[11:09:00.860][W][diag:146]: diag req=N_MODEL fc=3 addr=0x1400 n=8 exp=16 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=13 bms_ms=2987 total_ms=3000
+[11:09:03.803][W][modbus:096]: Stop waiting for response from 1 2001376us after last send
+[11:09:04.810][W][diag:146]: diag req=N_UART1 fc=3 addr=0x14B2 n=1 exp=2 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=2 bms_ms=2998 total_ms=3000
+[11:09:07.804][W][modbus:096]: Stop waiting for response from 1 2000800us after last send
+[11:09:08.814][W][diag:146]: diag req=N_CANVER fc=3 addr=0x1506 n=1 exp=2 got=0 cls=TIMEOUT exc=0 sends=1 queue_ms=9 bms_ms=2993 total_ms=3002
+[11:09:08.819][I][diag:178]: diag run mode=A run_ms=300000 issued=21 finished=1
+[11:09:08.819][I][diag:182]: diag stat req=A1 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=1 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.819][I][diag:182]: diag stat req=A2 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.819][I][diag:182]: diag stat req=C1 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.893][I][diag:182]: diag stat req=C2 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.929][I][diag:182]: diag stat req=S1 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.930][I][diag:182]: diag stat req=S2 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.930][I][diag:182]: diag stat req=S3 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.958][I][diag:182]: diag stat req=N_CELLS issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.971][I][diag:182]: diag stat req=N_AVGV issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.971][I][diag:182]: diag stat req=N_RES17 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.973][I][diag:182]: diag stat req=N_1290 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:08.995][I][diag:182]: diag stat req=N_T4 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:09.017][I][diag:182]: diag stat req=N_PCL issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:09.046][I][diag:182]: diag stat req=N_SLEEP issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:09.046][I][diag:182]: diag stat req=N_CHG issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:09.099][I][diag:182]: diag stat req=N_CAL29 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:09.130][I][diag:182]: diag stat req=N_FLAGS issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:09.130][I][diag:182]: diag stat req=N_HEAT issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:09.131][I][diag:182]: diag stat req=N_MODEL issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:09.156][I][diag:182]: diag stat req=N_UART1 issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:09.169][I][diag:182]: diag stat req=N_CANVER issued=1 ok=0 short=0 long=0 exc=0 timeout=1 resends=0 late=0 bms_ms p50=0 p95=0 p99=0 max=0 queue_ms max=0 total_ms max=0 cb_us max=0 ok_interval_ms p99=0 max=0 over1.5x=0 missed=0
+[11:09:09.208][I][diag:186]: diag cmp narrow=N_CELLS wide=A1 words=53 equal=-1 kind=live
+[11:09:09.231][I][diag:186]: diag cmp narrow=N_AVGV wide=A1 words=1 equal=-1 kind=live
+[11:09:09.242][I][diag:186]: diag cmp narrow=N_RES17 wide=A1 words=16 equal=-1 kind=live
+[11:09:09.242][I][diag:186]: diag cmp narrow=N_1290 wide=A1 words=12 equal=-1 kind=live
+[11:09:09.242][I][diag:186]: diag cmp narrow=N_T4 wide=A2 words=1 equal=-1 kind=live
+[11:09:09.242][I][diag:186]: diag cmp narrow=N_PCL wide=A2 words=1 equal=-1 kind=live
+[11:09:09.249][I][diag:186]: diag cmp narrow=N_SLEEP wide=C1 words=2 equal=-1 kind=stable
+[11:09:09.259][I][diag:186]: diag cmp narrow=N_CHG wide=C1 words=2 equal=-1 kind=stable
+[11:09:09.259][I][diag:186]: diag cmp narrow=N_CAL29 wide=C2 words=2 equal=-1 kind=stable
+[11:09:09.267][I][diag:186]: diag cmp narrow=N_FLAGS wide=C2 words=1 equal=-1 kind=stable
+[11:09:09.285][I][diag:186]: diag cmp narrow=N_HEAT wide=C2 words=1 equal=-1 kind=stable
+[11:09:09.285][I][diag:186]: diag cmp narrow=N_MODEL wide=S1 words=8 equal=-1 kind=stable
+[11:09:09.289][I][diag:186]: diag cmp narrow=N_UART1 wide=S2 words=1 equal=-1 kind=stable
+[11:09:09.305][I][diag:186]: diag cmp narrow=N_CANVER wide=S3 words=1 equal=-1 kind=stable
+[11:09:09.328][I][diag:190]: diag sum set=A1_V17_32 words=16 zero=-1
+[11:09:09.328][I][diag:190]: diag sum set=A1_R17_32 words=16 zero=-1
+[11:09:09.328][I][diag:190]: diag sum set=A1_GAPS words=7 zero=-1
+[11:09:09.328][I][diag:190]: diag sum set=A2_GAPS words=3 zero=-1
+[11:09:09.338][I][diag:190]: diag sum set=C2_GAPS words=4 zero=-1
+[11:09:09.339][I][diag:192]: diag done: no further Modbus requests until reboot (log queue drops=0)
+[11:09:09.344][W][component:419]: interval took a long time for an operation (548 ms), max is 50 ms

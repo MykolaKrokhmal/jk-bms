@@ -184,10 +184,10 @@ canonical cluster source (§15).
 
 | ID | Start × count | Bytes | Covers (canonical) | Normal cadence | Active cadence | Priority | Access | Security | Fallback | Evidence |
 |---|---|---|---|---|---|---|---|---|---|---|
-| A1 | 0x1200 × 125 | 250 | 0x1200–0x12F9: cell voltages 1–32, 0x1240–0x1249 mask/average/delta/extrema, cell resistances 1–32 (0x124A–0x1288), telemetry 0x128A–0x12F8 incl. the 0x1290 cluster; 105 registers, 7 gap words | 1 s (target) | 1 s | 2 (telemetry) | R | normal | 0x1200 × 53 + 17–32 probe + narrow blocks | 0x1200 × 53 and 0x1290 × 12 are in production use (0x1290 exact length still open); wide read **[gate A]** |
-| A2 | 0x12FA × 10 | 20 | 0x12FA–0x130D: temperatures 4/5, RTC ticks, time-enter-sleep, PCL status; 5 registers, 3 gap words | 1 s (target) | 1 s | 2 | R | normal | narrow blocks | **[gate A]** |
-| C1 | 0x1000 × 124 *(corrected; agreed text said × 125)* | 248 | 0x1000–0x10F7: protections, control switches 0x1070/74/78, capacity, calibration 1–28; 62 registers, 0 gap words | 300 s | immediate + 3 s | 3 active / 4 background | RW (per field) | normal | narrow blocks + calibration reader | **[gate A]** |
-| C2 | 0x10F8 × 19 *(corrected; agreed text said 0x10FA × 18)* | 38 | 0x10F8–0x111D: calibration 29–32, 0x1108 device address, 0x110C, 0x1114 flags, 0x1118, 0x111C heating temperatures; 9 registers, 4 gap words | 300 s | immediate + 3 s | 3 / 4 | RW (per field) | normal | narrow blocks + calibration reader | **[gate A]** |
+| A1 | 0x1200 × 120 *(gate A 2026-09-28: × 125 refused with exception 2)* | 240 | 0x1200–0x12EF: cell voltages 1–32, 0x1240–0x1249 mask/average/delta/extrema, cell resistances 1–32 (0x124A–0x1288), telemetry 0x128A–0x12EE incl. the 0x1290 cluster; 5 gap words (0x12E0/E2/E8/EA/EC) | 1 s (target) | 1 s | 2 (telemetry) | R | normal | 0x1200 × 53 + 17–32 probe + narrow blocks | 0x1200 × 53 and 0x1290 × 12 in production use; × 120 **[gate A rerun]** |
+| A2 | 0x12F0 × 15 *(was 0x12FA × 10)* | 30 | 0x12F0–0x130D: RTC ticks (U32 0x12F0), temperature 3 (0x12F8), temperatures 4/5, time-enter-sleep, PCL status; 5 gap words (0x12F4/F6/FE, 0x1304/06) | 1 s (target) | 1 s | 2 | R | normal | narrow blocks | 0x12FA × 10 OK on 2026-09-28; × 15 **[gate A rerun]** |
+| C1 | 0x1000 × 120 *(gate A 2026-09-28: × 124 refused with exception 2)* | 240 | 0x1000–0x10EF: protections, control switches 0x1070/74/78, capacity, calibration 1–26; 0 gap words | 300 s | immediate + 3 s | 3 active / 4 background | RW (per field) | narrow blocks + calibration reader | × 120 **[gate A rerun]** |
+| C2 | 0x10F0 × 23 *(was 0x10F8 × 19)* | 46 | 0x10F0–0x111D: calibration 27–32, 0x1108 device address, 0x110C, 0x1114 flags, 0x1118, 0x111C heating temperatures; 4 gap words | 300 s | immediate + 3 s | 3 / 4 | RW (per field) | narrow blocks + calibration reader | 0x10F8 × 19 OK on 2026-09-28; × 23 **[gate A rerun]** |
 | S1 | 0x1400 × 20 | 40 | device model, hardware/software version, odd run time, power-on count | startup + 300 s | — | 5 | R | normal | narrow blocks | **[gate A]** |
 | S2 | 0x14B2 × 18 | 36 | UART/CAN protocol configuration | startup + 300 s | — | 5 | R/RW | normal | narrow blocks | **[gate A]** |
 | S3 | 0x14E4 × 18 | 36 | LCD buzzer, dry contacts, data-stored period, RCV/RFV time, CAN protocol version | startup + 300 s | — | 5 | R/RW | normal | narrow blocks | **[gate A]** |
@@ -198,7 +198,15 @@ Notes:
   300 s is a deliberate cadence change. Owner confirmation is required
   (they are counters or constants).
 - The owner accepted the C1/C2 correction on 2026-09-27; the diagnostic
-  allowlist (M0) uses it.
+  allowlist (M0) used it.
+- **Gate A, 2026-09-28** (`protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_20260928.md`):
+  - The BMS refused A1 0x1200 × 125 and C1 0x1000 × 124 with exception 2.
+  - A2, C2, S1, S2 and S3 answered with exact lengths, and wide = narrow on
+    every comparison.
+  - The geometry above is the corrected split at **120 registers — a
+    CANDIDATE operational limit, not a proven device limit.** 106 was
+    accepted historically; 124 and 125 were refused.
+  - The gate A rerun tests it with ×121 boundary controls (§13).
 
 ## 3. Load and capacity model [model]
 
@@ -499,6 +507,16 @@ change. Compile and flash each need explicit owner authorization.
 - callback processing time;
 - queue timing.
 
+**Phase A rerun (2026-09-28 design, one fixed 29-step read-only pass):**
+- The steps: liveness (0x1000 × 2), A2, A1 × 120, A121, liveness, A121W,
+  liveness, C2, C1 × 120, C121, liveness, C121W, liveness, S1–S3, then the
+  13 narrow comparison reads.
+- Only a failed liveness read aborts the pass. Any other unexpected result
+  is recorded (`match=0`, `unexpected`), and the pass continues.
+- No ×122/123 and no on-device bisection.
+- If a ×121 control answers OK, the 120-limit hypothesis is false: stop and
+  redesign.
+
 **Phase B (read-only):** A1 + A2 at 1 Hz for ≥ 10 min, no writes. Record:
 - p50/p95/p99/max intervals;
 - timeouts and wrong lengths;
@@ -706,7 +724,16 @@ Rules that apply to every phase:
 
 ### M1 — Hardware gates A–C (execution step 4)
 
-> **Status (2026-09-27): gate A incomplete and not authorized.**
+> **Status (2026-09-28): gate A partial; the boundary-control rerun is implemented host-only and not authorized.**
+> - The 11:07 run is invalid for geometry: an external BMS communication
+>   failure made every read time out.
+> - The 17:37 run is valid but partial: A1 × 125 and C1 × 124 got
+>   exception 2; everything else was OK.
+> - The corrected run adds ×120 clusters, ×121 controls (prefix and
+>   whole-register), five liveness reads and deterministic timing (§13).
+>   It needs a compile-only check, then separate owner authorization.
+>
+> **Earlier status (2026-09-27): gate A incomplete and not authorized.**
 > - One accidental install booted the defective `5cead7e` image, which
 >   rolled back. It produced **no gate A measurement evidence**.
 > - A retry needs the corrected M0 to pass a compile-only validation first,

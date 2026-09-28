@@ -25,9 +25,16 @@ generated inventories linked below, not in prose.
     `Probe::begin()` against the 8 KB loopTask stack.
   - The fix, with a firmware-stack regression test, is source-proven, not
     yet device-confirmed.
-  - **Next: a new compile-only validation of the corrected probe.** Gate A
-    (M1) is incomplete, has no measurement evidence, and needs separate
-    owner authorization.
+  - Compile-only validation of the corrected probe passed on 2026-09-28.
+  - **Gate A (M1), 2026-09-28:** valid but partial.
+    - A1 0x1200 × 125 and C1 0x1000 × 124 got Modbus exception 2; the other
+      reads were OK.
+    - 120 registers is a *candidate* operational limit, not proven.
+    - The boundary-control rerun (×120 clusters, ×121 controls, liveness
+      reads) is implemented host-only. It needs a compile-only check, then
+      separate owner authorization.
+    - Evidence:
+      `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_20260928.md`.
   - Evidence:
     `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_rollback_20260927.md`.
 

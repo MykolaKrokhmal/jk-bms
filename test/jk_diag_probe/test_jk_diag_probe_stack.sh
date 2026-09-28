@@ -27,7 +27,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 INCLUDE_DIR="${JK_DIAG_PROBE_INCLUDE:-$REPO_ROOT/components/jk_diag_probe}"
 CXX="${CXX:-g++}"
 FRAME_LIMIT=2048
-ENTRIES="yaml_on_boot yaml_command_sent yaml_logger_on_message yaml_response yaml_interval"
+ENTRIES="yaml_on_boot yaml_command_sent yaml_logger_on_message yaml_response yaml_interval yaml_summary_line"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/jk_diag_stack.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 

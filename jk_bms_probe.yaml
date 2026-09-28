@@ -16,10 +16,11 @@
 # Phase selection is compile-time only (edit the substitutions, or pass
 # `-s probe_mode B_TELEMETRY_SOAK` on the esphome command line); nothing on
 # the network can change the mode, an address or a count.
-#   probe_mode: A_COMPATIBILITY  -> gate A: one pass over every allowlisted
-#                                   read, >= 1 s apart; ends when the pass
-#                                   completes (~40-50 s after boot; 5 min
-#                                   is only its deadline)
+#   probe_mode: A_COMPATIBILITY  -> gate A: the fixed 29-step schedule
+#                                   (liveness, x120 clusters, x121 boundary
+#                                   controls, comparisons), >= 1 s apart;
+#                                   aborts only when a liveness read fails;
+#                                   ends ~50 s after boot (5 min deadline)
 #               B_TELEMETRY_SOAK -> gate B: A1 + A2 every 1 s (default 10 min)
 #               C_COEXISTENCE    -> gate C: gate B + C1/C2 every 3 s,
 #                                   staggered 500 ms (default 20 min)
@@ -114,12 +115,18 @@ modbus:
     uart_id: uart_0
     flow_control_pin: ${flow_control_pin}
     turnaround_time: 50ms
+    # Deterministic timing: one frame per request, given up after 500 ms,
+    # well before the probe's own 1.5 s timeout (kHubSendWaitMs /
+    # kRequestTimeoutMs in jk_diag_probe_core.h), so requests never overlap.
+    send_wait_time: 500ms
 
 modbus_controller:
   - id: bms0
     address: ${device_addr}
     modbus_id: modbus0
     setup_priority: -10
+    # No hub retries (kHubMaxRetries): each probe request is exactly one frame.
+    max_cmd_retries: 0
     # No polled entities exist in this build; the probe is the only request source.
     update_interval: never
 
@@ -128,7 +135,7 @@ interval:
     then:
       - lambda: |-
           using namespace jk_diag_probe;
-          static bool summary_logged = false;
+          static std::size_t summary_line = 0;
           static uint32_t last_progress_ms = 0;
           char line[400];
           const uint32_t now = millis();
@@ -172,22 +179,11 @@ interval:
             }
           }
 
-          if (g_probe.finished() && !summary_logged) {
-            summary_logged = true;
-            format_run(line, sizeof(line), g_probe);
-            ESP_LOGI("diag", "%s", line);
-            for (std::size_t i = 0; i < kRequestCount; i++) {
-              if (g_probe.stats(i).issued == 0) continue;
-              format_request_stats(line, sizeof(line), g_probe, i);
+          // Final summary: one line per tick (a single burst blocked the loop
+          // for ~559 ms on 2026-09-28), after every queued result is logged.
+          if (g_probe.finished() && g_log_queue.empty() && summary_line < kSummaryLineCount) {
+            if (format_summary_line(line, sizeof(line), g_probe, summary_line, g_log_queue.dropped()) >= 0) {
               ESP_LOGI("diag", "%s", line);
             }
-            for (std::size_t c = 0; c < kComparisonCount; c++) {
-              format_comparison(line, sizeof(line), g_probe, c);
-              ESP_LOGI("diag", "%s", line);
-            }
-            for (std::size_t s = 0; s < kSummaryCount; s++) {
-              format_summary(line, sizeof(line), g_probe, s);
-              ESP_LOGI("diag", "%s", line);
-            }
-            ESP_LOGI("diag", "diag done: no further Modbus requests until reboot (log queue drops=%u)", unsigned(g_log_queue.dropped()));
+            summary_line++;
           }

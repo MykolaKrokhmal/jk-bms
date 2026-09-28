@@ -37,18 +37,45 @@
 namespace jk_diag_probe {
 
 constexpr uint8_t FC_READ_HOLDING_REGISTERS = 0x03;
-constexpr uint16_t kMaxRegistersPerRead = 125;  // Modbus RTU FC03 limit (256-byte ADU)
+constexpr uint16_t kMaxRegistersPerRead = 125;  // Modbus RTU FC03 protocol limit (256-byte ADU)
 constexpr uint16_t kCredentialStart = 0x1470;   // setup passcode, 8 registers
 constexpr uint16_t kCredentialEndExclusive = 0x1480;
 constexpr uint32_t kHardMaxRunMs = 30UL * 60UL * 1000UL;  // 30 min, never exceeded
-constexpr uint32_t kRequestTimeoutMs = 3000;  // covers the hub's own retries (4 x send_wait_time)
+
+// CANDIDATE operational limit -- NOT a proven device limit and NOT a request
+// validation rule. Gate A on 2026-09-28 got exception 2 for 0x1200 x 125 and
+// 0x1000 x 124, while 0x1200 x 106 was accepted historically (c722f5a). The
+// gate A boundary controls below read one register more (x 121) to test it.
+// Only the cluster geometry is held to it; the protocol limit stays
+// kMaxRegistersPerRead so the x 121 controls are legal requests.
+constexpr uint16_t kCandidateOperationalRegisters = 120;
+
+// Deterministic request timing. jk_bms_probe.yaml sets the same values (the
+// contract test compares them): the hub sends each frame exactly once
+// (modbus_controller max_cmd_retries: 0) and gives up after send_wait_time,
+// long before the probe declares its own timeout and moves on, so no frame of
+// an earlier request can overlap the next one.
+constexpr uint32_t kHubSendWaitMs = 500;  // modbus: send_wait_time
+constexpr uint32_t kHubMaxRetries = 0;    // modbus_controller: max_cmd_retries
+constexpr uint32_t kTimeoutMarginMs = 500;
+constexpr uint32_t kRequestTimeoutMs = 1500;
+static_assert(kRequestTimeoutMs >= (kHubMaxRetries + 1U) * kHubSendWaitMs + kTimeoutMarginMs,
+              "the probe timeout must outlast every hub attempt plus a margin (no overlapping requests)");
 
 // Raw response frames are never logged. Flipping this is a contract violation
 // that fails to compile.
 constexpr bool kLogRawFrames = false;
 static_assert(!kLogRawFrames, "the diagnostic build must never log raw response frames");
 
-enum class Kind : uint8_t { WIDE = 0, NARROW = 1 };
+// WIDE = a (candidate) cluster; BOUNDARY = a gate A boundary control, one
+// register above the candidate limit; NARROW = a comparison read.
+enum class Kind : uint8_t { WIDE = 0, BOUNDARY = 1, NARROW = 2 };
+// The outcome gate A expects. Regular reads must answer OK; a boundary
+// control is expected to be refused with exception 2 IF the candidate limit
+// holds. Any other outcome is recorded as unexpected (match=0) -- it is data,
+// not by itself a communication failure (only a failed liveness step is).
+enum class Expect : uint8_t { OK = 0, EXCEPTION_2 = 1 };
+inline const char *expect_name(Expect e) { return e == Expect::OK ? "OK" : "EXC2"; }
 
 struct Request {
   const char *id;
@@ -57,41 +84,64 @@ struct Request {
   uint16_t address;
   uint16_t count;           // registers
   uint16_t expected_bytes;  // data bytes = 2 * count
+  Expect expect;
 };
 
 // --- Static allowlist --------------------------------------------------------
-// Wide clusters (plan section 2; C1/C2 use the owner-confirmed split that does
-// not cut the 32-bit register at 0x10F8), then the narrow reads that gate A
+// Wide clusters, then the boundary controls, then the narrow reads gate A
 // compares against. Every narrow read is a sub-range of one wide read (see
-// kComparisons) and, except N_CAL29, is a read the production firmware
-// already performs.
+// kComparisons) and, except N_CAL29, is a read production already performs.
+//
+// Corrected geometry (2026-09-28; gate A refused A1 0x1200 x 125 and C1
+// 0x1000 x 124 with exception 2): each x 120 cluster plus its tail cluster
+// covers exactly the old span (A 0x1200..0x130C = 135 words, C
+// 0x1000..0x111C = 143 words) and every split falls on a canonical register
+// boundary (A1 ends with the 1-word 0x12EE, A2 starts with the U32 at
+// 0x12F0; C1 ends with the U32 0x10EC-0x10EE, C2 starts with the U32 at
+// 0x10F0).
+//
+// Boundary controls (x 121, FC03, read-only):
+//   A121  0x1200 x 121 -- the A1 prefix plus 0x12F0, which is only the FIRST
+//         half of the U32 bms_system_ticks (deliberately);
+//   A121W 0x1202 x 121 -- whole registers only; every word lies in A1 u A2;
+//   C121  0x1000 x 121 -- the C1 prefix plus 0x10F0, the first half of a U32;
+//   C121W 0x1024 x 121 -- whole registers only; every word lies in C1 u C2.
+// Exception 2 from BOTH the prefix and the whole-register control, with the
+// clusters OK, is the evidence for a quantity limit; a refused prefix alone
+// could equally be a "no partial register" rule.
 constexpr std::size_t kWideCount = 7;
+constexpr std::size_t kBoundaryCount = 4;
 constexpr Request kRequests[] = {
-    {"A1", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x1200, 125, 250},
-    {"A2", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x12FA, 10, 20},
-    {"C1", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x1000, 124, 248},
-    {"C2", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x10F8, 19, 38},
-    {"S1", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x1400, 20, 40},
-    {"S2", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x14B2, 18, 36},
-    {"S3", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x14E4, 18, 36},
+    {"A1", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x1200, 120, 240, Expect::OK},
+    {"A2", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x12F0, 15, 30, Expect::OK},
+    {"C1", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x1000, 120, 240, Expect::OK},
+    {"C2", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x10F0, 23, 46, Expect::OK},
+    {"S1", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x1400, 20, 40, Expect::OK},
+    {"S2", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x14B2, 18, 36, Expect::OK},
+    {"S3", Kind::WIDE, FC_READ_HOLDING_REGISTERS, 0x14E4, 18, 36, Expect::OK},
+    // Boundary controls.
+    {"A121", Kind::BOUNDARY, FC_READ_HOLDING_REGISTERS, 0x1200, 121, 242, Expect::EXCEPTION_2},
+    {"A121W", Kind::BOUNDARY, FC_READ_HOLDING_REGISTERS, 0x1202, 121, 242, Expect::EXCEPTION_2},
+    {"C121", Kind::BOUNDARY, FC_READ_HOLDING_REGISTERS, 0x1000, 121, 242, Expect::EXCEPTION_2},
+    {"C121W", Kind::BOUNDARY, FC_READ_HOLDING_REGISTERS, 0x1024, 121, 242, Expect::EXCEPTION_2},
     // Narrow comparison reads.
-    {"N_CELLS", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1200, 53, 106},    // production 1 s cell block
-    {"N_AVGV", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1244, 1, 2},        // average cell voltage
-    {"N_RES17", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x126A, 16, 32},     // resistance 17-32 probe range
-    {"N_1290", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1290, 12, 24},      // clustered total V / current
-    {"N_T4", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x12FA, 1, 2},          // temperature 4
-    {"N_PCL", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x130C, 1, 2},         // PCL module status
-    {"N_SLEEP", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1000, 2, 4},       // smart sleep voltage
-    {"N_CHG", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1070, 2, 4},         // charging switch
-    {"N_CAL29", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x10F8, 2, 4},       // calibration 29 (C1/C2 boundary)
-    {"N_FLAGS", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1114, 1, 2},       // control flags
-    {"N_HEAT", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x111C, 1, 2},        // heating temperatures
-    {"N_MODEL", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1400, 8, 16},      // device model (ASCII)
-    {"N_UART1", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x14B2, 1, 2},       // UART1 protocol number
-    {"N_CANVER", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1506, 1, 2},      // CAN protocol version
+    {"N_CELLS", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1200, 53, 106, Expect::OK},  // production 1 s cell block
+    {"N_AVGV", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1244, 1, 2, Expect::OK},      // average cell voltage
+    {"N_RES17", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x126A, 16, 32, Expect::OK},   // resistance 17-32 probe range
+    {"N_1290", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1290, 12, 24, Expect::OK},    // clustered total V / current
+    {"N_T4", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x12FA, 1, 2, Expect::OK},        // temperature 4
+    {"N_PCL", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x130C, 1, 2, Expect::OK},       // PCL module status
+    {"N_SLEEP", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1000, 2, 4, Expect::OK},     // smart sleep voltage; also the liveness read
+    {"N_CHG", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1070, 2, 4, Expect::OK},       // charging switch
+    {"N_CAL29", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x10F8, 2, 4, Expect::OK},     // calibration 29
+    {"N_FLAGS", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1114, 1, 2, Expect::OK},     // control flags
+    {"N_HEAT", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x111C, 1, 2, Expect::OK},      // heating temperatures
+    {"N_MODEL", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1400, 8, 16, Expect::OK},    // device model (ASCII)
+    {"N_UART1", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x14B2, 1, 2, Expect::OK},     // UART1 protocol number
+    {"N_CANVER", Kind::NARROW, FC_READ_HOLDING_REGISTERS, 0x1506, 1, 2, Expect::OK},    // CAN protocol version
 };
 constexpr std::size_t kRequestCount = sizeof(kRequests) / sizeof(kRequests[0]);
-constexpr std::size_t kMaxExpectedBytes = 250;
+constexpr std::size_t kMaxExpectedBytes = 242;
 
 constexpr bool overlaps_credential(uint16_t address, uint16_t count) {
   const uint32_t start = address, end = uint32_t(address) + 2U * uint32_t(count);
@@ -104,10 +154,20 @@ constexpr bool request_is_valid(const Request &r) {
          !overlaps_credential(r.address, r.count) && r.id != nullptr;
 }
 
+constexpr Kind kind_at(std::size_t i) {
+  return i < kWideCount ? Kind::WIDE : i < kWideCount + kBoundaryCount ? Kind::BOUNDARY : Kind::NARROW;
+}
+
 constexpr bool allowlist_is_valid() {
   for (std::size_t i = 0; i < kRequestCount; i++) {
-    if (!request_is_valid(kRequests[i])) return false;
-    if ((i < kWideCount) != (kRequests[i].kind == Kind::WIDE)) return false;
+    const Request &r = kRequests[i];
+    if (!request_is_valid(r)) return false;
+    if (r.kind != kind_at(i)) return false;
+    // Clusters stay within the candidate limit; each control is exactly one
+    // register above it and is the only kind expected to be refused.
+    if (r.kind == Kind::WIDE && r.count > kCandidateOperationalRegisters) return false;
+    if ((r.kind == Kind::BOUNDARY) != (r.count == kCandidateOperationalRegisters + 1)) return false;
+    if ((r.kind == Kind::BOUNDARY) != (r.expect == Expect::EXCEPTION_2)) return false;
     for (std::size_t j = 0; j < i; j++) {
       if (kRequests[j].address == kRequests[i].address && kRequests[j].count == kRequests[i].count) return false;
     }
@@ -153,13 +213,13 @@ constexpr Comparison kComparisons[] = {
     {index_of("N_AVGV"), index_of("A1"), 34, 1, false},
     {index_of("N_RES17"), index_of("A1"), 53, 16, false},
     {index_of("N_1290"), index_of("A1"), 72, 12, false},
-    {index_of("N_T4"), index_of("A2"), 0, 1, false},
-    {index_of("N_PCL"), index_of("A2"), 9, 1, false},
+    {index_of("N_T4"), index_of("A2"), 5, 1, false},
+    {index_of("N_PCL"), index_of("A2"), 14, 1, false},
     {index_of("N_SLEEP"), index_of("C1"), 0, 2, true},
     {index_of("N_CHG"), index_of("C1"), 56, 2, true},
-    {index_of("N_CAL29"), index_of("C2"), 0, 2, true},
-    {index_of("N_FLAGS"), index_of("C2"), 14, 1, true},
-    {index_of("N_HEAT"), index_of("C2"), 18, 1, true},
+    {index_of("N_CAL29"), index_of("C2"), 4, 2, true},
+    {index_of("N_FLAGS"), index_of("C2"), 18, 1, true},
+    {index_of("N_HEAT"), index_of("C2"), 22, 1, true},
     {index_of("N_MODEL"), index_of("S1"), 0, 8, true},
     {index_of("N_UART1"), index_of("S2"), 0, 1, true},
     {index_of("N_CANVER"), index_of("S3"), 17, 1, true},
@@ -182,8 +242,10 @@ static_assert(comparisons_are_valid(), "every comparison must be an exact sub-ra
 // --- Allowlisted content summaries (counts only) -----------------------------
 // Gap words: addresses inside a wide read that no canonical register defines
 // (checked against protocol/registers.canonical.json by
-// test/jk_diag_probe/test_diag_probe_geometry.js). Channel ranges: voltages
-// 17-32 and resistances 17-32 inside A1 (inactive on a 16S pack).
+// test/protocol_catalog/test_diag_probe_contract.js). Gate A on 2026-09-28
+// found them NOT all zero (A2 1/3, C2 1/4 zero): undocumented data, never
+// assumed zero. Channel ranges: voltages 17-32 and resistances 17-32 inside
+// A1 (inactive on a 16S pack).
 struct WordSet {
   const char *id;
   int wide;
@@ -192,8 +254,8 @@ struct WordSet {
   const uint16_t *words;   // explicit gap-word addresses
   uint16_t word_count;
 };
-constexpr uint16_t kA1GapWords[] = {0x12E0, 0x12E2, 0x12E8, 0x12EA, 0x12EC, 0x12F4, 0x12F6};
-constexpr uint16_t kA2GapWords[] = {0x12FE, 0x1304, 0x1306};
+constexpr uint16_t kA1GapWords[] = {0x12E0, 0x12E2, 0x12E8, 0x12EA, 0x12EC};
+constexpr uint16_t kA2GapWords[] = {0x12F4, 0x12F6, 0x12FE, 0x1304, 0x1306};
 constexpr uint16_t kC2GapWords[] = {0x1110, 0x1112, 0x1116, 0x111A};
 constexpr WordSet kSummaries[] = {
     {"A1_V17_32", index_of("A1"), 0x1220, 16, nullptr, 0},
@@ -287,6 +349,85 @@ constexpr uint32_t kSettingsCadenceMs = 3000;    // C1 then C2 (mode C)
 constexpr uint32_t kSettingsPhaseMs = 500;       // stagger from the telemetry cycle
 constexpr uint32_t kPassSpacingMs = 1000;        // mode A: gap between requests
 
+// --- Mode A: the fixed gate A schedule ---------------------------------------
+// 29 steps, statically defined; nothing is ever added at run time (no
+// bisection, no x 122/123). LIVENESS = the production-identical read
+// 0x1000 x 2 (production read-plan block 0): if it is not OK the run aborts
+// and no further Modbus request is issued. It opens the run and follows every
+// boundary control, so each (expected) exception 2 is followed by proof that
+// the link is still healthy. An unexpected result on any other step only
+// sets match=0 and counts as unexpected; the fixed schedule continues, since
+// the remaining controls are needed to read the full matrix.
+enum class Role : uint8_t { LIVENESS = 0, CLUSTER = 1, CONTROL = 2, NARROW = 3 };
+struct Step {
+  int request;
+  Role role;
+};
+constexpr Step kPassA[] = {
+    {index_of("N_SLEEP"), Role::LIVENESS},
+    {index_of("A2"), Role::CLUSTER},     // proves 0x12F0 and the new A tail readable on their own
+    {index_of("A1"), Role::CLUSTER},
+    {index_of("A121"), Role::CONTROL},
+    {index_of("N_SLEEP"), Role::LIVENESS},
+    {index_of("A121W"), Role::CONTROL},
+    {index_of("N_SLEEP"), Role::LIVENESS},
+    {index_of("C2"), Role::CLUSTER},     // proves 0x10F0 and the new C tail readable on their own
+    {index_of("C1"), Role::CLUSTER},
+    {index_of("C121"), Role::CONTROL},
+    {index_of("N_SLEEP"), Role::LIVENESS},
+    {index_of("C121W"), Role::CONTROL},
+    {index_of("N_SLEEP"), Role::LIVENESS},
+    {index_of("S1"), Role::CLUSTER},     // repeated so every gate A comparison stays valid
+    {index_of("S2"), Role::CLUSTER},
+    {index_of("S3"), Role::CLUSTER},
+    {index_of("N_CELLS"), Role::NARROW},
+    {index_of("N_AVGV"), Role::NARROW},
+    {index_of("N_RES17"), Role::NARROW},
+    {index_of("N_1290"), Role::NARROW},
+    {index_of("N_T4"), Role::NARROW},
+    {index_of("N_PCL"), Role::NARROW},
+    {index_of("N_CHG"), Role::NARROW},
+    {index_of("N_CAL29"), Role::NARROW},
+    {index_of("N_FLAGS"), Role::NARROW},
+    {index_of("N_HEAT"), Role::NARROW},
+    {index_of("N_MODEL"), Role::NARROW},
+    {index_of("N_UART1"), Role::NARROW},
+    {index_of("N_CANVER"), Role::NARROW},
+};
+constexpr std::size_t kPassACount = sizeof(kPassA) / sizeof(kPassA[0]);
+constexpr int kLivenessRequest = index_of("N_SLEEP");
+
+constexpr bool pass_a_is_valid() {
+  if (kPassACount != 29 || kPassA[0].role != Role::LIVENESS) return false;
+  std::size_t liveness = 0;
+  for (std::size_t i = 0; i < kPassACount; i++) {
+    const Step &s = kPassA[i];
+    if (s.request < 0 || std::size_t(s.request) >= kRequestCount) return false;
+    const Kind k = kRequests[s.request].kind;
+    if ((s.role == Role::LIVENESS) != (s.request == kLivenessRequest)) return false;
+    if (s.role == Role::CLUSTER && k != Kind::WIDE) return false;
+    if (s.role == Role::CONTROL && k != Kind::BOUNDARY) return false;
+    if (s.role == Role::NARROW && k != Kind::NARROW) return false;
+    if (s.role == Role::LIVENESS) liveness++;
+    // Every control is immediately followed by a liveness step.
+    if (s.role == Role::CONTROL && (i + 1 >= kPassACount || kPassA[i + 1].role != Role::LIVENESS)) return false;
+  }
+  if (liveness != 5) return false;
+  // Every allowlisted request is used at least once.
+  for (std::size_t r = 0; r < kRequestCount; r++) {
+    bool used = false;
+    for (const Step &s : kPassA) used = used || s.request == int(r);
+    if (!used) return false;
+  }
+  return true;
+}
+static_assert(pass_a_is_valid(), "gate A schedule: 29 steps, liveness first and after every control, every request used");
+
+// Whether a terminal outcome is the one gate A expects for that request.
+inline bool outcome_matches(Expect e, Outcome o, uint8_t exception) {
+  return e == Expect::OK ? o == Outcome::OK : (o == Outcome::EXCEPTION && exception == 2);
+}
+
 // --- Statistics ----------------------------------------------------------------
 constexpr uint32_t kHistBucketMs = 10;
 constexpr std::size_t kHistBuckets = 128;  // 0..1270 ms, last bucket open-ended (max tracked exactly)
@@ -379,6 +520,8 @@ struct Terminal {
   uint8_t exception = 0;
   uint8_t sends = 0;
   uint32_t queue_ms = 0, bms_ms = 0, total_ms = 0;
+  int step = -1;    // mode A step (0-based), -1 outside mode A
+  bool match = true;  // outcome equals the request's expectation
 };
 
 // --- The bounded run ------------------------------------------------------------
@@ -410,6 +553,9 @@ class Probe {
   uint32_t generation() const { return generation_; }
   const RequestStats &stats(std::size_t i) const { return stats_[i]; }
   uint32_t total_issued() const { return total_issued_; }
+  bool aborted() const { return aborted_; }
+  int abort_step() const { return abort_step_; }
+  uint32_t unexpected() const { return unexpected_; }
 
   // Called on every poll. Returns the index of the one request to issue now,
   // or -1. Resolves the outstanding request's timeout first. `timed_out` gets
@@ -420,6 +566,7 @@ class Probe {
     if (outstanding_ >= 0) {
       if (elapsed(now_ms, issued_ms_) < kRequestTimeoutMs) return -1;
       timed_out = finish(now_ms, exception_seen_ ? Outcome::EXCEPTION : Outcome::TIMEOUT, 0);
+      if (finished_) return -1;  // a failed liveness step aborted the run
     }
     if (before(now_ms, start_ms_)) return -1;
     if (!before(now_ms, deadline_ms_)) { finished_ = true; return -1; }
@@ -519,9 +666,10 @@ class Probe {
   int choose(uint32_t now_ms) {
     const int a1 = index_of("A1"), a2 = index_of("A2"), c1 = index_of("C1"), c2 = index_of("C2");
     if (mode_ == Mode::A_COMPATIBILITY) {
-      if (pass_cursor_ >= kRequestCount) { finished_ = true; return -1; }
+      if (step_cursor_ >= kPassACount) { finished_ = true; return -1; }
       if (before(now_ms, next_pass_ms_)) return -1;
-      return int(pass_cursor_++);
+      current_step_ = int(step_cursor_);
+      return kPassA[step_cursor_++].request;
     }
     // Telemetry first: A1 opens a cycle, A2 follows it.
     if (tele_pending_a2_) { tele_pending_a2_ = false; return a2; }
@@ -552,6 +700,16 @@ class Probe {
     t.total_ms = elapsed(now_ms, issued_ms_);
     t.queue_ms = sends_ ? elapsed(first_sent_ms_, issued_ms_) : 0;
     t.bms_ms = sends_ ? elapsed(now_ms, last_sent_ms_) : 0;
+    t.step = mode_ == Mode::A_COMPATIBILITY ? current_step_ : -1;
+    t.match = outcome_matches(kRequests[outstanding_].expect, o, exception_code_);
+    if (!t.match) unexpected_++;
+    // Only a failed liveness step stops the run: no further request at all.
+    if (mode_ == Mode::A_COMPATIBILITY && current_step_ >= 0 && kPassA[current_step_].role == Role::LIVENESS &&
+        o != Outcome::OK) {
+      aborted_ = true;
+      abort_step_ = current_step_;
+      finished_ = true;
+    }
     RequestStats &s = stats_[outstanding_];
     s.outcomes[std::size_t(o)]++;
     if (sends_ > 1) s.resends += sends_ - 1;
@@ -579,7 +737,11 @@ class Probe {
     generation_ = 0; issued_ms_ = 0; first_sent_ms_ = 0; last_sent_ms_ = 0;
     sends_ = 0; exception_code_ = 0;
     exception_seen_ = false;
-    pass_cursor_ = 0;
+    step_cursor_ = 0;
+    current_step_ = -1;
+    aborted_ = false;
+    abort_step_ = -1;
+    unexpected_ = 0;
     next_pass_ms_ = 0; tele_due_ms_ = 0; settings_due_ms_ = 0;
     tele_pending_a2_ = false; settings_pending_c2_ = false;
     total_issued_ = 0;
@@ -590,8 +752,7 @@ class Probe {
 
   uint32_t cadence_of(int i) const {
     if (mode_ == Mode::A_COMPATIBILITY) return 0;
-    const Request &r = kRequests[i];
-    if (r.address == 0x1200 || r.address == 0x12FA) return kTelemetryCadenceMs;
+    if (i == index_of("A1") || i == index_of("A2")) return kTelemetryCadenceMs;
     return kSettingsCadenceMs;
   }
 
@@ -602,7 +763,11 @@ class Probe {
   uint32_t generation_ = 0, issued_ms_ = 0, first_sent_ms_ = 0, last_sent_ms_ = 0;
   uint8_t sends_ = 0, exception_code_ = 0;
   bool exception_seen_ = false;
-  std::size_t pass_cursor_ = 0;
+  std::size_t step_cursor_ = 0;
+  int current_step_ = -1;
+  bool aborted_ = false;
+  int abort_step_ = -1;
+  uint32_t unexpected_ = 0;
   uint32_t next_pass_ms_ = 0, tele_due_ms_ = 0, settings_due_ms_ = 0;
   bool tele_pending_a2_ = false, settings_pending_c2_ = false;
   uint32_t total_issued_ = 0;
@@ -634,6 +799,7 @@ class LogQueue {
     return true;
   }
   uint32_t dropped() const { return dropped_; }
+  bool empty() const { return count_ == 0; }
   static constexpr std::size_t kCapacity = 8;
 
  private:
@@ -651,10 +817,13 @@ inline LogQueue g_log_queue;
 inline int format_terminal(char *buf, std::size_t n, const Terminal &t) {
   if (!t.valid || t.request < 0) return std::snprintf(buf, n, "diag none");
   const Request &r = kRequests[t.request];
-  return std::snprintf(buf, n, "diag req=%s fc=%u addr=0x%04X n=%u exp=%u got=%u cls=%s exc=%u sends=%u queue_ms=%u bms_ms=%u total_ms=%u",
+  return std::snprintf(buf, n,
+                       "diag req=%s fc=%u addr=0x%04X n=%u exp=%u got=%u cls=%s exc=%u sends=%u queue_ms=%u bms_ms=%u total_ms=%u "
+                       "step=%d expect=%s match=%d",
                        r.id, unsigned(r.function), unsigned(r.address), unsigned(r.count), unsigned(r.expected_bytes),
                        unsigned(t.got_bytes), outcome_name(t.outcome), unsigned(t.exception), unsigned(t.sends),
-                       unsigned(t.queue_ms), unsigned(t.bms_ms), unsigned(t.total_ms));
+                       unsigned(t.queue_ms), unsigned(t.bms_ms), unsigned(t.total_ms), t.step < 0 ? 0 : t.step + 1,
+                       expect_name(r.expect), t.match ? 1 : 0);
 }
 
 inline int format_request_stats(char *buf, std::size_t n, const Probe &p, std::size_t i) {
@@ -687,8 +856,31 @@ inline int format_summary(char *buf, std::size_t n, const Probe &p, std::size_t 
 }
 
 inline int format_run(char *buf, std::size_t n, const Probe &p) {
-  return std::snprintf(buf, n, "diag run mode=%s run_ms=%u issued=%u finished=%d", mode_name(p.mode()), unsigned(p.run_ms()),
-                       unsigned(p.total_issued()), p.finished() ? 1 : 0);
+  if (p.aborted())
+    return std::snprintf(buf, n, "diag run mode=%s run_ms=%u issued=%u finished=%d unexpected=%u aborted=liveness@step%d",
+                         mode_name(p.mode()), unsigned(p.run_ms()), unsigned(p.total_issued()), p.finished() ? 1 : 0,
+                         unsigned(p.unexpected()), p.abort_step() + 1);
+  return std::snprintf(buf, n, "diag run mode=%s run_ms=%u issued=%u finished=%d unexpected=%u aborted=no", mode_name(p.mode()),
+                       unsigned(p.run_ms()), unsigned(p.total_issued()), p.finished() ? 1 : 0, unsigned(p.unexpected()));
+}
+
+// The final summary, one line per call so the device logs it one line per
+// 10 ms interval tick (gate A 2026-09-28: logging it in one burst blocked the
+// loop for ~559 ms). Line order: run, per-request stats, comparisons,
+// summaries, "diag done". Returns the line length, or -1 past the last line.
+constexpr std::size_t kSummaryLineCount = 1 + kRequestCount + kComparisonCount + kSummaryCount + 1;
+inline int format_summary_line(char *buf, std::size_t n, const Probe &p, std::size_t line, uint32_t log_drops) {
+  if (line == 0) return format_run(buf, n, p);
+  line -= 1;
+  if (line < kRequestCount) return format_request_stats(buf, n, p, line);
+  line -= kRequestCount;
+  if (line < kComparisonCount) return format_comparison(buf, n, p, line);
+  line -= kComparisonCount;
+  if (line < kSummaryCount) return format_summary(buf, n, p, line);
+  line -= kSummaryCount;
+  if (line == 0)
+    return std::snprintf(buf, n, "diag done: no further Modbus requests until reboot (log queue drops=%u)", unsigned(log_drops));
+  return -1;
 }
 
 }  // namespace jk_diag_probe
