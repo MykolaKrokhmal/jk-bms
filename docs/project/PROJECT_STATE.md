@@ -23,16 +23,21 @@ generated inventories linked below, not in prose.
   - An accidental OTA of it reset before boot validation and was rolled back
     automatically. The cause was a ~32 KB stack temporary in
     `Probe::begin()` against the 8 KB loopTask stack.
-  - The fix, with a firmware-stack regression test, is source-proven, not
-    yet device-confirmed.
+  - The fix, with a firmware-stack regression test, is confirmed on the
+    device: the corrected diagnostic build booted, passed boot validation and
+    completed its runs on 2026-09-28.
   - Compile-only validation of the corrected probe passed on 2026-09-28.
-  - **Gate A (M1), 2026-09-28:** valid but partial.
-    - A1 0x1200 × 125 and C1 0x1000 × 124 got Modbus exception 2; the other
-      reads were OK.
-    - 120 registers is a *candidate* operational limit, not proven.
-    - The boundary-control rerun (×120 clusters, ×121 controls, liveness
-      reads) is implemented host-only. It needs a compile-only check, then
-      separate owner authorization.
+  - **Gate A (M1): COMPLETE on 2026-09-28** (boundary run at 20:58,
+    `e93a5a9`).
+    - Earlier, A1 0x1200 × 125 and C1 0x1000 × 124 got Modbus exception 2.
+    - The ×120 clusters (A1 0x1200 ×120, A2′ 0x12F0 ×15, C1 0x1000 ×120,
+      C2′ 0x10F0 ×23) and S1–S3 all succeeded with exact lengths.
+    - All four ×121 boundary controls also succeeded, so 120 is not the
+      hardware limit.
+    - **Owner decision:** 120 registers is the verified conservative
+      operational maximum. The exact global device limit was not determined.
+    - **Next:** gate B (1 Hz A1 + A2′ soak). It needs separate owner
+      authorization, and production must be confirmed restored first.
     - Evidence:
       `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_20260928.md`.
   - Evidence:

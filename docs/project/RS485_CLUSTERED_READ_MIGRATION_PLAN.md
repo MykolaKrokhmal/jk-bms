@@ -176,7 +176,7 @@ decode, freshness, UI and HA publication:
 The target load is an estimate until wide-read latency is measured
 **[gate A]**.
 
-## 2. Target cluster inventory [proposal until gate A]
+## 2. Target cluster inventory [A/C/S geometry verified by gate A 2026-09-28; cadence and ownership still proposal]
 
 These ranges are proposed geometry. They become authoritative only when
 Phase A proves the exact response behaviour, and are then encoded in the
@@ -184,10 +184,10 @@ canonical cluster source (§15).
 
 | ID | Start × count | Bytes | Covers (canonical) | Normal cadence | Active cadence | Priority | Access | Security | Fallback | Evidence |
 |---|---|---|---|---|---|---|---|---|---|---|
-| A1 | 0x1200 × 120 *(gate A 2026-09-28: × 125 refused with exception 2)* | 240 | 0x1200–0x12EF: cell voltages 1–32, 0x1240–0x1249 mask/average/delta/extrema, cell resistances 1–32 (0x124A–0x1288), telemetry 0x128A–0x12EE incl. the 0x1290 cluster; 5 gap words (0x12E0/E2/E8/EA/EC) | 1 s (target) | 1 s | 2 (telemetry) | R | normal | 0x1200 × 53 + 17–32 probe + narrow blocks | 0x1200 × 53 and 0x1290 × 12 in production use; × 120 **[gate A rerun]** |
-| A2 | 0x12F0 × 15 *(was 0x12FA × 10)* | 30 | 0x12F0–0x130D: RTC ticks (U32 0x12F0), temperature 3 (0x12F8), temperatures 4/5, time-enter-sleep, PCL status; 5 gap words (0x12F4/F6/FE, 0x1304/06) | 1 s (target) | 1 s | 2 | R | normal | narrow blocks | 0x12FA × 10 OK on 2026-09-28; × 15 **[gate A rerun]** |
-| C1 | 0x1000 × 120 *(gate A 2026-09-28: × 124 refused with exception 2)* | 240 | 0x1000–0x10EF: protections, control switches 0x1070/74/78, capacity, calibration 1–26; 0 gap words | 300 s | immediate + 3 s | 3 active / 4 background | RW (per field) | narrow blocks + calibration reader | × 120 **[gate A rerun]** |
-| C2 | 0x10F0 × 23 *(was 0x10F8 × 19)* | 46 | 0x10F0–0x111D: calibration 27–32, 0x1108 device address, 0x110C, 0x1114 flags, 0x1118, 0x111C heating temperatures; 4 gap words | 300 s | immediate + 3 s | 3 / 4 | RW (per field) | narrow blocks + calibration reader | 0x10F8 × 19 OK on 2026-09-28; × 23 **[gate A rerun]** |
+| A1 | 0x1200 × 120 *(gate A 2026-09-28: × 125 refused with exception 2)* | 240 | 0x1200–0x12EF: cell voltages 1–32, 0x1240–0x1249 mask/average/delta/extrema, cell resistances 1–32 (0x124A–0x1288), telemetry 0x128A–0x12EE incl. the 0x1290 cluster; 5 gap words (0x12E0/E2/E8/EA/EC) | 1 s (target) | 1 s | 2 (telemetry) | R | normal | 0x1200 × 53 + 17–32 probe + narrow blocks | 0x1200 × 53 and 0x1290 × 12 in production use; × 120 **verified 2026-09-28** (240/240 bytes) |
+| A2 | 0x12F0 × 15 *(was 0x12FA × 10)* | 30 | 0x12F0–0x130D: RTC ticks (U32 0x12F0), temperature 3 (0x12F8), temperatures 4/5, time-enter-sleep, PCL status; 5 gap words (0x12F4/F6/FE, 0x1304/06) | 1 s (target) | 1 s | 2 | R | normal | narrow blocks | × 15 **verified 2026-09-28** (30/30 bytes) |
+| C1 | 0x1000 × 120 *(gate A 2026-09-28: × 124 refused with exception 2)* | 240 | 0x1000–0x10EF: protections, control switches 0x1070/74/78, capacity, calibration 1–26; 0 gap words | 300 s | immediate + 3 s | 3 active / 4 background | RW (per field) | narrow blocks + calibration reader | × 120 **verified 2026-09-28** (240/240 bytes) |
+| C2 | 0x10F0 × 23 *(was 0x10F8 × 19)* | 46 | 0x10F0–0x111D: calibration 27–32, 0x1108 device address, 0x110C, 0x1114 flags, 0x1118, 0x111C heating temperatures; 4 gap words | 300 s | immediate + 3 s | 3 / 4 | RW (per field) | narrow blocks + calibration reader | × 23 **verified 2026-09-28** (46/46 bytes) |
 | S1 | 0x1400 × 20 | 40 | device model, hardware/software version, odd run time, power-on count | startup + 300 s | — | 5 | R | normal | narrow blocks | **[gate A]** |
 | S2 | 0x14B2 × 18 | 36 | UART/CAN protocol configuration | startup + 300 s | — | 5 | R/RW | normal | narrow blocks | **[gate A]** |
 | S3 | 0x14E4 × 18 | 36 | LCD buzzer, dry contacts, data-stored period, RCV/RFV time, CAN protocol version | startup + 300 s | — | 5 | R/RW | normal | narrow blocks | **[gate A]** |
@@ -203,10 +203,18 @@ Notes:
   - The BMS refused A1 0x1200 × 125 and C1 0x1000 × 124 with exception 2.
   - A2, C2, S1, S2 and S3 answered with exact lengths, and wide = narrow on
     every comparison.
-  - The geometry above is the corrected split at **120 registers — a
-    CANDIDATE operational limit, not a proven device limit.** 106 was
-    accepted historically; 124 and 125 were refused.
-  - The gate A rerun tests it with ×121 boundary controls (§13).
+  - **Boundary run, 20:58** (`hw_diag_probe_gate_a_boundary_20260928.log`):
+    every cluster above succeeded with an exact length, and **all four ×121
+    controls also succeeded**. The hypothesis that 120 is the hardware limit
+    is false.
+  - Ending a read on half of a U32 did not fail.
+  - **Owner decision:** 120 registers is the **verified conservative
+    operational maximum**. This is a design decision, not a claim about the
+    BMS protocol limit.
+  - For the tested ranges, the largest confirmed successful length is 121
+    registers, and the smallest previously observed failing length is 124.
+  - The exact global device limit was not determined, and ×122/×123 are not
+    tested.
 
 ## 3. Load and capacity model [model]
 
@@ -516,6 +524,16 @@ change. Compile and flash each need explicit owner authorization.
 - No ×122/123 and no on-device bisection.
 - If a ×121 control answers OK, the 120-limit hypothesis is false: stop and
   redesign.
+- **Result (2026-09-28 20:58):** a complete, valid pass.
+  - 29/29 steps; no timeout, retry, short/long reply or late callback.
+  - Liveness 5/5 OK.
+  - All clusters OK with exact lengths, and all four ×121 controls OK
+    (242 bytes), so the 120-limit hypothesis is false.
+  - Stable comparisons all equal.
+  - On this 16S unit, voltage and resistance channels 17–32 read all zero.
+  - Gap words are not uniformly zero.
+  - The redesign decision: keep 120 as the verified conservative operational
+    maximum; do not test ×122/×123.
 
 **Phase B (read-only):** A1 + A2 at 1 Hz for ≥ 10 min, no writes. Record:
 - p50/p95/p99/max intervals;
@@ -724,7 +742,18 @@ Rules that apply to every phase:
 
 ### M1 — Hardware gates A–C (execution step 4)
 
-> **Status (2026-09-28): gate A partial; the boundary-control rerun is implemented host-only and not authorized.**
+> **Status (2026-09-28, 20:58): gate A COMPLETE.**
+> - The boundary-control run (`e93a5a9`, build 20:55:11) passed 29/29 steps.
+> - The verified cluster geometry is: A1 0x1200 ×120, A2′ 0x12F0 ×15,
+>   C1 0x1000 ×120, C2′ 0x10F0 ×23, S1–S3.
+> - 120 is the owner-adopted conservative operational maximum (×121 also
+>   succeeded).
+> - Evidence: `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_20260928.md`
+>   §6.
+> - Gate B needs separate owner authorization, and production must be
+>   confirmed restored first.
+>
+> **Earlier status (2026-09-28): gate A partial; the boundary-control rerun was implemented host-only.**
 > - The 11:07 run is invalid for geometry: an external BMS communication
 >   failure made every read time out.
 > - The 17:37 run is valid but partial: A1 × 125 and C1 × 124 got

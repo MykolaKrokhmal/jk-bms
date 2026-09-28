@@ -483,7 +483,8 @@ occupancy, and telemetry every 15 s. Transaction overhead (~110 ms), not
 payload bytes, dominates the bus time.
 
 **Decision (2026-09-27, owner + Codex + Claude review):**
-- Clusters:
+- Clusters (geometry SUPERSEDED on 2026-09-28; see "Clustered reads use a
+  verified 120-register operational maximum" below):
   - telemetry A1 `0x1200 × 125` + A2 `0x12FA × 10`, target 1 Hz;
   - Settings C1 + C2, background every 300 s, immediate + every 3 s under one
     bounded active-view lease;
@@ -525,3 +526,41 @@ gates:
 The existing "Freshness budget = cadence + one absolute scheduling
 allowance" decision stays in force for the current per-address scheduler
 until the cluster budgets replace it.
+
+## Decision: Clustered reads use a verified 120-register operational maximum
+
+**Context:** gate A (2026-09-28) was run with the read-only diagnostic build.
+- The BMS refused `0x1200 × 125` and `0x1000 × 124` with Modbus exception 2.
+- In the boundary run (`e93a5a9`, 20:58), the ×120 clusters and all four
+  ×121 controls succeeded with exact lengths, including reads that end on
+  half of a U32.
+- For the tested ranges, the largest confirmed successful length is 121
+  registers and the smallest previously observed failing length is 124.
+- The exact global device limit was not determined.
+
+**Decision (2026-09-28, owner):**
+- Cluster geometry: A1 `0x1200 × 120`, A2′ `0x12F0 × 15`,
+  C1 `0x1000 × 120`, C2′ `0x10F0 × 23`, S1–S3 unchanged.
+- 120 registers is the verified conservative operational maximum per read.
+  It is a design limit, not a statement of the BMS protocol limit.
+- ×122/×123 are not tested.
+- Canonical gap words inside clusters stay ignored/unknown. They are not
+  uniformly zero.
+- Inactive cell channels 17–32 are read with the fixed range and filtered
+  after decoding. The all-zero observation comes from one 16S unit and is not
+  a protocol guarantee.
+
+**Reason:** 120 is proven on hardware with a margin. ×121 also succeeded,
+and no failure was seen below 124. The exact limit does not matter for the
+migration, and probing it would add hardware steps without benefit.
+
+**Alternatives considered:**
+- determining the exact limit with ×122/×123 and more start addresses;
+- the original ×125/×124 geometry, which was refused.
+
+**Rejected approaches:** presenting 120 or [121, 123] as the device's
+protocol limit; treating gap words as reserved zeros.
+
+**Status:** Active for the migration plan (M2 onward). Evidence:
+`protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_20260928.md`
+§6.
