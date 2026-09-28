@@ -389,4 +389,114 @@ constexpr uint32_t kBlockFreshnessBudgetMs[kBlockCount] = {
     22500u,  // 0x1506
 };
 
+// Read clusters: protocol/read_clusters.canonical.json clusters_hash=aab2bcd7553aacfa
+// Where each block's bytes sit inside a cluster payload. cluster -1 = not in
+// any cluster: only the credential (setup passcode) block, an isolated read.
+struct BlockClusterRef { int8_t cluster; uint16_t byte_offset; };
+constexpr BlockClusterRef kBlockCluster[kBlockCount] = {
+    {2, 0},  // 0x1000 in C1
+    {2, 4},  // 0x1004 in C1
+    {2, 8},  // 0x1008 in C1
+    {2, 12},  // 0x100C in C1
+    {2, 16},  // 0x1010 in C1
+    {2, 20},  // 0x1014 in C1
+    {2, 24},  // 0x1018 in C1
+    {2, 28},  // 0x101C in C1
+    {2, 32},  // 0x1020 in C1
+    {2, 36},  // 0x1024 in C1
+    {2, 40},  // 0x1028 in C1
+    {2, 44},  // 0x102C in C1
+    {2, 48},  // 0x1030 in C1
+    {2, 52},  // 0x1034 in C1
+    {2, 56},  // 0x1038 in C1
+    {2, 60},  // 0x103C in C1
+    {2, 64},  // 0x1040 in C1
+    {2, 68},  // 0x1044 in C1
+    {2, 72},  // 0x1048 in C1
+    {2, 76},  // 0x104C in C1
+    {2, 80},  // 0x1050 in C1
+    {2, 84},  // 0x1054 in C1
+    {2, 88},  // 0x1058 in C1
+    {2, 92},  // 0x105C in C1
+    {2, 96},  // 0x1060 in C1
+    {2, 100},  // 0x1064 in C1
+    {2, 104},  // 0x1068 in C1
+    {2, 108},  // 0x106C in C1
+    {2, 112},  // 0x1070 in C1
+    {2, 116},  // 0x1074 in C1
+    {2, 120},  // 0x1078 in C1
+    {2, 124},  // 0x107C in C1
+    {2, 128},  // 0x1080 in C1
+    {2, 132},  // 0x1084 in C1
+    {3, 24},  // 0x1108 in C2
+    {3, 28},  // 0x110C in C2
+    {3, 36},  // 0x1114 in C2
+    {3, 40},  // 0x1118 in C2
+    {3, 44},  // 0x111C in C2
+    {0, 64},  // 0x1240 in A1
+    {0, 68},  // 0x1244 in A1
+    {0, 70},  // 0x1246 in A1
+    {0, 138},  // 0x128A in A1
+    {0, 140},  // 0x128C in A1
+    {0, 144},  // 0x1290 in A1
+    {0, 148},  // 0x1294 in A1
+    {0, 156},  // 0x129C in A1
+    {0, 158},  // 0x129E in A1
+    {0, 160},  // 0x12A0 in A1
+    {0, 164},  // 0x12A4 in A1
+    {0, 166},  // 0x12A6 in A1
+    {0, 168},  // 0x12A8 in A1
+    {0, 172},  // 0x12AC in A1
+    {0, 176},  // 0x12B0 in A1
+    {0, 180},  // 0x12B4 in A1
+    {0, 184},  // 0x12B8 in A1
+    {0, 186},  // 0x12BA in A1
+    {0, 188},  // 0x12BC in A1
+    {0, 192},  // 0x12C0 in A1
+    {0, 194},  // 0x12C2 in A1
+    {0, 196},  // 0x12C4 in A1
+    {0, 198},  // 0x12C6 in A1
+    {0, 200},  // 0x12C8 in A1
+    {0, 202},  // 0x12CA in A1
+    {0, 204},  // 0x12CC in A1
+    {0, 206},  // 0x12CE in A1
+    {0, 208},  // 0x12D0 in A1
+    {0, 212},  // 0x12D4 in A1
+    {0, 214},  // 0x12D6 in A1
+    {0, 216},  // 0x12D8 in A1
+    {0, 218},  // 0x12DA in A1
+    {0, 220},  // 0x12DC in A1
+    {0, 228},  // 0x12E4 in A1
+    {0, 230},  // 0x12E6 in A1
+    {0, 238},  // 0x12EE in A1
+    {1, 0},  // 0x12F0 in A2
+    {1, 8},  // 0x12F8 in A2
+    {1, 10},  // 0x12FA in A2
+    {1, 12},  // 0x12FC in A2
+    {1, 16},  // 0x1300 in A2
+    {1, 24},  // 0x1308 in A2
+    {1, 28},  // 0x130C in A2
+    {4, 0},  // 0x1400 in S1
+    {4, 16},  // 0x1410 in S1
+    {4, 24},  // 0x1418 in S1
+    {4, 32},  // 0x1420 in S1
+    {4, 36},  // 0x1424 in S1
+    {-1, 0},  // 0x1470 credential, isolated read
+    {5, 0},  // 0x14B2 in S2
+    {5, 2},  // 0x14B4 in S2
+    {5, 18},  // 0x14C4 in S2
+    {5, 34},  // 0x14D4 in S2
+    {6, 0},  // 0x14E4 in S3
+    {6, 2},  // 0x14E6 in S3
+    {6, 4},  // 0x14E8 in S3
+    {6, 8},  // 0x14EC in S3
+    {6, 12},  // 0x14F0 in S3
+    {6, 16},  // 0x14F4 in S3
+    {6, 20},  // 0x14F8 in S3
+    {6, 24},  // 0x14FC in S3
+    {6, 28},  // 0x1500 in S3
+    {6, 32},  // 0x1504 in S3
+    {6, 34},  // 0x1506 in S3
+};
+
 } // namespace jk_read_plan

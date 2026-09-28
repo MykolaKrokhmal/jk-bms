@@ -881,7 +881,30 @@ Rules that apply to every phase:
 - **Commit:** `feat(scheduler): prioritize clustered reads`.
 - **Deploy:** none until M5 uses it.
 
-### M4 — Cluster decode, raw cache and RMW offsets (host only)
+### M4 — Cluster decode, raw cache and RMW offsets (host only) — DONE (host)
+
+> **Status (2026-09-28):** implemented.
+> - **Block → cluster map:** `generate_read_plan.js` now also reads
+>   `read_clusters.canonical.json` and emits `kBlockCluster` in
+>   `read_plan_decode.h`: 102 blocks mapped, and the credential block alone
+>   isolated. Its outputs are otherwise unchanged.
+> - **`components/jk_poll_scheduler/jk_cluster_cache_core.h`:**
+>   - the raw cluster cache: exact length only; revision, global sequence,
+>     time and lease mode per cluster; fallback invalidation;
+>   - a fail-closed register lookup: credential, unknown, missing, fallback
+>     or stale, with the strict RMW gate `kRmwStrictBudgetMs` = the active
+>     budget of 3.5 s, never the 300 s background budget;
+>   - the A1 cell decode.
+> - **Golden vectors:** all 155 non-credential fields, the cells and 0x1290
+>   decode from the cluster exactly as from the narrow reads. Topology
+>   1–32S: inactive channels are never published.
+> - **Documented change:** above 16S, min/max now cover channels 17–32 (the
+>   legacy reader compared 1–16 only).
+> - Tests: `test_jk_cluster_cache_core.cpp` (23 checks); 12/12 mutations
+>   caught.
+> - Open for M5: S2/S3 hold RW registers but have no active cadence, so an
+>   RMW there must read the owning cluster first; the servicer does that.
+
 - **Prerequisite:** M3.
 - **Files:** `tools/protocol/generate_read_plan.js`,
   `tools/protocol/generate_write_registry.js`, the generated

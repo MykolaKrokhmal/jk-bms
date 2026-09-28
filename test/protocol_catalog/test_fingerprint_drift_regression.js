@@ -85,6 +85,9 @@ const FILES_TO_COPY = [
   // pattern: adding a new generated file almost always means updating
   // this list too).
   "tools/protocol/generate_read_plan.js",
+  // Clustered-read plan M4: generate_read_plan.js also reads the cluster
+  // canonical (block -> cluster map in read_plan_decode.h).
+  "protocol/read_clusters.canonical.json",
   "protocol/generated/read_plan.json",
   "protocol/generated/read_plan.yaml",
   "protocol/generated/read_plan_decode.h",
