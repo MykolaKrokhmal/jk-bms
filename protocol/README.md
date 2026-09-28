@@ -22,6 +22,11 @@ Full audit of this stage's work (historical): `../docs/archive/project-arc/STAGE
   addendum for the two distinct gates it bypasses (`verification_status` and, for 9 fields, an
   unresolved `dynamic_dependency`) and why `setup_passcode` gets its own dedicated UI rather than
   a generic register-list row.
+- `read_clusters.canonical.json` — **hand-maintained.** The clustered read geometry: every
+  register of `registers.canonical.json` in exactly one cluster (or the isolated, on-demand
+  setup-passcode read), cadences and freshness budgets. Validated, and projected to
+  `generated/read_clusters.json` + `generated/read_clusters_table.h`, by
+  `node tools/protocol/generate_read_clusters.js` (`--check` for drift).
 - `non_register_entities.canonical.json` — **hand-maintained.** Calculated ESPHome / ESP32 /
   browser-UI / local-config entities that are NOT BMS registers.
 - `schema/*.schema.json` — JSON Schema for the two files above.

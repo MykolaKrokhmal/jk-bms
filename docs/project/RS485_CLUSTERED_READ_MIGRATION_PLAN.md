@@ -806,7 +806,23 @@ Rules that apply to every phase:
 - **Commit:** `docs(evidence): record clustered read gates A-C`.
 - **Deploy:** re-flash the baseline image after the runs.
 
-### M2 — Canonical clusters and the generated cluster table (host only)
+### M2 — Canonical clusters and the generated cluster table (host only) — DONE (host)
+
+> **Status (2026-09-28):** implemented.
+> - `protocol/read_clusters.canonical.json` (schema
+>   `protocol/schema/read-clusters-source.schema.json`) holds the verified
+>   geometry A1 0x1200×120, A2 0x12F0×15, C1 0x1000×120, C2 0x10F0×23,
+>   S1–S3, with the passcode P 0x1470×8 as the only isolated, on-demand read.
+> - `tools/protocol/generate_read_clusters.js` validates it: coverage of all
+>   202 canonical registers exactly once (201 in clusters + P), no overlap, no
+>   straddle, credential isolation, and budget = cadence + J (J = 500 ms).
+>   It emits `protocol/generated/read_clusters.json` and
+>   `read_clusters_table.h`, and has a deterministic `--check`.
+> - Tests: `test/protocol_catalog/test_read_clusters.js`, with 13 negative
+>   fixtures; 13/13 generator-rule mutations are caught.
+> - The per-cluster budgets are the rule applied to the cadences; gate B/C
+>   interval evidence is still pending.
+
 - **Prerequisite:** M1.
 - **Files:** `protocol/read_clusters.canonical.json`, a schema under
   `protocol/schema/`, `test/register_catalog/validate.js`,

@@ -188,6 +188,11 @@ echo "=== read plan: generator determinism (--check) ==="
 node tools/protocol/generate_read_plan.js --check
 
 echo
+echo "=== read clusters: canonical validation + generator determinism (--check) + negative fixtures (plan M2) ==="
+node tools/protocol/generate_read_clusters.js --check
+node test/protocol_catalog/test_read_clusters.js
+
+echo
 echo "=== Stage 4: write registry generator determinism (--check) ==="
 node tools/protocol/generate_write_registry.js --check
 

@@ -1,0 +1,110 @@
+{
+  "$schema": "./schema/read-clusters-source.schema.json",
+  "catalog_version": "1.0.0",
+  "generated_note": "Hand-maintained. Every register in protocol/registers.canonical.json belongs to exactly one cluster or one isolated read (validated by tools/protocol/generate_read_clusters.js). Plan: docs/project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md, M2.",
+  "operational_max_registers": 120,
+  "operational_max_note": "Verified conservative operational maximum per read (owner decision 2026-09-28). It is a design limit, not the BMS protocol limit: for the tested ranges the largest confirmed successful length is 121 registers and the smallest observed failing length is 124; the exact device limit was not determined.",
+  "scheduling_allowance_rule": "freshness_budget_ms = cadence_ms + J, J = (shortest cluster cadence) / 2 -- the existing 'Freshness budget = cadence + one absolute scheduling allowance' decision (docs/project/DECISIONS.md) applied to the cluster cadences. Budgets are pending gate B/C interval evidence.",
+  "clusters": [
+    {
+      "cluster_id": "A1",
+      "role": "telemetry",
+      "start": "0x1200",
+      "register_count": 120,
+      "cadence_ms": 1000,
+      "active_cadence_ms": null,
+      "phase_ms": 0,
+      "freshness_budget_ms": 1500,
+      "active_freshness_budget_ms": null,
+      "sequence_after": null,
+      "hardware_evidence": "gate A 2026-09-28 20:58: 0x1200 x120 OK 240/240 bytes (hw_diag_probe_gate_a_boundary_20260928.log)"
+    },
+    {
+      "cluster_id": "A2",
+      "role": "telemetry",
+      "start": "0x12F0",
+      "register_count": 15,
+      "cadence_ms": 1000,
+      "active_cadence_ms": null,
+      "phase_ms": 0,
+      "freshness_budget_ms": 1500,
+      "active_freshness_budget_ms": null,
+      "sequence_after": "A1",
+      "hardware_evidence": "gate A 2026-09-28 20:58: 0x12F0 x15 OK 30/30 bytes (hw_diag_probe_gate_a_boundary_20260928.log)"
+    },
+    {
+      "cluster_id": "C1",
+      "role": "settings",
+      "start": "0x1000",
+      "register_count": 120,
+      "cadence_ms": 300000,
+      "active_cadence_ms": 3000,
+      "phase_ms": 500,
+      "freshness_budget_ms": 300500,
+      "active_freshness_budget_ms": 3500,
+      "sequence_after": null,
+      "hardware_evidence": "gate A 2026-09-28 20:58: 0x1000 x120 OK 240/240 bytes (hw_diag_probe_gate_a_boundary_20260928.log)"
+    },
+    {
+      "cluster_id": "C2",
+      "role": "settings",
+      "start": "0x10F0",
+      "register_count": 23,
+      "cadence_ms": 300000,
+      "active_cadence_ms": 3000,
+      "phase_ms": 500,
+      "freshness_budget_ms": 300500,
+      "active_freshness_budget_ms": 3500,
+      "sequence_after": "C1",
+      "hardware_evidence": "gate A 2026-09-28 20:58: 0x10F0 x23 OK 46/46 bytes (hw_diag_probe_gate_a_boundary_20260928.log)"
+    },
+    {
+      "cluster_id": "S1",
+      "role": "static",
+      "start": "0x1400",
+      "register_count": 20,
+      "cadence_ms": 300000,
+      "active_cadence_ms": null,
+      "phase_ms": 500,
+      "freshness_budget_ms": 300500,
+      "active_freshness_budget_ms": null,
+      "sequence_after": null,
+      "hardware_evidence": "gate A 2026-09-28 17:37 and 20:58: 0x1400 x20 OK 40/40 bytes"
+    },
+    {
+      "cluster_id": "S2",
+      "role": "static",
+      "start": "0x14B2",
+      "register_count": 18,
+      "cadence_ms": 300000,
+      "active_cadence_ms": null,
+      "phase_ms": 500,
+      "freshness_budget_ms": 300500,
+      "active_freshness_budget_ms": null,
+      "sequence_after": null,
+      "hardware_evidence": "gate A 2026-09-28 17:37 and 20:58: 0x14B2 x18 OK 36/36 bytes"
+    },
+    {
+      "cluster_id": "S3",
+      "role": "static",
+      "start": "0x14E4",
+      "register_count": 18,
+      "cadence_ms": 300000,
+      "active_cadence_ms": null,
+      "phase_ms": 500,
+      "freshness_budget_ms": 300500,
+      "active_freshness_budget_ms": null,
+      "sequence_after": null,
+      "hardware_evidence": "gate A 2026-09-28 17:37 and 20:58: 0x14E4 x18 OK 36/36 bytes"
+    }
+  ],
+  "isolated_reads": [
+    {
+      "read_id": "P",
+      "start": "0x1470",
+      "register_count": 8,
+      "reason": "setup passcode (write_safety_class credential): never part of a cluster, a cluster cache, state, diagnostics or logs",
+      "trigger": "on_demand"
+    }
+  ]
+}
