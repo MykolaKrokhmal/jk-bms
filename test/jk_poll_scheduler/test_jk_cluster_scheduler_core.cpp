@@ -123,34 +123,40 @@ int main() {
     const auto d = intervals(a1);
     check(pct(d, 0.5) == 1000 && pct(d, 0.99) == 1000 && *std::max_element(d.begin(), d.end()) == 1000,
           "healthy: A1 exactly every 1000 ms (p50/p99/max = " + std::to_string(pct(d, 0.5)) + "/" + std::to_string(pct(d, 0.99)) + ")");
-    check(c1.size() == 4 && s1.size() == 4 && sim.issues(C2).size() == 4 && sim.issues(S2).size() == 4 && sim.issues(S3).size() == 4,
-          "healthy: C1/C2 and S1-S3 at startup and every 300 s (0.5, 300.5, 600.5, 900.5 s: " + std::to_string(c1.size()) + ")");
-    check(c1[0] < 1000 && s1[0] < 1000 && intervals(c1)[0] == 300000, "healthy: Settings and static read in the first second, then every 300 s");
+    check(c1.size() == 80 && s1.size() == 80 && sim.issues(C2).size() == 80 && sim.issues(S2).size() == 80 && sim.issues(S3).size() == 80,
+          "healthy: C1/C2 and S1-S3 at startup and every 15 s (80 in 20 min: " + std::to_string(c1.size()) + ")");
+    const auto dc = intervals(c1), ds = intervals(s1);
+    check(c1[0] < 1000 && s1[0] < 1000 && *std::min_element(dc.begin(), dc.end()) == 15000 && *std::max_element(dc.begin(), dc.end()) == 15000 &&
+              *std::max_element(ds.begin(), ds.end()) == 15000,
+          "healthy: Settings and static read in the first second, then exactly every 15 s (no field slower than before)");
     bool staggered = true;
     for (const auto &e : sim.events)
       if (kClusters[e.cluster].role != jk_read_clusters::Role::TELEMETRY) staggered &= (e.issued_ms % 1000) >= 500;
     check(staggered, "healthy: every Settings/static read starts at or after the 500 ms phase (never with A1/A2)");
     check(sim.max_outstanding == 1, "healthy: never more than one outstanding request");
     const double busy = 100.0 * sim.busy_ms / (20.0 * 60.0 * 1000.0);
-    check(busy > 4.0 && busy < 5.0, "healthy: modelled bus occupancy " + std::to_string(busy) + " % (A1+A2 ~43 ms per second)");
+    check(busy > 4.0 && busy < 6.0, "healthy: modelled bus occupancy " + std::to_string(busy) + " % (A1+A2 ~43 ms/s + C/S ~93 ms per 15 s)");
   }
 
   // 2. Active Settings lease: immediate, then every 3 s; back to 300 s after.
   {
     Sim sim;
-    sim.leases.push_back({60000, 120000});
+    sim.leases.push_back({63000, 123000});  // off the 15 s background grid, so "immediate" is observable
     sim.run(200000);
     const auto c1 = sim.issues(C1);
     std::vector<uint32_t> in_lease;
-    for (uint32_t t : c1) if (t >= 60000 && t < 120000) in_lease.push_back(t);
-    check(!in_lease.empty() && in_lease[0] - 60000 <= 1000, "lease: C1 is read within one second of the lease starting");
+    for (uint32_t t : c1) if (t >= 63000 && t < 123000) in_lease.push_back(t);
+    check(!in_lease.empty() && in_lease[0] - 63000 <= 1000, "lease: C1 is read within one second of the lease starting (background would wait until 75.5 s)");
     const auto d = intervals(in_lease);
     check(in_lease.size() == 20 && !d.empty() && pct(d, 0.99) == 3000 && *std::max_element(d.begin(), d.end()) == 3000,
           "lease: C1 every 3000 ms while active (" + std::to_string(in_lease.size()) + " reads)");
     check(sim.issues(C2).size() == c1.size(), "lease: C2 follows every C1");
-    bool none_after = true;
-    for (uint32_t t : c1) none_after &= !(t >= 121000 && t < 200000);
-    check(none_after, "lease end: C1/C2 return to the 300 s cadence (no read in the following 79 s)");
+    std::vector<uint32_t> after;
+    for (uint32_t t : c1) if (t >= 123000) after.push_back(t);
+    const auto da = intervals(after);
+    check(after.size() >= 5 && after[0] - in_lease.back() >= 15000 && after[0] - in_lease.back() < 16000 && !da.empty() &&
+              *std::min_element(da.begin(), da.end()) == 15000 && *std::max_element(da.begin(), da.end()) == 15000,
+          "lease end: C1/C2 return to the 15 s background cadence, measured from the last lease read");
     bool staggered = true;
     for (uint32_t t : in_lease) staggered &= (t % 1000) >= 500;
     check(staggered, "lease: active Settings reads stay on the 500 ms phase");
@@ -180,7 +186,8 @@ int main() {
     for (uint32_t t : c1) if (t >= 30000 && t < 90000) in_lease.push_back(t);
     const auto d = intervals(in_lease);
     check(!s1.empty() && !s3.empty() && s3[0] < 15000, "saturated bus: static clusters are still read at startup (aging)");
-    check(in_lease.size() >= 10 && !d.empty() && *std::max_element(d.begin(), d.end()) <= 3000 + 2 * kAgingStepMs + 2000,
+    const uint32_t bound = 3000 + 2 * kAgingStepMs + 2000;  // cadence + two aging steps + one saturated cycle
+    check(in_lease.size() >= 60000 / bound && !d.empty() && *std::max_element(d.begin(), d.end()) <= bound,
           "saturated bus: active Settings still served with a bounded delay (" + std::to_string(in_lease.size()) + " reads, max gap " +
               std::to_string(d.empty() ? 0 : *std::max_element(d.begin(), d.end())) + " ms)");
   }

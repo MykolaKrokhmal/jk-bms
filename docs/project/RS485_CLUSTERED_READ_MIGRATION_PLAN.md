@@ -186,17 +186,23 @@ canonical cluster source (§15).
 |---|---|---|---|---|---|---|---|---|---|---|
 | A1 | 0x1200 × 120 *(gate A 2026-09-28: × 125 refused with exception 2)* | 240 | 0x1200–0x12EF: cell voltages 1–32, 0x1240–0x1249 mask/average/delta/extrema, cell resistances 1–32 (0x124A–0x1288), telemetry 0x128A–0x12EE incl. the 0x1290 cluster; 5 gap words (0x12E0/E2/E8/EA/EC) | 1 s (target) | 1 s | 2 (telemetry) | R | normal | 0x1200 × 53 + 17–32 probe + narrow blocks | 0x1200 × 53 and 0x1290 × 12 in production use; × 120 **verified 2026-09-28** (240/240 bytes) |
 | A2 | 0x12F0 × 15 *(was 0x12FA × 10)* | 30 | 0x12F0–0x130D: RTC ticks (U32 0x12F0), temperature 3 (0x12F8), temperatures 4/5, time-enter-sleep, PCL status; 5 gap words (0x12F4/F6/FE, 0x1304/06) | 1 s (target) | 1 s | 2 | R | normal | narrow blocks | × 15 **verified 2026-09-28** (30/30 bytes) |
-| C1 | 0x1000 × 120 *(gate A 2026-09-28: × 124 refused with exception 2)* | 240 | 0x1000–0x10EF: protections, control switches 0x1070/74/78, capacity, calibration 1–26; 0 gap words | 300 s | immediate + 3 s | 3 active / 4 background | RW (per field) | narrow blocks + calibration reader | × 120 **verified 2026-09-28** (240/240 bytes) |
-| C2 | 0x10F0 × 23 *(was 0x10F8 × 19)* | 46 | 0x10F0–0x111D: calibration 27–32, 0x1108 device address, 0x110C, 0x1114 flags, 0x1118, 0x111C heating temperatures; 4 gap words | 300 s | immediate + 3 s | 3 / 4 | RW (per field) | narrow blocks + calibration reader | × 23 **verified 2026-09-28** (46/46 bytes) |
-| S1 | 0x1400 × 20 | 40 | device model, hardware/software version, odd run time, power-on count | startup + 300 s | — | 5 | R | normal | narrow blocks | **[gate A]** |
-| S2 | 0x14B2 × 18 | 36 | UART/CAN protocol configuration | startup + 300 s | — | 5 | R/RW | normal | narrow blocks | **[gate A]** |
-| S3 | 0x14E4 × 18 | 36 | LCD buzzer, dry contacts, data-stored period, RCV/RFV time, CAN protocol version | startup + 300 s | — | 5 | R/RW | normal | narrow blocks | **[gate A]** |
+| C1 | 0x1000 × 120 *(gate A 2026-09-28: × 124 refused with exception 2)* | 240 | 0x1000–0x10EF: protections, control switches 0x1070/74/78, capacity, calibration 1–26; 0 gap words | 15 s | immediate + 3 s | 3 active / 4 background | RW (per field) | narrow blocks + calibration reader | × 120 **verified 2026-09-28** (240/240 bytes) |
+| C2 | 0x10F0 × 23 *(was 0x10F8 × 19)* | 46 | 0x10F0–0x111D: calibration 27–32, 0x1108 device address, 0x110C, 0x1114 flags, 0x1118, 0x111C heating temperatures; 4 gap words | 15 s | immediate + 3 s | 3 / 4 | RW (per field) | narrow blocks + calibration reader | × 23 **verified 2026-09-28** (46/46 bytes) |
+| S1 | 0x1400 × 20 | 40 | device model, hardware/software version, odd run time, power-on count | startup + 15 s | — | 5 | R | normal | narrow blocks | **[gate A]** |
+| S2 | 0x14B2 × 18 | 36 | UART/CAN protocol configuration | startup + 15 s | — | 5 | R/RW | normal | narrow blocks | **[gate A]** |
+| S3 | 0x14E4 × 18 | 36 | LCD buzzer, dry contacts, data-stored period, RCV/RFV time, CAN protocol version | startup + 15 s | — | 5 | R/RW | normal | narrow blocks | **[gate A]** |
 | P | 0x1470 × 8 | 16 | setup passcode | not periodic in the target design (decision in §11) | — | isolated | credential | **credential** | its own isolated reader | never read in gate A |
 
 Notes:
-- Moving odd run time, power-on count and CAN protocol version from 15 s to
-  300 s is a deliberate cadence change. Owner confirmation is required
-  (they are counters or constants).
+- **Background cadence — owner decision 2026-09-29.** C1/C2 and S1–S3 are
+  read every **15 s** in the background, and the active lease reads C1/C2
+  every 3 s.
+  - No field updates less often than before the migration.
+  - At the earlier 300 s proposal, twelve registers would have slowed: the
+    0x1070/74/78 switches (75 → 300 s); 0x1114/0x1118 (15 → 300 s); and
+    0x1400–0x1424 and 0x1506 (15 → 300 s).
+  - Budgets: 15.5 s background, 3.5 s active, J = 500 ms.
+  - Extra bus load ≈ 0.6 %.
 - The owner accepted the C1/C2 correction on 2026-09-27; the diagnostic
   allowlist (M0) used it.
 - **Gate A, 2026-09-28** (`protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_20260928.md`):

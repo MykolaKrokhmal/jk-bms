@@ -550,6 +550,16 @@ until the cluster budgets replace it.
   after decoding. The all-zero observation comes from one 16S unit and is not
   a protocol guarantee.
 
+**Cadence (owner decision 2026-09-29):**
+- A1/A2 every 1 s.
+- C1/C2 and S1–S3 every 15 s in the background, so no field updates less
+  often than before the migration.
+- C1/C2 every 3 s under the active Settings lease.
+- Freshness budgets = cadence + J (J = 500 ms).
+- Writes merge only into cluster bytes fresher than the strict 3.5 s budget.
+  The servicer first reads the owning cluster when they are older (automatic
+  pre-read); it never uses the background budget.
+
 **Reason:** 120 is proven on hardware with a margin. ×121 also succeeded,
 and no failure was seen below 124. The exact limit does not matter for the
 migration, and probing it would add hardware steps without benefit.

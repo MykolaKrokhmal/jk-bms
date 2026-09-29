@@ -51,9 +51,9 @@ check("the setup passcode 0x1470 x8 is the only isolated read and in no cluster"
   gen.isolated_reads.length === 1 && gen.isolated_reads[0].start === "0x1470" && gen.isolated_reads[0].register_count === 8 &&
   JSON.stringify(gen.isolated_reads[0].register_ids) === JSON.stringify(["reg_0x1470_setup_passcode"]) &&
   !gen.clusters.some((c) => c.register_ids.includes("reg_0x1470_setup_passcode")));
-check("cadences and budgets: A 1 s / 1.5 s; C 300 s / 300.5 s, active 3 s / 3.5 s; S 300 s / 300.5 s; J = 500 ms",
+check("cadences and budgets: A 1 s / 1.5 s; C 15 s / 15.5 s, active 3 s / 3.5 s; S 15 s / 15.5 s; J = 500 ms (no field slower than before, owner 2026-09-29)",
   gen.scheduling_allowance_ms === 500 &&
-  gen.clusters.every((c) => ({ telemetry: [1000, 1500, null, null], settings: [300000, 300500, 3000, 3500], static: [300000, 300500, null, null] })[c.role]
+  gen.clusters.every((c) => ({ telemetry: [1000, 1500, null, null], settings: [15000, 15500, 3000, 3500], static: [15000, 15500, null, null] })[c.role]
     .every((v, i) => v === [c.cadence_ms, c.freshness_budget_ms, c.active_cadence_ms, c.active_freshness_budget_ms][i])));
 check("A2 follows A1 and C2 follows C1 in the same cycle",
   gen.clusters.find((c) => c.cluster_id === "A2").sequence_after === "A1" && gen.clusters.find((c) => c.cluster_id === "C2").sequence_after === "C1");
@@ -91,7 +91,7 @@ const negatives = [
   ["an uncovered register (S3 removed)", "READ_CLUSTERS_UNCOVERED", (s) => { s.clusters = s.clusters.filter((c) => c.cluster_id !== "S3"); }],
   ["overlapping clusters (A2 from 0x12EE)", "READ_CLUSTERS_OVERLAP", (s) => { byId(s, "A2").start = "0x12EE"; byId(s, "A2").register_count = 16; }],
   ["a cluster above the operational maximum (A1 x121)", "READ_CLUSTERS_TOO_WIDE", (s) => { byId(s, "A1").register_count = 121; }],
-  ["a freshness budget off the cadence + J rule", "READ_CLUSTERS_BUDGET", (s) => { byId(s, "C1").freshness_budget_ms = 307500; }],
+  ["a freshness budget off the cadence + J rule", "READ_CLUSTERS_BUDGET", (s) => { byId(s, "C1").freshness_budget_ms = 22500; }],
   ["a wrong active budget", "READ_CLUSTERS_BUDGET", (s) => { byId(s, "C2").active_freshness_budget_ms = 6000; }],
   ["a duplicate cluster id", "READ_CLUSTERS_DUPLICATE_ID", (s) => { byId(s, "S3").cluster_id = "S2"; }],
   ["an isolated read holding non-credential registers", "READ_CLUSTERS_ISOLATED_NON_CREDENTIAL", (s) => {

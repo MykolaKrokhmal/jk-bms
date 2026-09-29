@@ -389,7 +389,7 @@ constexpr uint32_t kBlockFreshnessBudgetMs[kBlockCount] = {
     22500u,  // 0x1506
 };
 
-// Read clusters: protocol/read_clusters.canonical.json clusters_hash=aab2bcd7553aacfa
+// Read clusters: protocol/read_clusters.canonical.json clusters_hash=6b749589fb8a2bad
 // Where each block's bytes sit inside a cluster payload. cluster -1 = not in
 // any cluster: only the credential (setup passcode) block, an isolated read.
 struct BlockClusterRef { int8_t cluster; uint16_t byte_offset; };
