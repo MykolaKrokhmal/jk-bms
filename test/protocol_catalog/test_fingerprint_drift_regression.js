@@ -55,6 +55,8 @@ function runCli(mode, extraArgs = []) {
 
 const FILES_TO_COPY = [
   ".node-version",
+  "LICENSES/Apache-2.0.txt",
+  "THIRD_PARTY_NOTICES.md",
   "batterylifepo4.yaml",
   "jk_bms.js",
   "demo/mock-server.js",

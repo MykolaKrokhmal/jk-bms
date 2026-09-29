@@ -48,8 +48,9 @@ production yet" below, now updated.
   written):** the ESPHome version in use then (2026.6.5) had no `type:`
   key in its `web_server.auth` schema at all — Basic was the only,
   implicit option, so this block was Basic auth implicitly. **Current
-  state:** the project's pinned ESPHome version is now 2026.8.2 (see
-  `toolchain.lock.json`), which added a `type: basic|digest` key;
+  state:** the project's pinned ESPHome version is now 2026.9.0 (see
+  `toolchain.lock.json`); the `type: basic|digest` key introduced by the
+  previously pinned 2026.8.2 remains available;
   `batterylifepo4.yaml`'s `web_server.auth` now sets `type: digest`
   explicitly (`batterylifepo4.yaml:310-328`, see that block's own
   in-line comment for the full reasoning) — Digest never puts the

@@ -1,7 +1,9 @@
 # Protocol and runtime architecture (current)
 
-**Status: AUTHORITATIVE description of the current architecture**, verified
-against the code at the 2026-09-25 checkpoint. It replaces the archived
+**Status: AUTHORITATIVE description of the current repository architecture**,
+re-verified against host candidate `c83a676` on 2026-09-30. The last
+owner-confirmed deployed firmware remains `8fbe54f`; where the two differ,
+this document says so explicitly. It replaces the archived
 diagram file
 [`docs/archive/reports/ARCHITECTURE_DIAGRAMS_2026-09-10.md`](../archive/reports/ARCHITECTURE_DIAGRAMS_2026-09-10.md),
 which predates the generated read plan and the Stage 4 write endpoint. Why
@@ -22,6 +24,7 @@ run the generators is in [`protocol/README.md`](../../protocol/README.md).
 | Schemas | `protocol/schema/*.json` | hand |
 | Manifest ↔ canonical join (by wire position, shared matcher) | `stage3_status_map.json`, `stage4_rw_inventory.json`, `settings_view_model.json` | generators in `tools/protocol/authoring/` |
 | Read plan (blocks, cadence, decode) | `read_plan.json`, `read_plan.yaml`, `read_plan_decode.h` | `tools/protocol/generate_read_plan.js` |
+| Read clusters (geometry, cadence, priority, passcode exclusion) | `read_clusters.canonical.json`, `read_clusters.json`, `read_clusters_table.h` | canonical hand; outputs by `generate_read_clusters.js` |
 | Write registry (Stage 4 submit surface) | `write_registry.json`, `write_registry.yaml`, `write_registry_table.h` | `tools/protocol/generate_write_registry.js` |
 | Service-action registry | `stage5_service_action_*` | `build_stage5_service_actions.js` |
 | Browser routes (key ↔ ESPHome entity) | `protocol_entity_routes.json` + `jk_bms.js` generated block | `build_protocol_entity_routes.js` |
@@ -31,17 +34,31 @@ run the generators is in [`protocol/README.md`](../../protocol/README.md).
 Never hand-edit a generated artifact. Every generator has a `--check` mode,
 and `pipeline.js check` verifies the whole derived set.
 
+`syssi/esphome-jk-bms` is a pinned upstream provenance/evidence reference,
+not a production runtime dependency. Production contains no active
+`external_components` entry for it. `batterylifepo4.yaml` is a substantially
+modified descendant of the pinned example; attribution and the applicable
+Apache-2.0 license copy are recorded in `THIRD_PARTY_NOTICES.md` and
+`LICENSES/Apache-2.0.txt`. The upstream reference and this implementation
+share `syssi_implementation_family`, so they never count as independent
+evidence groups.
+
 ## Runtime flow
 
-**Read and publish.** `jk_poll_scheduler` services the generated read plan
-(`protocol/generated/read_plan.yaml`, included by `batterylifepo4.yaml` as
-package `register_reads`) with FC03 block reads. `read_plan_decode.h` decodes
-each field, and `publish_state()` goes to that key's single template entity.
-Keys excluded from the generated plan (`read_plan.json` →
-`excluded_bespoke_keys`: cell blocks, clustered totals, reserved bytes) are
-read and published by bespoke YAML/C++ drivers. After a successful read of a
-generated block, the firmware publishes `read_plan_success` and updates the
-`/settings/read-freshness` snapshot.
+**Read and publish (repository M5 candidate).** `jk_cluster_runtime` services
+the seven generated FC03 clusters A1/A2, C1/C2 and S1–S3 from
+`read_clusters_table.h`, one request in flight. Exact-length responses enter
+the cluster cache; `read_plan_decode.h` decodes every contained canonical
+block at its generated offset, and `publish_state()` goes to that key's
+single template entity. Three consecutive failures latch that lead group for
+the boot session to its generated narrow blocks and the pre-M5 bespoke cell /
+calibration readers. The setup passcode is outside every cluster and cache
+and has only an isolated on-demand read. Each successful physical read
+publishes `read_plan_success` and advances `/settings/read-freshness`.
+
+The deployed `8fbe54f` firmware still uses the earlier per-address generated
+scheduler plus bespoke readers. M5 has passed host verification but has not
+been compiled with ESPHome or run on the device.
 
 **Consumers.** Every non-internal ESPHome entity goes to both:
 - **Home Assistant** through the native API;
@@ -69,34 +86,37 @@ freshness snapshot (when the SSE connection opens, and again after evidence
 that success events were coalesced in transit -- see below), and the
 write-transaction status calls.
 
-**Freshness.** Each Settings value is fresh only when its read block succeeded
-within its `freshness_budget_s`, the BMS link health (`bms_health`) is
-observed LIVE/DELAYED, and the browser link is connected. For every
-scheduler-read block the budget is its cadence plus one absolute scheduling
-allowance, J = (shortest scheduler cadence) / 2 = 7.5 s: 15 → 22.5 s,
-75 → 82.5 s, 300 → 307.5 s. `generate_read_plan.js` derives it and rejects any
-other canonical value. It is above the measured healthy lateness (≤ 3 s) and
-below 2 × cadence, so one missed read shows stale for ~7.5 s instead of a
-flicker. While the SSE socket is backed up, ESPHome keeps only one deferred
-event per entity, and every block success shares `read_plan_success`, so
-successes can be coalesced away in transit. The firmware therefore publishes
-`<address>:<revision>:<sequence>`, where the sequence counts every block's
-successes. After a jump in the sequence (or a skipped block revision) the
-page re-reads the read-only snapshot. It fetches at most once per 5 s, one
-request at a time, plus one trailing run, and only when successes were
-actually lost. It merges forward only, so a read from before a loss boundary
-can never unlock a field. Before the first
-valid `bms_health`, values are `pending`, not offline. Only `kind === "fresh"`
-values can be submitted.
+**Freshness.** The M5 firmware candidate publishes cluster successes as
+`<cluster>:<revision>:<sequence>` and fallback successes in the earlier
+`<address>:<revision>:<sequence>` form. Its snapshot includes the effective
+cluster mode, cadence and budget. The sequence detects SSE coalescing; the
+browser then re-reads the read-only snapshot at most once per 5 s, one request
+at a time plus one trailing run, and merges only forward.
 
-**Writes.**
-- **Stage 4 registry keys:** preflight
+The browser migration is not complete: Settings still uses the pre-migration
+per-group budgets and the cell keys still fall back to their SSE arrival time
+(M6); no browser caller activates the 3 s Settings lease yet (M7). Firmware
+RMW is stricter: it accepts cluster or narrow-fallback raw only within the
+3.5 s active budget and otherwise requests a physical pre-read. Before the
+first valid `bms_health`, values are `pending`, not offline; only
+`kind === "fresh"` browser values can submit.
+
+**Writes (repository M5 candidate).**
+- **All live Settings keys:** preflight
   `GET /settings/register-write/preflight` → `POST /settings/register-write`
   (returns `request_id`) → `GET /settings/register-write/status` (returns
   `tx_id`). Then the firmware's write transaction manager
   (`components/jk_write_tx/`) does a read-modify-write for packed registers,
   an authoritative readback, and publishes the terminal state in
-  `write_tx_snapshot` over SSE.
-- **The 18 legacy keys:** these still post to ESPHome
-  `/number/set_<key>/set` (see CURRENT_LIMITATIONS L8).
+  `write_tx_snapshot` over SSE. Editing changes only the row-local draft; its
+  own OK starts the transaction. All 18 former legacy Settings keys are now
+  in this same registry, for 23 live fields total. Equal raw values terminate
+  as `NO_CHANGE` without creating a Modbus command. A real write targets only
+  that field's owning register (1 or 2 registers), never a read cluster.
+- **HA entity writes:** use the same tracked RMW/equality gate and write
+  transaction manager. In latched fallback the pre-read is the exact narrow
+  source block.
 - **Service actions:** blocked, with no endpoint.
+
+The unified M5 write path is host-tested only. Production compile and the
+owner-authorized Gate D write matrix remain open.

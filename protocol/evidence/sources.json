@@ -86,11 +86,18 @@
       "commit_date": "2026-06-05T20:52:17Z",
       "commit_message": "Add and align cell voltage sensors in JK-PB modbus example (#1013)",
       "license": "Apache-2.0",
+      "license_file": "LICENSES/Apache-2.0.txt",
+      "notice_file": "THIRD_PARTY_NOTICES.md",
+      "runtime_dependency": false,
+      "relationship": "upstream_reference",
+      "derived_files": [
+        "batterylifepo4.yaml"
+      ],
       "immutable_url": "https://raw.githubusercontent.com/syssi/esphome-jk-bms/08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1/esp32-jk-pb-modbus-example.yaml",
       "local_copy_path": "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml",
       "local_copy_sha256": "00ad253cbacf2a945960c7c81718af6f50c68cb4b1cc18314a30f1ddf8c2868d",
       "acquisition_date": "2026-09-09",
-      "provenance": "Pinned upstream implementation snapshot at the exact commit recorded by commit_sha; the firmware build uses the same immutable revision.",
+      "provenance": "Pinned upstream implementation snapshot at the exact commit recorded by commit_sha. It is retained as provenance and secondary protocol evidence. The current production firmware does not fetch or load syssi/esphome-jk-bms as an ESPHome external component; batterylifepo4.yaml descends from the upstream example and is now a substantially modified local implementation.",
       "normalized_index": "protocol/evidence/upstream_index.json",
       "normalized_index_generator": "protocol/evidence/build_upstream_index.py",
       "claims_supported": [
@@ -101,7 +108,7 @@
         "declared_access",
         "implementation_entity_mapping"
       ],
-      "note": "A register present in this index may be (a) a real implemented ESPHome entity (an 'address:' YAML key), which additionally corroborates it was actually read/written by upstream's own firmware, or (b) present ONLY inside upstream's own inline register-table comment with no implementing entity (e.g. 0x12E4 — upstream documents 'BatVol 0.01V' as a comment but never wires an entity to it). Both are recorded as evidence of the ADDRESS/FIELD MEANING claim; only (a) additionally supports an 'implemented upstream too' claim. See each address's entries in upstream_index.json (kind: 'yaml_address_key' marks case (a)). 2026-09-11: demoted to SECONDARY status now that official_jk_documentation is available — this community reverse-engineered YAML is retained as corroborating evidence (it independently agrees with the primary source at addresses both cover) but is no longer the highest-authority available source for any claim it shares with official_jk_documentation.",
+      "note": "A register present in this index may be (a) a real implemented ESPHome entity (an 'address:' YAML key), which additionally corroborates it was actually read/written by upstream's own firmware, or (b) present ONLY inside upstream's own inline register-table comment with no implementing entity (e.g. 0x12E4 — upstream documents 'BatVol 0.01V' as a comment but never wires an entity to it). Both are recorded as evidence of the ADDRESS/FIELD MEANING claim; only (a) additionally supports an 'implemented upstream too' claim. See each address's entries in upstream_index.json (kind: 'yaml_address_key' marks case (a)). Since 2026-09-11 this source is SECONDARY because official_jk_documentation is available. It corroborates that primary source at shared addresses, but it is not independent of this project's implementation: both belong to syssi_implementation_family.",
       "authority_tier": "secondary_implementation",
       "provenance_status": "known",
       "derivation_group": "syssi_implementation_family",
@@ -141,7 +148,7 @@
         "batterylifepo4.yaml",
         "jk_bms.js"
       ],
-      "fingerprint": "sha256:c989d8b40bd6c5ebac8371f77b60a963b4e016801af7c498b96a2ee6e64b62b3"
+      "fingerprint": "sha256:61696aed8deb60d0d0040454da10f55461f8f0a699dceba3d62429c55c9d2376"
     },
     {
       "source_id": "hardware_audit_2026_09_09",

@@ -1,3 +1,7 @@
+# Portions of this configuration were derived from syssi/esphome-jk-bms's
+# esp32-jk-pb-modbus-example.yaml and have been substantially modified here.
+# See THIRD_PARTY_NOTICES.md and LICENSES/Apache-2.0.txt.
+#
 # Note:
 # If you have only 8 cells - comment out "cell voltage 9-16" and "cell 9-16 wire resistance".
 # Also adjust values in "cell voltage/wire resistance 8" and "cell voltage/wire resistance 16".
@@ -43,8 +47,6 @@ substitutions:
   # exposes the hardware model at 0x1400, but not the editable BLE name.
   bms_display_name: "LiFePO4-1S16P-00"
   device_description: "Monitor a JK-BMS (JK-PB series) via Modbus"
-  # Immutable revision used by the evidence snapshot and Stage 1 catalog.
-  external_components_source: github://syssi/esphome-jk-bms@08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1
   tx_pin: GPIO22
   rx_pin: GPIO21
   flow_control_pin: GPIO17

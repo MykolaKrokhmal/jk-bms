@@ -5,12 +5,12 @@
     "esphome_project_version": "3.0.0 (batterylifepo4.yaml esphome.project.version)",
     "web_ui_version": "2026.09.08-v5 (jk_bms.js UI_VERSION)",
     "esphome_framework_version_used_for_verification": "2026.8.2 (pinned in toolchain.lock.json; not re-executed in this environment until ESPHome is available)",
-    "external_component_pin": "github://example.invalid/project@deadbeef",
+    "upstream_reference_pin": "github://example.invalid/project@deadbeef",
     "bms_model_identity": "JK-PB2A16S15P (register 0x1400, manufacturer_device_id — confirmed by both HARDWARE_AUDIT_2026-09-09.md and the workbook)",
-    "bms_protocol_variant": "unknown (no register in the JK-PB Modbus map this project reads is documented as a protocol-family/variant identifier; 'JK-PB RS485/Modbus' is inferred from the device model string and this project's own external_components_source name, not independently confirmed by any source)",
+    "bms_protocol_variant": "unknown (no register in the JK-PB Modbus map this project reads is documented as a protocol-family/variant identifier; 'JK-PB RS485/Modbus' is inferred from the device model string and the pinned upstream reference, not independently confirmed by any source)",
     "bms_firmware_version": "unknown (uart_protocol_library_version, field key of that name, register 0x14E6 low byte, IS a real, documented, currently-read protocol/library version field — but its live decoded value has not been captured by any evidence source available this session; no other field in this catalog is a documented BMS firmware-version field)",
     "catalog_evidence_set_version": "1.1.0",
-    "note": "Test: no register or field in this catalog may set a version-applicability claim equal to web_ui_version or any other non-BMS version string — see the NO_UI_VERSION_AS_FIRMWARE_SCOPE semantic check."
+    "note": "Negative fixture: no register or field in this catalog may set a version-applicability claim equal to web_ui_version or any other non-BMS version string — see the NO_UI_VERSION_AS_FIRMWARE_SCOPE semantic check."
   },
   "ui_order_gap_policy": "sparse_allowed_stable_manual_slots",
   "registers": [

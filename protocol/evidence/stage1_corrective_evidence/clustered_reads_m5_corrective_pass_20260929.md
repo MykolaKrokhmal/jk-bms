@@ -1,7 +1,8 @@
 # Clustered reads M5 — corrective pass verification (2026-09-29)
 
 Plan: `docs/project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md`, M5. Base: `24c94e6`.
-Uncommitted at the time of writing (owner review pending).
+The verified corrective pass was committed on 2026-09-29 as `c83a676`
+(`fix(protocol): finalize safe clustered read writes`).
 
 **Scope: host only.** No ESPHome compile, no flash/OTA, no device access, no
 Modbus traffic, no BMS write, no push. Gates B, C and D not started.

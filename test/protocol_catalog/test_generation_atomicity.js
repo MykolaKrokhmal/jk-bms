@@ -62,6 +62,8 @@ try {
     "protocol/evidence/upstream_esp32-jk-pb-modbus-example.yaml",
     "protocol/evidence/BMS_RS485_Modbus_V1.1.pdf",
     "protocol/evidence/LiFePO4_BMS_Parameters_registers-V2_verified.xlsx",
+    "LICENSES/Apache-2.0.txt",
+    "THIRD_PARTY_NOTICES.md",
     "batterylifepo4.yaml",
     "HARDWARE_AUDIT_2026-09-09.md",
     "toolchain.lock.json",

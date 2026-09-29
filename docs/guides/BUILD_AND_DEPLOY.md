@@ -7,8 +7,9 @@ permission.
 ## Pinned toolchain
 
 Versions are pinned in [`toolchain.lock.json`](../../toolchain.lock.json)
-(ESPHome, ESP-IDF, Node, Python, and the external `syssi/esphome-jk-bms`
-revision) and in `.node-version` / `.python-version`. Do not restate the
+(ESPHome, ESP-IDF, Node and Python). The same lock also identifies the
+`syssi/esphome-jk-bms` upstream reference used for provenance and secondary
+protocol evidence; it is not a runtime dependency. Do not restate the
 versions elsewhere; read the lock file.
 
 ## Compile/runtime file set
@@ -38,7 +39,11 @@ the paths are relative to the YAML.
 | `components/jk_diag/jk_reset_diag_core.h` | `esphome: includes` |
 | `components/jk_diag/jk_reset_diag_rtc.h` | `esphome: includes` |
 
-The external component is fetched by ESPHome from the pinned GitHub revision.
+No syssi external component is fetched by the production build. The local
+`batterylifepo4.yaml` descends from the pinned upstream example and is now a
+substantially modified implementation; attribution is in
+[`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md) and the applicable
+license copy is in [`LICENSES/Apache-2.0.txt`](../../LICENSES/Apache-2.0.txt).
 `components/jk_history/` is not part of the production build (see
 `docs/project/CURRENT_LIMITATIONS.md`). If `batterylifepo4.yaml`'s
 `packages:` / `includes:` / `web_server:` sections change, update this table
@@ -54,9 +59,8 @@ in the same commit.
   configured cell count`, on top of the security fix `70a6aae`). The owner
   transferred the complete 14-file compile/runtime set above (every row
   except the local `secrets.yaml`), compiled it with ESPHome **2026.9.0** in
-  the owner's environment (`toolchain.lock.json` still pins 2026.8.2, the
-  version an agent last compiled with on 2026-09-25) and uploaded it to the
-  test ESP32 on **2026-09-25**.
+  the owner's environment (now the version pinned by `toolchain.lock.json`)
+  and uploaded it to the test ESP32 on **2026-09-25**.
 - **Owner-local overlay (not in the repository, never committed):**
   - `web_server:` `auth:` is commented out -- a temporary, development-only
     security exception (see `docs/project/CURRENT_LIMITATIONS.md` ->
@@ -192,8 +196,9 @@ deployed as production firmware.
   2026-09-27 the Device Builder built both in `/data/build/jk-bms`, so one
   could replace the other's artifacts.
   - `jk_bms_probe.yaml` now sets `esphome.build_path:
-    .esphome/build/jk-bms-probe`. The path is relative to the
-    configuration's folder, and production is unchanged.
+    .esphome/build/jk-bms-probe`. In the owner's ESPHome 2026.9.0 Device
+    Builder environment that relative value resolved under `/data`, to
+    `/data/.esphome/build/jk-bms-probe`; production is unchanged.
   - The diagnostic contract test requires an explicit, relative, portable
     build path distinct from production's.
   - Check it on the first compile: the log line `Compiling app... Build
@@ -201,4 +206,3 @@ deployed as production firmware.
     `/data/build/jk-bms`.
 - **ESPHome version:** builds are validated on 2026.9.0. Do not use 2027.3.0
   or newer until the Modbus API migration in the plan is complete.
-

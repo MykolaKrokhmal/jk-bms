@@ -1,7 +1,7 @@
 {
   "$comment": "GENERATED claim-level evidence matrix. Absence of a confirmed required claim is fail-closed.",
   "catalog_version": "1.1.0",
-  "source_manifest_sha256": "a839c39cbbc557cf58b7c58a4cd79b0988ae1329170b13d09bb000ed2d1aa815",
+  "source_manifest_sha256": "99a4e51bfbe50186b4c5126916ba0ef3934e357d451288ce38cebffed1c7b768",
   "required_write_claims": [
     "address",
     "register_width",
@@ -42980,5 +42980,5 @@
       "policy_consistent": true
     }
   ],
-  "release_generation_id": "112acf76b230e76f"
+  "release_generation_id": "ef1b6baec41f0b70"
 }

@@ -12,7 +12,7 @@ artifact owns which fact.
 |---|---|
 | [`project/PROJECT_STATE.md`](project/PROJECT_STATE.md) | where the project stands; standing owner rules |
 | [`project/RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](project/RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md) | **the active implementation plan** |
-| [`project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md) | **active architecture-migration sub-plan**: clustered RS485 reads (approved design, not yet implemented or hardware-proven) |
+| [`project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md) | **active architecture-migration sub-plan**: Gate A complete; M2–M4 done; M5 committed as a host-verified candidate; production compile and Gates B–D remain open |
 | [`project/CURRENT_LIMITATIONS.md`](project/CURRENT_LIMITATIONS.md) | verified known limitations, each with a re-check source |
 | [`project/DECISIONS.md`](project/DECISIONS.md) | architecture and product decisions (principles) |
 | [`protocol/ARCHITECTURE.md`](protocol/ARCHITECTURE.md) | artifact roles and runtime data flow |
@@ -38,6 +38,11 @@ captured test and hardware logs. `HARDWARE_AUDIT_2026-09-09.md` stays at the
 repository root because it is a hash-pinned evidence source
 (`protocol/evidence/sources.json` → `hardware_audit_2026_09_09`) whose path the
 validator checks.
+
+Third-party provenance and licensing are recorded in
+[`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) and
+[`../LICENSES/Apache-2.0.txt`](../LICENSES/Apache-2.0.txt). The syssi snapshot
+is secondary evidence and implementation lineage, not a runtime dependency.
 
 ## Historical
 

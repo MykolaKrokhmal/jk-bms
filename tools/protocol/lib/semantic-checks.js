@@ -775,7 +775,6 @@ function check(registerDoc, nonRegisterDoc, repoRoot) {
     const toolchain = JSON.parse(fs.readFileSync(path.join(repoRoot, "toolchain.lock.json"), "utf8"));
     const projectMatch = yaml.match(/^\s{4}version:\s*([^\s#]+)\s*$/m);
     const uiMatch = js.match(/const UI_VERSION = "([^"]+)"/);
-    const externalMatch = yaml.match(/^\s*external_components_source:\s*(\S+)\s*$/m);
     const contextValue = (name) => String(registerDoc.version_context[name] || "").split(" (")[0];
     if (!projectMatch || contextValue("esphome_project_version") !== projectMatch[1]) {
       errors.push(issue("VERSION_CONTEXT_PROJECT_MISMATCH", "version_context.esphome_project_version", "does not match batterylifepo4.yaml esphome.project.version"));
@@ -783,8 +782,27 @@ function check(registerDoc, nonRegisterDoc, repoRoot) {
     if (!uiMatch || contextValue("web_ui_version") !== uiMatch[1]) {
       errors.push(issue("VERSION_CONTEXT_UI_MISMATCH", "version_context.web_ui_version", "does not match jk_bms.js UI_VERSION"));
     }
-    if (!externalMatch || registerDoc.version_context.external_component_pin !== externalMatch[1]) {
-      errors.push(issue("VERSION_CONTEXT_EXTERNAL_PIN_MISMATCH", "version_context.external_component_pin", "does not match external_components_source"));
+    const upstreamSource = sources.get("upstream_syssi_esphome_jk_bms");
+    const upstreamRef = toolchain.upstream_reference;
+    const expectedUpstreamPin = upstreamRef && `github://${upstreamRef.repository}@${upstreamRef.revision}`;
+    if (!upstreamRef || registerDoc.version_context.upstream_reference_pin !== expectedUpstreamPin) {
+      errors.push(issue("VERSION_CONTEXT_UPSTREAM_REFERENCE_MISMATCH", "version_context.upstream_reference_pin", "does not match toolchain.lock.json upstream_reference"));
+    }
+    if (!upstreamSource || !upstreamRef ||
+        upstreamSource.commit_sha !== upstreamRef.revision ||
+        upstreamSource.local_copy_sha256 !== upstreamRef.source_snapshot_sha256 ||
+        upstreamSource.runtime_dependency !== false ||
+        upstreamSource.relationship !== "upstream_reference") {
+      errors.push(issue("UPSTREAM_REFERENCE_SOURCE_MISMATCH", "protocol/evidence/sources.json", "syssi upstream reference metadata does not match toolchain.lock.json or is incorrectly marked as a runtime dependency"));
+    }
+    if (!upstreamSource || upstreamSource.license !== "Apache-2.0" ||
+        !upstreamSource.license_file || !fs.existsSync(path.join(repoRoot, upstreamSource.license_file)) ||
+        !upstreamSource.notice_file || !fs.existsSync(path.join(repoRoot, upstreamSource.notice_file)) ||
+        !Array.isArray(upstreamSource.derived_files) || !upstreamSource.derived_files.includes("batterylifepo4.yaml")) {
+      errors.push(issue("UPSTREAM_ATTRIBUTION_INCOMPLETE", "protocol/evidence/sources.json", "syssi-derived files must name the Apache-2.0 license copy and third-party notice"));
+    }
+    if (/^\s*external_components_source:/m.test(yaml)) {
+      errors.push(issue("UNUSED_RUNTIME_SOURCE_SUBSTITUTION", "batterylifepo4.yaml", "external_components_source is not consumed by an external_components block; model syssi as upstream provenance instead"));
     }
     if (!String(registerDoc.version_context.esphome_framework_version_used_for_verification).startsWith(String(toolchain.esphome))) {
       errors.push(issue("VERSION_CONTEXT_ESPHOME_MISMATCH", "version_context.esphome_framework_version_used_for_verification", "does not match toolchain.lock.json"));

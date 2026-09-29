@@ -2108,7 +2108,11 @@ const server = http.createServer((req, res) => {
     topologyUncertain = false;
     cellCountTxInFlight = false;
     resolveTopologyMock(); // immediately observable as OFFLINE/LOADING; tick() re-resolves CONFIRMED within 1s once bmsResponseAgeS decays back down
-    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ restarted: true }));
+    // topology_revision identifies THIS restart's own resolver publish, so a
+    // client can assert on that exact SSE event rather than sampling the
+    // current state -- which the next 1Hz tick() may already have
+    // legitimately re-resolved to CONFIRMED.
+    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ restarted: true, topology_revision: topologyRevision }));
     return;
   }
   if (p === "/demo/cc-history" && req.method === "POST") {

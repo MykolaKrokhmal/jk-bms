@@ -122,7 +122,9 @@ try {
   const lockedNode = fs.readFileSync(path.join(ROOT, ".node-version"), "utf8").trim();
   if (process.version.replace(/^v/, "") !== lockedNode) throw new Error(`PIPELINE_NODE_VERSION_MISMATCH:${process.version}:${lockedNode}`);
   const yaml = fs.readFileSync(path.join(ROOT, "batterylifepo4.yaml"), "utf8");
-  if (/external_components_source:\s*\S+@(main|master|latest)\b/.test(yaml)) throw new Error("MUTABLE_EXTERNAL_COMPONENT_REVISION");
+  const toolchain = JSON.parse(fs.readFileSync(path.join(ROOT, "toolchain.lock.json"), "utf8"));
+  const upstreamRevision = toolchain.upstream_reference && toolchain.upstream_reference.revision;
+  if (!/^[0-9a-f]{40}$/.test(String(upstreamRevision || ""))) throw new Error("MUTABLE_UPSTREAM_REFERENCE_REVISION");
 
   const sourceDoc = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol/evidence/sources.json"), "utf8"));
   const implementationSource = sourceDoc.sources.find((s) => s.source_id === "project_implementation");
