@@ -255,6 +255,55 @@ int main() {
     check(first == A1 && second == A2 && third == C1, "priority: telemetry, its follower, then active Settings before static");
   }
 
+  // 9. request_now (the RMW pre-read, plan M5).
+  {
+    Scheduler s;
+    s.begin(0);
+    int c = s.next(0, false); s.complete(c, 30);          // A1
+    c = s.next(40, false); s.complete(c, 60);             // A2
+    s.request_now(S3);                                    // an RMW on an S3 register
+    check(s.next(100, false) == S3, "request_now: the owning cluster is read at once, before its 500 ms phase");
+    s.complete(S3, 120);
+    check(s.due_ms(std::size_t(S3)) == 15500, "request_now: the pre-read counts as the cycle's read (next due on its own grid)");
+    // A pending follower still completes its cycle first.
+    Scheduler f;
+    f.begin(0);
+    c = f.next(0, false); f.complete(c, 30);              // A1 done, A2 pending
+    f.request_now(C1);
+    check(f.next(40, false) == A2 && (f.complete(A2, 60), f.next(70, false) == C1), "request_now: A2 completes its cycle, then the pre-read");
+    f.complete(C1, 100);
+    check(f.next(110, false) == C2, "request_now on C1: C2 follows as usual");
+    // A follower's pre-read goes through its lead.
+    Scheduler g;
+    g.begin(0);
+    c = g.next(0, false); g.complete(c, 30); c = g.next(40, false); g.complete(c, 60);
+    g.request_now(C2);
+    check(g.next(100, false) == C1, "request_now on a follower reads its lead first");
+    check(g.next(100, true) == kNone || g.outstanding() == C1, "request_now does not bypass one-outstanding or a write in flight");
+    Scheduler w;
+    w.begin(0);
+    w.request_now(S2);
+    check(w.next(0, true) == kNone && w.next(0, false) == S2, "request_now waits for a write in flight to end");
+  }
+
+  // 10. set_enabled (latched fallback, plan M5).
+  {
+    Sim sim;
+    sim.s.begin(0);
+    Scheduler &s = sim.s;
+    s.set_enabled(A1, false);
+    check(!s.enabled(std::size_t(A1)) && !s.enabled(std::size_t(A2)), "set_enabled(A1, false) also removes its follower A2");
+    bool never = true;
+    for (uint32_t t = 0; t < 60000; t += 20) {
+      const int c = s.next(t, false);
+      never &= c != A1 && c != A2;
+      if (c >= 0) s.complete(c, t + 10);
+    }
+    check(never && s.issued(std::size_t(C1)) >= 4, "a latched cluster is never issued again; the others keep their cadence");
+    s.request_now(A1);
+    check(s.next(60000, false) != A1, "request_now cannot revive a latched cluster");
+  }
+
   std::printf("cluster scheduler: %d/%d checks passed\n", g_checks - g_failures, g_checks);
   return g_failures == 0 ? 0 : 1;
 }

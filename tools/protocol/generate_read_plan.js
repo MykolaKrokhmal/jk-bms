@@ -1257,7 +1257,58 @@ function buildServicerGlobals() {
 }
 
 const SERVICER_READ_TIMEOUT_MS = 3000;
-const SERVICER_TICK_INTERVAL = "200ms";
+const SERVICER_TICK_INTERVAL = "20ms";
+
+// Emits one block's decode/publish statements. `raw` and `payload_bytes`
+// must be in scope at the emission point (the cluster path points `raw`
+// into the cluster payload at the block's offset; the fallback path at the
+// block's own response). Shared by both paths so the two can never decode
+// differently.
+function emitBlockBody(L, i, indent) {
+  const b = blocks[i];
+  const I = (t) => L(indent + t);
+  if (b.custom_decode) {
+    // Hand-authored, verbatim-ported decode (see CUSTOM_DECODE_BLOCKS'
+    // own comment) -- not a generic per-field dispatch, because this
+    // block computes a cross-field product with a global side effect
+    // and fans out to entities that don't correspond 1:1 with any single
+    // decoded field.
+    for (const codeLine of b.custom_decode.split("\n")) I(codeLine);
+    return;
+  }
+  for (let j = 0; j < b.fields.length; j++) {
+    const f = b.fields[j];
+    const fieldIndex = blocks.slice(0, i).reduce((n, bb) => n + bb.fields.length, 0) + j;
+    if (f.credential_status_only) {
+      // Credential: never decoded here. Its status comes only from the
+      // isolated on-demand passcode read (never a cluster, never this path).
+      throw new Error(`READ_PLAN_CREDENTIAL_BLOCK_DECODE: "${f.key}" must only be handled by the isolated passcode read.`);
+    } else if (f.wire_type === "ASCII") {
+      I(`{ char buf[17]; jk_poll_scheduler::decode_ascii(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
+    } else if (f.wire_type === "HEX") {
+      I(`{ char buf[64]; jk_poll_scheduler::decode_hex_string(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
+    } else if (EXACT_DECIMAL_FIELDS.has(f.key)) {
+      // Primary entity for a Stage 3 precision-fix field: exact
+      // fixed-point decimal, never float -- see decode_exact_decimal's
+      // own header comment. The synthetic "__legacy_companion" entry
+      // (same block, different entity_id) does NOT match this key and
+      // falls through to the plain decode_numeric branch.
+      I(`{ char buf[16]; jk_poll_scheduler::decode_exact_decimal(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes, ${f.precision}, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
+      // cell_connected_mask also exports its bit-exact raw value (see
+      // g_cell_connected_mask_raw's own comment in batterylifepo4.yaml).
+      if (f.key === "cell_connected_mask") {
+        I(`id(g_cell_connected_mask_raw) = jk_poll_scheduler::decode_raw_u32(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes);`);
+        I(`id(g_cell_connected_mask_valid) = true;`);
+      }
+    } else if (f.domain === "binary_sensor" && (f.wire_type === "BIT" || WHOLE_VALUE_BOOLEAN_FIELDS.has(f.key))) {
+      // decode_bool() publishes a real bool; a BIT field whose semantic is
+      // a MODE selector (e.g. port_switch) is a numeric sensor instead.
+      I(`id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_bool(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
+    } else {
+      I(`id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_numeric(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
+    }
+  }
+}
 
 function buildServicerInterval() {
   const lines = [];
@@ -1268,25 +1319,48 @@ function buildServicerInterval() {
   lines.push("      - lambda: |-");
   const L = (s) => lines.push(s === "" ? "" : "          " + s);
 
+  const credentialBlocks = blocks.map((b, i) => (b.fields.some((f) => f.credential_status_only) ? i : -1)).filter((i) => i >= 0);
+  if (credentialBlocks.length !== 1) throw new Error(`READ_PLAN_CREDENTIAL_BLOCKS: expected exactly one credential block, found ${credentialBlocks.length}`);
+  const credentialField = blocks[credentialBlocks[0]].fields.find((f) => f.credential_status_only);
+  // Blocks per cluster, from the same map emitted as kBlockCluster.
+  const clusterBlocks = readClusters.map(() => []);
+  blocks.forEach((b, i) => {
+    const a = parseInt(b.address, 16);
+    const owner = readClusters.find((c) => a >= c.start && a + b.payload_bytes <= c.start + c.bytes);
+    if (owner) clusterBlocks[owner.index].push({ i, offset: a - owner.start });
+  });
+
+  L("// Clustered read servicer (docs/project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md,");
+  L("// M5). One Modbus read in flight at a time: a cluster (A1..S3, from the");
+  L("// generated table), the isolated setup-passcode status read, or -- only for");
+  L("// clusters latched to their fallback -- one legacy per-register block.");
+  L("// Scheduling, fallback latch and the RMW gate live in the desktop-tested");
+  L("// jk_cluster_runtime_core.h; this lambda only issues reads and publishes.");
   L("const uint32_t now = millis();");
+  L("auto &rt = jk_cluster_runtime::g_runtime;");
+  L("if (!rt.begun()) rt.begin(now);");
   L("");
-  L("// A read is already outstanding -- only check it for timeout; never issue");
-  L("// a second one (single Modbus transaction in flight at a time).");
-  L("if (id(g_rp_pending_index) >= 0) {");
-  L("  if (now - id(g_rp_pending_started_ms) > " + SERVICER_READ_TIMEOUT_MS + "U) {");
-  L("    const int idx = id(g_rp_pending_index);");
-  L("    id(g_rp_timeout_count)[idx] = uint16_t(id(g_rp_timeout_count)[idx] + 1);");
-  L("    id(g_rp_transport_state)[idx] = jk_poll_scheduler::IDLE;");
-  L("    id(g_rp_pending_index) = -1;");
-  L('    ESP_LOGW("jk_poll_scheduler", "Read timeout for block %u (address 0x%04X)", unsigned(idx), unsigned(jk_read_plan::kBlocks[idx].address));');
-  L("  }");
-  L("  return;");
+  L("const int timed_out = rt.check_timeout(now);");
+  L("if (timed_out >= 0) {");
+  L('  ESP_LOGW("jk_clusters", "Read timeout for cluster %s (address 0x%04X)", jk_read_clusters::kClusters[timed_out].id, unsigned(jk_read_clusters::kClusters[timed_out].start));');
+  L("} else if (timed_out == jk_cluster_runtime::Runtime::kPasscodeRead) {");
+  L('  ESP_LOGW("jk_clusters", "Setup-passcode status read timed out");');
+  L("} else if (timed_out == jk_cluster_runtime::Runtime::kBespokeRead) {");
+  L('  ESP_LOGW("jk_clusters", "Fallback bespoke read timed out");');
   L("}");
+  L("if (id(g_rp_pending_index) >= 0 && now - id(g_rp_pending_started_ms) > " + SERVICER_READ_TIMEOUT_MS + "U) {");
+  L("  const int idx = id(g_rp_pending_index);");
+  L("  id(g_rp_timeout_count)[idx] = uint16_t(id(g_rp_timeout_count)[idx] + 1);");
+  L("  id(g_rp_transport_state)[idx] = jk_poll_scheduler::IDLE;");
+  L("  id(g_rp_pending_index) = -1;");
+  L('  ESP_LOGW("jk_poll_scheduler", "Fallback read timeout for block %u (address 0x%04X)", unsigned(idx), unsigned(jk_read_plan::kBlocks[idx].address));');
+  L("}");
+  L("if (rt.busy() || id(g_rp_pending_index) >= 0) return;");
   L("");
-  L("// Tier 1: any write transaction in flight (jk_write_tx's 6 generic slots,");
-  L("// or the CellCount topology driver's own bespoke transaction/recovery-probe");
-  L("// state) suppresses every background read this tick.");
-  L("bool write_in_flight = id(g_cellcount_tx_pending) || id(g_topology_recovery_pending);");
+  L("// A write transaction in flight (jk_write_tx's 6 generic slots, the");
+  L("// CellCount topology driver, or the setup-passcode write with its 0x1470");
+  L("// readback) owns the bus: no read of any kind this tick.");
+  L("bool write_in_flight = id(g_cellcount_tx_pending) || id(g_topology_recovery_pending) || id(g_passcode_tx_pending);");
   L("if (!write_in_flight) {");
   L("  for (uint8_t i = 0; i < 6; i++) {");
   L("    if (id(g_wtx_in_use)[i] && jk_write_tx::is_pending(id(g_wtx_status)[i])) { write_in_flight = true; break; }");
@@ -1294,20 +1368,100 @@ function buildServicerInterval() {
   L("}");
   L("if (write_in_flight) return;");
   L("");
-  L("// Tier 2: active-settings-group hint. Real consumption (Stage 1 hardware");
-  L("// acceptance corrective pass) -- resolve_active_group_block_index() scans");
-  L("// jk_read_plan::kBlocks for one whose generated ui_group matches the");
-  L("// browser's hint; see that function's own comment in");
-  L("// jk_poll_scheduler_core.h. Every real block's ui_group is -1 today (per-");
-  L("// field ui_group population is Stage 2's own deliverable, not yet done),");
-  L("// so this always resolves to NO_BLOCK against production data -- real,");
-  L("// wired, and unit-tested, but a documented no-op until Stage 2 supplies");
-  L("// ui_group data, not a missing feature.");
-  L("const bool group_hint_active = id(g_active_group_hint) >= 0 && now < id(g_active_group_hint_expires_ms);");
-  L("const int active_group_block_index = jk_poll_scheduler::resolve_active_group_block_index(");
-  L("    jk_read_plan::kBlocks, id(g_active_group_hint), group_hint_active);");
+  L("// Active Settings lease: the browser's (bounded, expiring) Settings hint.");
+  L("const bool lease = id(g_active_group_hint) >= 0 && now < id(g_active_group_hint_expires_ms);");
+  L("const int next = rt.issue(now, false, lease);");
+  L("if (next == jk_cluster_runtime::Runtime::kPasscodeRead) {");
+  L("  // Isolated setup-passcode status read: only the response LENGTH is used;");
+  L("  // the bytes are never decoded, stored, logged or published.");
+  L("  const uint32_t gen = rt.generation();");
+  L("  auto pcmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(");
+  L("      id(bms0), esphome::modbus::EntityType::HOLDING, jk_cluster_runtime::kPasscodeStart, jk_cluster_runtime::kPasscodeRegisters,");
+  L("      [gen](auto, uint16_t, const auto &data) {");
+  L("        bool length_ok = false;");
+  L("        if (!jk_cluster_runtime::g_runtime.on_passcode_response(gen, data.size(), length_ok)) return;");
+  L(`        if (length_ok) id(${credentialField.entity_id})->publish_state(std::string("${CREDENTIAL_STATUS_MARKER}"));  // credential: raw value never decoded or published`);
+  L("      });");
+  L("  id(bms0)->queue_command(std::move(pcmd));");
+  L("  return;");
+  L("}");
+  L("if (next >= 0) {");
+  L("  const auto &cl = jk_read_clusters::kClusters[next];");
+  L("  const uint32_t gen = rt.generation();");
+  L("  auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(");
+  L("      id(bms0), esphome::modbus::EntityType::HOLDING, cl.start, cl.register_count,");
+  L("      [next, gen](auto, uint16_t, const auto &data) {");
+  L("        auto &rt2 = jk_cluster_runtime::g_runtime;");
+  L("        const uint32_t t = millis();");
+  L("        const bool lease_now = id(g_active_group_hint) >= 0 && t < id(g_active_group_hint_expires_ms);");
+  L("        const auto done = rt2.on_cluster_response(next, gen, data.data(), data.size(), t, lease_now);");
+  L("        if (done == jk_cluster_runtime::Completion::LATE) return;");
+  L("        if (done != jk_cluster_runtime::Completion::OK) {");
+  L('          ESP_LOGW("jk_clusters", "Cluster %s response length mismatch: %u/%u bytes", jk_read_clusters::kClusters[next].id,');
+  L("                   unsigned(data.size()), unsigned(jk_read_clusters::kClusters[next].payload_bytes));");
+  L("          return;");
+  L("        }");
+  L("        const auto &entry = rt2.cache().entry(std::size_t(next));");
+  L("        switch (next) {");
+  for (let c = 0; c < readClusters.length; c++) {
+    L(`          case ${c}: {  // ${readClusters[c].id}`);
+    for (const { i, offset } of clusterBlocks[c]) {
+      const b = blocks[i];
+      L(`            {  // block ${i} ${b.address} at byte ${offset}`);
+      L(`              const uint8_t *raw = entry.bytes.data() + ${offset};`);
+      L(`              const uint8_t payload_bytes = ${b.payload_bytes};`);
+      L(`              id(g_rp_last_raw_word)[${i}] = jk_poll_scheduler::read_be(raw, payload_bytes > 4 ? 4 : payload_bytes);`);
+      emitBlockBody(L, i, "              ");
+      L(`              id(g_rp_last_success_ms)[${i}] = t;`);
+      L(`              id(g_rp_revision)[${i}] = id(g_rp_revision)[${i}] + 1;`);
+      L("            }");
+    }
+    L("            break;");
+    L("          }");
+  }
+  L("          default: break;");
+  L("        }");
+  L("        // One numbered success per cluster read: '<cluster>:<revision>:<sequence>'.");
+  L("        id(g_rp_success_seq) = id(g_rp_success_seq) + 1;");
+  L("        id(read_plan_success)->publish_state(std::string(jk_read_clusters::kClusters[next].id) + \":\" + std::to_string(entry.revision) + \":\" + std::to_string(id(g_rp_success_seq)));");
+  L("        rt2.note_event_sequence(next, id(g_rp_success_seq));");
+  L("        id(cluster_stored)->execute(next, false);");
+  L("      });");
+  L("  id(bms0)->queue_command(std::move(command));");
+  L("  return;");
+  L("}");
   L("");
+  L("// Latched fallback only: the legacy per-register blocks of clusters that");
+  L("// failed kFallbackAfterFailures times in a row, at their original cadence.");
+  L("// Never the credential block (its cadence is masked to 0 here).");
+  L("if (rt.fallback_mask() == 0) return;");
+  L("// The pre-migration bespoke readers (cells 1 s, cell_resistance_17-32 15 s,");
+  L("// CellConWireRes 0-31 300 s) of a latched group come first; their bytes go");
+  L("// to the runtime's fallback image and are published from there.");
+  L("{");
+  L("  const bool ext_needed = jk_capability::needs_cellwireres_extended_read(id(cell_count).state);");
+  L("  const int bespoke = rt.issue_bespoke(now, false, ext_needed);");
+  L("  if (bespoke >= 0) {");
+  L("    const auto &b = jk_cluster_runtime::kBespokeReads[bespoke];");
+  L("    const uint32_t gen = rt.generation();");
+  L("    auto bcommand = esphome::modbus_controller::ModbusCommandItem::create_read_command(");
+  L("        id(bms0), esphome::modbus::EntityType::HOLDING, b.start, b.registers,");
+  L("        [bespoke, gen](auto, uint16_t, const auto &data) {");
+  L("          const auto done = jk_cluster_runtime::g_runtime.on_bespoke_response(bespoke, gen, data.data(), data.size());");
+  L("          if (done == jk_cluster_runtime::Completion::LATE) return;");
+  L("          if (done != jk_cluster_runtime::Completion::OK) {");
+  L('            ESP_LOGW("jk_clusters", "Fallback read 0x%04X x%u response length mismatch: %u bytes",');
+  L("                     unsigned(jk_cluster_runtime::kBespokeReads[bespoke].start), unsigned(jk_cluster_runtime::kBespokeReads[bespoke].registers), unsigned(data.size()));");
+  L("            return;");
+  L("          }");
+  L("          id(cluster_stored)->execute(jk_read_clusters::cluster_of(jk_cluster_runtime::kBespokeReads[bespoke].publish_start), true);");
+  L("        });");
+  L("    id(bms0)->queue_command(std::move(bcommand));");
+  L("    return;");
+  L("  }");
+  L("}");
   L(`std::array<jk_poll_scheduler::BlockState, jk_read_plan::kBlockCount> states;`);
+  L("uint32_t cadence_ms[jk_read_plan::kBlockCount];");
   L("for (size_t i = 0; i < jk_read_plan::kBlockCount; i++) {");
   L("  states[i].last_attempt_ms = id(g_rp_last_attempt_ms)[i];");
   L("  states[i].last_success_ms = id(g_rp_last_success_ms)[i];");
@@ -1315,39 +1469,25 @@ function buildServicerInterval() {
   L("  states[i].timeout_count = id(g_rp_timeout_count)[i];");
   L("  states[i].transport_state = id(g_rp_transport_state)[i];");
   L("  states[i].revision = id(g_rp_revision)[i];");
+  L("  const int owner = jk_read_plan::kBlockCluster[i].cluster;");
+  L("  cadence_ms[i] = (owner >= 0 && rt.cluster_fallback(owner)) ? jk_read_plan::kBlocks[i].cadence_ms : 0U;");
   L("}");
-  L("uint32_t cadence_ms[jk_read_plan::kBlockCount];");
-  L("for (size_t i = 0; i < jk_read_plan::kBlockCount; i++) cadence_ms[i] = jk_read_plan::kBlocks[i].cadence_ms;");
-  L("");
-  L("const int chosen = jk_poll_scheduler::pick_next_block(states, cadence_ms, false, active_group_block_index, now);");
+  L("const int chosen = jk_poll_scheduler::pick_next_block(states, cadence_ms, false, jk_poll_scheduler::NO_BLOCK, now);");
   L("if (chosen < 0) return;");
-  L("");
   L("jk_poll_scheduler::mark_issued(states[chosen], now);");
   L("id(g_rp_last_attempt_ms)[chosen] = states[chosen].last_attempt_ms;");
   L("id(g_rp_transport_state)[chosen] = states[chosen].transport_state;");
   L("id(g_rp_pending_index) = chosen;");
   L("id(g_rp_pending_started_ms) = now;");
-  L("");
   L("const auto &block = jk_read_plan::kBlocks[chosen];");
-  L("auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(");
+  L("auto fcommand = esphome::modbus_controller::ModbusCommandItem::create_read_command(");
   L("    id(bms0), esphome::modbus::EntityType::HOLDING, block.address, block.register_count,");
   L("    [chosen](auto, uint16_t, const auto &data) {");
   L("      const uint8_t payload_bytes = jk_read_plan::kBlocks[chosen].payload_bytes;");
   L("      const bool strict_length = jk_read_plan::kBlocks[chosen].strict_length;");
-  L("      // Length validation (2026-09-19 hardening pass, user-directed;");
-  L("      // per-block strict_length carve-out added 2026-09-20 after");
-  L("      // hardware acceptance found the exact check wrongly applied to");
-  L("      // the one CLUSTERED_GAP_AWARE block -- see jk_poll_scheduler_core.h's");
-  L("      // own Block::strict_length comment). strict_length blocks (every");
-  L("      // ORDINARY_ONE_REGISTER/ASCII_CONTIGUOUS block, individually");
-  L("      // audited 2026-09-18/19): a fixed-register_count FC03 read has a");
-  L("      // deterministic response size, so short OR long is a real anomaly.");
-  L("      // Non-strict blocks (0x1290 only, as of this generation): floor");
-  L("      // check only -- payload_bytes is this block's own decoder's read");
-  L("      // length, not a hardware-proven exact response size.");
   L("      const bool length_ok = strict_length ? (data.size() == payload_bytes) : (data.size() >= payload_bytes);");
   L("      if (!length_ok) {");
-  L('        ESP_LOGW("jk_poll_scheduler", "Response length mismatch for block %u (address 0x%04X): %u/%u bytes",');
+  L('        ESP_LOGW("jk_poll_scheduler", "Fallback response length mismatch for block %u (address 0x%04X): %u/%u bytes",');
   L("                 unsigned(chosen), unsigned(jk_read_plan::kBlocks[chosen].address), unsigned(data.size()), unsigned(payload_bytes));");
   L("        id(g_rp_error_count)[chosen] = uint16_t(id(g_rp_error_count)[chosen] + 1);");
   L("        id(g_rp_transport_state)[chosen] = jk_poll_scheduler::IDLE;");
@@ -1355,72 +1495,14 @@ function buildServicerInterval() {
   L("        return;");
   L("      }");
   L("      const uint8_t *raw = data.data();");
-  L("      // Stage 4 raw-payload cache -- see g_rp_last_raw_word's own globals:");
-  L("      // comment. Populated for every block (cheap, branch-free), consulted");
-  L("      // only by the write path's RMW merge step, which additionally checks");
-  L("      // g_rp_last_success_ms/g_rp_revision (updated a few lines below, same");
-  L("      // tick) for freshness before ever trusting this value.");
+  L("      // Fallback bytes are published but never RMW input: the cluster cache");
+  L("      // entry of a latched cluster stays FALLBACK (jk_cluster_cache_core.h).");
   L("      id(g_rp_last_raw_word)[chosen] = jk_poll_scheduler::read_be(raw, payload_bytes > 4 ? 4 : payload_bytes);");
   L("      switch (chosen) {");
   for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    L(`        case ${i}: {  // 0x${parseInt(b.address, 16).toString(16).toUpperCase().padStart(4, "0")}`);
-    if (b.custom_decode) {
-      // Hand-authored, verbatim-ported decode (see CUSTOM_DECODE_BLOCKS'
-      // own comment) -- not a generic per-field dispatch, because this
-      // block computes a cross-field product with a global side effect
-      // and fans out to entities that don't correspond 1:1 with any single
-      // decoded field.
-      for (const codeLine of b.custom_decode.split("\n")) L("          " + codeLine);
-    } else {
-      for (let j = 0; j < b.fields.length; j++) {
-        const f = b.fields[j];
-        const fieldIndex = blocks.slice(0, i).reduce((n, bb) => n + bb.fields.length, 0) + j;
-        if (f.credential_status_only) {
-          // Credential: the raw bytes are deliberately never decoded -- only
-          // a content-independent "read succeeded" status is published.
-          if (f.domain !== "text_sensor") throw new Error(`READ_PLAN_CREDENTIAL_DOMAIN: "${f.key}" must publish its status on a text_sensor.`);
-          L(`          id(${f.entity_id})->publish_state(std::string("${CREDENTIAL_STATUS_MARKER}"));  // credential: raw value never decoded or published`);
-        } else if (f.wire_type === "ASCII") {
-          L(`          { char buf[17]; jk_poll_scheduler::decode_ascii(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
-        } else if (f.wire_type === "HEX") {
-          L(`          { char buf[64]; jk_poll_scheduler::decode_hex_string(raw, payload_bytes, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
-        } else if (EXACT_DECIMAL_FIELDS.has(f.key)) {
-          // Primary entity for a Stage 3 precision-fix field: exact
-          // fixed-point decimal, never float -- see decode_exact_decimal's
-          // own header comment. The synthetic "__legacy_companion" entry
-          // (same block, different entity_id) below does NOT match this
-          // key and falls through to the plain decode_numeric branch,
-          // publishing the approximate value under its unchanged legacy id.
-          L(`          { char buf[16]; jk_poll_scheduler::decode_exact_decimal(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes, ${f.precision}, buf, sizeof(buf)); id(${f.entity_id})->publish_state(std::string(buf)); }`);
-          // Stage 3 cell-channel batch: cell_connected_mask ALSO exports
-          // its bit-exact raw value into a global -- see
-          // g_cell_connected_mask_raw's own comment in batterylifepo4.yaml.
-          // No other EXACT_DECIMAL_FIELDS entry needs this (they are scalar
-          // counters, not bitmasks resolve_topology tests bit-by-bit), so
-          // this stays a narrow, named special case rather than a new
-          // generic per-field mechanism for a single current user.
-          if (f.key === "cell_connected_mask") {
-            L(`          id(g_cell_connected_mask_raw) = jk_poll_scheduler::decode_raw_u32(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes);`);
-            L(`          id(g_cell_connected_mask_valid) = true;`);
-          }
-        } else if (f.domain === "binary_sensor" && (f.wire_type === "BIT" || WHOLE_VALUE_BOOLEAN_FIELDS.has(f.key))) {
-          // decode_bool() publishes a real bool, matching a binary_sensor
-          // entity's publish_state(bool) overload. A BIT-width field whose
-          // real semantic is NOT a boolean (e.g. port_switch: 1-bit but a
-          // genuine 2-state MODE selector, RS485/CAN, published as a plain
-          // numeric sensor with its own enum_map for the frontend to
-          // render) must NOT go through this branch -- it falls through to
-          // the plain decode_numeric() branch below instead, exactly like
-          // any other non-boolean field, since decode_numeric's mask+shift
-          // logic already handles a 1-bit-wide field correctly (returns
-          // 0.0/1.0), it just returns float instead of bool.
-          L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_bool(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
-        } else {
-          L(`          id(${f.entity_id})->publish_state(jk_poll_scheduler::decode_numeric(raw, jk_read_plan::kFields[${fieldIndex}], payload_bytes));`);
-        }
-      }
-    }
+    if (credentialBlocks.includes(i)) continue;
+    L(`        case ${i}: {  // 0x${parseInt(blocks[i].address, 16).toString(16).toUpperCase().padStart(4, "0")}`);
+    emitBlockBody(L, i, "          ");
     L("          break;");
     L("        }");
   }
@@ -1433,7 +1515,7 @@ function buildServicerInterval() {
   L("      id(g_rp_transport_state)[chosen] = jk_poll_scheduler::IDLE;");
   L("      if (id(g_rp_pending_index) == chosen) id(g_rp_pending_index) = -1;");
   L("    });");
-  L("id(bms0)->queue_command(std::move(command));");
+  L("id(bms0)->queue_command(std::move(fcommand));");
   return lines.join("\n");
 }
 

@@ -1,8 +1,8 @@
 {
   "$schema": "protocol-entity-routes-generated-v1",
   "generated_by": "tools/protocol/authoring/build_protocol_entity_routes.js",
-  "source_hash": "7bd9c211d9e6e7ca",
-  "route_count": 320,
+  "source_hash": "5d6b57c1be3fe10a",
+  "route_count": 321,
   "routes": [
     {
       "key": "active_cells_voltage_sum",
@@ -1617,6 +1617,12 @@
       "domain": "sensor",
       "entityId": "rcv_time",
       "configuredName": "rcv time"
+    },
+    {
+      "key": "read_cluster_mode",
+      "domain": "text_sensor",
+      "entityId": "read_cluster_mode",
+      "configuredName": "read cluster mode"
     },
     {
       "key": "read_plan_success",

@@ -103,6 +103,14 @@ esphome:
     # uses jk_poll_scheduler_core.h's types directly, with no dependency on
     # generated data). See test/jk_poll_scheduler/test_read_plan_decode.cpp.
     - protocol/generated/read_plan_decode.h
+    # Clustered read path (docs/project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md,
+    # M2-M5): the generated cluster table, the pure scheduler, raw cluster
+    # cache and runtime (fallback latch, strict RMW gate with pre-read,
+    # cross-task snapshot). Desktop-tested under test/jk_poll_scheduler/.
+    - protocol/generated/read_clusters_table.h
+    - components/jk_poll_scheduler/jk_cluster_scheduler_core.h
+    - components/jk_poll_scheduler/jk_cluster_cache_core.h
+    - components/jk_poll_scheduler/jk_cluster_runtime_core.h
     # User-directed rework (2026-09-17): pure, hardware-independent core
     # for the Topology Resolver's decision logic (resolve_topology, below)
     # -- same header-only, zero-I/O pattern as jk_write_tx_core.h/
@@ -970,7 +978,7 @@ esphome:
             void handleRequest(AsyncWebServerRequest *request) override {
               const uint32_t now = millis();
               std::string json;
-              json.reserve(2700);
+              json.reserve(4000);
               json += "{\"blocks\":[";
               for (size_t i = 0; i < jk_read_plan::kBlockCount; ++i) {
                 if (i) json += ',';
@@ -984,6 +992,30 @@ esphome:
                 json += ',';
                 json += std::to_string(snap.valid ? snap.revision : 0);
                 json += ']';
+              }
+              // Clustered read path (plan M5): per cluster, from the main-loop
+              // published atomic snapshot -- mode (cluster/fallback), active
+              // lease, cadence and freshness budget in force, age, revision
+              // and the global success sequence of its last read.
+              json += "],\"clusters\":[";
+              for (std::size_t c = 0; c < jk_read_clusters::kClusterCount; ++c) {
+                if (c) json += ',';
+                const auto &cl = jk_read_clusters::kClusters[c];
+                const auto cs = jk_cluster_runtime::read_cluster_snapshot(jk_cluster_runtime::g_cluster_snapshot_table, c);
+                const bool active = cs.valid && cs.active;
+                json += "{\"id\":\""; json += cl.id;
+                json += "\",\"start\":"; json += std::to_string(cl.start);
+                json += ",\"registers\":"; json += std::to_string(cl.register_count);
+                json += ",\"mode\":\""; json += (cs.valid && cs.fallback) ? "fallback" : "cluster";
+                json += "\",\"lease\":"; json += active ? "1" : "0";
+                json += ",\"cadence_ms\":"; json += std::to_string(active ? cl.active_cadence_ms : cl.cadence_ms);
+                json += ",\"budget_ms\":"; json += std::to_string(active ? cl.active_freshness_budget_ms : cl.freshness_budget_ms);
+                json += ",\"age_ms\":";
+                if (cs.valid && cs.last_success_ms != 0 && !cs.fallback) json += std::to_string(uint32_t(now - cs.last_success_ms));
+                else json += "null";
+                json += ",\"revision\":"; json += std::to_string(cs.valid ? cs.revision : 0);
+                json += ",\"sequence\":"; json += std::to_string(cs.valid ? cs.sequence : 0);
+                json += '}';
               }
               json += "]}";
               request->send(200, "application/json", json.c_str());
@@ -1215,90 +1247,54 @@ globals:
     type: float
     restore_value: false
     initial_value: "NAN"
-  - id: g_cell_poll_pending
-    type: bool
-    restore_value: false
-    initial_value: "false"
-  - id: g_cell_poll_started_ms
-    type: uint32_t
-    restore_value: false
-    initial_value: "0"
-
-  # Stage 3 bounded batch (2026-09-17): CellWireRes16-31 capability state
-  # (jk_capability::State, stored as plain uint8_t -- this project's own
-  # globals: convention uses only fundamental C++ types, never a custom
-  # struct, see every other global in this list) + its own bounded
-  # consecutive-failure counter, fully independent of topology
-  # confirmation. Read via its own isolated command/pending pair below
-  # (0x126A, 32 bytes) so a failure here can never stall or regress the
-  # proven-reliable 0x1200/106-byte base cell-block read.
+  # Clustered read path (plan M5): the cell, CellWireRes16-31 and
+  # CellConWireRes0-31 values now come from the A1/C1/C2 clusters
+  # (cluster_stored script). The capability states keep their entities:
+  # SUPPORTED once the owning cluster has been read and decoded.
   - id: g_cellwireres_ext_capability
     type: uint8_t
     restore_value: false
     initial_value: "0"   # jk_capability::STATE_UNKNOWN
-  - id: g_cellwireres_ext_attempts
-    type: uint8_t
-    restore_value: false
-    initial_value: "0"
-  - id: g_cellwireres_ext_pending
-    type: bool
-    restore_value: false
-    initial_value: "false"
-  - id: g_cellwireres_ext_started_ms
-    type: uint32_t
-    restore_value: false
-    initial_value: "0"
-
-  # Stage 3 bounded batch (2026-09-17): CellConWireRes0-31 capability
-  # state -- same shape and same jk_capability_core.h policy as the
-  # CellWireRes16-31 block above, tracked completely separately (a
-  # different, never-before-read address block, its own bounded probe
-  # budget). Read on its own slow (config_slow_300s) cadence, never 1Hz.
   - id: g_cellconwireres_capability
     type: uint8_t
     restore_value: false
     initial_value: "0"   # jk_capability::STATE_UNKNOWN
-  - id: g_cellconwireres_attempts
-    type: uint8_t
-    restore_value: false
-    initial_value: "0"
-  - id: g_cellconwireres_pending
-    type: bool
-    restore_value: false
-    initial_value: "false"
-  - id: g_cellconwireres_started_ms
-    type: uint32_t
-    restore_value: false
-    initial_value: "0"
-  - id: g_cellconwireres_ended_ms
-    type: uint32_t
-    restore_value: false
-    initial_value: "0"
-
-  # Diagnostic instrumentation (2026-09-18, user-directed): does NOT change
-  # the read's own protocol contract, cadence, retry bound, or capability
-  # policy -- see the CellConWireRes0-31 interval's own comment for the
-  # full reasoning. g_cellconwireres_generation is bumped once per attempt
-  # actually queued; g_cellconwireres_pending_generation records which
-  # generation the CURRENTLY outstanding attempt (if any) belongs to -- the
-  # response lambda captures its own generation BY VALUE at queue time and
-  # compares it against this global when its callback eventually fires, so
-  # a late response for an attempt already recorded as deadline-expired
-  # can never be misattributed to a newer attempt's own bookkeeping (see
-  # jk_capability::callback_matches_pending_attempt()).
-  - id: g_cellconwireres_generation
-    type: uint32_t
-    restore_value: false
-    initial_value: "0"
-  - id: g_cellconwireres_pending_generation
-    type: uint32_t
-    restore_value: false
-    initial_value: "0"
   - id: g_cellconwireres_queued_count
     type: uint32_t
     restore_value: false
     initial_value: "0"
   - id: g_cellconwireres_callback_count
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # HA/number RMW writes deferred while their cluster is pre-read (plan M5:
+  # strict 3.5 s gate with an automatic pre-read). One slot; a second RMW
+  # while one waits is refused (fail closed).
+  - id: g_rmw_deferred_active
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: g_rmw_deferred_address
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: g_rmw_deferred_word_count
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: g_rmw_deferred_mask
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: g_rmw_deferred_shift
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: g_rmw_deferred_encoded
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: g_rmw_deferred_deadline_ms
     type: uint32_t
     restore_value: false
     initial_value: "0"
@@ -1783,525 +1779,34 @@ globals:
   - id: cc_hist_stage         # 0 idle, 1 bulk, 2 absorption, 3 float, 4 discharging, 5 offline
     type: uint8_t[3600]       # (still 1 byte/sample — 5 is just another value of the same uint8_t)
 
-# A dedicated one-shot read keeps the Cell overview at 1 Hz without reducing
-# the 15 s interval of the remaining register map. JK-PB expects the requested
-# register count in bytes, so 106 is the required doubled count for 53 Modbus
-# words; the real response remains 106 bytes and is decoded exactly once.
+# Cell voltages/resistances (1-32), CellWireRes16-31 and CellConWireRes0-31
+# are decoded from the A1/C1/C2 clusters by the cluster_stored script (plan
+# M5); no dedicated reader polls them any more.
 interval:
-  - interval: 1s
-    startup_delay: 2s
+  # ---- Deferred RMW retry (plan M5): an RMW write parked by
+  # begin_write_tx_rmw while its cluster is pre-read is re-submitted as soon
+  # as the strict gate passes, or dropped (logged) at its deadline / on a
+  # refusal. Never more than the one parked write.
+  - interval: 100ms
     then:
       - lambda: |-
+          if (!id(g_rmw_deferred_active)) return;
           const uint32_t now = millis();
-          if (id(g_cell_poll_pending) &&
-              uint32_t(now - id(g_cell_poll_started_ms)) < 15000U) {
+          const uint16_t addr = uint16_t(id(g_rmw_deferred_address));
+          if (int32_t(now - id(g_rmw_deferred_deadline_ms)) >= 0) {
+            id(g_rmw_deferred_active) = false;
+            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- cluster pre-read did not land in time (stale)", unsigned(addr));
             return;
           }
-          id(g_cell_poll_pending) = true;
-          id(g_cell_poll_started_ms) = now;
-          // Register-count unit fix (2026-09-18, user-directed): the real
-          // decoded range is 0x1200 (cell_voltage_1) through 0x1268
-          // (cell_resistance_16, register-width 16-bit each) --
-          // protocol/registers.canonical.json confirms both endpoints and
-          // every register in between, giving (0x1268-0x1200)/2+1 = 53
-          // registers = 106 bytes, matching exactly what the decode below
-          // already reads (voltage 1-16 at byte 0-31, voltage 17-32 at
-          // byte 32-63, resistance 1-16 at byte 74-105 -- the 64-73 gap
-          // is cell_connected_mask/average/delta/extrema, read separately
-          // elsewhere, never decoded here). The prior literal "106" here
-          // was REGISTERS (212 bytes on the wire, per the real esphome
-          // 2026.9.0 create_read_command()/create_client_pdu() contract),
-          // not the intended byte count -- this block still worked on
-          // real hardware because 0x1200-0x1268 is a small subrange of a
-          // much larger, densely-populated register block (through at
-          // least 0x1290/total_voltage_raw), so the prior over-request
-          // simply read extra, unused, still-valid registers; it was
-          // never a functional failure, only a wider-than-needed request.
-          constexpr uint16_t register_count = 53;
-          constexpr size_t expected_payload_bytes = size_t(register_count) * 2U;
-          auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-              id(bms0), esphome::modbus::EntityType::HOLDING,
-              0x1200, register_count,
-              [](auto, uint16_t, const auto &data) {
-                id(g_cell_poll_pending) = false;
-                // EXACT match, not a floor -- a fixed-register_count FC03
-                // read has a deterministic response size; anything else
-                // (short OR long) is a real anomaly, never silently
-                // accepted as a valid cell-block response.
-                if (data.size() != expected_payload_bytes) {
-                  ESP_LOGW("jk_cells", "Cell-block response length mismatch: %u/%u bytes",
-                           static_cast<unsigned>(data.size()), static_cast<unsigned>(expected_payload_bytes));
-                  return;
-                }
-
-                esphome::sensor::Sensor *const voltage_sensors[16] = {
-                  id(cell_voltage_1),  id(cell_voltage_2),  id(cell_voltage_3),  id(cell_voltage_4),
-                  id(cell_voltage_5),  id(cell_voltage_6),  id(cell_voltage_7),  id(cell_voltage_8),
-                  id(cell_voltage_9),  id(cell_voltage_10), id(cell_voltage_11), id(cell_voltage_12),
-                  id(cell_voltage_13), id(cell_voltage_14), id(cell_voltage_15), id(cell_voltage_16)
-                };
-                esphome::sensor::Sensor *const resistance_sensors[16] = {
-                  id(cell_resistance_1),  id(cell_resistance_2),  id(cell_resistance_3),  id(cell_resistance_4),
-                  id(cell_resistance_5),  id(cell_resistance_6),  id(cell_resistance_7),  id(cell_resistance_8),
-                  id(cell_resistance_9),  id(cell_resistance_10), id(cell_resistance_11), id(cell_resistance_12),
-                  id(cell_resistance_13), id(cell_resistance_14), id(cell_resistance_15), id(cell_resistance_16)
-                };
-
-                // Channel-aware publish gate (Stage 3 corrective fix,
-                // 2026-09-18, user-directed): the same source of truth
-                // jk_topology::resolve()'s own blanking bound already uses
-                // (id(cell_count).state, rounded/range-checked by the one
-                // shared helper both call) -- a channel index >= this count
-                // must never receive a numeric publish_state() call here,
-                // full stop. This is the actual fix, not the later
-                // resolve_topology() blank-to-NaN pass below (unchanged,
-                // still runs every cycle as a defensive backstop for paths
-                // that don't go through this decode callback at all, e.g.
-                // OFFLINE/no-fresh-decode) -- previously this decode loop
-                // published EVERY channel's raw bytes unconditionally, and
-                // resolve_topology() only blanked the out-of-range ones a
-                // few dozen ms later, producing a real, hardware-observed
-                // numeric-then-NaN flicker for every channel beyond N on
-                // every 1Hz cycle (see the 2026-09-18 hardware retest's
-                // 30-minute SSE capture). No hardcoded channel count: N
-                // comes from id(cell_count).state fresh every decode, so
-                // this scales correctly for 8S/16S/24S/32S packs and for a
-                // live CellCount change, not just the currently-deployed
-                // 16S unit.
-                const uint8_t known_active_channels =
-                    jk_topology::channel_count_from_configured(id(cell_count).state);
-
-                uint16_t min_mv = UINT16_MAX;
-                uint16_t max_mv = 0;
-                uint8_t min_index = 0;
-                uint8_t max_index = 0;
-                for (uint8_t i = 0; i < 16; ++i) {
-                  const size_t voltage_offset = size_t(i) * 2U;
-                  const size_t resistance_offset = 74U + size_t(i) * 2U;
-                  const uint16_t millivolts =
-                      (uint16_t(data[voltage_offset]) << 8) | data[voltage_offset + 1U];
-                  const uint16_t milliohms =
-                      (uint16_t(data[resistance_offset]) << 8) | data[resistance_offset + 1U];
-
-                  // Raw millivolts/milliohms are always decoded (kept
-                  // internally) regardless of the gate -- but min/max
-                  // tracking, like the publish_state() calls, must be
-                  // folded into the SAME `i < known_active_channels` gate
-                  // (2026-09-18, second-round audit, user-directed): raw
-                  // bytes for a channel beyond N are NOT a trustworthy
-                  // reading just because they happen to pass the >=500U
-                  // sanity floor (a stale/residual register value from a
-                  // now-unused channel could easily do that) -- an
-                  // unconditional min/max loop over all 16 base channels
-                  // would corrupt min_cell_voltage/max_cell_voltage/
-                  // min_voltage_cell/max_voltage_cell with data from an
-                  // inactive channel. On the currently-deployed 16S unit
-                  // this changes nothing at all (known_active_channels is
-                  // always 16 there, identical to the old unconditional
-                  // i<16 loop) -- this only matters for N<16, exercised in
-                  // test/jk_topology/test_publish_sequence_simulation.cpp,
-                  // not yet on any real hardware this project has access
-                  // to.
-                  if (i < known_active_channels) {
-                    voltage_sensors[i]->publish_state(millivolts * 0.001f);
-                    resistance_sensors[i]->publish_state(milliohms * 0.001f);
-                    if (millivolts >= 500U && millivolts < min_mv) {
-                      min_mv = millivolts;
-                      min_index = i + 1U;
-                    }
-                    if (millivolts >= 500U && millivolts > max_mv) {
-                      max_mv = millivolts;
-                      max_index = i + 1U;
-                    }
-                  }
-                }
-
-                // Stage 3 bounded task (2026-09-18, user-directed):
-                // MaxVolCellNbr/MinVolCellNbr, packed UINT8+UINT8 at 0x1248
-                // (byte 72-73 of this same 106-byte payload -- confirmed by
-                // byte-range arithmetic against the 53-register/106-byte
-                // request above, not assumed; see the sensor declarations'
-                // own comment for the full evidence trail). Published RAW,
-                // exactly as read off the wire (0-255) -- no `+1`/`-1`
-                // normalization, no channel-count gate: the indexing base
-                // is not independently confirmed by any source, and this
-                // is the BMS's own internal fact about whatever cells IT
-                // currently tracks, not one of this project's own 32
-                // per-channel telemetry slots, so known_active_channels
-                // (which gates the array of 32 per-channel sensors above)
-                // does not apply here. Bytes 72/73 are within bounds by
-                // construction: the exact-length guard at the top of this
-                // callback (data.size() != expected_payload_bytes -> return)
-                // already guarantees data.size() == 106 here, well past 73.
-                id(max_voltage_cell_index_native)->publish_state(float(data[72]));
-                id(min_voltage_cell_index_native)->publish_state(float(data[73]));
-
-                // Stage 3 cell-channel batch (user-directed, 2026-09-17):
-                // channels 17-32 (CellVol16-31, byte offsets 32-63) --
-                // ALREADY inside this same 106-byte response (0x1200 spans
-                // through byte 105), decoded here from bytes this read has
-                // fetched every cycle all along -- no new Modbus command,
-                // no new bus traffic. Deliberately NOT folded into the
-                // min/max-tracking loop above or its min_mv/max_mv/
-                // min_index/max_index outputs -- those feed the write-
-                // transaction confirmation and Overview widgets, scoped to
-                // the deployed 16S unit's own confirmed range; extending
-                // that logic to protocol-capacity-only channels is out of
-                // this batch's bounded scope.
-                //
-                // Publish gate (Stage 3 corrective fix, 2026-09-18,
-                // user-directed): same known_active_channels bound computed
-                // above, same reasoning -- a channel here is index 16+i
-                // overall (channel 17 = i=0), so the gate is
-                // `(16U + i) < known_active_channels`. Never published raw
-                // and left for resolve_topology (below) to blank to NaN
-                // afterward -- that produced the hardware-observed
-                // numeric-then-NaN flicker this fix removes; resolve_topology
-                // still re-blanks every cycle regardless, as an unchanged
-                // defensive backstop, not the primary mechanism anymore.
-                esphome::sensor::Sensor *const voltage_sensors_ext[16] = {
-                  id(cell_voltage_17), id(cell_voltage_18), id(cell_voltage_19), id(cell_voltage_20),
-                  id(cell_voltage_21), id(cell_voltage_22), id(cell_voltage_23), id(cell_voltage_24),
-                  id(cell_voltage_25), id(cell_voltage_26), id(cell_voltage_27), id(cell_voltage_28),
-                  id(cell_voltage_29), id(cell_voltage_30), id(cell_voltage_31), id(cell_voltage_32)
-                };
-                for (uint8_t i = 0; i < 16; ++i) {
-                  const size_t voltage_offset = 32U + size_t(i) * 2U;
-                  const uint16_t millivolts =
-                      (uint16_t(data[voltage_offset]) << 8) | data[voltage_offset + 1U];
-                  if ((16U + i) < known_active_channels) {
-                    voltage_sensors_ext[i]->publish_state(millivolts * 0.001f);
-                  }
-                }
-
-                if (min_index == 0U || max_index == 0U) return;
-                // This line only runs once the response has been fully
-                // decoded and at least one cell reported a plausible
-                // voltage — the actual confirmation that the BMS itself
-                // (not just the UART link) is responding correctly.
-                // Fresh millis() here, not the outer lambda's `now`: this
-                // callback is captureless ([]) by the ModbusCommandItem
-                // API's own requirement, and semantically this timestamp
-                // should be the moment the response was actually decoded,
-                // not the moment the request was queued (a real compile
-                // error caught this: `now` is a local of the ENCLOSING
-                // interval lambda and was never capturable here).
-                id(g_last_bms_response_ms) = millis();
-                id(g_min_cell_v) = min_mv * 0.001f;
-                id(g_max_cell_v) = max_mv * 0.001f;
-                id(g_min_cell_idx) = min_index;
-                id(g_max_cell_idx) = max_index;
-                id(min_cell_voltage).publish_state(id(g_min_cell_v));
-                id(max_cell_voltage).publish_state(id(g_max_cell_v));
-                id(min_voltage_cell).publish_state(float(min_index));
-                id(max_voltage_cell).publish_state(float(max_index));
-                // Every fresh, successfully-decoded cell-block response
-                // re-evaluates topology — cheap (a handful of comparisons
-                // over 16 floats), and this is what lets the resolver
-                // self-heal after a reboot or a transient mismatch without
-                // needing its own dedicated re-check logic (spec test 9).
-                id(resolve_topology)->execute();
-              });
-          id(bms0)->queue_command(std::move(command));
-
-  # ---- CellWireRes16-31 capability-gated extension read (Stage 3 bounded
-  # batch, 2026-09-17) -- isolated from the 1Hz base cell-block read above
-  # on purpose: this address range (0x126A, 32 bytes, channels 17-32) has
-  # never been read by this project before, so a failure/short response
-  # here must never be able to stall or regress the proven-reliable 1-16
-  # telemetry (a separate command, a separate pending/timeout pair, a
-  # separate capability state -- nothing shared with the 1Hz block except
-  # the same bms0 Modbus bus). Only attempted when id(cell_count) itself
-  # (the raw configured value, NOT display_cell_count/topology
-  # confirmation -- see jk_capability_core.h's own module comment on why
-  # those are different questions) is plausibly 17..32 -- on the currently
-  # deployed 16S unit this command is never issued at all, zero added bus
-  # traffic. Bounded by jk_capability::should_attempt()/record_outcome():
-  # at most MAX_PROBE_ATTEMPTS (3) consecutive failures (short response OR
-  # a full non-response, the latter detected the same way the CellCount
-  # write-transaction driver above detects a silent ACK timeout -- an
-  # explicit elapsed-time check on the SAME pending flag, not a second
-  # mechanism) before this project stops attempting this block for the
-  # rest of the boot session. A single success sets SUPPORTED and this
-  # keeps reading normally forever after -- ordinary polling of a
-  # proven-working block, not "probing" anymore.
-  - interval: 15s
-    then:
-      - lambda: |-
-          const uint32_t now = millis();
-          jk_capability::ProbeState ps;
-          ps.state = static_cast<jk_capability::State>(id(g_cellwireres_ext_capability));
-          ps.consecutive_failures = id(g_cellwireres_ext_attempts);
-
-          if (id(g_cellwireres_ext_pending)) {
-            if (uint32_t(now - id(g_cellwireres_ext_started_ms)) < 5000U) return;
-            // No callback within 5s -- a real, countable failure, exactly
-            // like the CellCount driver's own ACK-timeout branch treats a
-            // silent non-response, not a stuck-forever pending flag.
-            id(g_cellwireres_ext_pending) = false;
-            ps = jk_capability::record_outcome(ps, false);
-            id(g_cellwireres_ext_capability) = static_cast<uint8_t>(ps.state);
-            id(g_cellwireres_ext_attempts) = ps.consecutive_failures;
-            id(cell_wire_resistance_ext_capability)->publish_state(
-                std::string(jk_capability::STATE_NAMES[ps.state]));
+          const auto rmw = jk_cluster_runtime::g_runtime.check_rmw(addr, uint8_t(id(g_rmw_deferred_word_count)), now);
+          if (rmw.gate == jk_cluster_runtime::RmwGate::WAIT) return;
+          id(g_rmw_deferred_active) = false;
+          if (rmw.gate == jk_cluster_runtime::RmwGate::REFUSE) {
+            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- cluster raw %s", unsigned(addr), jk_cluster_cache::lookup_name(rmw.reason));
+            return;
           }
-
-          const bool need_ext = jk_capability::needs_cellwireres_extended_read(id(cell_count).state);
-          if (!need_ext || !jk_capability::should_attempt(ps)) return;
-
-          id(g_cellwireres_ext_pending) = true;
-          id(g_cellwireres_ext_started_ms) = now;
-          // Register-count unit fix (2026-09-18, user-directed): 16
-          // channels (cell_resistance_17..32, 0x126A-0x1288), each
-          // register-width 16-bit (word_count=1 in
-          // protocol/registers.canonical.json) = 16 registers = 32 bytes,
-          // matching exactly what the decode below reads. The prior
-          // literal "32" was REGISTERS (64 bytes on the wire), double the
-          // real block.
-          constexpr uint16_t register_count = 16;
-          constexpr size_t expected_payload_bytes = size_t(register_count) * 2U;
-          auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-              id(bms0), esphome::modbus::EntityType::HOLDING,
-              0x126A, register_count,
-              [](auto, uint16_t, const auto &data) {
-                id(g_cellwireres_ext_pending) = false;
-                // EXACT match, not a floor -- same reasoning as
-                // CellConWireRes0-31's own fix.
-                const bool success = data.size() == expected_payload_bytes;
-                if (success) {
-                  esphome::sensor::Sensor *const resistance_sensors_ext2[16] = {
-                    id(cell_resistance_17), id(cell_resistance_18), id(cell_resistance_19), id(cell_resistance_20),
-                    id(cell_resistance_21), id(cell_resistance_22), id(cell_resistance_23), id(cell_resistance_24),
-                    id(cell_resistance_25), id(cell_resistance_26), id(cell_resistance_27), id(cell_resistance_28),
-                    id(cell_resistance_29), id(cell_resistance_30), id(cell_resistance_31), id(cell_resistance_32)
-                  };
-                  for (uint8_t i = 0; i < 16; ++i) {
-                    const size_t off = size_t(i) * 2U;
-                    const uint16_t milliohms = (uint16_t(data[off]) << 8) | data[off + 1U];
-                    resistance_sensors_ext2[i]->publish_state(milliohms * 0.001f);
-                  }
-                } else {
-                  ESP_LOGW("jk_cellwireres_ext", "CellWireRes16-31 response length mismatch: %u/%u bytes",
-                           static_cast<unsigned>(data.size()), static_cast<unsigned>(expected_payload_bytes));
-                }
-                jk_capability::ProbeState ps2;
-                ps2.state = static_cast<jk_capability::State>(id(g_cellwireres_ext_capability));
-                ps2.consecutive_failures = id(g_cellwireres_ext_attempts);
-                ps2 = jk_capability::record_outcome(ps2, success);
-                id(g_cellwireres_ext_capability) = static_cast<uint8_t>(ps2.state);
-                id(g_cellwireres_ext_attempts) = ps2.consecutive_failures;
-                id(cell_wire_resistance_ext_capability)->publish_state(
-                    std::string(jk_capability::STATE_NAMES[ps2.state]));
-              });
-          id(bms0)->queue_command(std::move(command));
-
-  # ---- CellConWireRes0-31 capability-gated calibration read (Stage 3
-  # bounded batch, 2026-09-17; diagnostic instrumentation added 2026-09-18;
-  # register-count unit fix 2026-09-18, user-directed) -- a wholly separate,
-  # never-before-read address block (0x1088, 64 Modbus registers = 128
-  # bytes, 32 x UINT32 calibration constants), read on a slow
-  # config_slow_300s cadence (never 1Hz -- these are calibration constants,
-  # not live telemetry) with the exact same bounded UNKNOWN/SUPPORTED/
-  # UNSUPPORTED capability policy as CellWireRes16-31 above, tracked with
-  # its own independent globals/state. NOT gated on configured CellCount --
-  # these 32 calibration slots are a property of the BMS controller board
-  # itself, not of how many cell channels happen to be configured, so
-  # unlike the read above there is no "N doesn't need it" case to skip.
-  # READ ONLY: no set_action exists anywhere for these entities --
-  # write-enablement is explicitly Stage 4 scope (see this register
-  # family's own dynamic_dependency.rule in registers.canonical.json).
-  # CORRECTED (2026-09-18): create_read_command()'s count parameter is
-  # REGISTERS, not bytes (confirmed against the real esphome 2026.8.2
-  # source -- see the channel_count/registers_per_channel/register_count/
-  # expected_payload_bytes constants below). The prior pass requested 128
-  # REGISTERS (256 bytes, double the real 64-register/128-byte block) --
-  # this may be why every hardware attempt so far has failed (a too-wide
-  # FC03 request past this block's real end is a plausible cause of a
-  # Modbus exception, indistinguishable from a timeout at this call site
-  # either way), but this is NOT confirmed against real hardware yet and
-  # must not be read as such until a real BMS response is observed.
-  # The address (0x1088), function code (FC03, via EntityType::HOLDING),
-  # cadence (300s/startup_delay 10s), and bounded retry policy
-  # (jk_capability::MAX_PROBE_ATTEMPTS) are UNCHANGED by either pass --
-  # every addition below is either a diagnostic publish alongside an
-  # EXISTING call site, the generation-id guard needed to satisfy "a late
-  # response must never be misattributed to a different attempt" (see
-  # jk_capability_core.h's own callback_matches_pending_attempt() comment),
-  # or this register-count correction.
-  - interval: 300s
-    startup_delay: 10s
-    then:
-      - lambda: |-
-          const uint32_t now = millis();
-          // Unit-confusion guard (2026-09-18, user-directed corrective pass):
-          // ModbusCommandItem::create_read_command()'s 4th parameter is a
-          // REGISTER count (16-bit Modbus registers), confirmed against the
-          // real esphome 2026.8.2 source (send() forwards it verbatim into
-          // create_client_pdu(function_code, start_address, register_count,
-          // ...), the literal FC03 quantity-of-registers field) -- NOT a
-          // byte count. Named explicitly here so the two units can never be
-          // silently swapped again the way the prior pass's literal "128"
-          // was (it was 128 REGISTERS = 256 bytes on the wire, double the
-          // 32 x UINT32 = 128-byte block this decode loop actually reads;
-          // protocol/registers.canonical.json's own word_count:2-per-channel
-          // agrees: 32 x 2 = 64 registers).
-          constexpr uint8_t channel_count = 32;
-          constexpr uint8_t registers_per_channel = 2;
-          constexpr uint16_t register_count = uint16_t(channel_count) * uint16_t(registers_per_channel);
-          constexpr size_t expected_payload_bytes = size_t(register_count) * 2U;
-          jk_capability::ProbeState ps;
-          ps.state = static_cast<jk_capability::State>(id(g_cellconwireres_capability));
-          ps.consecutive_failures = id(g_cellconwireres_attempts);
-
-          if (id(g_cellconwireres_pending)) {
-            if (uint32_t(now - id(g_cellconwireres_started_ms)) < 5000U) return;
-            id(g_cellconwireres_pending) = false;
-            id(g_cellconwireres_ended_ms) = now;
-            ps = jk_capability::record_outcome(ps, false);
-            id(g_cellconwireres_capability) = static_cast<uint8_t>(ps.state);
-            id(g_cellconwireres_attempts) = ps.consecutive_failures;
-            id(cell_connection_wire_resistance_capability)->publish_state(
-                std::string(jk_capability::STATE_NAMES[ps.state]));
-            // No data callback arrived within our own 5s deadline for
-            // this generation -- see jk_capability_core.h's own
-            // AttemptOutcome module comment: this covers BOTH a genuine
-            // Modbus exception response and a plain non-response
-            // timeout, indistinguishable at this call site (on_error
-            // does not invoke on_data_func). A LATER, genuinely late
-            // callback for this SAME generation may still overwrite this
-            // outcome below (see the response lambda's own
-            // already_resolved_by_deadline handling) -- that is not a
-            // contradiction, it means a real response eventually did
-            // arrive, just after this project stopped waiting for it.
-            id(cell_connection_wire_resistance_last_outcome)->publish_state(
-                std::string(jk_capability::ATTEMPT_OUTCOME_NAMES[
-                    jk_capability::ATTEMPT_DEADLINE_EXPIRED_NO_DATA_CALLBACK]));
-          }
-
-          if (!jk_capability::should_attempt(ps)) return;
-
-          const uint32_t this_attempt_generation = ++id(g_cellconwireres_generation);
-          id(g_cellconwireres_pending_generation) = this_attempt_generation;
-          id(g_cellconwireres_pending) = true;
-          id(g_cellconwireres_started_ms) = now;
-          id(g_cellconwireres_queued_count) += 1;
-          id(cell_connection_wire_resistance_queued_count)->publish_state(
-              float(id(g_cellconwireres_queued_count)));
-          id(cell_connection_wire_resistance_attempt_started_uptime_s)->publish_state(
-              float(now) * 0.001f);
-          id(cell_connection_wire_resistance_last_outcome)->publish_state(
-              std::string(jk_capability::ATTEMPT_OUTCOME_NAMES[jk_capability::ATTEMPT_QUEUED_WAITING]));
-          // this_attempt_generation is captured BY VALUE below -- an
-          // ordinary, safe std::function capture (the uint32_t is copied
-          // into the closure, no dangling reference to anything on this
-          // YAML lambda's own stack frame, which ends the instant
-          // queue_command() returns). This is the only thing standing
-          // between a late response and misattribution to a newer
-          // attempt; see jk_capability_core.h's own
-          // callback_matches_pending_attempt().
-          auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-              id(bms0), esphome::modbus::EntityType::HOLDING,
-              0x1088, register_count,
-              [this_attempt_generation](auto, uint16_t, const auto &data) {
-                // Counted for EVERY callback firing, including a late one
-                // for an attempt this project has already recorded as
-                // deadline-expired -- these two counters answer "did a
-                // callback ever fire, with how many bytes", independent
-                // of attribution to a specific attempt.
-                id(g_cellconwireres_callback_count) += 1;
-                id(cell_connection_wire_resistance_callback_count)->publish_state(
-                    float(id(g_cellconwireres_callback_count)));
-                // `data` is already the parsed application-layer payload
-                // -- ModbusCommandItem::on_response calls
-                // modbus::helpers::server_pdu_payload(response_pdu)
-                // before this callback ever runs, stripping address/
-                // function-code/CRC first (confirmed against the real
-                // framework source, 2026-09-18). Never a raw Modbus
-                // frame; safe to read as this register's own payload
-                // bytes directly, exactly as the decode below already
-                // assumed.
-                id(cell_connection_wire_resistance_last_response_bytes)->publish_state(
-                    float(data.size()));
-
-                if (!jk_capability::callback_matches_pending_attempt(
-                        this_attempt_generation, id(g_cellconwireres_pending_generation))) {
-                  // A response for an attempt this project has already
-                  // moved past (a NEWER attempt is now the one pending) --
-                  // the raw counters above still reflect that a callback
-                  // really did fire, but nothing else here may be
-                  // touched: not the capability state, not the
-                  // calibration sensors, not the pending flag.
-                  return;
-                }
-
-                const jk_capability::AttemptOutcome outcome =
-                    jk_capability::classify_response(data.size(), expected_payload_bytes);
-                const bool success = outcome == jk_capability::ATTEMPT_RESPONSE_OK;
-                id(cell_connection_wire_resistance_last_outcome)->publish_state(
-                    std::string(jk_capability::ATTEMPT_OUTCOME_NAMES[outcome]));
-
-                // Exactly one bounded-retry outcome per attempt: if our
-                // own 5s deadline already fired for THIS generation (the
-                // branch above), record_outcome() was already called for
-                // it once -- this is a genuinely late arrival for the
-                // same attempt, not a different one (the generation
-                // check above already proved that). The diagnostic
-                // outcome/byte-count fields are still updated (a real
-                // answer arrived, just late), but the bounded-retry
-                // ProbeState below is deliberately NOT touched again.
-                const bool already_resolved_by_deadline = !id(g_cellconwireres_pending);
-                if (!already_resolved_by_deadline) {
-                  id(g_cellconwireres_pending) = false;
-                  id(g_cellconwireres_ended_ms) = millis();
-                  id(cell_connection_wire_resistance_attempt_ended_uptime_s)->publish_state(
-                      float(id(g_cellconwireres_ended_ms)) * 0.001f);
-                }
-
-                if (success) {
-                  esphome::sensor::Sensor *const calibration_sensors[32] = {
-                    id(cell_connection_wire_resistance_1),  id(cell_connection_wire_resistance_2),
-                    id(cell_connection_wire_resistance_3),  id(cell_connection_wire_resistance_4),
-                    id(cell_connection_wire_resistance_5),  id(cell_connection_wire_resistance_6),
-                    id(cell_connection_wire_resistance_7),  id(cell_connection_wire_resistance_8),
-                    id(cell_connection_wire_resistance_9),  id(cell_connection_wire_resistance_10),
-                    id(cell_connection_wire_resistance_11), id(cell_connection_wire_resistance_12),
-                    id(cell_connection_wire_resistance_13), id(cell_connection_wire_resistance_14),
-                    id(cell_connection_wire_resistance_15), id(cell_connection_wire_resistance_16),
-                    id(cell_connection_wire_resistance_17), id(cell_connection_wire_resistance_18),
-                    id(cell_connection_wire_resistance_19), id(cell_connection_wire_resistance_20),
-                    id(cell_connection_wire_resistance_21), id(cell_connection_wire_resistance_22),
-                    id(cell_connection_wire_resistance_23), id(cell_connection_wire_resistance_24),
-                    id(cell_connection_wire_resistance_25), id(cell_connection_wire_resistance_26),
-                    id(cell_connection_wire_resistance_27), id(cell_connection_wire_resistance_28),
-                    id(cell_connection_wire_resistance_29), id(cell_connection_wire_resistance_30),
-                    id(cell_connection_wire_resistance_31), id(cell_connection_wire_resistance_32)
-                  };
-                  for (uint8_t i = 0; i < channel_count; ++i) {
-                    const size_t off = size_t(i) * (size_t(registers_per_channel) * 2U);
-                    const uint32_t microohms = (uint32_t(data[off]) << 24) | (uint32_t(data[off + 1U]) << 16) |
-                                                (uint32_t(data[off + 2U]) << 8) | uint32_t(data[off + 3U]);
-                    // Raw register unit is 1 uOhm (official V1.1 PDF / V2 workbook);
-                    // the owner-facing unit is mOhm (V2 workbook: display x0.001),
-                    // matching the measured wire resistance at 0x124A. Writes
-                    // encode back with round(mOhm / 0.001) and confirm on raw bits.
-                    calibration_sensors[i]->publish_state(float(double(microohms) * 0.001));
-                  }
-                } else {
-                  ESP_LOGW("jk_cellconwireres", "CellConWireRes0-31 response length mismatch: %u/%u bytes",
-                           static_cast<unsigned>(data.size()), static_cast<unsigned>(expected_payload_bytes));
-                }
-
-                if (already_resolved_by_deadline) return;
-                jk_capability::ProbeState ps2;
-                ps2.state = static_cast<jk_capability::State>(id(g_cellconwireres_capability));
-                ps2.consecutive_failures = id(g_cellconwireres_attempts);
-                ps2 = jk_capability::record_outcome(ps2, success);
-                id(g_cellconwireres_capability) = static_cast<uint8_t>(ps2.state);
-                id(g_cellconwireres_attempts) = ps2.consecutive_failures;
-                id(cell_connection_wire_resistance_capability)->publish_state(
-                    std::string(jk_capability::STATE_NAMES[ps2.state]));
-              });
-          id(bms0)->queue_command(std::move(command));
+          id(begin_write_tx_rmw)->execute(id(g_rmw_deferred_address), id(g_rmw_deferred_word_count), id(g_rmw_deferred_mask),
+                                           id(g_rmw_deferred_shift), id(g_rmw_deferred_encoded), 0);
 
   # ---- CellCount write transaction driver (jk_topology) — advances the
   # state armed by set_cell_count's set_action, above, through:
@@ -2881,8 +2386,23 @@ interval:
   - interval: 100ms
     then:
       - lambda: |-
+          // A request whose RMW cluster bytes are being pre-read waits here
+          // (plan M5: strict 3.5 s gate + automatic pre-read). Its result is
+          // not published yet, so the producer keeps refusing new requests.
+          static bool deferred = false;
+          static uint32_t deferred_request_id = 0;
+          static char deferred_key[jk_write_tx::kRegisterWriteKeyMaxLen] = {0};
+          static double deferred_value = 0.0;
+          static uint32_t deferred_submitted_at_ms = 0;
           jk_write_tx::RegisterWriteRequestMailbox req;
-          if (!jk_write_tx::try_take_write_request(jk_write_tx::g_register_write_request_mailbox, req)) return;
+          if (deferred) {
+            req.request_id = deferred_request_id;
+            jk_write_tx::copy_bounded_cstr(req.key, sizeof(req.key), deferred_key);
+            req.value = deferred_value;
+            req.submitted_at_ms = deferred_submitted_at_ms;
+          } else if (!jk_write_tx::try_take_write_request(jk_write_tx::g_register_write_request_mailbox, req)) {
+            return;
+          }
 
           jk_diag::mark_write_crash_stage(jk_diag::STAGE_MAIN_LOOP_EXECUTION_STARTED);
           const uint32_t now = millis();
@@ -2929,12 +2449,33 @@ interval:
           }
 
           if (reject_reason == jk_write_tx::RejectReason::NONE && e_ptr->uses_rmw) {
-            const int block_idx = jk_poll_scheduler::find_block_index_for_address(jk_read_plan::kBlocks, e_ptr->address);
-            if (block_idx < 0) {
-              reject_reason = jk_write_tx::RejectReason::NO_READ_PLAN_BLOCK;
-            } else if (!jk_write_tx::raw_is_fresh(id(g_rp_last_success_ms)[block_idx], now, e_ptr->freshness_budget_ms)) {
+            // Strict RMW gate: the register's cluster bytes must be fresher
+            // than jk_cluster_cache::kRmwStrictBudgetMs (3.5 s), never a
+            // background budget. Older or missing bytes: pre-read the owning
+            // cluster and wait (bounded); fallback/unknown/credential: refuse.
+            const auto rmw = jk_cluster_runtime::g_runtime.check_rmw(uint16_t(e_ptr->address), uint8_t(e_ptr->word_count), now);
+            if (rmw.gate == jk_cluster_runtime::RmwGate::WAIT) {
+              if (!deferred) {
+                deferred = true;
+                deferred_request_id = req.request_id;
+                jk_write_tx::copy_bounded_cstr(deferred_key, sizeof(deferred_key), req.key);
+                deferred_value = req.value;
+                deferred_submitted_at_ms = req.submitted_at_ms;
+                jk_cluster_runtime::g_deferred_register_write.start(now);
+              }
+              if (!jk_cluster_runtime::g_deferred_register_write.expired(now)) {
+                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+                return;  // re-evaluated next tick, once the pre-read landed
+              }
               reject_reason = jk_write_tx::RejectReason::STALE_RAW;
+            } else if (rmw.gate == jk_cluster_runtime::RmwGate::REFUSE) {
+              reject_reason = rmw.reason == jk_cluster_cache::Lookup::UNKNOWN ? jk_write_tx::RejectReason::NO_READ_PLAN_BLOCK
+                                                                              : jk_write_tx::RejectReason::STALE_RAW;
             }
+          }
+          if (deferred) {
+            deferred = false;
+            jk_cluster_runtime::g_deferred_register_write.clear();
           }
 
           if (reject_reason != jk_write_tx::RejectReason::NONE) {
@@ -3041,6 +2582,14 @@ interval:
                 jk_write_tx::g_read_plan_block_snapshot_table, i,
                 id(g_rp_last_success_ms)[i], id(g_rp_last_raw_word)[i], id(g_rp_revision)[i]);
           }
+          // Clustered read path (plan M5): the cluster freshness snapshot for
+          // GET /settings/read-freshness (httpd task) and the mode entity.
+          const uint32_t snap_now = millis();
+          const bool lease = id(g_active_group_hint) >= 0 && snap_now < id(g_active_group_hint_expires_ms);
+          jk_cluster_runtime::publish_cluster_snapshot(jk_cluster_runtime::g_cluster_snapshot_table, jk_cluster_runtime::g_runtime, lease);
+          char mode[64];
+          jk_cluster_runtime::g_runtime.format_mode(mode, sizeof(mode));
+          if (id(read_cluster_mode).state != mode) id(read_cluster_mode).publish_state(mode);
 
   - interval: 30s
     then:
@@ -4598,6 +4147,131 @@ sensor:
   # the separate `cell_count` sensor. skip_updates matches the selects'
   # former polling cadence (5 x 15s modbus_controller_update_interval).
 script:
+  # ---- Clustered read hook (plan M5): runs right after the generated
+  # servicer stored and decoded a cluster (protocol/generated/read_plan.yaml).
+  # Publishes the values that are not per-register read-plan fields:
+  #   A1 -> cell voltages 1-32 and wire resistances 1-32 (active channels
+  #         only, from the configured cell count), native max/min index,
+  #         min/max over every active channel, topology resolution;
+  #   C2 -> CellConWireRes0-31 (0x1088-0x1106), which spans C1 (0x1088-
+  #         0x10EE) and C2 (0x10F0-0x1106): decoded only when C1 was read
+  #         in the same cycle (C2 always follows C1).
+  # Reads only the raw cluster cache (jk_cluster_cache_core.h); never Modbus.
+  - id: cluster_stored
+    parameters:
+      cluster: int
+      fallback: bool
+    then:
+      - lambda: |-
+          // fallback == false: the cluster was just stored in the runtime's
+          // cache. fallback == true: a latched group's bespoke reader just
+          // filled the runtime's fallback image (jk_cluster_runtime::
+          // kBespokeReads) laid out like this cluster's payload.
+          const auto &rt = jk_cluster_runtime::g_runtime;
+          if (cluster < 0 || std::size_t(cluster) >= jk_read_clusters::kClusterCount) return;
+          const auto &cl = jk_read_clusters::kClusters[cluster];
+          const auto &entry = rt.cache().entry(std::size_t(cluster));
+          if (!fallback && entry.source != jk_cluster_cache::Source::CLUSTER) return;
+
+          if (cl.start == 0x1200) {  // A1
+            esphome::sensor::Sensor *const voltage_sensors[32] = {
+              id(cell_voltage_1),  id(cell_voltage_2),  id(cell_voltage_3),  id(cell_voltage_4),
+              id(cell_voltage_5),  id(cell_voltage_6),  id(cell_voltage_7),  id(cell_voltage_8),
+              id(cell_voltage_9),  id(cell_voltage_10), id(cell_voltage_11), id(cell_voltage_12),
+              id(cell_voltage_13), id(cell_voltage_14), id(cell_voltage_15), id(cell_voltage_16),
+              id(cell_voltage_17), id(cell_voltage_18), id(cell_voltage_19), id(cell_voltage_20),
+              id(cell_voltage_21), id(cell_voltage_22), id(cell_voltage_23), id(cell_voltage_24),
+              id(cell_voltage_25), id(cell_voltage_26), id(cell_voltage_27), id(cell_voltage_28),
+              id(cell_voltage_29), id(cell_voltage_30), id(cell_voltage_31), id(cell_voltage_32)
+            };
+            esphome::sensor::Sensor *const resistance_sensors[32] = {
+              id(cell_resistance_1),  id(cell_resistance_2),  id(cell_resistance_3),  id(cell_resistance_4),
+              id(cell_resistance_5),  id(cell_resistance_6),  id(cell_resistance_7),  id(cell_resistance_8),
+              id(cell_resistance_9),  id(cell_resistance_10), id(cell_resistance_11), id(cell_resistance_12),
+              id(cell_resistance_13), id(cell_resistance_14), id(cell_resistance_15), id(cell_resistance_16),
+              id(cell_resistance_17), id(cell_resistance_18), id(cell_resistance_19), id(cell_resistance_20),
+              id(cell_resistance_21), id(cell_resistance_22), id(cell_resistance_23), id(cell_resistance_24),
+              id(cell_resistance_25), id(cell_resistance_26), id(cell_resistance_27), id(cell_resistance_28),
+              id(cell_resistance_29), id(cell_resistance_30), id(cell_resistance_31), id(cell_resistance_32)
+            };
+            const uint8_t *a1 = fallback ? rt.fallback_cell_image() : entry.bytes.data();
+            if (a1 == nullptr) return;
+            // Fallback: cell_resistance_17-32 only once their own 0x126A read landed.
+            const bool ext_resistance_ok = !fallback || rt.fallback_cells_ext_valid();
+            const uint8_t active = jk_topology::channel_count_from_configured(id(cell_count).state);
+            const auto f = jk_cluster_cache::decode_cells_from_a1(a1, active);
+            for (std::size_t i = 0; i < jk_cluster_cache::kCellChannels; i++) {
+              if (!f.publish[i]) continue;  // inactive channels are never published
+              voltage_sensors[i]->publish_state(f.millivolts[i] * 0.001f);
+              if (i < 16 || ext_resistance_ok) resistance_sensors[i]->publish_state(f.milliohms[i] * 0.001f);
+            }
+            id(max_voltage_cell_index_native)->publish_state(float(f.native_max_index));
+            id(min_voltage_cell_index_native)->publish_state(float(f.native_min_index));
+            if (active > 16 && ext_resistance_ok && id(g_cellwireres_ext_capability) != jk_capability::STATE_SUPPORTED) {
+              id(g_cellwireres_ext_capability) = jk_capability::STATE_SUPPORTED;
+              id(cell_wire_resistance_ext_capability)->publish_state(std::string(jk_capability::STATE_NAMES[jk_capability::STATE_SUPPORTED]));
+            }
+            if (f.min_index == 0U || f.max_index == 0U) return;
+            id(g_last_bms_response_ms) = millis();
+            id(g_min_cell_v) = f.min_mv * 0.001f;
+            id(g_max_cell_v) = f.max_mv * 0.001f;
+            id(g_min_cell_idx) = f.min_index;
+            id(g_max_cell_idx) = f.max_index;
+            id(min_cell_voltage).publish_state(id(g_min_cell_v));
+            id(max_cell_voltage).publish_state(id(g_max_cell_v));
+            id(min_voltage_cell).publish_state(float(f.min_index));
+            id(max_voltage_cell).publish_state(float(f.max_index));
+            id(resolve_topology)->execute();
+            return;
+          }
+
+          if (cl.start == 0x10F0) {  // C2: CellConWireRes0-31 from C1 + C2 of this cycle (or the fallback image)
+            const int c1 = jk_read_clusters::cluster_of(0x1088);
+            if (c1 < 0) return;
+            const auto &c1e = rt.cache().entry(std::size_t(c1));
+            const uint8_t *con_image = fallback ? rt.fallback_conwireres_image() : nullptr;
+            if (fallback && con_image == nullptr) return;
+            if (!fallback && (c1e.source != jk_cluster_cache::Source::CLUSTER || uint32_t(entry.success_ms - c1e.success_ms) > 1000U)) return;
+            esphome::sensor::Sensor *const calibration_sensors[32] = {
+              id(cell_connection_wire_resistance_1),  id(cell_connection_wire_resistance_2),
+              id(cell_connection_wire_resistance_3),  id(cell_connection_wire_resistance_4),
+              id(cell_connection_wire_resistance_5),  id(cell_connection_wire_resistance_6),
+              id(cell_connection_wire_resistance_7),  id(cell_connection_wire_resistance_8),
+              id(cell_connection_wire_resistance_9),  id(cell_connection_wire_resistance_10),
+              id(cell_connection_wire_resistance_11), id(cell_connection_wire_resistance_12),
+              id(cell_connection_wire_resistance_13), id(cell_connection_wire_resistance_14),
+              id(cell_connection_wire_resistance_15), id(cell_connection_wire_resistance_16),
+              id(cell_connection_wire_resistance_17), id(cell_connection_wire_resistance_18),
+              id(cell_connection_wire_resistance_19), id(cell_connection_wire_resistance_20),
+              id(cell_connection_wire_resistance_21), id(cell_connection_wire_resistance_22),
+              id(cell_connection_wire_resistance_23), id(cell_connection_wire_resistance_24),
+              id(cell_connection_wire_resistance_25), id(cell_connection_wire_resistance_26),
+              id(cell_connection_wire_resistance_27), id(cell_connection_wire_resistance_28),
+              id(cell_connection_wire_resistance_29), id(cell_connection_wire_resistance_30),
+              id(cell_connection_wire_resistance_31), id(cell_connection_wire_resistance_32)
+            };
+            const auto &c1c = jk_read_clusters::kClusters[c1];
+            for (uint8_t k = 0; k < 32; k++) {
+              const uint16_t address = uint16_t(0x1088 + 4U * k);
+              const bool in_c1 = uint32_t(address) + 4U <= uint32_t(c1c.start) + c1c.payload_bytes;
+              const uint8_t *p = con_image != nullptr ? con_image + 4U * k
+                               : in_c1 ? c1e.bytes.data() + (address - c1c.start) : entry.bytes.data() + (address - cl.start);
+              const uint32_t microohms = (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16) | (uint32_t(p[2]) << 8) | uint32_t(p[3]);
+              calibration_sensors[k]->publish_state(float(double(microohms) * 0.001));
+            }
+            id(g_cellconwireres_queued_count) += 1;
+            id(g_cellconwireres_callback_count) += 1;
+            id(cell_connection_wire_resistance_queued_count)->publish_state(float(id(g_cellconwireres_queued_count)));
+            id(cell_connection_wire_resistance_callback_count)->publish_state(float(id(g_cellconwireres_callback_count)));
+            id(cell_connection_wire_resistance_last_response_bytes)->publish_state(128.0f);
+            id(cell_connection_wire_resistance_last_outcome)->publish_state(
+                std::string(jk_capability::ATTEMPT_OUTCOME_NAMES[jk_capability::ATTEMPT_RESPONSE_OK]));
+            if (id(g_cellconwireres_capability) != jk_capability::STATE_SUPPORTED) {
+              id(g_cellconwireres_capability) = jk_capability::STATE_SUPPORTED;
+              id(cell_connection_wire_resistance_capability)->publish_state(std::string(jk_capability::STATE_NAMES[jk_capability::STATE_SUPPORTED]));
+            }
+          }
+
   # Rebuilds and republishes the atomic JSON transaction snapshot
   # (write_tx_snapshot, text_sensor above) from the current slot array.
   # Called after begin_write_tx (so PENDING is visible before the write
@@ -4775,17 +4449,17 @@ script:
   # so this script itself stays generic over every packed field's geometry
   # (address/word_count/mask/shift only).
   #
-  # Sequence (spec steps 2-3, 6-9): find this address's own read-plan block
-  # (jk_poll_scheduler::find_block_index_for_address) to reach its cached
-  # raw snapshot; reject the write outright if no block exists, or if that
-  # snapshot isn't fresh (jk_write_tx::raw_is_fresh against the SAME
-  # freshness_budget_ms this project's read plan already uses for this
-  # block, passed in by the caller so it can differ per field's own
-  # poll_group cadence) -- "unavailable/stale/read_error/wrong length" are
-  # all covered by raw_is_fresh() + the read path's own existing exact/
-  # floor length validation already gating whether last_success_ms ever
-  # advances at all. Then merge (jk_write_tx::merge_field_into_raw) and
-  # hand off to the EXISTING begin_write_tx (steps 7-9, 14-17: single-
+  # Sequence (clustered read plan M5): the raw register value comes only
+  # from the raw cluster cache, through the strict RMW gate
+  # (jk_cluster_runtime::Runtime::check_rmw -- cluster bytes fresher than
+  # jk_cluster_cache::kRmwStrictBudgetMs = 3.5 s, never a background budget,
+  # never fallback-sourced, never the setup passcode). Older or missing
+  # bytes: the owning cluster is pre-read and this write is parked in the
+  # one g_rmw_deferred_* slot, retried by the 100 ms interval below until
+  # fresh or kRmwPreReadDeadlineMs; a second parked RMW is refused (fail
+  # closed). freshness_budget_ms is kept for the caller signature only and
+  # is not a gate any more. Then merge (jk_write_tx::merge_field_into_raw)
+  # and hand off to the EXISTING begin_write_tx (steps 7-9, 14-17: single-
   # flight, ACK/readback, WRITE_UNCERTAIN+recovery, no auto-retry, resume
   # -- all already implemented and tested there, reused verbatim, never
   # duplicated).
@@ -4799,21 +4473,33 @@ script:
       freshness_budget_ms: int
     then:
       - lambda: |-
+          (void) freshness_budget_ms;  // not a gate: the strict cluster gate below decides
           const uint16_t addr = uint16_t(address);
-          const int block_idx = jk_poll_scheduler::find_block_index_for_address(jk_read_plan::kBlocks, addr);
-          if (block_idx < 0) {
-            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- no read-plan block owns this address", unsigned(addr));
-            return;
-          }
           const uint32_t now = millis();
-          const uint32_t last_success = id(g_rp_last_success_ms)[block_idx];
-          if (!jk_write_tx::raw_is_fresh(last_success, now, uint32_t(freshness_budget_ms))) {
-            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- raw snapshot not fresh (last_success_ms=%u now=%u budget=%ums)",
-                     unsigned(addr), unsigned(last_success), unsigned(now), unsigned(freshness_budget_ms));
+          const auto rmw = jk_cluster_runtime::g_runtime.check_rmw(addr, uint8_t(word_count), now);
+          if (rmw.gate == jk_cluster_runtime::RmwGate::WAIT) {
+            const bool same = id(g_rmw_deferred_active) && id(g_rmw_deferred_address) == address && id(g_rmw_deferred_mask) == mask &&
+                              id(g_rmw_deferred_shift) == shift && id(g_rmw_deferred_encoded) == encoded_raw;
+            if (id(g_rmw_deferred_active) && !same) {
+              ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- another RMW write is waiting for its pre-read", unsigned(addr));
+              return;
+            }
+            if (!id(g_rmw_deferred_active)) {
+              id(g_rmw_deferred_active) = true;
+              id(g_rmw_deferred_address) = address;
+              id(g_rmw_deferred_word_count) = word_count;
+              id(g_rmw_deferred_mask) = mask;
+              id(g_rmw_deferred_shift) = shift;
+              id(g_rmw_deferred_encoded) = encoded_raw;
+              id(g_rmw_deferred_deadline_ms) = now + jk_cluster_runtime::kRmwPreReadDeadlineMs;
+            }
+            return;  // retried by the 100 ms deferred-RMW interval once the pre-read landed
+          }
+          if (rmw.gate == jk_cluster_runtime::RmwGate::REFUSE) {
+            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- cluster raw %s", unsigned(addr), jk_cluster_cache::lookup_name(rmw.reason));
             return;
           }
-          const uint32_t old_raw = id(g_rp_last_raw_word)[block_idx];
-          const uint32_t merged_raw = jk_write_tx::merge_field_into_raw(old_raw, uint32_t(mask), uint8_t(shift), uint32_t(encoded_raw));
+          const uint32_t merged_raw = jk_write_tx::merge_field_into_raw(rmw.raw, uint32_t(mask), uint8_t(shift), uint32_t(encoded_raw));
           id(begin_write_tx)->execute(address, word_count, int(merged_raw), mask, 0);
 
   # ---- Topology Resolver — the single source of truth for whether
@@ -5792,6 +5478,15 @@ text_sensor:
   - platform: template
     id: read_plan_success
     name: "read plan success"
+    entity_category: diagnostic
+    update_interval: never
+
+  # Clustered read path mode (plan M5): "clusters" in normal operation, or
+  # "fallback:<ids>" once clusters were latched to the legacy per-register
+  # readers after repeated failures (latched until reboot, never flapping).
+  - platform: template
+    id: read_cluster_mode
+    name: "read cluster mode"
     entity_category: diagnostic
     update_interval: never
 

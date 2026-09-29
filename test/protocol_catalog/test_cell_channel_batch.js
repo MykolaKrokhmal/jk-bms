@@ -267,22 +267,39 @@ for (let i = 16; i <= 31; i++) {
   check(`CellWireRes${i} address ${addr} does NOT appear in the generated read plan (bespoke-excluded, not the generic pipeline's job)`,
     !readPlanYaml.includes(addr));
 }
-check("CellWireRes16-31's own read command (0x126A, register_count registers -- fixed 2026-09-18 from the old unit-confused '32' literal, see test_bespoke_read_register_count.js) is present in batterylifepo4.yaml",
-  batteryYaml.includes("0x126A, register_count,"));
-check("CellWireRes16-31's read is gated on configured CellCount (id(cell_count).state) via jk_capability::needs_cellwireres_extended_read(), not topology confirmation",
-  batteryYaml.includes("jk_capability::needs_cellwireres_extended_read(id(cell_count).state)"));
-check("CellWireRes16-31's read is bounded by jk_capability::should_attempt()/record_outcome() (no infinite probing)",
-  batteryYaml.includes("jk_capability::should_attempt(ps)") && batteryYaml.includes("jk_capability::record_outcome(ps2, success)"));
+// Clustered reads (plan M5): no dedicated command any more. A1 (0x1200
+// x120) carries CellWireRes16-31; only a latched A fallback restores the
+// bespoke 0x126A x16 reader, gated on the configured CellCount.
+const runtimeCore = fs.readFileSync(path.join(ROOT, "components", "jk_poll_scheduler", "jk_cluster_runtime_core.h"), "utf8");
+const readClusters = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "read_clusters.canonical.json"), "utf8")).clusters;
+const clusterSpan = (id) => { const c = readClusters.find((x) => x.cluster_id === id); return [parseInt(c.start, 16), parseInt(c.start, 16) + 2 * c.register_count]; };
+{
+  const [a1s, a1e] = clusterSpan("A1");
+  check("CellWireRes16-31 (0x126A-0x1288) lie inside A1 and are decoded by cluster_stored, with no dedicated read command",
+    0x126A >= a1s && 0x1288 + 2 <= a1e && !batteryYaml.includes("0x126A, register_count,") && !batteryYaml.includes("0x126A, 32,"));
+}
+check("CellWireRes16-31's fallback read is gated on configured CellCount via jk_capability::needs_cellwireres_extended_read(), not topology confirmation",
+  readPlanYaml.includes("jk_capability::needs_cellwireres_extended_read(id(cell_count).state)") &&
+  runtimeCore.includes("if (int(i) == kBespokeCellsExt && !ext_needed) continue;"));
+check("CellWireRes16-31's fallback read is bounded: only for a latched group, at 15 s, never re-probing in a loop",
+  runtimeCore.includes("{0x126A, 16, 0x1200, 0x1200, 15000},") &&
+  runtimeCore.includes("if (!cluster_fallback(jk_read_clusters::cluster_of(b.start))) continue;"));
 
 for (let i = 0; i <= 31; i++) {
   const addr = `0x${(0x1088 + i * 4).toString(16).toUpperCase().padStart(4, "0")}`;
   check(`CellConWireRes${i} address ${addr} does NOT appear in the generated read plan (bespoke-excluded, not the generic pipeline's job)`,
     !readPlanYaml.includes(addr));
 }
-check("CellConWireRes0-31's own read command (0x1088, register_count registers) is present in batterylifepo4.yaml",
-  batteryYaml.includes("0x1088, register_count,"));
-check("CellConWireRes0-31 is read on a slow cadence (interval: 300s), never 1Hz",
-  /interval:\s*300s[\s\S]{0,5000}0x1088,\s*register_count,/.test(batteryYaml));
+{
+  const [c1s] = clusterSpan("C1");
+  const [, c2e] = clusterSpan("C2");
+  check("CellConWireRes0-31 (0x1088-0x1106) lie inside C1+C2 and are decoded by cluster_stored from the same C1/C2 cycle",
+    0x1088 >= c1s && 0x1088 + 128 <= c2e &&
+    batteryYaml.includes("uint32_t(entry.success_ms - c1e.success_ms) > 1000U)) return;"));
+}
+check("CellConWireRes0-31 is read at the 15 s background cadence (C), never 1 Hz; its fallback reader keeps the old 300 s",
+  readClusters.find((c) => c.cluster_id === "C1").cadence_ms === 15000 &&
+  runtimeCore.includes("{0x1088, 64, 0x1088, 0x10F0, 300000},"));
 check("CellConWireRes0-31 has no set_action / write path anywhere (write stays Stage 4 scope)",
   !batteryYaml.includes("set_cell_connection_wire_resistance"));
 
@@ -295,19 +312,14 @@ check("CellConWireRes0-31 has no set_action / write path anywhere (write stays S
 // ===========================================================================
 check("CellConWireRes0-31: the old, unit-confused literal '0x1088, 128,' (128 REGISTERS = 256 bytes) does NOT appear anywhere",
   !batteryYaml.includes("0x1088, 128,"));
-check("CellConWireRes0-31: channel_count/registers_per_channel/register_count/expected_payload_bytes are declared as named constants, not re-inlined magic numbers",
-  batteryYaml.includes("constexpr uint8_t channel_count = 32;") &&
-  batteryYaml.includes("constexpr uint8_t registers_per_channel = 2;") &&
-  batteryYaml.includes("constexpr uint16_t register_count = uint16_t(channel_count) * uint16_t(registers_per_channel);") &&
-  batteryYaml.includes("constexpr size_t expected_payload_bytes = size_t(register_count) * 2U;"));
-check("CellConWireRes0-31: the read command requests exactly register_count (64) registers, not a re-inlined literal",
-  /create_read_command\(\s*\n\s*id\(bms0\), esphome::modbus::EntityType::HOLDING,\s*\n\s*0x1088, register_count,/.test(batteryYaml));
-check("CellConWireRes0-31: response classification uses expected_payload_bytes, not a re-inlined '128U' literal",
-  batteryYaml.includes("jk_capability::classify_response(data.size(), expected_payload_bytes)") &&
-  !batteryYaml.includes("classify_response(data.size(), 128U)"));
-check("CellConWireRes0-31: the decode loop iterates channel_count channels (not a re-inlined '32'), at a registers_per_channel-derived stride (not a re-inlined '4U')",
-  batteryYaml.includes("for (uint8_t i = 0; i < channel_count; ++i)") &&
-  batteryYaml.includes("size_t(i) * (size_t(registers_per_channel) * 2U)"));
+check("CellConWireRes0-31: the fallback read requests exactly 64 registers (128 bytes, 32 channels x 4 bytes), exact length only",
+  runtimeCore.includes("{0x1088, 64, 0x1088, 0x10F0, 300000},") &&
+  runtimeCore.includes("static_assert(2U * 64U == kFallbackConWireResBytes") &&
+  runtimeCore.includes("if (len != std::size_t(2U * b.registers)) {"));
+check("CellConWireRes0-31: the decode loop covers 32 channels at a 4-byte stride from 0x1088",
+  batteryYaml.includes("for (uint8_t k = 0; k < 32; k++) {") &&
+  batteryYaml.includes("const uint16_t address = uint16_t(0x1088 + 4U * k);") &&
+  batteryYaml.includes("con_image + 4U * k"));
 check("CellConWireRes0-31: classify_response() itself now requires an EXACT byte-length match, not merely '>=' (extra bytes are never silently accepted)",
   fs.readFileSync(path.join(ROOT, "components", "jk_capability", "jk_capability_core.h"), "utf8")
     .includes("return bytes_received == bytes_expected ? ATTEMPT_RESPONSE_OK : ATTEMPT_RESPONSE_LENGTH_MISMATCH;"));
@@ -319,28 +331,19 @@ check("CellConWireRes0-31: classify_response() itself now requires an EXACT byte
 // unchanged by adding diagnostics -- checked structurally, since this
 // project has no way to compile/run the real firmware this session.
 // ===========================================================================
-check("CellConWireRes0-31: exactly one 300s interval exists project-wide (instrumentation did not add a second polling loop)",
-  (batteryYaml.match(/interval:\s*300s/g) || []).length === 1);
-check("CellConWireRes0-31: exactly one 0x1088,register_count read command exists (instrumentation did not add a second/duplicate request)",
-  (batteryYaml.match(/0x1088, register_count,/g) || []).length === 1);
-check("CellConWireRes0-31: still gated by jk_capability::should_attempt()/record_outcome() (bounded retry policy unchanged)",
-  batteryYaml.includes("jk_capability::should_attempt(ps)") &&
-  /record_outcome\(ps2, success\)/.test(batteryYaml));
+check("CellConWireRes0-31: no dedicated 300 s interval or 0x1088 command remains (the cluster servicer owns the bus)",
+  !/interval:\s*300s/.test(batteryYaml) && !batteryYaml.includes("0x1088, register_count,"));
+check("CellConWireRes0-31: the fallback latch is bounded (kFallbackAfterFailures = 3, latched for good, never re-probing)",
+  runtimeCore.includes("constexpr uint8_t kFallbackAfterFailures = 3;") &&
+  runtimeCore.includes("if (!h.fallback && h.consecutive_failures >= kFallbackAfterFailures) latch_fallback(c);"));
 check("CellConWireRes0-31: MAX_PROBE_ATTEMPTS is not overridden or duplicated anywhere in batterylifepo4.yaml (the ONLY bound is jk_capability_core.h's own constant)",
   !batteryYaml.includes("MAX_PROBE_ATTEMPTS ="));
 
-check("CellConWireRes0-31: the response lambda captures its own generation id BY VALUE (misattribution guard, not a vendor patch)",
-  batteryYaml.includes("[this_attempt_generation](auto, uint16_t, const auto &data)"));
-check("CellConWireRes0-31: a late/stale callback is checked against jk_capability::callback_matches_pending_attempt() before touching any shared state",
-  batteryYaml.includes("jk_capability::callback_matches_pending_attempt("));
-check("CellConWireRes0-31: exactly one record_outcome() call site exists in the response lambda (never double-counted for one attempt)",
-  (() => {
-    const start = batteryYaml.indexOf("0x1088, register_count,");
-    const end = batteryYaml.indexOf("id(bms0)->queue_command(std::move(command));", start);
-    const scope = batteryYaml.slice(start, end);
-    return (scope.match(/jk_capability::record_outcome\(/g) || []).length === 1;
-  })());
-
+check("cluster and fallback responses capture their read's generation BY VALUE (misattribution guard)",
+  readPlanYaml.includes("[next, gen](auto, uint16_t, const auto &data)") &&
+  readPlanYaml.includes("[bespoke, gen](auto, uint16_t, const auto &data)"));
+check("a late/stale callback is dropped by the runtime (Completion::LATE) before touching any shared state",
+  (readPlanYaml.match(/if \(done == jk_cluster_runtime::Completion::LATE\) return;/g) || []).length === 2);
 check("CellConWireRes0-31: NOT_ATTEMPTED is published explicitly at boot (distinct from an unpublished entity)",
   batteryYaml.includes("jk_capability::ATTEMPT_OUTCOME_NAMES[jk_capability::ATTEMPT_NOT_ATTEMPTED]"));
 check("CellConWireRes0-31: last_response_bytes is never force-published to 0 before the first callback (stays unpublished == explicit unknown)",
@@ -378,11 +381,15 @@ for (let ch = 17; ch <= 32; ch++) {
 // guard, same early-return safety property, corrected length semantics.
 // ===========================================================================
 {
-  const guardIdx = batteryYaml.indexOf("if (data.size() != expected_payload_bytes) {\n                  ESP_LOGW(\"jk_cells\"");
-  const shortReturnIdx = batteryYaml.indexOf("return;", guardIdx);
-  const extDecodeIdx = batteryYaml.indexOf("voltage_sensors_ext[16]");
-  check("the channel-17-32 decode block appears AFTER the short-response guard's own early return (same safety net as channels 1-16)",
-    guardIdx !== -1 && shortReturnIdx !== -1 && extDecodeIdx !== -1 && extDecodeIdx > shortReturnIdx);
+  // Channels 1-32 are decoded only from a stored, exact-length cluster (or
+  // a complete fallback image): cluster_stored returns before decoding
+  // anything else.
+  const storedIdx = batteryYaml.indexOf("  - id: cluster_stored");
+  const guardIdx = batteryYaml.indexOf("if (!fallback && entry.source != jk_cluster_cache::Source::CLUSTER) return;", storedIdx);
+  const imageGuardIdx = batteryYaml.indexOf("if (a1 == nullptr) return;", storedIdx);
+  const decodeIdx = batteryYaml.indexOf("jk_cluster_cache::decode_cells_from_a1(a1, active)", storedIdx);
+  check("the channel 1-32 decode runs only AFTER the stored-cluster / complete-image guards",
+    storedIdx !== -1 && guardIdx > storedIdx && imageGuardIdx > guardIdx && decodeIdx > imageGuardIdx);
 }
 
 // ===========================================================================

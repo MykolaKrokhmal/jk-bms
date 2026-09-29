@@ -931,7 +931,61 @@ Rules that apply to every phase:
 - **Commit:** `feat(protocol): decode clusters and cache writable raw`.
 - **Deploy:** none until M5.
 
-### M5 — Firmware servicer on clusters, with fallback
+### M5 — Firmware servicer on clusters, with fallback — DONE (host; not compiled)
+
+> **Status (2026-09-29):** implemented on the host. Not compiled, flashed or
+> run: gates B and C, then an owner-authorized compile-only validation, come
+> before any deployment.
+> - **Servicer** (generated `read_plan.yaml`, 20 ms tick): reads A1…S3 from
+>   `read_clusters_table.h` through `jk_cluster_runtime_core.h` (new): one
+>   read in flight across clusters, the isolated passcode read and the
+>   fallback readers; a write in flight (the generic slots, CellCount, and
+>   the setup-passcode write with its 0x1470 readback) pauses every read;
+>   late responses are dropped by cluster and generation; 3 s timeout (the
+>   production hub keeps its default `send_wait_time` and retries).
+> - **Decode/publish:** each cluster response is stored (exact length only),
+>   every read-plan block inside it is decoded from its byte offset, and
+>   `cluster_stored` publishes the cells (active channels only, min/max over
+>   every active channel), the native min/max index, the topology resolution
+>   and CellConWireRes 0–31 (C1 + C2 of the same cycle). No publish-on-change.
+> - **Events:** `read_plan_success` = `<cluster>:<revision>:<sequence>` per
+>   cluster read (e.g. `A1:5:77`); the latched fallback keeps the per-block
+>   `<address>:<revision>:<sequence>`. `/settings/read-freshness` adds
+>   `clusters[]` with id, start, registers, mode, lease, cadence, budget,
+>   age, revision and sequence. The UI takes the cluster geometry only from
+>   that snapshot and marks every block inside a cluster as read; unknown
+>   geometry or a skipped revision re-reads the snapshot. `demo/mock-server.js`
+>   was not changed (the UI accepts both formats; another session owns
+>   uncommitted edits to it).
+> - **Fallback:** 3 consecutive failed reads of a lead latch its group (lead
+>   + followers) for the rest of the boot session, never unlatching. The
+>   group then uses the legacy per-register blocks and the pre-migration
+>   bespoke readers (0x1200 ×53 at 1 s, 0x126A ×16 at 15 s when more than
+>   16 cells are configured, 0x1088 ×64 at 300 s) under the same bus
+>   ownership. Fallback bytes are published but never RMW input. Visible in
+>   the `read_cluster_mode` diagnostic entity (`clusters` /
+>   `fallback:A1,A2`; UI Diagnostics list), the snapshot's `mode` and the log.
+> - **Duplicate reads removed:** the dedicated 1 s cell reader, the 15 s
+>   0x126A reader and the 300 s 0x1088 reader.
+> - **RMW:** strict 3.5 s gate with automatic pre-read of the owning cluster
+>   (owner decision 2026-09-29); the write waits up to 6.5 s, then is
+>   refused as stale; credential, unknown, fallback or bad-width raw refuse
+>   at once. Both write paths (the main consumer and `begin_write_tx_rmw`)
+>   use it.
+> - **Tests:** `test_jk_cluster_runtime_core.cpp` (57 checks),
+>   `test_cluster_servicer_structure.js` (18), the cluster cases in
+>   `test_sse_reconnect.js` (K0–K9), and `test/firmware_lambda_compile/run.js`:
+>   a host `g++ -fsyntax-only` compile of the 14 interval/script lambdas and
+>   the read-freshness handler against ESPHome API stubs (it cannot catch an
+>   ESPHome API mismatch). Mutations: runtime 16/18 caught (the 2 survivors
+>   are equivalent: a latched cluster is never issued again, and a fallback
+>   cluster's raw is `FALLBACK`, never `STALE`), UI 8/8, generator 5/5,
+>   compile harness 6/6. Evidence:
+>   `protocol/evidence/stage1_corrective_evidence/clustered_reads_m5_host_verification_20260929.md`.
+> - **Open:** the UI Settings freshness budgets are still the pre-migration
+>   per-group ones (22.5 s / 307.5 s; cells 3 s) — M6/M7 move them to the
+>   cluster budgets; the firmware RMW gate already enforces 3.5 s.
+
 - **Prerequisite:** M4.
 - **Files:**
   - the generated `read_plan.yaml`;

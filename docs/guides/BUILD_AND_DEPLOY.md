@@ -26,9 +26,13 @@ the paths are relative to the YAML.
 | `protocol/generated/write_registry.yaml` | `packages: write_registry` |
 | `protocol/generated/read_plan_decode.h` | `esphome: includes` |
 | `protocol/generated/write_registry_table.h` | `esphome: includes` |
+| `protocol/generated/read_clusters_table.h` | `esphome: includes` (clustered reads, M5) |
 | `components/jk_write_tx/jk_write_tx_core.h` | `esphome: includes` |
 | `components/jk_write_tx/jk_preflight_snapshot_core.h` | `esphome: includes` |
 | `components/jk_poll_scheduler/jk_poll_scheduler_core.h` | `esphome: includes` |
+| `components/jk_poll_scheduler/jk_cluster_scheduler_core.h` | `esphome: includes` (clustered reads, M5) |
+| `components/jk_poll_scheduler/jk_cluster_cache_core.h` | `esphome: includes` (clustered reads, M5) |
+| `components/jk_poll_scheduler/jk_cluster_runtime_core.h` | `esphome: includes` (clustered reads, M5) |
 | `components/jk_topology/jk_topology_core.h` | `esphome: includes` |
 | `components/jk_capability/jk_capability_core.h` | `esphome: includes` |
 | `components/jk_diag/jk_reset_diag_core.h` | `esphome: includes` |
@@ -92,7 +96,7 @@ SHA-256 and its destination in the owner's layout (the `jk_bms_ui/` mapping). Ex
 evidence-only files, `demo/mock-server.js` and unchanged files. For example:
 
 ```bash
-git diff --name-only <deployed-commit> HEAD -- batterylifepo4.yaml jk_bms.js jk_bms.css protocol/generated/read_plan.yaml protocol/generated/write_registry.yaml protocol/generated/read_plan_decode.h protocol/generated/write_registry_table.h components/jk_write_tx components/jk_poll_scheduler components/jk_topology components/jk_capability components/jk_diag
+git diff --name-only <deployed-commit> HEAD -- batterylifepo4.yaml jk_bms.js jk_bms.css protocol/generated/read_plan.yaml protocol/generated/write_registry.yaml protocol/generated/read_plan_decode.h protocol/generated/write_registry_table.h protocol/generated/read_clusters_table.h components/jk_write_tx components/jk_poll_scheduler components/jk_topology components/jk_capability components/jk_diag
 ```
 
 ```bash

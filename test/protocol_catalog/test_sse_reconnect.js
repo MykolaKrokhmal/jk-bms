@@ -46,6 +46,7 @@ function boot() {
   let snapshotAgeMs = 0;
   let snapshotRevision = 1;
   let snapshotFails = false;
+  let snapshotClusters = null;  // null = a pre-M5 snapshot without clusters[]
   let holdNext = false;
   const held = [];
   const window = {
@@ -72,7 +73,9 @@ function boot() {
     fetchLog.push({ url: String(url), method });
     if (method === "GET" && String(url).endsWith("/settings/read-freshness")) {
       if (snapshotFails) return { ok: false, status: 503, json: async () => ({}) };
-      const response = { ok: true, status: 200, json: async () => ({ blocks: [[SMART_SLEEP_BLOCK, snapshotAgeMs, snapshotRevision]] }) };
+      const response = { ok: true, status: 200, json: async () => (snapshotClusters
+        ? { blocks: [[SMART_SLEEP_BLOCK, snapshotAgeMs, snapshotRevision]], clusters: snapshotClusters.map((c) => ({ ...c })) }
+        : { blocks: [[SMART_SLEEP_BLOCK, snapshotAgeMs, snapshotRevision]] }) };
       // A held response resolves only when the test releases it (in flight).
       if (holdNext) { holdNext = false; return new Promise((resolve) => { held.push(() => resolve(response)); }); }
       return response;
@@ -91,6 +94,7 @@ function boot() {
     h, clock, timers, winListeners, docListeners, fetchLog, navigator, document,
     setSnapshot(ageMs, revision) { snapshotAgeMs = ageMs; snapshotRevision = revision; },
     failSnapshot(value) { snapshotFails = value; },
+    setClusters(list) { snapshotClusters = list; },
     holdNextSnapshot() { holdNext = true; },
     releaseHeld() { const all = held.splice(0); all.forEach((fn) => fn()); return all.length; },
     es() { return FakeEventSource.instances[FakeEventSource.instances.length - 1]; },
@@ -800,6 +804,110 @@ async function main() {
     check("C8: this connection's own post-boundary read unlocks it", p.fresh() === "fresh");
     check("C: only read-only GETs of the freshness snapshot, zero writes", p.writes() === 0 &&
       p.fetchLog.every((f) => f.method === "GET" && f.url.endsWith("/settings/read-freshness")));
+  }
+
+  // K. Clustered reads (M5). One '<cluster id>:<cluster revision>:<sequence>'
+  // success covers every read-plan block inside the cluster; the geometry
+  // comes only from the firmware snapshot's clusters[] (C1 = 0x1000 x120
+  // holds the smart_sleep block 0x1000; A1 = 0x1200 x120 does not).
+  {
+    const clusters = (c1Revision) => [
+      { id: "A1", start: 0x1200, registers: 120, mode: "cluster", lease: 0, cadence_ms: 1000, budget_ms: 1500, age_ms: 10, revision: 40, sequence: 90 },
+      { id: "C1", start: 0x1000, registers: 120, mode: "cluster", lease: 0, cadence_ms: 15000, budget_ms: 15500, age_ms: 0, revision: c1Revision, sequence: 91 },
+    ];
+    const p = boot();
+    p.setClusters(clusters(5));
+    p.h.connect();
+    const es = p.es();
+    es.open();
+    await flush();
+    p.smartSleep(es);
+    p.health(es, "LIVE");
+    const gets = () => p.fetchLog.filter((f) => f.method === "GET" && f.url.endsWith("/settings/read-freshness")).length;
+    let seq = 200;
+    const success = async (value) => { es.emit("state", { id: "text_sensor/read plan success", state: value, value }); await flush(); };
+    const budgetMs = p.h.PROTOCOL_CATALOG.fieldMeta.smart_sleep.freshnessBudgetS * 1000;
+    // A working stream: bms_health every 2 s while time passes.
+    const run = (ms) => { for (let t = 0; t < ms; t += 2000) { p.timers.advance(Math.min(2000, ms - t)); p.health(es, "LIVE"); } };
+    run(budgetMs + 1);
+    check("K0: the snapshot's own read expires by its budget", p.fresh() === "stale", `${p.fresh()} ${p.tier()}`);
+    let n = gets();
+    await success(`A1:41:${++seq}`);
+    check("K1: an A1 success does not refresh a block outside A1", p.fresh() === "stale" && gets() === n);
+    await success(`C1:6:${++seq}`);
+    check("K1: the next C1 success refreshes the 0x1000 block it contains (no fetch)", p.fresh() === "fresh" && gets() === n);
+    run(budgetMs + 1);
+    await success(`C1:6:${++seq}`);
+    check("K2: a repeated cluster revision refreshes nothing", p.fresh() === "stale" && gets() === n);
+    await success(`C1:5:${++seq}`);
+    check("K2: an older cluster revision refreshes nothing", p.fresh() === "stale" && gets() === n);
+    p.setSnapshot(0, 4);
+    await success(`C1:8:${++seq}`);
+    check("K3: a skipped cluster revision refreshes the block and triggers exactly one snapshot GET",
+      p.fresh() === "fresh" && gets() === n + 1);
+    p.timers.advance(p.h.READ_FRESHNESS_RESYNC_SPACING_MS + 1);
+    run(budgetMs + 1);
+    n = gets();
+    await success(`Z9:1:${++seq}`);
+    check("K4: an unknown cluster id refreshes nothing and re-reads the snapshot instead of guessing",
+      p.fresh() === "stale" && gets() === n + 1);
+    run(p.h.READ_FRESHNESS_RESYNC_SPACING_MS + 1);
+    await flush();
+    n = gets();
+    for (const bad of ["c1:9:1", "C1:0:1", "C1-9", "C1:x:1", "1C:9:1", ":9:1"]) await success(bad);
+    check("K5: malformed cluster events are ignored (no refresh, no fetch)", p.fresh() === "stale" && gets() === n);
+    await success(`C1:9:${seq += 4}`);
+    check("K6: a jump in the shared success sequence across cluster events triggers a resync",
+      p.fresh() === "fresh" && gets() === n + 1);
+    check("K: only read-only GETs of the freshness snapshot, zero writes", p.writes() === 0);
+  }
+  // A cluster success that arrives before the snapshot is applied once the
+  // snapshot lands, at the snapshot's receipt time, only if it is newer.
+  {
+    const p = boot();
+    p.setClusters([{ id: "C1", start: 0x1000, registers: 120, revision: 5, sequence: 1 }]);
+    p.setSnapshot(10 * 60 * 1000, 1);  // the snapshot's own block read is old
+    p.holdNextSnapshot();
+    p.h.connect();
+    const es = p.es();
+    es.open();
+    await flush();
+    p.smartSleep(es);
+    p.health(es, "LIVE");
+    p.clock.value += 1;
+    es.emit("state", { id: "text_sensor/read plan success", state: "C1:6:1", value: "C1:6:1" });
+    check("K7: a cluster success before the snapshot cannot unlock anything yet", p.fresh() !== "fresh");
+    check("K7: the snapshot request is released", p.releaseHeld() === 1);
+    await flush();
+    check("K7: ... then the pending newer C1 success refreshes the block", p.fresh() === "fresh");
+  }
+  {
+    const p = boot();
+    p.setClusters([{ id: "C1", start: 0x1000, registers: 120, revision: 6, sequence: 1 }]);
+    p.setSnapshot(10 * 60 * 1000, 1);
+    p.holdNextSnapshot();
+    p.h.connect();
+    const es = p.es();
+    es.open();
+    await flush();
+    p.smartSleep(es);
+    p.health(es, "LIVE");
+    p.clock.value += 1;
+    es.emit("state", { id: "text_sensor/read plan success", state: "C1:6:1", value: "C1:6:1" });
+    p.releaseHeld();
+    await flush();
+    check("K8: a pending cluster success already covered by the snapshot adds nothing", p.fresh() !== "fresh");
+  }
+  // A snapshot without clusters[] (fallback-only / pre-M5 firmware, or the
+  // mock server): numeric block events keep working, cluster events resync.
+  {
+    const p = boot();
+    const es = await establish(p);
+    check("K9: numeric block events still work with a snapshot without clusters[]", p.fresh() === "fresh");
+    const n = p.fetchLog.length;
+    es.emit("state", { id: "text_sensor/read plan success", state: "C1:2:1", value: "C1:2:1" });
+    await flush();
+    check("K9: a cluster event without known geometry triggers a resync, never a guess", p.fetchLog.length === n + 1);
   }
 
   console.log(`\nSSE reconnect: ${checks - failures}/${checks} passed`);

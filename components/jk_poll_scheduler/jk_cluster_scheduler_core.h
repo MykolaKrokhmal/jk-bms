@@ -27,7 +27,13 @@
 //   - the active Settings lease (Settings page open) switches C1/C2 to
 //     active_cadence_ms; activating it makes C1 due at the next phase slot
 //     (the "immediate" read), ending it returns C1/C2 to the normal cadence
-//     measured from their last issue.
+//     measured from their last issue;
+//   - request_now() (plan M5: the RMW pre-read) makes a cluster -- or, for a
+//     follower, its lead -- due at once, ahead of every tier (only a started
+//     cycle's follower goes first); it does not bypass the one-outstanding
+//     rule or a write in flight;
+//   - set_enabled(false) takes a cluster and its followers out of the
+//     schedule for good: the servicer latched them to the legacy fallback.
 
 #include <cstddef>
 #include <cstdint>
@@ -73,6 +79,8 @@ class Scheduler {
       last_issue_ms_[i] = 0;
       has_issued_[i] = false;
       follow_pending_[i] = false;
+      urgent_[i] = false;
+      enabled_[i] = true;
       issued_[i] = 0;
     }
     begun_ = true;
@@ -96,6 +104,33 @@ class Scheduler {
         due_ms_[i] = before(now_ms, normal) ? normal : next_phase_slot(now_ms, c.phase_ms);
       }
     }
+  }
+
+  // Read this cluster as soon as the bus is free (the RMW pre-read). A
+  // follower is read through its lead so the cycle stays A1->A2 / C1->C2.
+  void request_now(int cluster) {
+    if (cluster < 0 || std::size_t(cluster) >= kClusterCount) return;
+    const std::size_t lead = is_follower(std::size_t(cluster)) ? std::size_t(kClusters[cluster].sequence_after) : std::size_t(cluster);
+    if (enabled_[lead]) urgent_[lead] = true;
+  }
+
+  // false: the cluster left the schedule for good (latched fallback). A
+  // lead takes its followers with it (a follower is only ever read after
+  // its lead, so it could never run alone).
+  void set_enabled(int cluster, bool enabled) {
+    if (cluster < 0 || std::size_t(cluster) >= kClusterCount) return;
+    enabled_[std::size_t(cluster)] = enabled;
+    if (!enabled) { urgent_[std::size_t(cluster)] = false; follow_pending_[std::size_t(cluster)] = false; }
+    for (std::size_t i = 0; i < kClusterCount; i++)
+      if (kClusters[i].sequence_after == cluster) set_enabled(int(i), enabled);
+  }
+  bool enabled(std::size_t i) const { return enabled_[i]; }
+  // A read of this cluster is already on its way: its lead is marked
+  // urgent, or it is the follower due right after its lead.
+  bool read_pending(int cluster) const {
+    if (cluster < 0 || std::size_t(cluster) >= kClusterCount) return false;
+    const std::size_t lead = is_follower(std::size_t(cluster)) ? std::size_t(kClusters[cluster].sequence_after) : std::size_t(cluster);
+    return urgent_[lead] || follow_pending_[std::size_t(cluster)];
   }
 
   // The one cluster to read now, or kNone. Marks it outstanding.
@@ -126,7 +161,7 @@ class Scheduler {
     if (cluster < 0 || std::size_t(cluster) >= kClusterCount || cluster != outstanding_) return;
     outstanding_ = kNone;
     for (std::size_t i = 0; i < kClusterCount; i++)
-      if (kClusters[i].sequence_after == cluster) follow_pending_[i] = true;
+      if (kClusters[i].sequence_after == cluster && enabled_[i]) follow_pending_[i] = true;
   }
 
   int outstanding() const { return outstanding_; }
@@ -153,6 +188,8 @@ class Scheduler {
   }
 
   bool is_due(std::size_t i, uint32_t now_ms, uint32_t &wait) const {
+    if (!enabled_[i]) return false;
+    if (urgent_[i]) { wait = 0; return true; }
     if (is_follower(i)) {
       wait = 0;
       return follow_pending_[i];
@@ -168,7 +205,8 @@ class Scheduler {
   // and repeat without its follower. Leads rank by tier, aged one tier per
   // kAgingStepMs waited.
   int effective_tier(std::size_t i, uint32_t wait) const {
-    if (is_follower(i)) return -1;
+    if (is_follower(i)) return -2;  // a started cycle completes first (A2 right after A1)
+    if (urgent_[i]) return -1;      // then an RMW pre-read, before every tier
     const int aged = int(base_tier(i)) - int(wait / kAgingStepMs);
     return aged < 0 ? 0 : aged;
   }
@@ -177,6 +215,10 @@ class Scheduler {
     outstanding_ = int(i);
     issued_[i]++;
     issued_total_++;
+    // An early (pre-read) issue replaces the next scheduled read of the
+    // cycle, so the cluster is not read twice in quick succession.
+    const bool early = urgent_[i] && !is_follower(i) && before(now_ms, due_ms_[i]);
+    urgent_[i] = false;
     if (is_follower(i)) {
       follow_pending_[i] = false;
       return;
@@ -186,6 +228,7 @@ class Scheduler {
     // Skip every missed slot: the next due time is the first one after now.
     const uint32_t cadence = cadence_of(i);
     while (!before(now_ms, due_ms_[i])) due_ms_[i] += cadence;
+    if (early) due_ms_[i] += cadence;
   }
 
   uint32_t next_phase_slot(uint32_t now_ms, uint32_t phase_ms) const {
@@ -204,6 +247,8 @@ class Scheduler {
   uint32_t last_issue_ms_[kClusterCount] = {};
   bool has_issued_[kClusterCount] = {};
   bool follow_pending_[kClusterCount] = {};
+  bool urgent_[kClusterCount] = {};
+  bool enabled_[kClusterCount] = {};
   uint32_t issued_[kClusterCount] = {};
 };
 

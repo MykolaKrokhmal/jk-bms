@@ -47,63 +47,43 @@ function check(name, condition) {
 }
 
 // ===========================================================================
-// 1. 0x1200 -- 1Hz cell block (cell_voltage_1-32 + cell_resistance_1-16).
-// Correct: 53 registers = 106 bytes (0x1200 cell_voltage_1 through 0x1268
-// cell_resistance_16 inclusive, per protocol/registers.canonical.json --
-// (0x1268-0x1200)/2+1 = 53). Old literal "106" was REGISTERS (212 bytes).
+// 1./2. 0x1200 cell block and 0x126A CellWireRes16-31 (clustered reads, M5).
+// The dedicated 1 s 0x1200 x53 reader and the 15 s 0x126A x16 reader are
+// gone from the normal path: A1 (0x1200 x120, generated table) carries both.
+// They survive only as the latched-fallback bespoke readers in
+// jk_cluster_runtime_core.h, with the same register counts (53 = 106 bytes,
+// 16 = 32 bytes), an exact-length check and the pre-migration cadences.
 // ===========================================================================
-check("0x1200 cell block: old literal '0x1200, 106,' (106 REGISTERS = 212 bytes) does NOT appear",
-  !yaml.includes("0x1200, 106,"));
-check("0x1200 cell block: requests exactly register_count (53) registers via a named constant",
-  yaml.includes("0x1200, register_count,") &&
-  yaml.includes("constexpr uint16_t register_count = 53;"));
-check("0x1200 cell block: expected_payload_bytes derived from register_count (= 106), not re-inlined",
-  /constexpr uint16_t register_count = 53;\s*\n\s*constexpr size_t expected_payload_bytes = size_t\(register_count\) \* 2U;/.test(yaml));
-check("0x1200 cell block: EXACT-length response check (!= expected_payload_bytes), not a floor (< 106)",
-  yaml.includes("if (data.size() != expected_payload_bytes) {\n                  ESP_LOGW(\"jk_cells\", \"Cell-block response length mismatch"));
-check("0x1200 cell block: no remaining 'data.size() < 106' floor check",
-  !yaml.includes("data.size() < 106"));
+const runtimeCore = fs.readFileSync(path.join(ROOT, "components", "jk_poll_scheduler", "jk_cluster_runtime_core.h"), "utf8");
+const readPlanYaml = fs.readFileSync(path.join(ROOT, "protocol", "generated", "read_plan.yaml"), "utf8");
+const clusters = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "read_clusters.canonical.json"), "utf8")).clusters;
+const a1 = clusters.find((c) => c.cluster_id === "A1");
+check("A1 cluster (0x1200 x120) covers the former cell block (0x1200-0x1268) and CellWireRes16-31 (0x126A-0x1288)",
+  a1 && parseInt(a1.start, 16) === 0x1200 && a1.register_count === 120 && 0x1288 + 2 <= 0x1200 + 2 * a1.register_count);
+check("0x1200 cell block: no dedicated reader left in batterylifepo4.yaml (old literal and register_count forms both gone)",
+  !yaml.includes("0x1200, 106,") && !yaml.includes("0x1200, register_count,") && !yaml.includes("data.size() < 106"));
+check("0x126A CellWireRes16-31: no dedicated reader left in batterylifepo4.yaml",
+  !yaml.includes("0x126A, 32,") && !yaml.includes("0x126A, register_count,") && !yaml.includes("data.size() >= 32"));
+check("fallback bespoke readers keep the corrected register counts: 0x1200 x53 at 1 s, 0x126A x16 at 15 s",
+  runtimeCore.includes("{0x1200, 53, 0x1200, 0x1200, 1000},") && runtimeCore.includes("{0x126A, 16, 0x1200, 0x1200, 15000},"));
+check("fallback bespoke responses are EXACT-length (2 x registers), never a floor",
+  runtimeCore.includes("if (len != std::size_t(2U * b.registers)) {"));
+check("fallback bespoke reads are issued with the table's register count (not a literal)",
+  readPlanYaml.includes("id(bms0), esphome::modbus::EntityType::HOLDING, b.start, b.registers,"));
 {
-  // Last decoded offset check: resistance_offset = 74 + 15*2 = 104, reads
-  // bytes [104,105] -- must be strictly within the 106-byte budget (never
-  // reads byte 106 or beyond, which would be out-of-bounds of a
-  // correctly-sized 106-byte response).
-  const lastResistanceOffset = 74 + 15 * 2;
-  const lastByteRead = lastResistanceOffset + 1; // resistance_offset+1U is the 2nd byte of the last channel's field
-  check("0x1200 cell block: the last decoded byte (cell_resistance_16, offset 74+15*2+1=105) is the LAST byte of a 106-byte payload (index 0-105), no out-of-bounds read",
-    lastByteRead === 105);
-  const lastVoltageExtOffset = 32 + 15 * 2;
-  const lastVoltageExtByteRead = lastVoltageExtOffset + 1;
-  check("0x1200 cell block: the last cell_voltage_17-32 decoded byte (offset 32+15*2+1=63) stays within the 106-byte payload",
-    lastVoltageExtByteRead === 63 && lastVoltageExtByteRead < 106);
+  // A1 layout: voltages 1-32 at bytes 0..63, cell_resistance_1-32 at 74..137;
+  // the bespoke cell block fills bytes 0..105, the extension 106..137.
+  const lastResistanceByte = 74 + 31 * 2 + 1;
+  check("the last decoded resistance byte (cell_resistance_32, 74+31*2+1=137) lies inside A1's 240 bytes and inside the 0x126A extension (106..137)",
+    lastResistanceByte === 137 && lastResistanceByte < 240 && lastResistanceByte === (0x126A - 0x1200) + 32 - 1);
+  check("the last cell-block byte (cell_resistance_16, 74+15*2+1=105) is the last byte of the 106-byte fallback cell block",
+    74 + 15 * 2 + 1 === 105);
 }
-
-// ===========================================================================
-// 2. 0x126A -- CellWireRes16-31 capability-gated extension read.
-// Correct: 16 registers = 32 bytes (0x126A cell_resistance_17 through
-// 0x1288 cell_resistance_32, word_count=1 each). Old literal "32" was
-// REGISTERS (64 bytes).
-// ===========================================================================
-check("0x126A CellWireRes16-31: old literal '0x126A, 32,' (32 REGISTERS = 64 bytes) does NOT appear",
-  !yaml.includes("0x126A, 32,"));
-check("0x126A CellWireRes16-31: requests exactly register_count (16) registers via a named constant",
-  yaml.includes("0x126A, register_count,") &&
-  yaml.includes("constexpr uint16_t register_count = 16;"));
-check("0x126A CellWireRes16-31: expected_payload_bytes derived from register_count (= 32)",
-  /constexpr uint16_t register_count = 16;\s*\n\s*constexpr size_t expected_payload_bytes = size_t\(register_count\) \* 2U;/.test(yaml));
-check("0x126A CellWireRes16-31: EXACT-length success check (== expected_payload_bytes), not a floor (>= 32)",
-  yaml.includes("const bool success = data.size() == expected_payload_bytes;"));
-check("0x126A CellWireRes16-31: no remaining 'data.size() >= 32' floor check",
-  !yaml.includes("data.size() >= 32"));
-{
-  const lastOffset = 15 * 2; // channel index 15 (16th, last) * 2 bytes/channel
-  const lastByteRead = lastOffset + 1;
-  check("0x126A CellWireRes16-31: the last decoded byte (channel 16 of 16, offset 15*2+1=31) is the LAST byte of a 32-byte payload (index 0-31), no out-of-bounds read",
-    lastByteRead === 31);
-}
-check("0x126A CellWireRes16-31: jk_capability probing/record_outcome policy untouched by this fix",
-  yaml.includes("jk_capability::record_outcome(ps2, success);") &&
-  yaml.includes("needs_cellwireres_extended_read(id(cell_count).state)"));
+check("CellWireRes16-31: published from the fallback image only after its own 0x126A read landed",
+  yaml.includes("const bool ext_resistance_ok = !fallback || rt.fallback_cells_ext_valid();") &&
+  yaml.includes("if (i < 16 || ext_resistance_ok) resistance_sensors[i]->publish_state("));
+check("CellWireRes16-31 fallback read gated on configured CellCount via jk_capability::needs_cellwireres_extended_read()",
+  readPlanYaml.includes("jk_capability::needs_cellwireres_extended_read(id(cell_count).state)"));
 
 // ===========================================================================
 // 3. 0x106C -- cell_count readback, TWO call sites (initial transaction +
@@ -172,8 +152,7 @@ check("0x1470 setup_passcode: no remaining 'data.size() < 16' floor check",
 // register_count/expected_payload_bytes split and exact-length checks
 // changed.
 // ===========================================================================
-check("0x1200 cell block still on its own 1s interval (unchanged cadence)",
-  yaml.includes('if (id(g_cell_poll_pending) &&\n              uint32_t(now - id(g_cell_poll_started_ms)) < 15000U) {'));
+check("A1 (cells) is read every 1 s by the cluster servicer (canonical cadence)", a1.cadence_ms === 1000);
 check("cell_count/cell_connected_mask readback still driven by the same 250ms topology-transaction servicer (unchanged cadence)",
   yaml.includes("if (id(g_cellcount_readback_started_ms) == 0U) {"));
 check("setup_passcode readback still gated by the same 250ms passcode-transaction servicer (unchanged cadence)",

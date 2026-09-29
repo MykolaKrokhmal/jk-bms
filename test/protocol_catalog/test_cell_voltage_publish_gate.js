@@ -52,58 +52,46 @@ function check(name, condition) {
   }
 }
 
-// ===========================================================================
-// 1. The gate variable exists, computed fresh every decode from the live
-// cell_count sensor via the shared helper -- never a hardcoded channel
-// count, so this scales to whatever N the connected pack actually reports
-// (8S/16S/24S/32S), not just the currently-deployed 16S unit.
-// ===========================================================================
-check("decode callback: known_active_channels is computed from jk_topology::channel_count_from_configured(id(cell_count).state) -- not a literal",
-  /const uint8_t known_active_channels =\s*\n\s*jk_topology::channel_count_from_configured\(id\(cell_count\)\.state\);/.test(yaml));
+// Clustered reads (plan M5): the cell decode moved from the dedicated 1 s
+// reader's callback into cluster_stored (A1, or a latched fallback's
+// bespoke cell image) and jk_cluster_cache::decode_cells_from_a1(). The
+// gate itself is now REAL, compiled, desktop-executed code:
+// test/jk_poll_scheduler/test_jk_cluster_cache_core.cpp checks 1/2/4/8/16/
+// 17/24/32S publication and that an inactive channel never reaches min/max.
+// The checks below pin the YAML wiring around that decoder.
+const cacheCore = fs.readFileSync(path.join(ROOT, "components", "jk_poll_scheduler", "jk_cluster_cache_core.h"), "utf8");
+const storedStart = yaml.indexOf("  - id: cluster_stored");
+const stored = storedStart >= 0 ? yaml.slice(storedStart, yaml.indexOf("\n  - id: ", storedStart + 10)) : "";
 
 // ===========================================================================
-// 2. Base channels 1-16: both voltage_sensors[i] and resistance_sensors[i]
-// publish_state() calls are gated behind `i < known_active_channels` --
-// the old unconditional pair (no surrounding if) must be gone. (The plain
-// "publish pair immediately followed by an unguarded `if millivolts>=500U`"
-// text check that used to live here was retired: since the second-round
-// audit below moved min/max INSIDE the same gate, that sequential-text
-// pattern would still match even though the code is now correctly gated --
-// the real discriminator is check #80 below, which specifically requires
-// the gate's closing brace to appear BEFORE the min/max checks, not after.)
+// 1. The active channel count comes from the live cell_count sensor via the
+// shared helper -- never a literal.
 // ===========================================================================
-check("base 1-16 loop: voltage_sensors[i] and resistance_sensors[i] publish_state() are both wrapped in `if (i < known_active_channels)`",
-  /if \(i < known_active_channels\) \{\s*\n\s*voltage_sensors\[i\]->publish_state\(millivolts \* 0\.001f\);\s*\n\s*resistance_sensors\[i\]->publish_state\(milliohms \* 0\.001f\);/.test(yaml));
-// Second-round audit (2026-09-18, user-directed): min/max-tracking is now
-// ALSO inside the same `i < known_active_channels` gate, not a separate,
-// unconditional pass -- raw bytes from an inactive channel (N<16) could
-// pass the >=500U sanity floor and corrupt min_cell_voltage/max_cell_voltage/
-// min_voltage_cell/max_voltage_cell with a non-trustworthy reading.
-check("base 1-16 loop: min/max-tracking (millivolts >= 500U comparisons) is now INSIDE the known_active_channels gate, not a separate unconditional pass",
-  /if \(i < known_active_channels\) \{\s*\n\s*voltage_sensors\[i\]->publish_state\(millivolts \* 0\.001f\);\s*\n\s*resistance_sensors\[i\]->publish_state\(milliohms \* 0\.001f\);\s*\n\s*if \(millivolts >= 500U && millivolts < min_mv\) \{\s*\n\s*min_mv = millivolts;\s*\n\s*min_index = i \+ 1U;\s*\n\s*\}\s*\n\s*if \(millivolts >= 500U && millivolts > max_mv\) \{\s*\n\s*max_mv = millivolts;\s*\n\s*max_index = i \+ 1U;\s*\n\s*\}\s*\n\s*\}\s*\n\s*\}/.test(yaml));
-check("base 1-16 loop: the OLD unconditional min/max pattern (checks running outside/after the gate) is gone",
-  !/\}\s*\n\s*if \(millivolts >= 500U && millivolts < min_mv\) \{\s*\n\s*min_mv = millivolts;\s*\n\s*min_index = i \+ 1U;\s*\n\s*\}\s*\n\s*if \(millivolts >= 500U && millivolts > max_mv\) \{\s*\n\s*max_mv = millivolts;\s*\n\s*max_index = i \+ 1U;\s*\n\s*\}\s*\n\s*\}\s*\n\s*\n\s*\/\/ Stage 3 cell-channel batch/.test(yaml));
+check("cluster_stored: the active channel count is jk_topology::channel_count_from_configured(id(cell_count).state) -- not a literal",
+  stored.includes("const uint8_t active = jk_topology::channel_count_from_configured(id(cell_count).state);") &&
+  stored.includes("jk_cluster_cache::decode_cells_from_a1(a1, active)"));
 
 // ===========================================================================
-// 3. Extended channels 17-32: voltage_sensors_ext[i] publish_state() is
-// gated behind `(16U + i) < known_active_channels` -- channel 17 is index
-// 16 overall, so this is the correct absolute-index comparison, not a
-// re-based-to-0 comparison that would silently always be true/false.
+// 2./3. Channels 1-32: voltage and resistance publish_state() only for a
+// channel the decoder marked active; min/max only from active channels.
 // ===========================================================================
-check("ext 17-32 loop: the OLD unconditional single-line publish is gone",
-  !/const uint16_t millivolts =\s*\n\s*\(uint16_t\(data\[voltage_offset\]\) << 8\) \| data\[voltage_offset \+ 1U\];\s*\n\s*voltage_sensors_ext\[i\]->publish_state\(millivolts \* 0\.001f\);\s*\n\s*\}/.test(yaml));
-check("ext 17-32 loop: voltage_sensors_ext[i] publish_state() is wrapped in `if ((16U + i) < known_active_channels)`",
-  /if \(\(16U \+ i\) < known_active_channels\) \{\s*\n\s*voltage_sensors_ext\[i\]->publish_state\(millivolts \* 0\.001f\);\s*\n\s*\}/.test(yaml));
+check("cluster_stored: every publish_state() of a cell voltage/resistance is behind `if (!f.publish[i]) continue;`",
+  /if \(!f\.publish\[i\]\) continue;[^\n]*\n\s*voltage_sensors\[i\]->publish_state\(f\.millivolts\[i\] \* 0\.001f\);\s*\n\s*if \(i < 16 \|\| ext_resistance_ok\) resistance_sensors\[i\]->publish_state\(f\.milliohms\[i\] \* 0\.001f\);/.test(stored));
+check("decode_cells_from_a1: publish[i] = i < active_channels, and min/max skip every unpublished channel",
+  cacheCore.includes("f.publish[i] = i < active_channels;") &&
+  cacheCore.includes("if (!f.publish[i] || f.millivolts[i] < 500U) continue;"));
+check("cluster_stored: min/max are published from the decoder's active-only result (no separate unconditional pass)",
+  stored.includes("id(g_min_cell_v) = f.min_mv * 0.001f;") && stored.includes("id(g_max_cell_v) = f.max_mv * 0.001f;") &&
+  !stored.includes("millivolts >= 500U"));
+check("the OLD per-reader decode loops (voltage_sensors_ext / known_active_channels) are gone",
+  !yaml.includes("voltage_sensors_ext[i]->publish_state") && !yaml.includes("known_active_channels"));
 
 // ===========================================================================
-// 4. Raw decode (millivolts/milliohms) is still computed unconditionally
-// for every one of the 32 base+ext channels -- gating happens only at the
-// point values are USED (publish_state and, since the second-round audit,
-// min/max tracking too), per instruction: "raw decode може зберігатися
-// внутрішньо, але не виходить назовні як достовірний стан."
+// 4. The decoder reads every channel unconditionally; only its USE is gated.
 // ===========================================================================
-check("base loop: millivolts/milliohms are still decoded unconditionally for all 16 base channels (only downstream USE is gated)",
-  yaml.includes("const uint16_t millivolts =\n                      (uint16_t(data[voltage_offset]) << 8) | data[voltage_offset + 1U];\n                  const uint16_t milliohms =\n                      (uint16_t(data[resistance_offset]) << 8) | data[resistance_offset + 1U];"));
+check("decode_cells_from_a1: millivolts/milliohms are decoded for all 32 channels (only publication/min-max is gated)",
+  cacheCore.includes("f.millivolts[i] = be16(a1 + kA1VoltageOffset + 2 * i);") &&
+  cacheCore.includes("f.milliohms[i] = be16(a1 + kA1ResistanceOffset + 2 * i);"));
 
 // ===========================================================================
 // 5. resolve_topology()'s own blank-to-NaN pass is UNCHANGED -- still the
@@ -120,14 +108,10 @@ check("resolve_topology: still invoked once per successful 1Hz decode (id(resolv
 // (SETTING_KEYS/write allowlist) are all untouched -- this is a read-path
 // publish-ordering fix only, never a protocol/cadence/write change.
 // ===========================================================================
-check("register_count for the 0x1200 block is still exactly 53 (untouched by this fix)",
-  yaml.includes("constexpr uint16_t register_count = 53;"));
-check("0x1200 block still requested as 0x1200, register_count, (untouched)",
-  yaml.includes("0x1200, register_count,"));
-check("cell-block pending-guard still 15000ms (cadence untouched)",
-  yaml.includes("uint32_t(now - id(g_cell_poll_started_ms)) < 15000U) {"));
-check("no new interval:/globals: cadence mechanism was introduced by this fix (still <= 2 top-level '- interval: 1s' blocks)",
-  (yaml.match(/^  - interval: 1s$/gm) || []).length <= 2);
+check("the cell block is read by A1 (0x1200 x120, 1 s) and, only in a latched fallback, by the bespoke 0x1200 x53 reader at 1 s",
+  fs.readFileSync(path.join(ROOT, "components", "jk_poll_scheduler", "jk_cluster_runtime_core.h"), "utf8").includes("{0x1200, 53, 0x1200, 0x1200, 1000},"));
+check("no dedicated 1 s cell reader interval left (the cluster servicer owns the bus)",
+  !yaml.includes("g_cell_poll_started_ms") && (yaml.match(/^  - interval: 1s$/gm) || []).length <= 2);
 
 const jkBms = fs.readFileSync(path.join(ROOT, "jk_bms.js"), "utf8");
 {

@@ -347,6 +347,8 @@ async function main() {
     ["sensor/display cell count", "sensor", "display cell count", 16, "16"],
     ["text_sensor/cell connection wire resistance capability", "text_sensor", "cell connection wire resistance capability", "SUPPORTED", "SUPPORTED"],
     ["sensor/cell connection wire resistance callback count", "sensor", "cell connection wire resistance callback count", 3, "3"],
+    // M5: a latched cluster fallback must be visible in Diagnostics.
+    ["text_sensor/read cluster mode", "text_sensor", "read cluster mode", "fallback:A1,A2", "fallback:A1,A2"],
   ];
   for (const [wireId, domain, name, value, stateText] of scoped) {
     ingestPayload({ id: wireId, domain, name, value, state: stateText });

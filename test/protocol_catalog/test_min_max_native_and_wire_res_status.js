@@ -53,17 +53,22 @@ function findField(key) {
 // real arithmetic against the actual register_count=53 constant this
 // project's own 0x1200 read uses, not an assumption.
 // ===========================================================================
+// Clustered reads (plan M5): the bytes now come from A1 (0x1200 x120 = 240
+// bytes, same layout from byte 0) or, in a latched fallback, from the
+// bespoke 0x1200 x53 (106-byte) reader's image -- both start at 0x1200, so
+// the payload-relative offsets are unchanged.
+const cacheCore = fs.readFileSync(path.join(ROOT, "components", "jk_poll_scheduler", "jk_cluster_cache_core.h"), "utf8");
+const runtimeCore = fs.readFileSync(path.join(ROOT, "components", "jk_poll_scheduler", "jk_cluster_runtime_core.h"), "utf8");
 {
-  const m = yaml.match(/constexpr uint16_t register_count = (\d+);\s*\n\s*constexpr size_t expected_payload_bytes = size_t\(register_count\) \* 2U;\s*\n\s*auto command = esphome::modbus_controller::ModbusCommandItem::create_read_command\(\s*\n\s*id\(bms0\), esphome::modbus::EntityType::HOLDING,\s*\n\s*0x1200,/);
-  check("[computed] 0x1200 bespoke read: register_count is still exactly 53 (unchanged by this task)",
-    m && m[1] === "53");
-  const registerCount = m ? parseInt(m[1], 10) : 0;
-  const payloadBytes = registerCount * 2;
-  check("[computed] 0x1200 payload is 106 bytes (register_count=53 * 2)", payloadBytes === 106);
+  const a1 = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "read_clusters.canonical.json"), "utf8")).clusters.find((c) => c.cluster_id === "A1");
+  const a1Bytes = a1 ? a1.register_count * 2 : 0;
+  check("[computed] A1 starts at 0x1200 and is 240 bytes; the fallback cell block is 0x1200 x53 = 106 bytes",
+    a1 && parseInt(a1.start, 16) === 0x1200 && a1Bytes === 240 && runtimeCore.includes("{0x1200, 53, 0x1200, 0x1200, 1000},"));
+  const payloadBytes = 106;  // the smaller of the two sources
 
   // canonical.json's field.byte_offset is relative to the field's OWN
   // 2-byte parent register (0=high byte, 1=low byte here), not to the
-  // whole 106-byte 0x1200 payload -- the payload-relative offset is
+  // whole 0x1200 payload -- the payload-relative offset is
   // (register address - 0x1200) + field.byte_offset, computed here, not
   // assumed.
   const maxField = findField("max_voltage_cell_index_native");
@@ -73,31 +78,32 @@ function findField(key) {
     regAddr === 0x1248 && (regAddr - 0x1200) === 72);
   const maxPayloadOffset = (regAddr - 0x1200) + maxField.field.byte_offset;
   const minPayloadOffset = (regAddr - 0x1200) + minField.field.byte_offset;
-  check("[computed] max_voltage_cell_index_native's payload-relative offset (72) is strictly within the 106-byte payload",
-    maxPayloadOffset === 72 && maxPayloadOffset < payloadBytes);
-  check("[computed] min_voltage_cell_index_native's payload-relative offset (73) is strictly within the 106-byte payload",
-    minPayloadOffset === 73 && minPayloadOffset < payloadBytes);
+  check("[computed] max_voltage_cell_index_native's payload-relative offset (72) is within both the 240-byte A1 and the 106-byte fallback block",
+    maxPayloadOffset === 72 && maxPayloadOffset < payloadBytes && maxPayloadOffset < a1Bytes);
+  check("[computed] min_voltage_cell_index_native's payload-relative offset (73) is within both sources",
+    minPayloadOffset === 73 && minPayloadOffset < payloadBytes && minPayloadOffset < a1Bytes);
+  check("[computed] the decoder's constants are exactly those offsets",
+    /kA1MaxIndexByte = 72\b/.test(cacheCore) && /kA1MinIndexByte = 73\b/.test(cacheCore));
 }
 
 // ===========================================================================
-// 2. Decoder pin (structural, no ESPHome toolchain): the exact decode
-// expressions for bytes 72/73, RAW (no +1/-1 normalization), inside the
-// EXISTING bespoke 0x1200 callback -- not a new command.
+// 2. Decoder pin: RAW bytes 72/73 (no +1/-1 normalization), published by
+// cluster_stored from the same A1 decode as the cells -- no own read.
 // ===========================================================================
-check("decode: max_voltage_cell_index_native published from data[72], no normalization (no +1U/-1U near it)",
-  /id\(max_voltage_cell_index_native\)->publish_state\(float\(data\[72\]\)\);/.test(yaml));
-check("decode: min_voltage_cell_index_native published from data[73], no normalization",
-  /id\(min_voltage_cell_index_native\)->publish_state\(float\(data\[73\]\)\);/.test(yaml));
-check("decode: both new publishes are inside the SAME callback as the existing cell-block decode (no new create_read_command for 0x1248)",
+check("decode: max/min_voltage_cell_index_native taken raw from bytes 72/73 (no normalization)",
+  cacheCore.includes("f.native_max_index = a1[kA1MaxIndexByte];") && cacheCore.includes("f.native_min_index = a1[kA1MinIndexByte];"));
+check("decode: published from the decoder result, no +1U/-1U",
+  yaml.includes("id(max_voltage_cell_index_native)->publish_state(float(f.native_max_index));") &&
+  yaml.includes("id(min_voltage_cell_index_native)->publish_state(float(f.native_min_index));"));
+check("decode: both publishes are inside the cluster_stored A1 branch (no create_read_command for 0x1248)",
   (() => {
-    const cellBlockStart = yaml.indexOf("0x1200, register_count,");
+    const a1Branch = yaml.indexOf("if (cl.start == 0x1200) {  // A1");
     const decodeIdx = yaml.indexOf("id(max_voltage_cell_index_native)->publish_state");
-    const nextCommand = yaml.indexOf("ModbusCommandItem::create_read_command", cellBlockStart + 1);
-    return cellBlockStart !== -1 && decodeIdx !== -1 &&
-      decodeIdx > cellBlockStart && (nextCommand === -1 || decodeIdx < nextCommand);
+    const branchEnd = yaml.indexOf("if (cl.start == 0x10F0)", a1Branch);
+    return a1Branch !== -1 && decodeIdx > a1Branch && decodeIdx < branchEnd && !/0x1248,/.test(yaml);
   })());
-check("decode: not gated by known_active_channels (this is a single BMS-internal scalar, not one of the 32 per-channel telemetry slots)",
-  !/if \(i < known_active_channels\)[^}]*max_voltage_cell_index_native/.test(yaml));
+check("decode: not gated by the per-channel publish flag (a single BMS-internal scalar, not one of the 32 channel slots)",
+  !/if \(!f\.publish\[i\]\)[^}]*max_voltage_cell_index_native/.test(yaml));
 
 // ===========================================================================
 // 3. Sensor declarations exist, read-only, distinct entity_category, and

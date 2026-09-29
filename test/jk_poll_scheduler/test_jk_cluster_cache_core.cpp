@@ -132,6 +132,13 @@ int main() {
     hi[2 * 20] = 0x0F; hi[2 * 20 + 1] = 0xA0;  // cell 21 = 4.000 V, the pack maximum
     const CellFrame f24 = decode_cells_from_a1(hi.data(), 24);
     check(f24.max_index == 21 && f24.max_mv == 4000, "cells (24S): min/max cover every active channel, including 17-32");
+    // An inactive channel's bytes never reach min/max, even when they look valid.
+    const CellFrame f16 = decode_cells_from_a1(hi.data(), 16);
+    std::vector<uint8_t> lo = a1;
+    lo[2 * 20] = 0x01; lo[2 * 20 + 1] = 0xF4;  // cell 21 = 0.500 V, would be the minimum
+    const CellFrame f16lo = decode_cells_from_a1(lo.data(), 16);
+    check(f16.max_index != 21 && f16.max_index >= 1 && f16.max_index <= 16 && f16lo.min_index != 21 && f16lo.min_index <= 16 && !f16.publish[20],
+          "cells (16S): an inactive channel (21) never becomes min/max and is never published");
   }
 
   // 3. Topology: only active channels are ever published.

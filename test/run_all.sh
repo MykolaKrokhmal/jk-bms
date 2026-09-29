@@ -134,6 +134,16 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" -I "$R
 "$BUILD_DIR/test_jk_cluster_cache_core"
 
 echo
+echo "=== jk_cluster_runtime_core: single flight, passcode isolation, latched fallback + bespoke readers, strict RMW pre-read, snapshot (plan M5) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" -I "$REPO_ROOT/protocol/generated" \
+  "$REPO_ROOT/test/jk_poll_scheduler/test_jk_cluster_runtime_core.cpp" -o "$BUILD_DIR/test_jk_cluster_runtime_core"
+"$BUILD_DIR/test_jk_cluster_runtime_core"
+
+echo
+echo "=== firmware lambdas: host compile (g++ -fsyntax-only) of the servicer, scripts, intervals and the read-freshness handler (plan M5) ==="
+node "$REPO_ROOT/test/firmware_lambda_compile/run.js"
+
+echo
 echo "=== electrical_metrics_scan golden-vector decode tests ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" \
   "$REPO_ROOT/test/jk_poll_scheduler/test_electrical_metrics_decode.cpp" -o "$BUILD_DIR/test_electrical_metrics_decode"
@@ -342,6 +352,10 @@ node test/protocol_catalog/test_bespoke_read_register_count.js
 echo
 echo "=== protocol catalog: generic read-plan register-count systemic fix (block_class, exact-length validation, 0x1290 clustered exception) ==="
 node test/protocol_catalog/test_generic_read_plan_register_count.js
+
+echo
+echo "=== clustered read servicer: bus ownership, passcode isolation, success events, no duplicate readers (plan M5) ==="
+node test/protocol_catalog/test_cluster_servicer_structure.js
 
 echo
 echo "=== protocol catalog: inactive-channel publish-before-blank fix regression (cell_voltage 1-32 gate) ==="
