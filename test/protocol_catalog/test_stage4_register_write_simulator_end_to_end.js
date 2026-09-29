@@ -205,6 +205,28 @@ async function main() {
       (pf3j.current_raw & parseInt(live.mask, 16)) !== 0, `current_raw=${pf3j.current_raw} mask=${live.mask}`);
     check("after CONFIRMED, the pre-existing charging_float_mode sibling bit (0x0200) is still set (RMW preserved it)",
       (pf3j.current_raw & 0x0200) === 0x0200, `current_raw=${pf3j.current_raw}`);
+
+    // ---- write only when the value changes (clustered-read plan M5, owner
+    // decision 2026-09-29): the same value again is a terminal "no_change"
+    // with no write transaction at all ----
+    const txCountBefore = JSON.parse((await request("GET", "/demo/state")).body).writeTxCount;
+    const sameResp = await request("POST", `/settings/register-write?key=${live.key}&value=1&submit_policy=live`);
+    const sameJson = sameResp.json();
+    check("the same value again: the POST is still accepted as a request (200, request_id)", sameResp.status === 200 && Number.isFinite(sameJson.request_id), sameResp.body);
+    let sameStatus = null;
+    for (let i = 0; i < 20; i += 1) {
+      await sleep(50);
+      sameStatus = (await request("GET", `/settings/register-write/status?request_id=${sameJson.request_id}`)).json();
+      if (sameStatus.status !== "pending") break;
+    }
+    check("... and resolves to the terminal 'no_change' (not accepted, not rejected, no tx_id)",
+      sameStatus && sameStatus.status === "no_change" && sameStatus.tx_id === undefined, JSON.stringify(sameStatus));
+    await sleep(300);
+    const txCountAfter = JSON.parse((await request("GET", "/demo/state")).body).writeTxCount;
+    check("... and no write transaction was ever created for it", Number.isInteger(txCountBefore) && txCountAfter === txCountBefore,
+      `${txCountBefore} -> ${txCountAfter}`);
+    const pf4j = (await request("GET", `/settings/register-write/preflight?key=${live.key}&value=1`)).json();
+    check("... and the register is unchanged", pf4j.current_raw === pf3j.current_raw, `${pf3j.current_raw} -> ${pf4j.current_raw}`);
   } finally {
     child.kill("SIGTERM");
     await new Promise((resolve) => {

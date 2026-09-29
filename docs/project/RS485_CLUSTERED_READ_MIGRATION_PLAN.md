@@ -931,60 +931,88 @@ Rules that apply to every phase:
 - **Commit:** `feat(protocol): decode clusters and cache writable raw`.
 - **Deploy:** none until M5.
 
-### M5 — Firmware servicer on clusters, with fallback — DONE (host; not compiled)
+### M5 — Firmware servicer on clusters, with fallback — HOST CANDIDATE (corrective verification)
 
-> **Status (2026-09-29):** implemented on the host. Not compiled, flashed or
-> run: gates B and C, then an owner-authorized compile-only validation, come
-> before any deployment.
+> **Status (2026-09-29):** M2–M4 are host-implemented and tested. M5 is a
+> host implementation candidate under corrective verification. It is **not**
+> production-ready until clean host verification, deployment preparation,
+> real ESPHome compile-only validation and the required hardware gates
+> succeed. The M5 definition above includes owner-authorized compile, flash
+> and a bounded read-only runtime check; none of them has happened. Gate B,
+> gate C, compile-only, OTA, M6, M7, M8 and gate D are all open.
+>
+> Implemented on the host (first pass `24c94e6`, corrective pass 2026-09-29):
 > - **Servicer** (generated `read_plan.yaml`, 20 ms tick): reads A1…S3 from
->   `read_clusters_table.h` through `jk_cluster_runtime_core.h` (new): one
->   read in flight across clusters, the isolated passcode read and the
->   fallback readers; a write in flight (the generic slots, CellCount, and
->   the setup-passcode write with its 0x1470 readback) pauses every read;
->   late responses are dropped by cluster and generation; 3 s timeout (the
->   production hub keeps its default `send_wait_time` and retries).
+>   `read_clusters_table.h` through `jk_cluster_runtime_core.h`: one read in
+>   flight across clusters, the isolated passcode read and the fallback
+>   readers; a write in flight (the generic slots, CellCount, and the
+>   setup-passcode write with its 0x1470 readback) pauses every read; late
+>   responses are dropped by cluster and generation; 3 s timeout.
 > - **Decode/publish:** each cluster response is stored (exact length only),
 >   every read-plan block inside it is decoded from its byte offset, and
->   `cluster_stored` publishes the cells (active channels only, min/max over
->   every active channel), the native min/max index, the topology resolution
->   and CellConWireRes 0–31 (C1 + C2 of the same cycle). No publish-on-change.
+>   `cluster_stored` publishes the cells (active channels only), the native
+>   min/max index, the topology resolution and CellConWireRes 0–31. No
+>   publish-on-change.
 > - **Events:** `read_plan_success` = `<cluster>:<revision>:<sequence>` per
->   cluster read (e.g. `A1:5:77`); the latched fallback keeps the per-block
+>   cluster read; a latched fallback group keeps the per-block
 >   `<address>:<revision>:<sequence>`. `/settings/read-freshness` adds
->   `clusters[]` with id, start, registers, mode, lease, cadence, budget,
->   age, revision and sequence. The UI takes the cluster geometry only from
->   that snapshot and marks every block inside a cluster as read; unknown
->   geometry or a skipped revision re-reads the snapshot. `demo/mock-server.js`
->   was not changed (the UI accepts both formats; another session owns
->   uncommitted edits to it).
-> - **Fallback:** 3 consecutive failed reads of a lead latch its group (lead
->   + followers) for the rest of the boot session, never unlatching. The
->   group then uses the legacy per-register blocks and the pre-migration
->   bespoke readers (0x1200 ×53 at 1 s, 0x126A ×16 at 15 s when more than
->   16 cells are configured, 0x1088 ×64 at 300 s) under the same bus
->   ownership. Fallback bytes are published but never RMW input. Visible in
->   the `read_cluster_mode` diagnostic entity (`clusters` /
->   `fallback:A1,A2`; UI Diagnostics list), the snapshot's `mode` and the log.
-> - **Duplicate reads removed:** the dedicated 1 s cell reader, the 15 s
->   0x126A reader and the 300 s 0x1088 reader.
-> - **RMW:** strict 3.5 s gate with automatic pre-read of the owning cluster
->   (owner decision 2026-09-29); the write waits up to 6.5 s, then is
->   refused as stale; credential, unknown, fallback or bad-width raw refuse
->   at once. Both write paths (the main consumer and `begin_write_tx_rmw`)
->   use it.
-> - **Tests:** `test_jk_cluster_runtime_core.cpp` (57 checks),
->   `test_cluster_servicer_structure.js` (18), the cluster cases in
->   `test_sse_reconnect.js` (K0–K9), and `test/firmware_lambda_compile/run.js`:
->   a host `g++ -fsyntax-only` compile of the 14 interval/script lambdas and
->   the read-freshness handler against ESPHome API stubs (it cannot catch an
->   ESPHome API mismatch). Mutations: runtime 16/18 caught (the 2 survivors
->   are equivalent: a latched cluster is never issued again, and a fallback
->   cluster's raw is `FALLBACK`, never `STALE`), UI 8/8, generator 5/5,
->   compile harness 6/6. Evidence:
->   `protocol/evidence/stage1_corrective_evidence/clustered_reads_m5_host_verification_20260929.md`.
-> - **Open:** the UI Settings freshness budgets are still the pre-migration
->   per-group ones (22.5 s / 307.5 s; cells 3 s) — M6/M7 move them to the
->   cluster budgets; the firmware RMW gate already enforces 3.5 s.
+>   `clusters[]`. The UI takes cluster geometry only from that snapshot.
+>   `demo/mock-server.js` now emits the same format (and a `legacy` mode for
+>   the pre-M5 format) and is exercised end to end against the real
+>   `jk_bms.js`.
+> - **Fallback:** 3 consecutive failed reads latch a lead group for the boot
+>   session (never unlatching) to the per-register blocks and the
+>   pre-migration bespoke readers (0x1200 ×53 at 1 s, 0x126A ×16 at 15 s,
+>   0x1088 ×64 at 300 s), visible in `read_cluster_mode`, the snapshot and
+>   the log.
+> - **Setup passcode (owner decision 2026-09-29):** strictly on demand. No
+>   read after boot, no periodic read; one isolated read per explicit
+>   `request_passcode_status()` (no production caller today). The passcode
+>   write transaction keeps its own isolated readback. Its bytes are never
+>   cached, published, logged or put in any snapshot.
+> - **RMW (owner decisions 2026-09-29):** one tracked request per write
+>   (`jk_cluster_runtime::RmwRequest`): every step is one decision against
+>   one lookup, the queued raw is that decision's merged raw (no second
+>   gate), and QUEUE/REJECT are terminal, so no write can run after a
+>   rejected or not-queued result. Strict 3.5 s budget; missing or stale
+>   bytes get one tracked pre-read per source and request; deadline 6.5 s.
+>   In a latched fallback group the source is the register's own narrow
+>   block (plan §10): its success after the latch, the same strict budget,
+>   one narrow pre-read (issued before the bespoke readers). The UI request
+>   and the HA entity writes (a small pool, at most one per register) each
+>   have their own tracked request; the untracked `g_rmw_deferred_*` slot is
+>   gone.
+> - **Write only when changed (owner decision 2026-09-29):** the same
+>   tracked request covers every register write -- packed RMW fields and
+>   full-width 16/32-bit registers, from the UI and from every HA entity
+>   (`begin_write_tx_rmw`, `write_bms_u16`, `write_bms_u32`), in clustered
+>   and fallback mode. When the register already holds the value it ends in
+>   a terminal NO_CHANGE: no Modbus command, no write slot, no readback,
+>   nothing later; the status endpoint reports `no_change` and the UI shows
+>   it as "already set". Writes stay 1 or 2 registers (the one
+>   `create_write_multiple_command` in `begin_write_tx`). The CellCount and
+>   setup-passcode writes are still fail-closed (they never write), so they
+>   are outside this path.
+> - **One Settings write contract (owner decision 2026-09-29):** the only
+>   Settings write client is the write registry's `/settings/register-write`
+>   flow, started by the row's own OK (drafts send nothing). The legacy
+>   number-entity REST path and the editable register list in Configuration
+>   are removed. 23 parameters are live through the registry: 0x1114 bits,
+>   0x1118 and all 18 migrated owner-authorized Settings fields (explicit,
+>   audited list in `generate_write_registry.js`; table
+>   `write_registry.json` `settings_write_migration`). The 4 temperature
+>   recoveries (charge_otpr, discharge_otpr, charge_utpr, mos_otpr) are
+>   signed `S32`: their former canonical `U32 unsigned` was a data defect,
+>   corrected from the pinned upstream evidence (see `DECISIONS.md`).
+> - **Tests and evidence:** see
+>   `protocol/evidence/stage1_corrective_evidence/clustered_reads_m5_corrective_pass_20260929.md`.
+> - **Limits:** the host lambda compile check uses ESPHome API stubs and
+>   compiles only the interval/script lambdas, the generated servicer and the
+>   read-freshness handler; it is not an ESPHome compile.
+> - **Open (later stages):** the UI Settings freshness budgets are still the
+>   pre-migration per-group ones and cell freshness still comes from
+>   per-key SSE times (M6); no browser caller sets the Settings lease yet
+>   (M7); write coordination and gate D (M8).
 
 - **Prerequisite:** M4.
 - **Files:**

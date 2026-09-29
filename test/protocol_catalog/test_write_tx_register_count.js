@@ -107,8 +107,11 @@ function deriveRegisterCountAndBytes(wordCount) {
   check("word_count=2 (32-bit packed pair, write_bms_u32 -- the only invoked production path today): register_count=2, expected_payload_bytes=4",
     r2.registerCount === 2 && r2.expectedPayloadBytes === 4);
 }
-check("write_bms_u32 (word_count: 2) is the only generic-write entry point actually invoked in batterylifepo4.yaml (18 SETTING_KEYS invocations)",
-  (yaml.match(/^\s*id: write_bms_u32$/gm) || []).length === 18 &&
+// Settings write migration (owner decision 2026-09-29): 14 hand-written
+// entities moved to the generated write_registry.yaml; the 4 contradictory
+// temperature recoveries keep their hand-written (internal) entity here.
+check("no hand-written entity in batterylifepo4.yaml invokes write_bms_u32/u16 any more (all 18 Settings writes are generated registry entities)",
+  (yaml.match(/^\s*id: write_bms_u32$/gm) || []).length === 0 &&
   (yaml.match(/^\s*id: write_bms_u16$/gm) || []).length === 0);
 check("write_bms_u16 (word_count: 1) is still defined (desktop-test-verified path, not yet exercised by any live entity)",
   yaml.includes("- id: write_bms_u16"));

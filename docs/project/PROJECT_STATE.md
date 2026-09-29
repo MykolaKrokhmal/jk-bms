@@ -47,14 +47,14 @@ generated inventories linked below, not in prose.
   - Evidence:
     `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_rollback_20260927.md`.
 
-  **M2–M5 (2026-09-29): implemented on the host only** — canonical read
-  clusters (`0d8aed8`), the cluster scheduler (`33c4102`), cluster decode
-  and the raw cache (`da44183`), 15 s background cadence (`b951402`), and
-  the production clustered-read servicer with a latched, visible fallback
-  (M5, `feat(firmware): read registers in clusters`). Nothing of it has been
-  compiled, flashed or run. Before production: gates B and C, then an
-  owner-authorized compile-only validation (the host lambda compile check
-  cannot catch an ESPHome API mismatch), then gate D before writes.
+  **M2–M5 (2026-09-29):** M2–M4 are host-implemented and tested
+  (`0d8aed8`, `33c4102`, `da44183`, cadence `b951402`). M5 (`24c94e6` plus a
+  corrective pass, uncommitted) is a host implementation candidate under
+  corrective verification. It is not production-ready until clean host
+  verification, deployment preparation, real ESPHome compile-only
+  validation and the required hardware gates succeed. Nothing of it has been
+  compiled, flashed or run. Open: production restore confirmation, gate B,
+  gate C, compile-only, M6, M7, M8, gate D.
 
   ESPHome 2026.9.0 is the controlled build baseline. Do not adopt 2027.3.0+
   before the Modbus API migration in the plan. No production runtime has

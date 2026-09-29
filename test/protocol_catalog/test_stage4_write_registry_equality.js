@@ -59,8 +59,66 @@ const registryKeys = new Set(writeRegistry.entries.map((e) => e.key));
 check("write_registry.json has entries", registryKeys.size > 0, `count=${registryKeys.size}`);
 
 // --- zero overlap between the two allowlists. ---
-const overlap = [...settingKeys].filter((k) => registryKeys.has(k));
-check("zero overlap between SETTING_KEYS and write_registry.json (a key belongs to exactly one tier)", overlap.length === 0, JSON.stringify(overlap));
+// Settings write migration (clustered-read plan M5, owner decision
+// 2026-09-29): the overlap is EXACTLY the migrated Settings fields -- the
+// generator's explicit, audited list, never every owner_write_override.
+const migration = writeRegistry.settings_write_migration || [];
+const migrated = migration.filter((m) => m.outcome === "migrated").map((m) => m.key).sort();
+const overlap = [...settingKeys].filter((k) => registryKeys.has(k)).sort();
+check("the SETTING_KEYS / write_registry.json overlap is exactly the 18 migrated Settings fields",
+  JSON.stringify(overlap) === JSON.stringify(migrated) && migrated.length === 18, JSON.stringify({ overlap, migrated }));
+check("the migration table covers exactly the 18 SETTING_KEYS",
+  migration.length === 18 && migration.every((m) => settingKeys.has(m.key)));
+check("no owner_write_override field outside the migration list is in the registry",
+  writeRegistry.entries.filter((e) => e.owner_write_override && e.owner_write_override.authorized).every((e) => migrated.includes(e.key)));
+{
+  const canonicalBy = new Map();
+  for (const r of canonical.registers) for (const f of r.fields) canonicalBy.set(f.key, { reg: r, field: f });
+  const bad = [];
+  for (const key of migrated) {
+    const e = writeRegistry.entries.find((x) => x.key === key);
+    const { reg, field } = canonicalBy.get(key);
+    for (const [k, got, want] of [["address", e.address, reg.address], ["word_count", e.word_count, reg.word_count],
+      ["write_function", e.write_function, reg.write_function], ["wire_type", e.wire_type, field.wire_type],
+      ["signedness", e.signedness, field.signedness], ["scale", e.scale, field.scale], ["offset", e.offset, field.offset],
+      ["minimum", e.minimum, field.minimum], ["maximum", e.maximum, field.maximum], ["step", e.step, field.step],
+      ["field_width_bits", e.field_width_bits, field.field_width_bits], ["mask", e.mask, field.mask], ["shift", e.shift, field.shift]]) {
+      if (got !== want) bad.push(`${key}.${k}: ${got} != ${want}`);
+    }
+    if (e.write_uses_read_modify_write !== false || e.compare_mask !== "0xFFFFFFFF" || e.submit_policy !== "live" ||
+        !(e.word_count === 1 || e.word_count === 2)) bad.push(`${key}: not a live full-width 1-2 register write`);
+  }
+  check("every migrated field uses its exact canonical address, width, type, sign, scaling, range and step (live, full-width, 1-2 registers)",
+    bad.length === 0, bad.slice(0, 5).join("; "));
+  const blocked = migration.filter((m) => m.outcome === "blocked");
+  check("no migration field is blocked", blocked.length === 0, JSON.stringify(blocked.map((m) => [m.key, m.blocked_reason])));
+  // The four temperature recoveries are signed S32 (upstream INT32 / S_DWORD).
+  const temps = ["charge_otpr", "discharge_otpr", "charge_utpr", "mos_otpr"].map((k) => writeRegistry.entries.find((x) => x.key === k));
+  check("the four temperature recoveries are live, signed S32, scale 0.1, -100..200, step 0.1, 2 registers",
+    temps.every((e) => e && e.wire_type === "S32" && e.signedness === "signed" && e.scale === 0.1 && e.minimum === -100 &&
+      e.maximum === 200 && e.step === 0.1 && e.word_count === 2 && e.submit_policy === "live" && e.write_function === "write_multiple_registers_fc16"));
+  const mainYaml = fs.readFileSync(path.join(ROOT, "batterylifepo4.yaml"), "utf8");
+  // Each migrated entity writes through write_bms_u32 (the tracked entity
+  // pool: NO_CHANGE -> no command; otherwise begin_write_tx with ACK +
+  // forced readback), with its own canonical address -- never directly.
+  const badAction = migrated.filter((k) => {
+    const start = registryYaml.indexOf(`    id: set_${k}\n`);
+    const block = start < 0 ? "" : registryYaml.slice(start, registryYaml.indexOf("\n  - platform:", start + 5) >>> 0);
+    const e = writeRegistry.entries.find((x) => x.key === k);
+    return !(block.includes(`id(write_bms_u32)->execute(${e.address}, int(enc.encoded_raw));`) && !block.includes("begin_write_tx)->execute") &&
+      block.includes(`jk_write_tx::encode_numeric_field(double(x), ${e.signedness === "signed"}, ${e.scale}, ${e.offset}, ${e.minimum}, ${e.maximum}, 32);`));
+  });
+  check("every migrated entity encodes with its canonical scaling and writes through the tracked write_bms_u32 path (never begin_write_tx directly)",
+    badAction.length === 0, JSON.stringify(badAction));
+  const writeU32 = mainYaml.slice(mainYaml.indexOf("  - id: write_bms_u32\n"), mainYaml.indexOf("  - id: write_bms_u16\n"));
+  check("write_bms_u32 only arms a tracked request (NO_CHANGE-aware), and begin_write_tx keeps ACK + forced readback",
+    writeU32.includes("arm_write(jk_cluster_runtime::g_entity_write_requests, w, millis())") && writeU32.includes("w.full_width = true;") &&
+    /id\(g_wtx_acked\)\[idx\] = 1;/.test(mainYaml) && mainYaml.includes("create_write_multiple_command("));
+  const dup = [...settingKeys].filter((k) => ((mainYaml + registryYaml).match(new RegExp(`\\n\\s*id: set_${k}\\n`, "g")) || []).length > 1);
+  check("every set_<key> id exists exactly once across batterylifepo4.yaml + write_registry.yaml (migrated = generated only)",
+    dup.length === 0 && migrated.every((k) => !new RegExp(`\\n\\s*id: set_${k}\\n`).test(mainYaml) && registryYaml.includes(`id: set_${k}\n`)),
+    JSON.stringify(dup));
+}
 
 // --- union equals canonical-authorized, exactly. ---
 const union = new Set([...settingKeys, ...registryKeys]);

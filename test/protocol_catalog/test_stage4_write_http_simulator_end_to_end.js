@@ -103,7 +103,13 @@ async function main() {
     // The real, now-existing production route for these 5 fields is
     // /settings/register-write -- see
     // test_stage4_register_write_simulator_end_to_end.js for its coverage.
-    for (const entry of liveEntries) {
+    // The 18 migrated Settings fields keep a simulator-only generic write-tx
+    // hook on this route (demo/mock-server.js, used by test/topology/run.js);
+    // the UI never calls it (test_settings_catalog.js U4/U5) and on real
+    // hardware it does not exist. Every OTHER live entry must be rejected.
+    const migratedKeys = new Set((writeRegistry.settings_write_migration || []).filter((m) => m.outcome === "migrated").map((m) => m.key));
+    check("the migration table names exactly 18 migrated Settings fields", migratedKeys.size === 18);
+    for (const entry of liveEntries.filter((e) => !migratedKeys.has(e.key))) {
       const requestedValue = entry.maximum;
       const resp = await request("POST", `/number/${entry.entity_id}/set?value=${requestedValue}`);
       check(`live field ${entry.key}: the LEGACY generic /number/.../set route correctly rejects it (404) -- internal:true entities are unreachable that way on real hardware`,

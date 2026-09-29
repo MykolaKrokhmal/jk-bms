@@ -134,21 +134,44 @@ check("exact Stage 4 partition: 23 write-hardware-verified / 37 write-software-r
 // write_registry.json) -- promotion never migrates a field's own dispatch
 // mechanism, only its provenance label.
 // ---------------------------------------------------------------------------
+// Unified write contract (clustered-read plan M5, owner decision
+// 2026-09-29): a Settings row is live ONLY through the generated write
+// registry (/settings/register-write). The original 18 owner-authorized
+// fields have no registry entry, so they are locked with the canonical
+// reason NOT_IN_UNIFIED_WRITE_REGISTRY -- never live through their legacy
+// internal set_<key> number entity.
 const hwVerified = rwRows.filter((r) => r.stage4State === "write-hardware-verified");
 check("every hardware-verified row's access is RW", hwVerified.every((r) => r.access === "RW"));
-check("every hardware-verified row's readWriteState is live, never blocked", hwVerified.every((r) => r.readWriteState === "live"));
-check("every hardware-verified row carries its real currentWriteEndpoint (e.g. set_smart_sleep)",
-  hwVerified.every((r) => typeof r.currentWriteEndpoint === "string" && r.currentWriteEndpoint.startsWith("set_")),
-  JSON.stringify(hwVerified.filter((r) => !r.currentWriteEndpoint).map((r) => r.id)));
 const NEWLY_PROMOTED_HW_KEYS = new Set(["gps_heartbeat", "lcd_always_on", "smart_sleep_enabled", "timed_stored_data", "smart_sleep_timeout_hours"]);
+// Settings write migration (owner decision 2026-09-29): 14 of the original
+// 18 are live through the registry; the 4 temperature recoveries are locked
+// with their exact contradiction.
+const migration = writeRegistry.settings_write_migration || [];
+const MIGRATED = new Set(migration.filter((m) => m.outcome === "migrated").map((m) => m.key));
+const BLOCKED_MIGRATION = new Set(migration.filter((m) => m.outcome === "blocked").map((m) => m.key));
 const hwVerifiedLegacy = hwVerified.filter((r) => !NEWLY_PROMOTED_HW_KEYS.has(r.canonicalKey));
 const hwVerifiedPromoted = hwVerified.filter((r) => NEWLY_PROMOTED_HW_KEYS.has(r.canonicalKey));
-check("exactly 18 hardware-verified rows use writePathKind legacy_setting_def (the pre-existing set, unaffected)",
-  hwVerifiedLegacy.length === 18 && hwVerifiedLegacy.every((r) => r.writePathKind === "legacy_setting_def"),
-  JSON.stringify(hwVerifiedLegacy.map((r) => ({ key: r.canonicalKey, kind: r.writePathKind }))));
-check("exactly 5 hardware-verified rows use writePathKind stage4_write_registry (newly promoted -- endpoint/dispatch unchanged, not migrated to legacy_setting_def)",
-  hwVerifiedPromoted.length === 5 && hwVerifiedPromoted.every((r) => r.writePathKind === "stage4_write_registry"),
+check("the original 18 are all migrated (the migration table has no blocked field)",
+  hwVerifiedLegacy.length === 18 && MIGRATED.size === 18 && BLOCKED_MIGRATION.size === 0 &&
+  hwVerifiedLegacy.every((r) => MIGRATED.has(r.canonicalKey) || BLOCKED_MIGRATION.has(r.canonicalKey)));
+check("every migrated field is live through the write registry (stage4_write_registry, submit_policy live, no legacy endpoint kind)",
+  hwVerifiedLegacy.filter((r) => MIGRATED.has(r.canonicalKey)).every((r) => r.readWriteState === "live" &&
+    r.writePathKind === "stage4_write_registry" && r.submitPolicy === "live" &&
+    writeRegistry.entries.some((e) => e.key === r.canonicalKey && e.submit_policy === "live")),
+  JSON.stringify(hwVerifiedLegacy.filter((r) => MIGRATED.has(r.canonicalKey) && r.readWriteState !== "live").map((r) => r.canonicalKey)));
+check("the 4 blocked migration fields are LOCKED (NOT_IN_UNIFIED_WRITE_REGISTRY) with their exact contradiction as the closure criterion",
+  hwVerifiedLegacy.filter((r) => BLOCKED_MIGRATION.has(r.canonicalKey)).every((r) => r.readWriteState === "blocked" &&
+    r.blockedReason === "NOT_IN_UNIFIED_WRITE_REGISTRY" && r.writePathKind === null && r.currentWriteEndpoint === null &&
+    /signedness "unsigned".*minimum -100/.test(r.blockerClosureCriterion || "")),
+  JSON.stringify(hwVerifiedLegacy.filter((r) => BLOCKED_MIGRATION.has(r.canonicalKey)).map((r) => [r.canonicalKey, r.readWriteState])));
+check("exactly 5 promoted hardware-verified rows are live through the write registry",
+  hwVerifiedPromoted.length === 5 && hwVerifiedPromoted.every((r) => r.writePathKind === "stage4_write_registry" && r.readWriteState === "live"),
   JSON.stringify(hwVerifiedPromoted.map((r) => ({ key: r.canonicalKey, kind: r.writePathKind }))));
+check("no row anywhere uses the retired legacy_setting_def write path",
+  doc.rows.every((r) => r.writePathKind !== "legacy_setting_def"));
+check("every live row is a write-registry row with submit_policy live (one write pipeline)",
+  doc.rows.filter((r) => r.readWriteState === "live").every((r) => r.writePathKind === "stage4_write_registry" &&
+    writeRegistry.entries.some((e) => e.key === r.canonicalKey && e.submit_policy === "live")));
 
 // ---------------------------------------------------------------------------
 // 6. Blocked RW rows keep their RW identity (never downgrade to R) and

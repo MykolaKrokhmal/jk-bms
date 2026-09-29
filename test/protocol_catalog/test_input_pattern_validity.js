@@ -36,38 +36,26 @@ function check(name, condition, detail = "") {
   }
 }
 
-const match = source.match(/input\.pattern = "((?:[^"\\]|\\.)*)";/);
-check("numeric register-editor input.pattern= assignment found in jk_bms.js", Boolean(match));
-const patternSource = match ? JSON.parse(`"${match[1]}"`) : null;
-
-check("the OLD, browser-rejected pattern is no longer present", patternSource !== "[0-9.,+-]*", `pattern=${JSON.stringify(patternSource)}`);
-
-let compiledU = null;
-let compiledUError = null;
-try { compiledU = new RegExp(`^(?:${patternSource})$`, "u"); } catch (e) { compiledUError = e.message; }
-check("pattern compiles under the 'u' (unicode) regex flag", compiledU !== null, compiledUError || "");
-
-let compiledV = null;
-let compiledVError = null;
-try { compiledV = new RegExp(`^(?:${patternSource})$`, "v"); } catch (e) { compiledVError = e.message; }
-check("pattern compiles under the newer, stricter 'v' (unicodeSets) regex flag (WebKit's real trigger)", compiledV !== null, compiledVError || "");
-
-// The exact character-membership set must be byte-for-byte unchanged from
-// the pre-fix pattern (digits, '.', ',', '+', '-', zero-or-more) -- proves
-// this is a syntax fix only, never a validation-strength change.
-if (compiledV) {
-  const accept = ["", "3,450", "-12.5", "+5", "123", "--", "3-4", ".", ",", "+-"];
-  const reject = ["a1", "1a", " 1", "1 ", "1e5", "NaN", "1_000"];
-  const acceptFailures = accept.filter((s) => !compiledV.test(s));
-  const rejectFailures = reject.filter((s) => compiledV.test(s));
-  check("pattern still accepts every previously-accepted character combination (digits/sign/decimal point/comma)",
-    acceptFailures.length === 0, `unexpectedly rejected: ${acceptFailures.join(",")}`);
-  check("pattern still rejects non-numeric characters (letters, spaces, exponent notation, underscores)",
-    rejectFailures.length === 0, `unexpectedly accepted: ${rejectFailures.join(",")}`);
+// Unified write contract (clustered-read plan M5, owner decision
+// 2026-09-29): the legacy register-list numeric editor that carried this
+// pattern (and its submitRegisterSetting() validation) was removed with the
+// legacy Settings write path. What this file still guards: no HTML pattern
+// assignment left in jk_bms.js may use the WebKit-rejected form, and every
+// one that exists must compile under both the "u" and the stricter "v"
+// regex flag (WebKit's real trigger).
+const patterns = [...source.matchAll(/\.pattern = "((?:[^"\\]|\\.)*)";/g)].map((m) => JSON.parse(`"${m[1]}"`));
+check("the OLD, browser-rejected pattern [0-9.,+-]* is not present anywhere", !patterns.includes("[0-9.,+-]*") && !source.includes('pattern = "[0-9.,+-]*"'),
+  JSON.stringify(patterns));
+const bad = [];
+for (const p of patterns) {
+  for (const flag of ["u", "v"]) {
+    try { new RegExp(`^(?:${p})$`, flag); } catch (e) { bad.push(`${p} (${flag}): ${e.message}`); }
+  }
 }
-
-check("backend numeric validation (submitRegisterSetting) is untouched by this fix",
-  source.includes("function submitRegisterSetting("));
+check("every remaining HTML pattern compiles under both the 'u' and the 'v' regex flags", bad.length === 0, bad.join("; "));
+check("the removed legacy editor's validation path is really gone (no submitRegisterSetting)", !source.includes("function submitRegisterSetting("));
+check("the unified Settings write path validates the numeric value before any request (submitRegisterWrite)",
+  /function submitRegisterWrite\([\s\S]{0,1500}?!Number\.isFinite\(Number\(rawValue\)\)/.test(source));
 
 console.log(`\n${checks} checks run, ${failures} failed.`);
 process.exit(failures ? 1 : 0);

@@ -173,8 +173,12 @@ async function main() {
     frontendKeys.size === expectedFrontendKeys.size && [...expectedFrontendKeys].every((k) => frontendKeys.has(k)),
     `expected=${[...expectedFrontendKeys].sort().join(",")} frontend=${[...frontendKeys].sort().join(",")}`);
 
-  check("frontend register renderer is data-driven from SETTING_DEFS/CONTROL_DEFS, not hardcoded",
-    /function writableDefinitionForEntry\([\s\S]*?CONTROL_DEFS\[objectId\][\s\S]*?SETTING_DEFS\.find/.test(js));
+  // Unified write contract (owner decision 2026-09-29): the register list
+  // is read-only and no Settings write uses an entity REST route -- the one
+  // write client is the write registry's /settings/register-write flow.
+  check("the register list renders no editor at all and no legacy /number/set_* write route exists in jk_bms.js",
+    !/function writableDefinitionForEntry\(/.test(js) && !/data-register-write|dataset\.registerWrite|data-register-toggle|dataset\.registerToggle/.test(js) &&
+    !/\/number\/set_/.test(js) && !/function writeTransaction\(|function submitRegisterSetting\(|const SETTING_DEFS\b/.test(js));
 
   // P1-04 follow-up (2026-09-10): NON_REGISTER_ENTITY_IDS (used to hide
   // computed/presentation entities from the Settings register list, and to

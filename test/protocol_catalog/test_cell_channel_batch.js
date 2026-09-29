@@ -335,7 +335,7 @@ check("CellConWireRes0-31: no dedicated 300 s interval or 0x1088 command remains
   !/interval:\s*300s/.test(batteryYaml) && !batteryYaml.includes("0x1088, register_count,"));
 check("CellConWireRes0-31: the fallback latch is bounded (kFallbackAfterFailures = 3, latched for good, never re-probing)",
   runtimeCore.includes("constexpr uint8_t kFallbackAfterFailures = 3;") &&
-  runtimeCore.includes("if (!h.fallback && h.consecutive_failures >= kFallbackAfterFailures) latch_fallback(c);"));
+  runtimeCore.includes("if (!h.fallback && h.consecutive_failures >= kFallbackAfterFailures) latch_fallback(c, now_ms);"));
 check("CellConWireRes0-31: MAX_PROBE_ATTEMPTS is not overridden or duplicated anywhere in batterylifepo4.yaml (the ONLY bound is jk_capability_core.h's own constant)",
   !batteryYaml.includes("MAX_PROBE_ATTEMPTS ="));
 

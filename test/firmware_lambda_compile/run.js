@@ -18,10 +18,11 @@
 // Limits (stated, not implied): the stubs are this file's own model of the
 // ESPHome API, so an ESPHome API mismatch is NOT caught here -- only the
 // real ESPHome compile catches that. Of the esphome: on_boot lambda only
-// the ReadPlanFreshnessHandler class (GET /settings/read-freshness, changed
-// by M5) is compiled, against a stub of the web server API; the other
-// handler classes, sensor/number/select actions and the remaining sections
-// are not compiled here.
+// the ReadPlanFreshnessHandler (GET /settings/read-freshness) and
+// RegisterWriteStatusHandler (GET /settings/register-write/status) classes,
+// both changed by M5, are compiled, against a stub of the web server API;
+// the other handler classes, sensor/number/select actions and the remaining
+// sections are not compiled here.
 
 const fs = require("fs");
 const path = require("path");
@@ -179,6 +180,7 @@ struct AsyncWebServerRequest {
   static constexpr std::size_t URL_BUF_SIZE = 64;
   HttpMethod method() const { return HTTP_GET; }
   std::string url_to(char *) const { return {}; }
+  std::string arg(const char *) const { return {}; }
   void send(int, const char *, const char *) {}
 };
 struct AsyncWebHandler {
@@ -215,10 +217,12 @@ function main() {
     "components/jk_poll_scheduler/jk_cluster_runtime_core.h"].every((h) => includes.includes(h)), includes.join(" "));
 
   const found = [...lambdas(mainText, ["interval", "script"]), ...lambdas(planText, ["interval"])];
-  check("lambdas found: the generated servicer, cluster_stored and the M5 intervals",
+  check("lambdas found: the generated servicer, cluster_stored, the RMW request paths and the M5 intervals",
     found.some((l) => l.body.includes("rt.issue(now, false, lease)")) &&
     found.some((l) => l.script === "cluster_stored") &&
-    found.some((l) => l.body.includes("g_rmw_deferred_active")), `${found.length} lambdas`);
+    found.some((l) => l.script === "entity_write_step" && l.body.includes("g_entity_write_requests")) &&
+    found.some((l) => l.script === "write_bms_u16" && l.body.includes("arm_write(")) &&
+    found.some((l) => l.body.includes("g_register_write_rmw")), `${found.length} lambdas`);
 
   // Every id() a compiled lambda names must be declared somewhere.
   const used = new Set();
@@ -243,19 +247,22 @@ function main() {
     }
   }
 
-  // The /settings/read-freshness handler class, from the on_boot lambda.
-  const handlerStart = mainText.indexOf("class ReadPlanFreshnessHandler : public AsyncWebHandler {");
-  let handler = "";
-  if (handlerStart >= 0) {
-    const lineStart = mainText.lastIndexOf("\n", handlerStart) + 1;
-    const indent = handlerStart - lineStart;
-    const close = mainText.indexOf(`\n${" ".repeat(indent)}};`, handlerStart);
-    handler = mainText.slice(handlerStart, close + indent + 3);
-  }
-  check("the ReadPlanFreshnessHandler class was found and names the clusters array", handler.includes("\"],\\\"clusters\\\":[\""),
-    handler.slice(0, 200));
-  for (const m of handler.matchAll(/\bid\(([A-Za-z_][A-Za-z0-9_]*)\)/g)) used.add(m[1]);
-  const handlerLine = mainText.slice(0, handlerStart).split("\n").length;
+  // The handler classes changed by M5, from the on_boot lambda.
+  const handlerClass = (name) => {
+    const start = mainText.indexOf(`class ${name} : public AsyncWebHandler {`);
+    if (start < 0) return { text: "", line: 0 };
+    const lineStart = mainText.lastIndexOf("\n", start) + 1;
+    const indent = start - lineStart;
+    const close = mainText.indexOf(`\n${" ".repeat(indent)}};`, start);
+    return { text: mainText.slice(start, close + indent + 3), line: mainText.slice(0, start).split("\n").length };
+  };
+  const freshness = handlerClass("ReadPlanFreshnessHandler");
+  const status = handlerClass("RegisterWriteStatusHandler");
+  check("the ReadPlanFreshnessHandler class was found and names the clusters array", freshness.text.includes("\"],\\\"clusters\\\":[\""),
+    freshness.text.slice(0, 200));
+  check("the RegisterWriteStatusHandler class was found and reports no_change", status.text.includes("\\\"status\\\":\\\"no_change\\\""),
+    status.text.slice(0, 200));
+  for (const h of [freshness, status]) for (const m of h.text.matchAll(/\bid\(([A-Za-z_][A-Za-z0-9_]*)\)/g)) used.add(m[1]);
 
   const fns = found.map((l, k) => {
     let params = "";
@@ -274,7 +281,8 @@ function main() {
     "namespace jk_diag { inline void mark_write_crash_stage(WriteCrashStage) {} }",
     ...decls, ...fns,
     "using namespace esphome::web_server_idf;",
-    `#line ${handlerLine} "batterylifepo4.yaml"`, transform(handler, ids)].join("\n");
+    `#line ${freshness.line} "batterylifepo4.yaml"`, transform(freshness.text, ids),
+    `#line ${status.line} "batterylifepo4.yaml"`, transform(status.text, ids)].join("\n");
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jk-lambda-"));
   const file = path.join(dir, "lambdas.cpp");
   fs.writeFileSync(file, cpp);

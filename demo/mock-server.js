@@ -40,6 +40,33 @@ const readPlanFreshness = READ_PLAN.blocks.map((block) => ({
   address: parseInt(block.address, 16), cadenceMs: block.cadence_ms,
   lastSuccessMs: Date.now(), revision: 1,
 }));
+// Clustered reads (plan M5), from the same canonical cluster table the
+// firmware's generated read_clusters_table.h comes from. In "clusters" mode
+// the mock publishes the production wire format: one
+// '<cluster id>:<cluster revision>:<sequence>' success per cluster read,
+// every read-plan block inside the cluster read with it, and clusters[] in
+// the freshness snapshot. A latched fallback group (POST
+// /demo/cluster-fallback?cluster=A1) reverts to per-block
+// '<address>:<revision>:<sequence>' events at the blocks' own cadence, for
+// good. "legacy" mode (POST /demo/read-mode?name=legacy) is the pre-M5
+// firmware: per-block events only and no clusters[] in the snapshot.
+const READ_CLUSTERS = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "read_clusters.canonical.json"), "utf8"));
+const readClusters = READ_CLUSTERS.clusters.map((c) => {
+  const start = parseInt(c.start, 16);
+  const end = start + 2 * c.register_count;  // JK addresses advance by 2 per register
+  return {
+    id: c.cluster_id, start, registers: c.register_count, cadenceMs: c.cadence_ms, budgetMs: c.freshness_budget_ms,
+    sequenceAfter: c.sequence_after, lastSuccessMs: Date.now(), revision: 1, sequence: 0, fallback: false,
+    blocks: readPlanFreshness.filter((b) => b.address >= start && b.address < end),
+  };
+});
+const readClusterById = new Map(readClusters.map((c) => [c.id, c]));
+const READ_MODES = ["clusters", "legacy"];
+let readMode = "clusters";
+function readClusterModeText() {
+  const latched = readClusters.filter((c) => c.fallback).map((c) => c.id);
+  return latched.length ? `fallback:${latched.join(",")}` : "clusters";
+}
 // Stage 4 production-integration gap fix (2026-09-21): the real firmware's
 // generated write_registry.yaml `number:` entities are ALL internal:true
 // -- ESPHome's generic /number/<id>/set REST route can never reach any of
@@ -51,6 +78,8 @@ const readPlanFreshness = READ_PLAN.blocks.map((block) => ({
 const WRITE_REGISTRY = require(path.join(ROOT, "protocol", "generated", "write_registry.json"));
 const WRITE_REGISTRY_BY_KEY = Object.create(null);
 const WRITE_REGISTRY_LIVE_KEYS = new Set();
+const MIGRATED_SETTINGS_KEYS = new Set((WRITE_REGISTRY.settings_write_migration || [])
+  .filter((m) => m.outcome === "migrated").map((m) => m.key));
 for (const e of WRITE_REGISTRY.entries) {
   WRITE_REGISTRY_BY_KEY[e.key] = e;
   if (e.submit_policy === "live") WRITE_REGISTRY_LIVE_KEYS.add(e.key);
@@ -64,7 +93,18 @@ for (const reg of REGISTER_CATALOG.registers) {
   // the mock even though the real entity is internal:true and genuinely
   // unreachable that way on real hardware -- a real mock/firmware
   // fidelity gap, not merely a hypothetical one (found this round).
-  if (reg.manager === "generic" && WRITE_REGISTRY_LIVE_KEYS.has(reg.key)) continue;
+  //
+  // Settings write migration (clustered-read plan M5, owner decision
+  // 2026-09-29): the 14 migrated owner-authorized Settings fields are live
+  // registry entries too, but the SIMULATOR keeps their generic write-tx
+  // route as a test-only hook -- it models the firmware entity's own
+  // set_action -> generic Write Transaction Manager (ACK, forced readback,
+  // WRITE_UNCERTAIN recovery, collision) that test/topology/run.js exercises
+  // through /number/set_cell_uvpr and /number/set_cell_ovpr. The web UI
+  // never uses this route (it writes only through /settings/register-write,
+  // test_settings_catalog.js U4/U5), and on real hardware the entity is
+  // internal:true with no REST route at all.
+  if (reg.manager === "generic" && WRITE_REGISTRY_LIVE_KEYS.has(reg.key) && !MIGRATED_SETTINGS_KEYS.has(reg.key)) continue;
   if (reg.manager === "generic") REGISTER_BY_KEY[reg.key] = { ...reg, addr: parseInt(reg.address, 16) };
 }
 // Stage 1 Completion Pass (CODEX_STAGE_1_REMEDIATION_RESULT_REVIEW.md P0-4/
@@ -631,6 +671,12 @@ function handleRegisterWrite(query, res) {
       if (now - cache.lastSuccessMs > entry.freshness_budget_ms) { publishRegisterWriteResult(requestId, false, 0, "stale"); return; }
     }
     const mergedRaw = cache ? mergeFieldIntoRawMock(cache.raw, mask, entry.shift, enc.encodedRaw) : enc.encodedRaw;
+    // Write only when the register value changes (clustered-read plan M5,
+    // owner decision 2026-09-29): the register already holds the value ->
+    // terminal "no change", no write transaction at all -- the firmware's
+    // RejectReason::NO_CHANGE, reported by the status endpoint as
+    // "no_change".
+    if (cache && mergedRaw === cache.raw) { publishRegisterWriteResult(requestId, false, 0, "no change"); return; }
 
     const idBefore = wtxNextId;
     runGenericWriteTx(addr, `__register_write_raw_${addr}`, String(mergedRaw), false, (statusCode) => {
@@ -656,7 +702,7 @@ function handleRegisterWrite(query, res) {
 
 // GET /settings/register-write/status?request_id=N -- the async
 // contract's own status poll, matching RegisterWriteStatusHandler's real
-// JSON shapes exactly: pending/accepted/rejected/expired/unknown.
+// JSON shapes exactly: pending/accepted/rejected/no_change/expired/unknown.
 function handleRegisterWriteStatus(query, res) {
   const respondJson = (code, obj) => { res.writeHead(code, { "Content-Type": "application/json" }); res.end(JSON.stringify(obj)); };
   const requestIdRaw = query.get("request_id");
@@ -671,6 +717,7 @@ function handleRegisterWriteStatus(query, res) {
       return respondJson(200, { status: "expired", request_id: requestId });
     }
     if (result.accepted) return respondJson(200, { status: "accepted", request_id: requestId, tx_id: result.txId });
+    if (result.reason === "no change") return respondJson(200, { status: "no_change", request_id: requestId });
     return respondJson(200, { status: "rejected", request_id: requestId, reason: result.reason });
   }
   if (registerWritePendingRequestId === requestId) return respondJson(200, { status: "pending", request_id: requestId });
@@ -1045,7 +1092,59 @@ const clients = new Set();
 seedEntities();
 // Same "<address>:<revision>:<success sequence>" format as the firmware.
 let readPlanSuccessSeq = 1;
-setEntity("text_sensor-read_plan_success", `${readPlanFreshness[0].address}:1:${readPlanSuccessSeq}`);
+setEntity("text_sensor-read_plan_success", `${readClusters[0].id}:1:${readPlanSuccessSeq}`);
+readClusters[0].sequence = readPlanSuccessSeq;
+setEntity("text_sensor-read_cluster_mode", readClusterModeText());
+
+function publishBlockSuccess(block, now) {
+  block.lastSuccessMs = now;
+  block.revision += 1;
+  readPlanSuccessSeq += 1;
+  setEntity("text_sensor-read_plan_success", `${block.address}:${block.revision}:${readPlanSuccessSeq}`);
+  broadcastEntity("text_sensor-read_plan_success");
+}
+
+// One tick of the read path: in "clusters" mode each due cluster is one
+// read (its blocks all advance by one revision); a fallback cluster's blocks
+// are read one by one; the isolated passcode block (in no cluster) is never
+// read -- strictly on demand, as in the firmware.
+function readPathTick(now) {
+  if (readMode === "legacy") {
+    for (const block of readPlanFreshness) {
+      if (now - block.lastSuccessMs >= block.cadenceMs) publishBlockSuccess(block, now);
+    }
+    return;
+  }
+  for (const cluster of readClusters) {
+    if (cluster.fallback) {
+      for (const block of cluster.blocks) {
+        if (now - block.lastSuccessMs >= block.cadenceMs) publishBlockSuccess(block, now);
+      }
+      continue;
+    }
+    if (now - cluster.lastSuccessMs < cluster.cadenceMs) continue;
+    cluster.lastSuccessMs = now;
+    cluster.revision += 1;
+    for (const block of cluster.blocks) { block.lastSuccessMs = now; block.revision += 1; }
+    readPlanSuccessSeq += 1;
+    cluster.sequence = readPlanSuccessSeq;
+    setEntity("text_sensor-read_plan_success", `${cluster.id}:${cluster.revision}:${readPlanSuccessSeq}`);
+    broadcastEntity("text_sensor-read_plan_success");
+  }
+}
+
+// The firmware's latch: the lead's whole group, for the rest of the session.
+function latchClusterFallback(id) {
+  const target = readClusterById.get(id);
+  if (!target) return false;
+  const lead = target.sequenceAfter || target.id;
+  for (const cluster of readClusters) {
+    if (cluster.id === lead || cluster.sequenceAfter === lead) cluster.fallback = true;
+  }
+  setEntity("text_sensor-read_cluster_mode", readClusterModeText());
+  broadcastEntity("text_sensor-read_cluster_mode");
+  return true;
+}
 
 // NOTE on wire-format fidelity: real ESPHome's web_server component
 // actually publishes each entity's "id" as "<domain>/<configured name>"
@@ -1101,16 +1200,7 @@ function num(id) { return Number(entities[id] ? entities[id].value : 0); }
 function tick() {
   const dirty = new Set();
   const tickNow = Date.now();
-  if (scenario !== "bms_offline") {
-    for (const block of readPlanFreshness) {
-      if (tickNow - block.lastSuccessMs < block.cadenceMs) continue;
-      block.lastSuccessMs = tickNow;
-      block.revision += 1;
-      readPlanSuccessSeq += 1;
-      setEntity("text_sensor-read_plan_success", `${block.address}:${block.revision}:${readPlanSuccessSeq}`);
-      broadcastEntity("text_sensor-read_plan_success");
-    }
-  }
+  if (scenario !== "bms_offline") readPathTick(tickNow);
 
   // Stage 4 production-integration simulation: keep rawWordCache "fresh"
   // the same way the real read-plan scheduler continuously re-polls
@@ -1854,8 +1944,14 @@ const server = http.createServer((req, res) => {
   if (p === "/settings/read-freshness" && req.method === "GET") {
     const now = Date.now();
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
-    res.end(JSON.stringify({ blocks: readPlanFreshness.map((block) =>
-      [block.address, Math.max(0, now - block.lastSuccessMs), block.revision]) }));
+    const blocks = readPlanFreshness.map((block) =>
+      [block.address, Math.max(0, now - block.lastSuccessMs), block.revision]);
+    if (readMode === "legacy") { res.end(JSON.stringify({ blocks })); return; }
+    res.end(JSON.stringify({ blocks, clusters: readClusters.map((c) => ({
+      id: c.id, start: c.start, registers: c.registers, mode: c.fallback ? "fallback" : "cluster", lease: 0,
+      cadence_ms: c.cadenceMs, budget_ms: c.budgetMs, age_ms: c.fallback ? null : Math.max(0, now - c.lastSuccessMs),
+      revision: c.revision, sequence: c.sequence,
+    })) }));
     return;
   }
   const ccMatch = p.match(/^\/charge_history\.json(?:\/(\d+))?$/);
@@ -1904,7 +2000,10 @@ const server = http.createServer((req, res) => {
       cellCountScenario, cellCountScenarios: CELLCOUNT_SCENARIOS,
       genericWriteScenario, genericWriteScenarios: GENERIC_WRITE_SCENARIOS,
       registerCellCount, physicalTopologyCount, physicalMask, topologyUncertain,
-      controlChargingOn, controlDischargingOn, controlBalancingOn, controlOverrideReason
+      controlChargingOn, controlDischargingOn, controlBalancingOn, controlOverrideReason,
+      // How many write transactions (simulated Modbus writes) were ever
+      // created -- lets a test prove a request created none.
+      writeTxCount: wtxNextId,
     }));
     return;
   }
@@ -2033,6 +2132,18 @@ const server = http.createServer((req, res) => {
       }
     }
     res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ scenario }));
+    return;
+  }
+  if (p === "/demo/read-mode" && req.method === "POST") {
+    const next = url.searchParams.get("name");
+    if (READ_MODES.includes(next)) readMode = next;
+    res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ readMode }));
+    return;
+  }
+  if (p === "/demo/cluster-fallback" && req.method === "POST") {
+    const latched = latchClusterFallback(url.searchParams.get("cluster"));
+    res.writeHead(latched ? 200 : 404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ latched, mode: readClusterModeText() }));
     return;
   }
   if (p === "/demo/write-mode" && req.method === "POST") {

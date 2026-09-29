@@ -413,11 +413,11 @@ async function main() {
   // filter only, never a change to the generated registry.
   const isCellCalibrationKey = (key) => /^cell_connection_wire_resistance_\d+$/.test(key);
   const rows = writeRegistryList.querySelectorAll(".write-registry-row");
-  check("exactly 47 rows total (79 WRITE_REGISTRY entries minus 32 cell-calibration keys, moved to the composite renderer)", rows.length === 47, `got=${rows.length}`);
+  check("exactly 65 rows total (97 WRITE_REGISTRY entries minus 32 cell-calibration keys, moved to the composite renderer; +18 migrated Settings fields)", rows.length === 65, `got=${rows.length}`);
   const liveRows = rows.filter((r) => r.dataset.writeRegistryGroup === "live");
   const authRows = rows.filter((r) => r.dataset.writeRegistryGroup === "authorizationRequired");
   const blockedRows = rows.filter((r) => r.dataset.writeRegistryGroup === "blocked");
-  check("exactly 5 live rows", liveRows.length === 5, `got=${liveRows.length}`);
+  check("exactly 23 live rows (5 promoted + 18 migrated Settings fields)", liveRows.length === 23, `got=${liveRows.length}`);
   check("exactly 5 authorization-required rows (37 minus 32 cell-calibration keys)", authRows.length === 5, `got=${authRows.length}`);
   check("exactly 37 blocked rows", blockedRows.length === 37, `got=${blockedRows.length}`);
   const allKeys = rows.map((r) => r.dataset.writeRegistryKey);
@@ -435,8 +435,8 @@ async function main() {
     }
   }
   check("every NON-cell-calibration canonical key from WRITE_REGISTRY appears in the DOM exactly once", everyNonCellKeyOnce);
-  check("WRITE_REGISTRY itself still carries all 79 entries (the generated registry is unchanged; only this render is filtered)",
-    totalWriteRegistryEntries === 79, `got=${totalWriteRegistryEntries}`);
+  check("WRITE_REGISTRY itself carries all 97 entries (60 registry + 37 blocked; only this render is filtered)",
+    totalWriteRegistryEntries === 97, `got=${totalWriteRegistryEntries}`);
   check("page render performs zero fetch/POST calls on its own", fetchCallLog.length === 0, JSON.stringify(fetchCallLog));
 
   // The production submit path now requires a recently observed source
@@ -707,6 +707,24 @@ async function main() {
   const gpsMsg = liveRow.querySelector(".write-registry-status");
   check("H2: the real backend reason text is shown, not a generic message", gpsMsg.textContent.includes("bms not live"), gpsMsg.textContent);
 
+  // H2b. "no_change" (the register already held the value; the firmware
+  // wrote nothing) is a terminal SUCCESS without any write: shown at once,
+  // never watched for a snapshot, never an error.
+  resetFetchQueue();
+  liveInput.value = "1";
+  liveInput.dataset.dirty = "true";
+  queueFetch((url, method) => method === "GET" && url.includes("/preflight"), () => ({ status: 200, body: { ready: true, current_raw: 516, merged_raw: 516, sibling_bits_before: 512, reject_reason: null } }));
+  queueFetch((url, method) => method === "POST" && url.includes("key=gps_heartbeat"), () => ({ status: 200, body: { ok: true, status: "accepted", key: "gps_heartbeat", request_id: 19 } }));
+  queueFetch((url, method) => method === "GET" && url.includes("request_id=19"), () => ({ status: 200, body: { status: "no_change", request_id: 19 } }));
+  fakeClick(liveButton);
+  await flushMicrotasks();
+  const ncMsg = liveRow.querySelector(".write-registry-status");
+  check("H2b: no_change terminates the transaction at once (button re-enabled, no longer active)",
+    liveButton.disabled === false && !activeTransactionKeys.has("gps_heartbeat"));
+  check("H2b: no_change is shown as a success saying nothing was written, not as an error",
+    ncMsg.textContent.includes("nothing was written") && ncMsg.dataset.kind === "success" && liveInput.dataset.dirty === "false",
+    `${ncMsg.textContent} kind=${ncMsg.dataset.kind} dirty=${liveInput.dataset.dirty}`);
+
   // H3. "expired" is a terminal error, never treated as still-pending.
   resetFetchQueue();
   liveInput.value = "1";
@@ -834,13 +852,13 @@ async function main() {
   // never corrupts/empties it, and it stays exactly the real reason code.
   check("EN->UK: the blocked note is untouched (raw reason code, not localized prose by design) and still correct",
     blockedNote.textContent === blockedNoteTextEn && blockedNote.textContent.length > 0, blockedNote.textContent);
-  check("EN->UK: row count is still exactly 5/5/37", (() => {
+  check("EN->UK: row count is still exactly 23/5/37", (() => {
     const r2 = writeRegistryList.querySelectorAll(".write-registry-row");
-    return r2.filter((x) => x.dataset.writeRegistryGroup === "live").length === 5 &&
+    return r2.filter((x) => x.dataset.writeRegistryGroup === "live").length === 23 &&
       r2.filter((x) => x.dataset.writeRegistryGroup === "authorizationRequired").length === 5 &&
       r2.filter((x) => x.dataset.writeRegistryGroup === "blocked").length === 37;
   })());
-  check("EN->UK: no duplicate rows were created", writeRegistryList.querySelectorAll(".write-registry-row").length === 47);
+  check("EN->UK: no duplicate rows were created", writeRegistryList.querySelectorAll(".write-registry-row").length === 65);
   check("EN->UK: dataset keys stay language-neutral (still real canonical keys)",
     liveRow.dataset.writeRegistryKey === "gps_heartbeat" && authRow.dataset.writeRegistryKey === authEntry.key);
   check("EN->UK: draft value survives the language switch", thirdInput.value === "1");
@@ -859,7 +877,7 @@ async function main() {
   await flushMicrotasks();
   const groupHeaderTextsEn2 = writeRegistryList.querySelectorAll(".write-registry-group-header").map((h) => h.textContent);
   check("UK->EN: group headers return to the original English text", JSON.stringify(groupHeaderTextsEn2) === JSON.stringify(groupHeaderTextsEn));
-  check("UK->EN: row count is still exactly 47, no duplicates", writeRegistryList.querySelectorAll(".write-registry-row").length === 47);
+  check("UK->EN: row count is still exactly 65, no duplicates", writeRegistryList.querySelectorAll(".write-registry-row").length === 65);
 
   // =========================================================================
   // I. Mismatch-detail correctness fix (2026-09-22): describe() now

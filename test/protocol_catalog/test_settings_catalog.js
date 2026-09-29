@@ -3,8 +3,8 @@
 
 // EXECUTABLE PRODUCTION-JS DOM TEST -- runs the REAL jk_bms.js closures
 // (renderSettingsCatalog, relocalizeSettingsCatalog, updateSettingsCatalogValue,
-// ingestPayload, numeric, setLanguage, submitRegisterSetting via the real
-// globally-delegated click handler pattern, submitRegisterWrite) inside a
+// ingestPayload, numeric, setLanguage, submitRegisterWrite via the
+// catalog's own row-OK click handler) inside a
 // Node `vm` sandbox, via the SAME opt-in window.__JK_BMS_TEST_HOOKS__
 // escape hatch this project's other DOM tests already use (FakeNode/
 // harness shape adapted verbatim from test_cell_composite_rows.js). No UI
@@ -17,15 +17,19 @@
 //   10. exact manifest ownership (every eligible id owned exactly once)
 //   12. R/RW/W row shapes
 //   13. binary/enum select rendering (real Port Switch data)
-//   15. hardware-verified legacy OK path calls the existing client
-//       (submitRegisterSetting via button[data-register-write])
-//   16. Stage 4 live OK path calls the existing client
+//   15. the 18 owner-authorized rows without a write-registry entry are
+//       LOCKED (unified write contract, owner decision 2026-09-29)
+//   16. every live OK path calls the one unified client
 //       (submitRegisterWrite via data-wr-action="preflight-write")
 //   17. authorization/blocked/W rows cannot dispatch (no button exists)
 //   18. SSE updates hit only the correct row
 //   19. dirty/focus/selection preservation
 //   20. UK<->EN relocalization without draft loss
 //   22. the three cell families are never duplicated in this generic list
+//   U0-U9 (runUnifiedWriteContractScenario): drafts send nothing; only the
+//       row's own OK -> one preflight + one POST with its own key/value;
+//       CONFIRMED/MISMATCH/WRITE_UNCERTAIN/rejection/NO_CHANGE on that row;
+//       locked rows cannot send; no /number/set_* route
 
 const fs = require("fs");
 const path = require("path");
@@ -217,8 +221,16 @@ class ControlledDate extends Date {
 // /settings/read-freshness snapshot the real onopen fetches. Kept apart from
 // fetchCallLog, which must stay empty (no write is ever dispatched).
 let harness = null;
+// Unified-write-contract scenario only: answers the /settings/register-write
+// preflight/POST/status calls (every call is still recorded in fetchCallLog).
+let fetchResponder = null;
 async function fakeFetch(url, opts) {
   const method = (opts && opts.method) || "GET";
+  if (fetchResponder) {
+    fetchCallLog.push({ url: String(url), method });
+    const r = fetchResponder(String(url), method);
+    return { ok: r.status >= 200 && r.status < 300, status: r.status, json: async () => r.body };
+  }
   if (harness && method === "GET" && String(url).endsWith("/settings/read-freshness")) {
     harness.snapshotGets += 1;
     return { ok: true, status: 200, json: async () => harness.snapshot };
@@ -349,14 +361,31 @@ function main() {
   const rRow = rowFor("CellVolAve");
   check("R row: no input, no button, no write endpoint", !rRow.querySelector("input") && !rRow.querySelector("button"));
 
-  const legacyRow = rowFor("VolSmartSleep"); // smart_sleep, write-hardware-verified
+  // Settings write migration (clustered-read plan M5, owner decision
+  // 2026-09-29): smart_sleep is a migrated owner-authorized field -> live
+  // through the write registry (wr_<key> + its own OK), never reg_<key>.
+  const migratedRow = rowFor("VolSmartSleep");
+  check("migrated Settings field (smart_sleep): one enabled editor + exactly one OK on the unified pipeline, no lock",
+    !!migratedRow && migratedRow.querySelectorAll("button").length === 1 && !migratedRow.querySelector(".settings-lock") &&
+    migratedRow.querySelector(".settings-catalog-editor").id === "wr_smart_sleep" &&
+    migratedRow.querySelector(".settings-catalog-action").dataset.wrAction === "preflight-write" &&
+    migratedRow.querySelector(".settings-catalog-action").dataset.wrKey === "smart_sleep");
+  // charge_otpr (signed S32 temperature recovery) is migrated too.
+  const tempRow = rowFor("TMPBatCOTPR");
+  check("signed temperature field (charge_otpr): one enabled editor + exactly one OK on the unified pipeline, no lock",
+    !!tempRow && tempRow.querySelectorAll("button").length === 1 && !tempRow.querySelector(".settings-lock") &&
+    tempRow.querySelector(".settings-catalog-editor").id === "wr_charge_otpr" &&
+    tempRow.querySelector(".settings-catalog-action").dataset.wrKey === "charge_otpr");
+  // The live numeric row every draft/freshness scenario below runs on: a
+  // write-registry row (0x1118, 15 s group, 22.5 s budget).
+  const legacyRow = rowFor("TIMSmartSleep"); // smart_sleep_timeout_hours, write-hardware-verified, write registry
   check("hardware-verified RW row exists", !!legacyRow);
   const legacyInput = legacyRow.querySelector(".settings-catalog-editor");
   const legacyButton = legacyRow.querySelector(".settings-catalog-action");
   check("hardware-verified row: real enabled numeric editor + OK button", !!legacyInput && legacyInput.disabled === false && !!legacyButton);
-  check("hardware-verified row: input id follows the legacy reg_<key> convention (existing production client)", legacyInput.id === "reg_smart_sleep");
-  check("hardware-verified row: button carries data-register-write=<key> (the REAL, globally-delegated legacy write handler)",
-    legacyButton.dataset.registerWrite === "smart_sleep");
+  check("hardware-verified row: input id follows the write-registry wr_<key> convention", legacyInput.id === "wr_smart_sleep_timeout_hours");
+  check("hardware-verified row: its OK carries data-wr-action=preflight-write + its own key (the unified pipeline)",
+    legacyButton.dataset.wrAction === "preflight-write" && legacyButton.dataset.wrKey === "smart_sleep_timeout_hours");
 
   const stage4LiveRow = rowFor("GPS Heartbeat"); // gps_heartbeat, write-software-ready, live
   check("Stage 4 live RW row exists", !!stage4LiveRow);
@@ -411,14 +440,14 @@ function main() {
   // mechanism itself (renderSettingInput(), shared by both write paths)
   // is identical code either way, so this is still real coverage of the
   // Stage 4 live row's own update call, not a weaker substitute.
-  ingestPayload({ id: "smart_sleep", domain: "number", value: 3.321, state: "3.321 V" });
-  updateSettingsCatalogValue("VolSmartSleep");
-  check("SSE update: an untouched live editor follows the fresh read value", legacyInput.value === "3.321", legacyInput.value);
+  ingestPayload({ id: "sensor/smart sleep timeout hours", value: 24, state: "24" });
+  updateSettingsCatalogValue("TIMSmartSleep");
+  check("SSE update: an untouched live editor follows the fresh read value", legacyInput.value === "24", legacyInput.value);
 
   ingestPayload({ id: "gps_heartbeat", domain: "number", value: 1, state: "1" });
   updateSettingsCatalogValue("GPS Heartbeat");
   check("SSE update for GPS Heartbeat does not touch the unrelated hardware-verified row's input value",
-    legacyInput.value === "3.321", legacyInput.value);
+    legacyInput.value === "24", legacyInput.value);
 
   s4Input.value = "0.5";
   s4Input.dataset.dirty = "true";
@@ -467,7 +496,7 @@ function main() {
   // cadence + 7.5 s for the scheduler groups (22.5 s / 307.5 s; derived in
   // generate_read_plan.js, poll_cadence_freshness_20260927.md).
   const { setBrowserLink, sweepDiagnosticStaleness, settingsFieldFreshness,
-    renderCellCompositeList, submitRegisterSetting, submitRegisterWrite,
+    renderCellCompositeList, submitRegisterWrite,
     registerEntity, PROTOCOL_CATALOG, acceptReadBlockSnapshot, readBlockSuccess } = hooks;
   const cellList = new FakeNode("div");
   cellList.id = "cellCompositeList";
@@ -477,7 +506,7 @@ function main() {
   fakeNow = 200000;
   ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
   setBrowserLink("connected");
-  acceptReadBlockSnapshot({ blocks: [[0x1000, 0, 1], [0x1114, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] });
+  acceptReadBlockSnapshot({ blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] });
   check("initial LIVE accepts a valid register reading that preceded health in the SSE snapshot",
     legacyInput.dataset.freshness === "fresh" && legacyButton.disabled === false);
   ingestPayload({ id: "text_sensor/topology state", state: "CONFIRMED", value: "CONFIRMED" });
@@ -488,8 +517,8 @@ function main() {
   ingestPayload({ id: "sensor/total voltage raw", state: "55.123 V", value: 55.123 });
   ingestPayload({ id: "sensor/current raw", state: "0.000 A", value: 0 });
   ingestPayload({ id: "cell_connected_mask_exact", state: "65535", value: "65535" });
-  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
-  updateSettingsCatalogValue("VolSmartSleep");
+  ingestPayload({ id: "sensor/smart sleep timeout hours", state: "24", value: 24 });
+  updateSettingsCatalogValue("TIMSmartSleep");
   renderCellCompositeList();
   const cellRows = cellList.querySelectorAll(".cell-composite-row");
   const cell4 = cellRows.find((r) => r.dataset.cellIndex === "4");
@@ -512,7 +541,7 @@ function main() {
     readValue("total_voltage_raw").dataset.freshness === "fresh" && legacyInput.dataset.freshness === "fresh");
   check("fresh legacy RW submit button enabled", legacyButton.disabled === false);
 
-  legacyInput.value = "4.321";
+  legacyInput.value = "48";
   legacyInput.dataset.dirty = "true";
   legacyInput.focus();
   legacyInput.setSelectionRange(1, 3);
@@ -532,8 +561,8 @@ function main() {
     readValue("current_raw").dataset.freshness === "fresh");
   fakeNow = 222501;
   sweepDiagnosticStaleness();
-  check("15s group stale only after its 22.5 s budget", readValue("total_voltage_raw").dataset.freshness === "stale" &&
-    readValue("current_raw").dataset.freshness === "stale" && legacyInput.dataset.freshness === "fresh" &&
+  check("15s group stale only after its 22.5 s budget (the live 0x1118 row too, and its OK closes)", readValue("total_voltage_raw").dataset.freshness === "stale" &&
+    readValue("current_raw").dataset.freshness === "stale" && legacyInput.dataset.freshness === "stale" && legacyButton.disabled === true &&
     readValue("cell_connected_mask").dataset.freshness === "stale");
   readBlockSuccess(`${0x1290}:2`);
   check("successful clustered 0x1290 read refreshes current_raw without a changed value",
@@ -547,9 +576,9 @@ function main() {
   sweepDiagnosticStaleness();
   check("300s group stale only after its 320s budget", legacyInput.dataset.freshness === "stale" &&
     cellCalibration.dataset.freshness === "stale" && legacyButton.disabled === true && legacyInput.title.includes("320s"));
-  check("staleness sweep preserves draft, focus and selection", legacyInput.value === "4.321" &&
+  check("staleness sweep preserves draft, focus and selection", legacyInput.value === "48" &&
     activeElement === legacyInput && legacyInput.selectionStart === 1 && legacyInput.selectionEnd === 3);
-  submitRegisterSetting("smart_sleep", legacyButton);
+  submitRegisterWrite(hooks.WRITE_REGISTRY.live.find((e) => e.key === "smart_sleep_timeout_hours"), legacyInput, legacyButton);
   check("stale legacy submit produces zero fetch/POST", fetchCallLog.length === 0);
 
   // Exercise the Stage 4 submit guard as well. The test-only route models a
@@ -565,37 +594,37 @@ function main() {
   check("unchanged binary readback becomes fresh on its successful block event",
     settingsFieldFreshness("gps_heartbeat").kind === "fresh" && fetchCallLog.length === 0);
 
-  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  ingestPayload({ id: "sensor/smart sleep timeout hours", state: "24", value: 24 });
   check("unchanged-value SSE alone cannot claim a successful register read",
     legacyInput.dataset.freshness === "stale" && legacyButton.disabled === true);
-  readBlockSuccess(`${0x1000}:2`);
+  readBlockSuccess(`${0x1118}:2`);
   check("successful block read refreshes a 300s field without overwriting its draft",
-    legacyInput.dataset.freshness === "fresh" && legacyButton.disabled === false && legacyInput.value === "4.321" &&
+    legacyInput.dataset.freshness === "fresh" && legacyButton.disabled === false && legacyInput.value === "48" &&
     activeElement === legacyInput && legacyInput.selectionStart === 1 && legacyInput.selectionEnd === 3);
   setBrowserLink("reconnecting");
   check("disconnect immediately marks cached value offline and disables submit",
     legacyInput.dataset.freshness === "offline" && legacyButton.disabled === true);
   setBrowserLink("connected");
   check("reconnect alone never promotes old cached value to current", legacyInput.dataset.freshness === "offline" && legacyButton.disabled === true);
-  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  ingestPayload({ id: "sensor/smart sleep timeout hours", state: "24", value: 24 });
   check("post-reconnect value snapshot alone does not validate the old register", legacyInput.dataset.freshness === "offline");
   fakeNow += 1;
-  readBlockSuccess(`${0x1000}:3`);
+  readBlockSuccess(`${0x1118}:3`);
   check("post-reconnect block read without this connection's own bms_health stays blocked (fail closed)",
     legacyInput.dataset.freshness === "offline" && legacyButton.disabled === true);
   ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
   check("post-reconnect successful block read restores freshness without draft loss", legacyInput.dataset.freshness === "fresh" &&
-    legacyButton.disabled === false && legacyInput.value === "4.321" && activeElement === legacyInput);
+    legacyButton.disabled === false && legacyInput.value === "48" && activeElement === legacyInput);
   ingestPayload({ id: "text_sensor/bms health", state: "OFFLINE", value: "OFFLINE" });
   check("BMS offline invalidates cached Settings value even with browser connected", legacyInput.dataset.freshness === "offline" &&
     legacyButton.disabled === true);
-  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  ingestPayload({ id: "sensor/smart sleep timeout hours", state: "24", value: 24 });
   check("SSE echo while BMS is OFFLINE cannot make the register current", legacyInput.dataset.freshness === "offline");
-  readBlockSuccess(`${0x1000}:4`);
+  readBlockSuccess(`${0x1118}:4`);
   ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
   check("BMS recovery alone leaves even an offline-period echo invalid", legacyInput.dataset.freshness === "offline");
   fakeNow += 1;
-  readBlockSuccess(`${0x1000}:5`);
+  readBlockSuccess(`${0x1118}:5`);
   check("successful register read after BMS recovery clears offline state", legacyInput.dataset.freshness === "fresh");
   fakeNow += 320001;
   sweepDiagnosticStaleness();
@@ -610,7 +639,7 @@ function main() {
   runControlsSimplificationScenario();
   runFalseStaleScenario();
 
-  runRealReconnectScenario("visible").then(() => runRealReconnectScenario("ping")).then(() => {
+  runRealReconnectScenario("visible").then(() => runRealReconnectScenario("ping")).then(() => runUnifiedWriteContractScenario()).then(() => {
     console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
     process.exit(failures ? 1 : 0);
   }, (error) => { console.error(error); process.exit(1); });
@@ -622,6 +651,216 @@ function main() {
 // comes only from a real user input event, and a successful read clears the
 // warning in the same synchronous step that records it (no timer race, no
 // grace period, write gate unchanged).
+// Unified write contract (clustered-read plan M5, owner decision 2026-09-29):
+// every Settings write is a draft until that row's own OK, then exactly one
+// preflight + one POST to /settings/register-write with that row's key and
+// value, and the terminal result lands on that row. Locked rows cannot send.
+const SETTINGS_CATALOG_ROWS_OF = (page) => page.hooks.SETTINGS_CATALOG_ROWS;
+async function runUnifiedWriteContractScenario() {
+  const settle = async () => { for (let i = 0; i < 12; i += 1) await new Promise((r) => setImmediate(r)); };
+  fakeNow = 1500000;
+  // Controlled timers: without a harness the page's window.setTimeout runs
+  // every callback at once (setTimeout(cb, 0)), which would fire the
+  // readback/poll timeouts in the middle of these checks. Nothing here
+  // advances this queue, so only real events decide each outcome.
+  const clock = { now: () => fakeNow, get value() { return fakeNow; }, set value(v) { fakeNow = v; } };
+  harness = { timers: new TimerQueue(clock), win: new ListenerRegistry(), doc: new ListenerRegistry(), snapshotGets: 0,
+    snapshot: { blocks: [[0x1114, 0, 1], [0x1118, 0, 1]] } };
+  const p = bootStartupPage();
+  const { ingestPayload, acceptReadBlockSnapshot, updateSettingsCatalogValue, WRITE_REGISTRY, registerEntity } = p.hooks;
+  const list = idRegistry.get("settingsCatalogList");
+  const rowEl = (manifestId) => list.querySelectorAll(".settings-catalog-row").find((r) => r.dataset.manifestId === manifestId);
+  health(p, "LIVE");
+  registerEntity("gps_heartbeat", "number", "gps_heartbeat", "gps_heartbeat");
+  ingestPayload({ id: "sensor/smart sleep timeout hours", state: "24", value: 24 });
+  ingestPayload({ id: "binary_sensor/lcd always on", state: "ON", value: true });
+  ingestPayload({ id: "gps_heartbeat", state: "0", value: 0 });
+  ingestPayload({ id: "binary_sensor/smart sleep enabled", state: "OFF", value: false });
+  acceptReadBlockSnapshot({ blocks: [[0x1114, 0, 1], [0x1118, 0, 1]] });
+  for (const id of ["TIMSmartSleep", "LCD Always On", "GPS Heartbeat", "SmartSleep"]) updateSettingsCatalogValue(id);
+  const tim = rowEl("TIMSmartSleep");
+  const lcd = rowEl("LCD Always On");
+  const timInput = tim.querySelector(".settings-catalog-editor");
+  const timOk = tim.querySelector(".settings-catalog-action");
+  const lcdSelect = lcd.querySelector(".settings-catalog-editor");
+  const lcdOk = lcd.querySelector(".settings-catalog-action");
+  const timMsg = () => idRegistry.get("wrMsg_smart_sleep_timeout_hours");
+  const lcdMsg = () => idRegistry.get("wrMsg_lcd_always_on");
+  check("U0: the numeric and the select live rows are fresh with an enabled OK", timOk && lcdOk && timOk.disabled === false && lcdOk.disabled === false,
+    `${timOk && timOk.disabled} ${lcdOk && lcdOk.disabled}`);
+
+  // 1/2. Editing every active input/select (input + change events) sends nothing.
+  fetchCallLog = [];
+  const liveRows = SETTINGS_CATALOG_ROWS_OF(p).filter((r) => r.readWriteState === "live").map((r) => rowEl(r.manifestId)).filter(Boolean);
+  for (const el of liveRows) {
+    const ed = el.querySelector(".settings-catalog-editor");
+    if (!ed) continue;
+    ed.value = ed.tagName === "select" ? "0" : "7";
+    ed.dispatchEvent(new FakeEvent("input", ed));
+    ed.dispatchEvent(new FakeEvent("change", ed));
+  }
+  await settle();
+  check("U1: editing every active input sends no request (all 23 live rows, incl. the 18 migrated Settings fields)", liveRows.length === 23 && fetchCallLog.length === 0, JSON.stringify(fetchCallLog));
+  lcdSelect.value = "0";
+  lcdSelect.dispatchEvent(new FakeEvent("change", lcdSelect));
+  await settle();
+  check("U2: changing a select sends no request", fetchCallLog.length === 0);
+
+  // 3/4/9. Only that row's OK: one preflight + one POST, its own key and value,
+  // never another row's draft.
+  let requestId = 40;
+  let statusBody = null;
+  fetchResponder = (url, method) => {
+    if (method === "GET" && url.includes("/settings/register-write/preflight")) {
+      return { status: 200, body: { ready: true, current_raw: 0x1800, merged_raw: 0x3000, sibling_bits_before: 0, reject_reason: null } };
+    }
+    if (method === "POST" && url.includes("/settings/register-write?")) {
+      requestId += 1;
+      return { status: 200, body: { ok: true, status: "accepted", key: "x", request_id: requestId } };
+    }
+    if (method === "GET" && url.includes("/settings/register-write/status")) return { status: 200, body: statusBody(requestId) };
+    return { status: 404, body: null };
+  };
+  timInput.value = "48";
+  lcdSelect.value = "0";  // a draft in ANOTHER row
+  statusBody = (id) => ({ status: "accepted", request_id: id, tx_id: 101 });
+  fetchCallLog = [];
+  fakeClick(timOk);
+  await settle();
+  const pre = fetchCallLog.filter((f) => f.url.includes("/preflight"));
+  const posts = fetchCallLog.filter((f) => f.method === "POST");
+  check("U3: pressing the row's OK starts exactly one preflight and one POST",
+    pre.length === 1 && posts.length === 1, JSON.stringify(fetchCallLog));
+  check("U4: the POST carries that row's exact canonical key and value, submit_policy=live",
+    /key=smart_sleep_timeout_hours(&|$)/.test(posts[0].url) && /[?&]value=48(&|$)/.test(posts[0].url) && /submit_policy=live/.test(posts[0].url), posts[0] && posts[0].url);
+  check("U9: the OK of one row never includes another row's draft", !fetchCallLog.some((f) => /lcd_always_on/.test(f.url)));
+  check("U5: no Settings write uses a legacy /number/set_* route", !fetchCallLog.some((f) => /\/number\/|\/select\/|\/switch\//.test(f.url)));
+
+  // 7. CONFIRMED on the same row (and nowhere else).
+  const snap = (status) => ingestPayload({ id: "text_sensor-write_tx_snapshot", domain: "text_sensor",
+    value: JSON.stringify([{ addr: 0x1118, tx_id: 101, status, req: 0x3000, rb: 0x3000 }]),
+    state: JSON.stringify([{ addr: 0x1118, tx_id: 101, status, req: 0x3000, rb: 0x3000 }]) });
+  snap(4);
+  await settle();
+  check("U7: CONFIRMED is shown on the same row", timMsg().dataset.kind === "success" && /Saved/.test(timMsg().textContent) && lcdMsg().textContent === "",
+    `${timMsg().textContent} | ${lcdMsg().textContent}`);
+
+  // 7. MISMATCH on the same row.
+  const again = async (status, tx) => {
+    timInput.value = "48";
+    statusBody = (id) => ({ status: "accepted", request_id: id, tx_id: tx });
+    fakeClick(timOk);
+    await settle();
+    ingestPayload({ id: "text_sensor-write_tx_snapshot", domain: "text_sensor",
+      value: JSON.stringify([{ addr: 0x1118, tx_id: tx, status, req: 0x3000, rb: 0x1800 }]),
+      state: JSON.stringify([{ addr: 0x1118, tx_id: tx, status, req: 0x3000, rb: 0x1800 }]) });
+    await settle();
+  };
+  await again(5, 102);
+  check("U7: MISMATCH is shown on the same row as an error", timMsg().dataset.kind === "error" && lcdMsg().textContent === "", timMsg().textContent);
+  // 7. WRITE_UNCERTAIN is not terminal on the row; recovery confirms it.
+  await again(6, 103);
+  check("U7: WRITE_UNCERTAIN keeps the row pending (OK disabled, no final message)", timOk.disabled === true, timMsg().textContent);
+  ingestPayload({ id: "text_sensor-write_tx_snapshot", domain: "text_sensor",
+    value: JSON.stringify([{ addr: 0x1118, tx_id: 103, status: 10, req: 0x3000, rb: 0x3000 }]),
+    state: JSON.stringify([{ addr: 0x1118, tx_id: 103, status: 10, req: 0x3000, rb: 0x3000 }]) });
+  await settle();
+  check("U7: ... then RECOVERED_CONFIRMED is shown on the same row", timMsg().dataset.kind === "success" && timOk.disabled === false, timMsg().textContent);
+  // 7. Rejection on the same row.
+  timInput.value = "48";
+  statusBody = (id) => ({ status: "rejected", request_id: id, reason: "bms not live" });
+  fakeClick(timOk);
+  await settle();
+  check("U7: a rejection is shown on the same row with the backend reason", timMsg().dataset.kind === "error" && /bms not live/.test(timMsg().textContent),
+    timMsg().textContent);
+  // 6. NO_CHANGE as success on the same row, nothing else to watch.
+  timInput.value = "24";
+  statusBody = (id) => ({ status: "no_change", request_id: id });
+  fakeClick(timOk);
+  await settle();
+  check("U6: NO_CHANGE is shown as success on the same row", timMsg().dataset.kind === "success" && /nothing was written/.test(timMsg().textContent) &&
+    timOk.disabled === false && lcdMsg().textContent === "", timMsg().textContent);
+
+  // 3/4/9 on a migrated Settings field (U32, 0x1000): its own OK sends only
+  // key=smart_sleep with the bare value, never another row's draft.
+  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  acceptReadBlockSnapshot({ blocks: [[0x1000, 0, 1], [0x1114, 0, 1], [0x1118, 0, 1]] });
+  updateSettingsCatalogValue("VolSmartSleep");
+  const sleep = rowEl("VolSmartSleep");
+  const sleepInput = sleep.querySelector(".settings-catalog-editor");
+  const sleepOk = sleep.querySelector(".settings-catalog-action");
+  timInput.value = "99";  // a draft in another row
+  sleepInput.value = "3,300";  // decimal comma accepted
+  statusBody = (id) => ({ status: "no_change", request_id: id });
+  fetchCallLog = [];
+  fakeClick(sleepOk);
+  await settle();
+  const sleepPosts = fetchCallLog.filter((f) => f.method === "POST");
+  check("U3m: a migrated field's own OK: one preflight + one POST with key=smart_sleep&value=3.3, nothing for any other row",
+    fetchCallLog.filter((f) => f.url.includes("/preflight")).length === 1 && sleepPosts.length === 1 &&
+    /key=smart_sleep(&|$)/.test(sleepPosts[0].url) && /[?&]value=3\.3(&|$)/.test(sleepPosts[0].url) &&
+    !fetchCallLog.some((f) => /smart_sleep_timeout_hours|\/number\//.test(f.url)), JSON.stringify(fetchCallLog));
+  check("U6m: its NO_CHANGE lands on its own row as success",
+    /nothing was written/.test(idRegistry.get("wrMsg_smart_sleep").textContent) && idRegistry.get("wrMsg_smart_sleep").dataset.kind === "success");
+  // Every migrated field has exactly one OK in its own row.
+  const migratedRowsOk = SETTINGS_CATALOG_ROWS_OF(p).filter((r) => (p.hooks.WRITE_REGISTRY.live || []).some((e) => e.key === r.canonicalKey) &&
+    ["smart_sleep", "cell_uvpr", "cell_ovpr", "start_balance_trigger", "soc_100", "soc_0", "cell_rcv", "cell_rfv", "charge_ocpr_time",
+      "discharge_ocpr_time", "scpr_time", "max_balance_current", "charge_otpr", "discharge_otpr", "charge_utpr", "mos_otpr",
+      "battery_capacity", "start_balance"].includes(r.canonicalKey))
+    .map((r) => rowEl(r.manifestId));
+  check("U10: all 18 migrated fields render one editor and exactly one OK (data-wr-key = its own key)",
+    migratedRowsOk.length === 18 && migratedRowsOk.every((el) => el && el.querySelectorAll("button").length === 1 &&
+      el.querySelector(".settings-catalog-action").dataset.wrKey === el.dataset.canonicalKey), `rows=${migratedRowsOk.length}`);
+
+  // A signed temperature: a negative value (decimal comma) goes out as the
+  // bare signed number through the same pipeline; an out-of-range one never
+  // leaves the page.
+  ingestPayload({ id: "sensor/charge OTPR", state: "50.0 °C", value: 50 });
+  ingestPayload({ id: "charge_otpr", state: "50.0 °C", value: 50 });
+  acceptReadBlockSnapshot({ blocks: [[0x1000, 0, 1], [0x1050, 0, 1], [0x1114, 0, 1], [0x1118, 0, 1]] });
+  updateSettingsCatalogValue("TMPBatCOTPR");
+  const temp = rowEl("TMPBatCOTPR");
+  const tempInput = temp.querySelector(".settings-catalog-editor");
+  const tempOk = temp.querySelector(".settings-catalog-action");
+  statusBody = (id) => ({ status: "accepted", request_id: id, tx_id: 777 });
+  tempInput.value = "-12,5";
+  fetchCallLog = [];
+  fakeClick(tempOk);
+  await settle();
+  const tempPosts = fetchCallLog.filter((f) => f.method === "POST");
+  check("U11: a negative temperature (-12,5) is submitted as key=charge_otpr&value=-12.5 through /settings/register-write only",
+    tempPosts.length === 1 && /key=charge_otpr(&|$)/.test(tempPosts[0].url) && /[?&]value=-12\.5(&|$)/.test(tempPosts[0].url) &&
+    !fetchCallLog.some((f) => /\/number\//.test(f.url)), JSON.stringify(fetchCallLog));
+  ingestPayload({ id: "text_sensor-write_tx_snapshot", domain: "text_sensor",
+    value: JSON.stringify([{ addr: 0x1050, tx_id: 777, status: 4, req: 0xFFFFFF83, rb: 0xFFFFFF83 }]),
+    state: JSON.stringify([{ addr: 0x1050, tx_id: 777, status: 4, req: 0xFFFFFF83, rb: 0xFFFFFF83 }]) });
+  await settle();
+  check("U11: its CONFIRMED lands on the same row", idRegistry.get("wrMsg_charge_otpr").dataset.kind === "success");
+  tempInput.value = "-100.1";
+  fetchCallLog = [];
+  fakeClick(tempOk);
+  await settle();
+  check("U11: -100.1 (below -100) is marked invalid and never sent", fetchCallLog.length === 0 && tempInput.getAttribute("aria-invalid") === "true");
+
+  // 8. Locked rows (no write-registry entry, or authorization required) cannot send.
+  fetchCallLog = [];
+  const locked = SETTINGS_CATALOG_ROWS_OF(p).filter((r) => r.access === "RW" && r.readWriteState !== "live" && r.canonicalKey)
+    .map((r) => rowEl(r.manifestId)).filter(Boolean);
+  for (const el of locked) {
+    fakeClick(el);
+    for (const node of el.querySelectorAll(".settings-catalog-editor")) { node.dispatchEvent(new FakeEvent("input", node)); fakeClick(node); }
+  }
+  await settle();
+  check("U8: every unauthorized/unmapped RW row shows a lock, has no OK, and cannot issue any request",
+    locked.length === 42 && locked.every((el) => el.querySelectorAll(".settings-lock").length === 1 && !el.querySelector("button")) &&
+    fetchCallLog.length === 0, `locked=${locked.length} calls=${fetchCallLog.length}`);
+  check("U8: none of the 18 migrated Settings fields is among them (e.g. smart_sleep, charge_otpr)",
+    ["VolSmartSleep", "TMPBatCOTPR", "TMPBatDcOTPR", "TMPBatCUTPR", "TMPMosOTPR"].every((id) => !locked.includes(rowEl(id))));
+  fetchResponder = null;
+  fetchCallLog = [];
+  harness = null;
+}
+
 function runFalseStaleScenario() {
   fakeNow = 900000;
   const p = bootStartupPage();
@@ -753,7 +992,7 @@ function bootStartupPage({ connect = true } = {}) {
   }
   hooks.renderSettingsCatalog();
   const row = (manifestId) => list.querySelectorAll(".settings-catalog-row").find((r) => r.dataset.manifestId === manifestId);
-  const legacyRow = row("VolSmartSleep");
+  const legacyRow = row("TIMSmartSleep");
   const binaryRow = row("LCD Always On");
   const page = {
     hooks, cellList, panel,
@@ -780,13 +1019,13 @@ function ingestStartupValues(page) {
   ingestPayload({ id: "text_sensor/topology state", state: "CONFIRMED", value: "CONFIRMED" });
   ingestPayload({ id: "sensor/display cell count", state: "16", value: 16 });
   ingestPayload({ id: "sensor/cell voltage 4", state: "3.452 V", value: 3.452 });
-  ingestPayload({ id: "smart_sleep", state: "3.321 V", value: 3.321 });
+  ingestPayload({ id: "sensor/smart sleep timeout hours", state: "24", value: 24 });
   ingestPayload({ id: "binary_sensor/lcd always on", state: "ON", value: true });
-  updateSettingsCatalogValue("VolSmartSleep");
+  updateSettingsCatalogValue("TIMSmartSleep");
   updateSettingsCatalogValue("LCD Always On");
 }
 
-const STARTUP_SNAPSHOT = { blocks: [[0x1000, 0, 1], [0x1114, 0, 1], [0x1200, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] };
+const STARTUP_SNAPSHOT = { blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1200, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] };
 // ingestPayload() schedules the bound bms_health renderer (renderFreshness,
 // via bind()) on the next animation frame; the harness's rAF is async, so
 // run that same real renderer here to observe the frame synchronously.
@@ -797,8 +1036,8 @@ const health = (page, value) => {
 
 // Every submit path a user can reach from a non-fresh Settings/cell field.
 function attemptAllSubmits(page) {
-  const { submitRegisterSetting, submitRegisterWrite, WRITE_REGISTRY } = page.hooks;
-  submitRegisterSetting("smart_sleep", page.legacyButton);
+  const { submitRegisterWrite, WRITE_REGISTRY } = page.hooks;
+  submitRegisterWrite(WRITE_REGISTRY.live.find((e) => e.key === "smart_sleep_timeout_hours"), page.legacyInput, page.legacyButton);
   submitRegisterWrite(WRITE_REGISTRY.live.find((e) => e.key === "lcd_always_on"), page.binarySelect, page.binaryButton);
   return fetchCallLog.length;
 }
@@ -807,7 +1046,7 @@ function assertPending(page, label) {
   const { settingsFieldFreshness } = page.hooks;
   const cell = page.cell4();
   check(`${label}: cached Settings value is pending, never offline`,
-    page.legacyInput.dataset.freshness === "pending" && settingsFieldFreshness("smart_sleep").kind === "pending",
+    page.legacyInput.dataset.freshness === "pending" && settingsFieldFreshness("smart_sleep_timeout_hours").kind === "pending",
     page.legacyInput.dataset.freshness);
   check(`${label}: cached binary dropdown value is pending`, page.binarySelect.dataset.freshness === "pending",
     page.binarySelect.dataset.freshness);
@@ -827,7 +1066,7 @@ function runStartupOrderingScenarios() {
   fakeNow = 600000;
   let p = bootStartupPage();
   ingestStartupValues(p);
-  p.legacyInput.value = "3.100";
+  p.legacyInput.value = "31";
   p.legacyInput.dataset.dirty = "true";
   p.legacyInput.focus();
   p.legacyInput.setSelectionRange(1, 3);
@@ -841,7 +1080,7 @@ function runStartupOrderingScenarios() {
   check("S1: first LIVE makes the cached Settings, dropdown and cell values fresh",
     p.legacyInput.dataset.freshness === "fresh" && p.binarySelect.dataset.freshness === "fresh" &&
     cell.voltage.dataset.freshness === "fresh" && p.legacyButton.disabled === false && p.binaryButton.disabled === false);
-  check("S1: draft, focus and selection survive pending -> fresh", p.legacyInput.value === "3.100" &&
+  check("S1: draft, focus and selection survive pending -> fresh", p.legacyInput.value === "31" &&
     activeElement === p.legacyInput && p.legacyInput.selectionStart === 1 && p.legacyInput.selectionEnd === 3);
   check("S1: binary dropdown keeps its observed selection", p.binarySelect.value === "1", p.binarySelect.value);
   check("S1: zero GET/POST overall", fetchCallLog.length === 0);
@@ -861,7 +1100,7 @@ function runStartupOrderingScenarios() {
   check("S1b: LIVE after a non-healthy payload still requires a post-boundary block read",
     p.legacyInput.dataset.freshness === "offline" && p.legacyButton.disabled === true);
   fakeNow += 1;
-  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  p.hooks.readBlockSuccess(`${0x1118}:2`);
   check("S1b: post-boundary block read restores freshness", p.legacyInput.dataset.freshness === "fresh");
 
   // 2. BMS LIVE -> freshness snapshot -> values.
@@ -892,7 +1131,7 @@ function runStartupOrderingScenarios() {
   health(p, "LIVE");
   check("S3: recovery to LIVE alone keeps the pre-outage values offline", p.legacyInput.dataset.freshness === "offline");
   fakeNow += 1;
-  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  p.hooks.readBlockSuccess(`${0x1118}:2`);
   check("S3: a post-recovery block read restores freshness", p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === false);
 
   // 4. Established browser connection lost -> reconnect -> successful
@@ -914,12 +1153,12 @@ function runStartupOrderingScenarios() {
   p.hooks.setBrowserLink("connected");
   // The real onopen re-fetches the snapshot; the BMS last read the block
   // 1.5 s ago, i.e. BEFORE the disconnect boundary.
-  p.hooks.acceptReadBlockSnapshot({ blocks: [[0x1000, 1500, 1], [0x1114, 1500, 1], [0x1200, 1500, 1], [0x1240, 1500, 1], [0x1290, 1500, 1]] });
+  p.hooks.acceptReadBlockSnapshot({ blocks: [[0x1118, 1500, 1], [0x1114, 1500, 1], [0x1200, 1500, 1], [0x1240, 1500, 1], [0x1290, 1500, 1]] });
   check("S4: reconnect never falls back to the initial pending state", p.legacyInput.dataset.freshness === "offline" &&
     p.binarySelect.dataset.freshness === "offline" && p.cell4().voltage.dataset.freshness === "offline");
   check("S4: offline-after-reconnect submit attempts produce zero GET/POST", attemptAllSubmits(p) === 0);
   fakeNow += 1;
-  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  p.hooks.readBlockSuccess(`${0x1118}:2`);
   check("S4: freshness before this connection's health still blocks writes", p.legacyInput.dataset.freshness === "offline" &&
     p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
   health(p, "LIVE");
@@ -962,7 +1201,7 @@ function runStartupOrderingScenarios() {
   health(p, "LIVE");
   check("S6: LIVE after STALE alone keeps the old values offline", p.legacyInput.dataset.freshness === "offline");
   fakeNow += 1;
-  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  p.hooks.readBlockSuccess(`${0x1118}:2`);
   check("S6: post-recovery block read restores freshness", p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === false);
   check("S6: zero GET/POST in the whole scenario", fetchCallLog.length === 0);
 }
@@ -1084,7 +1323,7 @@ function runGlobalFreshnessScenarios() {
   check("G10: health recovery -> live, never pending", g.tier === "live" && liveDot(g) && g.bannerHidden);
   check("G10: Settings still needs a post-boundary block read after recovery", p.legacyInput.dataset.freshness === "offline");
   fakeNow += 1;
-  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  p.hooks.readBlockSuccess(`${0x1118}:2`);
   check("G10: post-boundary read restores freshness; draft, focus, selection and cells intact",
     p.legacyInput.dataset.freshness === "fresh" && p.legacyInput.value === "3.300" && activeElement === p.legacyInput &&
     p.legacyInput.selectionStart === 1 && p.legacyInput.selectionEnd === 2 && p.cell4().count === 16 && p.binarySelect.value === "1");
@@ -1171,7 +1410,7 @@ function runControlsSimplificationScenario() {
       el.querySelectorAll(".settings-catalog-editor").every((ed) => ed.disabled === true)));
   const live = SETTINGS_CATALOG_ROWS.filter((r) => r.readWriteState === "live" && settingsEditorKindOf(r))
     .map((r) => rows.find((el) => el.dataset.manifestId === r.manifestId)).filter(Boolean);
-  check("X2: active controls are enabled, unlocked and carry no lock", live.length > 20 &&
+  check("X2: active controls are enabled, unlocked and carry no lock (exactly the 23 live write-registry rows)", live.length === 23 &&
     live.every((el) => !el.querySelector(".settings-lock") && el.querySelector(".settings-catalog-editor").disabled !== true &&
       !el.querySelector(".settings-field-shell").classList.contains("is-locked")));
   const liveStage4 = SETTINGS_CATALOG_ROWS.filter((r) => r.readWriteState === "live" && r.writePathKind === "stage4_write_registry")
@@ -1303,19 +1542,19 @@ function runControlsSimplificationScenario() {
   p.hooks.setBrowserLink("connected");
   health(p, "LIVE");
   fakeNow += 1;
-  p.hooks.readBlockSuccess(`${0x1000}:9`);
+  p.hooks.readBlockSuccess(`${0x1118}:9`);
   p.legacyInput.value = "999";
   p.legacyInput.dataset.dirty = "true";
   fetchCallLog = [];
-  try { p.hooks.submitRegisterSetting("smart_sleep", p.legacyButton); } catch (_) { /* never reaches fetch */ }
+  try { p.hooks.submitRegisterWrite(p.hooks.WRITE_REGISTRY.live.find((e) => e.key === "smart_sleep_timeout_hours"), p.legacyInput, p.legacyButton); } catch (_) { /* never reaches fetch */ }
   check("X7: an out-of-range value is marked invalid for sight AND for screen readers (aria-invalid), with no request",
     p.legacyInput.classList.contains("invalid") && p.legacyInput.getAttribute("aria-invalid") === "true" && fetchCallLog.length === 0);
-  p.legacyInput.value = "3.33";
-  try { p.hooks.submitRegisterSetting("smart_sleep", p.legacyButton); } catch (_) { /* fetch shim throws by design */ }
+  p.legacyInput.value = "30";
+  try { p.hooks.submitRegisterWrite(p.hooks.WRITE_REGISTRY.live.find((e) => e.key === "smart_sleep_timeout_hours"), p.legacyInput, p.legacyButton); } catch (_) { /* fetch shim throws by design */ }
   check("X7: a valid value clears both the invalid class and aria-invalid",
     !p.legacyInput.classList.contains("invalid") && p.legacyInput.getAttribute("aria-invalid") !== "true");
   const sent = fetchCallLog.map((f) => f.url).join(" ");
-  check("X7: a legacy submit sends the bare number (value=3.33), never the unit", /[?&]value=3\.33(&|$)/.test(sent) && !/value=[^&]*[A-Za-zВ]/.test(sent), sent);
+  check("X7: a submit sends the bare number (value=30), never the unit", /[?&]value=30(&|$)/.test(sent) && !/value=[^&]*[A-Za-zВ]/.test(sent), sent);
   fetchCallLog = [];
 
   // Draft preservation across re-render (relocalization + value refresh).
@@ -1327,7 +1566,7 @@ function runControlsSimplificationScenario() {
   p.binarySelect.dataset.dirty = "true";
   setLanguage("uk");
   relocalizeSettingsCatalog();
-  updateSettingsCatalogValue("VolSmartSleep");
+  updateSettingsCatalogValue("TIMSmartSleep");
   updateSettingsCatalogValue("LCD Always On");
   const ukNote = blocked[0].querySelector(".settings-catalog-note");
   check("X8: relocalization keeps drafts, dirty flags, focus, selection and dropdown choice",
@@ -1365,7 +1604,7 @@ async function runRealReconnectScenario(wake) {
   fakeNow = 1900000;
   const clock = { now: () => fakeNow, get value() { return fakeNow; }, set value(v) { fakeNow = v; } };
   harness = { timers: new TimerQueue(clock), win: new ListenerRegistry(), doc: new ListenerRegistry(), snapshotGets: 0,
-    snapshot: { blocks: [[0x1000, 0, 1], [0x1114, 0, 1], [0x1200, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] } };
+    snapshot: { blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1200, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] } };
   FakeEventSource.reset();
   const p = bootStartupPage({ connect: false });
   p.hooks.connect();
@@ -1375,7 +1614,7 @@ async function runRealReconnectScenario(wake) {
   ingestStartupValues(p);
   health(p, "LIVE");
   fakeNow += 1;
-  p.hooks.readBlockSuccess(`${0x1000}:2`);
+  p.hooks.readBlockSuccess(`${0x1118}:2`);
   p.hooks.readBlockSuccess(`${0x1114}:2`);
   check(`${tag}: real connect() -> LIVE and writable`, p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === false &&
     p.binarySelect.dataset.freshness === "fresh");
@@ -1400,17 +1639,17 @@ async function runRealReconnectScenario(wake) {
     p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
   // The new connection's snapshot is the device's truth: revision 2 of both
   // blocks, read an hour ago, before the loss boundary.
-  harness.snapshot = { blocks: [[0x1000, 3600000, 2], [0x1114, 3600000, 2], [0x1200, 3600000, 1], [0x1240, 3600000, 1], [0x1290, 3600000, 1]] };
+  harness.snapshot = { blocks: [[0x1118, 3600000, 2], [0x1114, 3600000, 2], [0x1200, 3600000, 1], [0x1240, 3600000, 1], [0x1290, 3600000, 1]] };
   second.open();
   await flush();
   check(`${tag}: the reconnect snapshot's pre-loss reads (an hour old) do not unlock anything`, p.legacyInput.dataset.freshness === "offline" &&
     p.legacyButton.disabled === true);
   fakeNow += 1;
-  p.hooks.readBlockSuccess(`${0x1000}:3`);
+  p.hooks.readBlockSuccess(`${0x1118}:3`);
   check(`${tag}: reconnect + block read but no health on this connection -> still blocked`, p.legacyButton.disabled === true);
   health(p, "LIVE");
   p.hooks.readBlockSuccess(`${0x1114}:3`);
-  p.hooks.updateSettingsCatalogValue("VolSmartSleep");
+  p.hooks.updateSettingsCatalogValue("TIMSmartSleep");
   p.hooks.updateSettingsCatalogValue("LCD Always On");
   const cell = p.cell4();
   check(`${tag}: after health + post-boundary reads the fields are writable again`, p.legacyInput.dataset.freshness === "fresh" &&

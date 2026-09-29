@@ -51,8 +51,10 @@ check("97 manifest RW rows = 23 write-hardware-verified + 37 write-software-read
 
 const liveEntries = registry.entries.filter((e) => e.submit_policy === "live");
 const authEntries = registry.entries.filter((e) => e.submit_policy === "authorization_required");
-check("write_registry.json: 42 entries = 5 live + 37 authorization_required",
-  registry.entries.length === 42 && liveEntries.length === 5 && authEntries.length === 37,
+// Settings write migration (clustered-read plan M5, owner decision
+// 2026-09-29): +14 migrated owner-authorized Settings fields, all live.
+check("write_registry.json: 60 entries = 23 live (5 promoted + 18 migrated Settings fields) + 37 authorization_required",
+  registry.entries.length === 60 && liveEntries.length === 23 && authEntries.length === 37,
   `total=${registry.entries.length} live=${liveEntries.length} auth=${authEntries.length}`);
 
 check("every write-hardware-verified row carries a real, non-empty hardware_verification_provenance",
@@ -103,8 +105,8 @@ const liveKeysInSource = [...block.matchAll(/key:\s*"([a-z0-9_]+)"[^}]*submitPol
 const authKeysInSource = new Set([...block.matchAll(/key:\s*"([a-z0-9_]+)"[^}]*submitPolicy:\s*"authorization_required"/g)].map((m) => m[1]));
 const blockedKeysInSource = new Set([...block.matchAll(/key:\s*"([a-z0-9_]+)",\s*address:\s*\d+,\s*writeSafetyClass:[^}]*reason:/g)].map((m) => m[1]));
 
-check("the frontend's live-submit key set exactly matches the registry's 5 live keys, with zero authorization_required/blocked key overlap",
-  liveKeysInSource.length === 5 &&
+check("the frontend's live-submit key set exactly matches the registry's 23 live keys, with zero authorization_required/blocked key overlap",
+  liveKeysInSource.length === 23 &&
     liveEntries.every((e) => liveKeysInSource.includes(e.key)) &&
     liveKeysInSource.every((k) => !authKeysInSource.has(k) && !blockedKeysInSource.has(k)),
   `live=${JSON.stringify(liveKeysInSource)}`);

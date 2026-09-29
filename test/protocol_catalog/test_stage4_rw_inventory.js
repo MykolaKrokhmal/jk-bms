@@ -143,8 +143,18 @@ check("every write-software-ready or registry-backed write-hardware-verified row
 const registryKeysNotInUnion = [...registryKeys].filter((k) => !registryBackedRows.some((r) => r.canonical_key === k));
 check("every write_registry.json entry is reflected in this union (no registry entry orphaned)",
   registryKeysNotInUnion.length === 0, JSON.stringify(registryKeysNotInUnion));
-check("exactly 5 write-hardware-verified rows are registry-backed (the 5 newly-promoted fields; the pre-existing 18 use legacy_setting_def and carry no registry entry)",
-  hwVerifiedWithRegistryEntry.length === 5, JSON.stringify(hwVerifiedWithRegistryEntry.map((r) => r.manifest_id)));
+// Settings write migration (clustered-read plan M5, owner decision
+// 2026-09-29): the 5 promoted fields plus the 14 migrated owner-authorized
+// Settings fields are registry-backed; the 4 contradictory temperature
+// recoveries are not (write_registry.json settings_write_migration).
+const migration = writeRegistry.settings_write_migration || [];
+const migratedKeys = new Set(migration.filter((m) => m.outcome === "migrated").map((m) => m.key));
+check("exactly 23 write-hardware-verified rows are registry-backed (5 promoted + all 18 migrated Settings fields)",
+  hwVerifiedWithRegistryEntry.length === 23 && migratedKeys.size === 18 &&
+  [...migratedKeys].every((k) => hwVerifiedWithRegistryEntry.some((r) => r.canonical_key === k)),
+  JSON.stringify(hwVerifiedWithRegistryEntry.map((r) => r.manifest_id)));
+check("no migration field is blocked (the four S32 temperature recoveries are migrated too)",
+  migration.length === 18 && migration.every((m) => m.outcome === "migrated" && registryKeys.has(m.key)));
 
 console.log(`\n${checks} checks run, ${failures} failed.`);
 process.exit(failures ? 1 : 0);

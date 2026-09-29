@@ -134,10 +134,16 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" -I "$R
 "$BUILD_DIR/test_jk_cluster_cache_core"
 
 echo
-echo "=== jk_cluster_runtime_core: single flight, passcode isolation, latched fallback + bespoke readers, strict RMW pre-read, snapshot (plan M5) ==="
-g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" -I "$REPO_ROOT/protocol/generated" \
+echo "=== jk_cluster_runtime_core: single flight, on-demand passcode, latched fallback + bespoke readers, one tracked RMW request (cluster / narrow fallback pre-read), snapshot (plan M5) ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" -I "$REPO_ROOT/components/jk_write_tx" -I "$REPO_ROOT/protocol/generated" \
   "$REPO_ROOT/test/jk_poll_scheduler/test_jk_cluster_runtime_core.cpp" -o "$BUILD_DIR/test_jk_cluster_runtime_core"
 "$BUILD_DIR/test_jk_cluster_runtime_core"
+
+echo
+echo "=== signed Settings temperatures: S32 golden vectors (encode/decode/range/NO_CHANGE/readback) from the generated tables ==="
+g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" -I "$REPO_ROOT/components/jk_write_tx" -I "$REPO_ROOT/protocol/generated" \
+  "$REPO_ROOT/test/jk_poll_scheduler/test_settings_signed_golden.cpp" -o "$BUILD_DIR/test_settings_signed_golden"
+"$BUILD_DIR/test_settings_signed_golden"
 
 echo
 echo "=== firmware lambdas: host compile (g++ -fsyntax-only) of the servicer, scripts, intervals and the read-freshness handler (plan M5) ==="
@@ -420,6 +426,10 @@ node test/protocol_catalog/test_settings_catalog.js
 echo
 echo "=== Browser resume fix: SSE reconnect after sleep/offline/bfcache (controlled clock, one EventSource, fail-closed) ==="
 node test/protocol_catalog/test_sse_reconnect.js
+
+echo
+echo "=== clustered reads: real jk_bms.js <-> real mock server over HTTP/SSE (cluster events, clusters[], resync, fallback, legacy format) ==="
+node test/protocol_catalog/test_cluster_mock_browser_end_to_end.js
 
 echo
 echo "=== Settings controls simplification: one control style, distinct states, reserved status track, phone layout (jk_bms.css) ==="

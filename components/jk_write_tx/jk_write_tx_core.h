@@ -754,6 +754,11 @@ enum class RejectReason : uint8_t {
   STALE_RAW = 7,
   WRITE_NOT_QUEUED = 8,
   TRANSACTION_UNAVAILABLE = 9,  // in-flight for this address already, or every slot busy
+  // NOT a failure: the register already holds the requested value, so no
+  // Modbus command, write slot or ACK/readback was created (clustered-read
+  // plan M5, owner decision 2026-09-29). Published with accepted=false (no
+  // tx_id exists); the status endpoint reports it as "no_change".
+  NO_CHANGE = 10,
 };
 
 inline const char *reject_reason_text(RejectReason reason) {
@@ -769,6 +774,7 @@ inline const char *reject_reason_text(RejectReason reason) {
     case RejectReason::WRITE_NOT_QUEUED: return "write not queued";
     case RejectReason::TRANSACTION_UNAVAILABLE:
       return "a transaction for this register is already in flight, or every transaction slot is busy";
+    case RejectReason::NO_CHANGE: return "no change";
     default: return "unknown reason";
   }
 }

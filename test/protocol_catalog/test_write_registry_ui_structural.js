@@ -66,8 +66,8 @@ check("embedded WRITE_REGISTRY.blocked key set exactly matches stage4_rw_invento
   blockedKeysInSource.length === blockedRowsExpected.length && blockedRowsExpected.every((r) => blockedKeysInSource.includes(r.canonical_key)),
   `embedded=${blockedKeysInSource.length} inventory=${blockedRowsExpected.length}`);
 
-check("exactly 5 live + 37 authorization-required + 37 blocked = 79 rows (the plan's own UI matrix)",
-  liveEntries.length === 5 && authEntries.length === 37 && blockedRowsExpected.length === 37,
+check("exactly 23 live (5 promoted + 18 migrated Settings fields) + 37 authorization-required + 37 blocked = 97 rows",
+  liveEntries.length === 23 && authEntries.length === 37 && blockedRowsExpected.length === 37,
   `live=${liveEntries.length} auth=${authEntries.length} blocked=${blockedRowsExpected.length}`);
 
 // --- hand-written render/submit functions exist and wire the REAL endpoints ---
@@ -122,7 +122,15 @@ check("runRegisterWriteTransaction() treats an unrecognized/\"unknown\" status a
 check("a poll that never resolves within the bounded timeout is a distinct TIMEOUT outcome (never hangs forever)",
   /statusBody\.status === "timeout"/.test(jsSource));
 check("setup_passcode/unverifiable fields are only ever shown as sent AFTER the status poll's own real acceptance, never on the POST's bare accepted response",
-  /if \(cfg\.unverifiable\) \{[\s\S]{0,600}finish\(TX_STATE\.SENT_UNVERIFIED/.test(jsSource));
+  (() => {
+    // The one remaining unverifiable branch (runRegisterWriteTransaction;
+    // the legacy writeTransaction() was retired by the unified write
+    // contract, 2026-09-29) comes AFTER the fail-closed accepted+tx_id check.
+    const accepted = jsSource.indexOf('if (statusBody.status !== "accepted" || !(Number(statusBody.tx_id) > 0)) {');
+    const unverifiable = jsSource.indexOf("if (cfg.unverifiable) {", accepted);
+    return accepted > 0 && unverifiable > accepted && (jsSource.match(/if \(cfg\.unverifiable\) \{/g) || []).length === 1 &&
+      /if \(cfg\.unverifiable\) \{[\s\S]{0,1500}?finish\(TX_STATE\.SENT_UNVERIFIED/.test(jsSource.slice(unverifiable));
+  })());
 
 // --- authorization-required/blocked rows never render an active editor ---
 check("authorization-required rows render a disabled input (never an active editor)",

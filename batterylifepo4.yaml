@@ -708,6 +708,10 @@ esphome:
                   if (lookup.accepted) {
                     json += "{\"status\":\"accepted\",\"request_id\":"; json += std::to_string(requested_id);
                     json += ",\"tx_id\":"; json += std::to_string(lookup.tx_id); json += "}";
+                  } else if (lookup.reason == jk_write_tx::RejectReason::NO_CHANGE) {
+                    // Terminal and NOT a failure: the register already held
+                    // the value, so no Modbus command was ever created.
+                    json += "{\"status\":\"no_change\",\"request_id\":"; json += std::to_string(requested_id); json += "}";
                   } else {
                     json += "{\"status\":\"rejected\",\"request_id\":"; json += std::to_string(requested_id);
                     json += ",\"reason\":\"";
@@ -1267,38 +1271,6 @@ globals:
     type: uint32_t
     restore_value: false
     initial_value: "0"
-  # HA/number RMW writes deferred while their cluster is pre-read (plan M5:
-  # strict 3.5 s gate with an automatic pre-read). One slot; a second RMW
-  # while one waits is refused (fail closed).
-  - id: g_rmw_deferred_active
-    type: bool
-    restore_value: false
-    initial_value: "false"
-  - id: g_rmw_deferred_address
-    type: int
-    restore_value: false
-    initial_value: "0"
-  - id: g_rmw_deferred_word_count
-    type: int
-    restore_value: false
-    initial_value: "0"
-  - id: g_rmw_deferred_mask
-    type: int
-    restore_value: false
-    initial_value: "0"
-  - id: g_rmw_deferred_shift
-    type: int
-    restore_value: false
-    initial_value: "0"
-  - id: g_rmw_deferred_encoded
-    type: int
-    restore_value: false
-    initial_value: "0"
-  - id: g_rmw_deferred_deadline_ms
-    type: uint32_t
-    restore_value: false
-    initial_value: "0"
-
   # V2 — BMS communication health, distinct from browser<->ESP32 network
   # health. Updated only at the point below where a cell-poll response has
   # actually been decoded as valid (right length AND at least one plausible
@@ -1783,30 +1755,15 @@ globals:
 # are decoded from the A1/C1/C2 clusters by the cluster_stored script (plan
 # M5); no dedicated reader polls them any more.
 interval:
-  # ---- Deferred RMW retry (plan M5): an RMW write parked by
-  # begin_write_tx_rmw while its cluster is pre-read is re-submitted as soon
-  # as the strict gate passes, or dropped (logged) at its deadline / on a
-  # refusal. Never more than the one parked write.
+  # ---- HA entity writes waiting for their one tracked pre-read (plan M5):
+  # re-decided every 100 ms by entity_write_step until queued, NO_CHANGE or
+  # rejected (refused / deadline) for good. At most one per register.
   - interval: 100ms
     then:
       - lambda: |-
-          if (!id(g_rmw_deferred_active)) return;
-          const uint32_t now = millis();
-          const uint16_t addr = uint16_t(id(g_rmw_deferred_address));
-          if (int32_t(now - id(g_rmw_deferred_deadline_ms)) >= 0) {
-            id(g_rmw_deferred_active) = false;
-            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- cluster pre-read did not land in time (stale)", unsigned(addr));
-            return;
+          for (const auto &req : jk_cluster_runtime::g_entity_write_requests) {
+            if (req.active()) { id(entity_write_step)->execute(); break; }
           }
-          const auto rmw = jk_cluster_runtime::g_runtime.check_rmw(addr, uint8_t(id(g_rmw_deferred_word_count)), now);
-          if (rmw.gate == jk_cluster_runtime::RmwGate::WAIT) return;
-          id(g_rmw_deferred_active) = false;
-          if (rmw.gate == jk_cluster_runtime::RmwGate::REFUSE) {
-            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- cluster raw %s", unsigned(addr), jk_cluster_cache::lookup_name(rmw.reason));
-            return;
-          }
-          id(begin_write_tx_rmw)->execute(id(g_rmw_deferred_address), id(g_rmw_deferred_word_count), id(g_rmw_deferred_mask),
-                                           id(g_rmw_deferred_shift), id(g_rmw_deferred_encoded), 0);
 
   # ---- CellCount write transaction driver (jk_topology) — advances the
   # state armed by set_cell_count's set_action, above, through:
@@ -2386,9 +2343,11 @@ interval:
   - interval: 100ms
     then:
       - lambda: |-
-          // A request whose RMW cluster bytes are being pre-read waits here
-          // (plan M5: strict 3.5 s gate + automatic pre-read). Its result is
-          // not published yet, so the producer keeps refusing new requests.
+          // A request whose RMW bytes are being pre-read waits here (plan M5:
+          // strict 3.5 s gate, one tracked pre-read -- cluster, or the narrow
+          // block in a latched fallback). Its one result is not published
+          // yet, so the producer keeps refusing new requests; the request
+          // ends queued or rejected, never both, never later.
           static bool deferred = false;
           static uint32_t deferred_request_id = 0;
           static char deferred_key[jk_write_tx::kRegisterWriteKeyMaxLen] = {0};
@@ -2448,34 +2407,68 @@ interval:
             if (enc.status != jk_write_tx::EncodeStatus::OK) reject_reason = jk_write_tx::RejectReason::VALUE_REJECTED;
           }
 
-          if (reject_reason == jk_write_tx::RejectReason::NONE && e_ptr->uses_rmw) {
-            // Strict RMW gate: the register's cluster bytes must be fresher
-            // than jk_cluster_cache::kRmwStrictBudgetMs (3.5 s), never a
-            // background budget. Older or missing bytes: pre-read the owning
-            // cluster and wait (bounded); fallback/unknown/credential: refuse.
-            const auto rmw = jk_cluster_runtime::g_runtime.check_rmw(uint16_t(e_ptr->address), uint8_t(e_ptr->word_count), now);
-            if (rmw.gate == jk_cluster_runtime::RmwGate::WAIT) {
+          // ONE tracked gate for this request (jk_cluster_runtime::
+          // RmwRequest), for every write -- a packed field (RMW) or a
+          // full-width 16/32-bit register: each tick is a single decision
+          // against a single lookup of the current raw. The merged raw of the
+          // QUEUE decision is exactly what is written below -- nothing
+          // re-gates it (no second millis(), no parked copy that could run
+          // after a result is published). NO_CHANGE: the register already
+          // holds the value -- no Modbus command, no write slot, no readback
+          // (clustered-read plan M5, owner decision 2026-09-29).
+          auto &rmw_req = jk_cluster_runtime::g_register_write_rmw;
+          uint32_t rmw_merged_raw = 0;
+          bool no_change = false;
+          jk_cluster_runtime::RmwWrite w;
+          if (e_ptr != nullptr) {
+            w.address = uint16_t(e_ptr->address);
+            w.word_count = uint8_t(e_ptr->word_count);
+            w.mask = uint32_t(e_ptr->mask);
+            w.shift = uint8_t(e_ptr->shift);
+            w.encoded = uint32_t(enc.encoded_raw);
+            w.full_width = !e_ptr->uses_rmw;
+          }
+          if (reject_reason == jk_write_tx::RejectReason::NONE) {
+            if (!deferred) {
+              rmw_req.cancel();  // nothing may survive from an earlier request
+              rmw_req.arm(w, now);
+            }
+            const auto narrow = jk_cluster_runtime::make_narrow_view(jk_read_plan::kBlocks, jk_read_plan::kBlockCount, uint16_t(e_ptr->address),
+                                                                     id(g_rp_last_success_ms), id(g_rp_last_raw_word), id(g_rp_pending_index));
+            const auto st = rmw_req.step(jk_cluster_runtime::g_runtime, now, narrow);
+            if (st.step == jk_cluster_runtime::RmwStep::WAIT) {
               if (!deferred) {
                 deferred = true;
                 deferred_request_id = req.request_id;
                 jk_write_tx::copy_bounded_cstr(deferred_key, sizeof(deferred_key), req.key);
                 deferred_value = req.value;
                 deferred_submitted_at_ms = req.submitted_at_ms;
-                jk_cluster_runtime::g_deferred_register_write.start(now);
               }
-              if (!jk_cluster_runtime::g_deferred_register_write.expired(now)) {
-                jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
-                return;  // re-evaluated next tick, once the pre-read landed
-              }
-              reject_reason = jk_write_tx::RejectReason::STALE_RAW;
-            } else if (rmw.gate == jk_cluster_runtime::RmwGate::REFUSE) {
-              reject_reason = rmw.reason == jk_cluster_cache::Lookup::UNKNOWN ? jk_write_tx::RejectReason::NO_READ_PLAN_BLOCK
-                                                                              : jk_write_tx::RejectReason::STALE_RAW;
+              jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+              return;  // no result yet: re-decided next tick
+            }
+            if (st.step == jk_cluster_runtime::RmwStep::QUEUE) {
+              rmw_merged_raw = st.merged_raw;
+            } else if (st.step == jk_cluster_runtime::RmwStep::NO_CHANGE) {
+              no_change = true;
+            } else {
+              reject_reason = st.reason == jk_cluster_cache::Lookup::UNKNOWN ? jk_write_tx::RejectReason::NO_READ_PLAN_BLOCK
+                                                                           : jk_write_tx::RejectReason::STALE_RAW;
             }
           }
-          if (deferred) {
-            deferred = false;
-            jk_cluster_runtime::g_deferred_register_write.clear();
+          // Terminal from here on: the tracked gate can never decide again.
+          rmw_req.cancel();
+          deferred = false;
+
+          if (no_change) {
+            // One final, observable result -- and no write of any kind.
+            ESP_LOGI("jk_write_tx", "register-write request_id=%u key=%s: no change -- 0x%04X already holds the value, no Modbus command",
+                     unsigned(req.request_id), req.key, unsigned(w.address));
+            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
+                                               jk_write_tx::g_register_write_pending_request_id, req.request_id,
+                                               false, 0, jk_write_tx::RejectReason::NO_CHANGE, now);
+            jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+            return;
           }
 
           if (reject_reason != jk_write_tx::RejectReason::NONE) {
@@ -2511,14 +2504,10 @@ interval:
           // WriteCrashStage comment for the exact semantics each stage
           // now guarantees.
           const uint32_t next_before = id(g_write_tx_next_id);
-          if (e_ptr->uses_rmw) {
-            id(begin_write_tx_rmw)->execute(int(e_ptr->address), int(e_ptr->word_count), int(e_ptr->mask), int(e_ptr->shift),
-                                             int(enc.encoded_raw), int(e_ptr->freshness_budget_ms));
-          } else if (e_ptr->word_count >= 2) {
-            id(write_bms_u32)->execute(int(e_ptr->address), int(enc.encoded_raw));
-          } else {
-            id(write_bms_u16)->execute(int(e_ptr->address), int(enc.encoded_raw));
-          }
+          // Exactly the raw the gate decided on above, through begin_write_tx
+          // itself -- never begin_write_tx_rmw / write_bms_u16 / write_bms_u32,
+          // which would gate a second time through the entity pool.
+          id(begin_write_tx)->execute(int(w.address), int(w.word_count), int(rmw_merged_raw), int(w.tx_compare_mask()), 0);
           const uint32_t next_after = id(g_write_tx_next_id);
 
           if (next_after == next_before) {
@@ -4415,24 +4404,48 @@ script:
           id(bms0)->queue_command(std::move(command));
           id(publish_write_tx_snapshot)->execute();
 
-  # Shared Modbus write path for numeric RW registers exposed on the
-  # Configuration page — routes through the generic Write Transaction
-  # Manager above (full-register compare, mask=-1 i.e. all bits) instead
-  # of the old fire-and-forget queue_command-and-hope. Every UI write now
-  # gets a real ACK + forced readback before it is ever reported CONFIRMED.
+  # Shared Modbus write path for full-width numeric RW registers (HA
+  # entities). Clustered-read plan M5 (owner decision 2026-09-29): write only
+  # when the value changes. Each call arms one tracked request in the entity
+  # pool (jk_cluster_runtime::g_entity_write_requests); entity_write_step
+  # compares the encoded value with the register's current raw (strict
+  # 3.5 s, one tracked pre-read when stale) and either finishes NO_CHANGE
+  # (no Modbus command at all) or hands exactly that value to the generic
+  # Write Transaction Manager above (full-register compare, mask=-1), with
+  # its real ACK + forced readback.
   - id: write_bms_u32
     parameters:
       address: int
       raw: int
     then:
-      - script.execute: {id: begin_write_tx, address: !lambda "return address;", word_count: 2, raw: !lambda "return raw;", mask: -1, suppress: 0}
+      - lambda: |-
+          jk_cluster_runtime::RmwWrite w;
+          w.address = uint16_t(address);
+          w.word_count = 2;
+          w.encoded = uint32_t(raw);
+          w.full_width = true;
+          const auto armed = jk_cluster_runtime::arm_write(jk_cluster_runtime::g_entity_write_requests, w, millis());
+          if (armed == jk_cluster_runtime::ArmResult::REGISTER_BUSY || armed == jk_cluster_runtime::ArmResult::POOL_FULL)
+            ESP_LOGW("jk_write_tx", "Write to 0x%04X rejected -- %s", unsigned(w.address),
+                     armed == jk_cluster_runtime::ArmResult::REGISTER_BUSY ? "another write to this register is waiting" : "every write request is busy");
+      - script.execute: entity_write_step
 
   - id: write_bms_u16
     parameters:
       address: int
       raw: int
     then:
-      - script.execute: {id: begin_write_tx, address: !lambda "return address;", word_count: 1, raw: !lambda "return raw;", mask: -1, suppress: 0}
+      - lambda: |-
+          jk_cluster_runtime::RmwWrite w;
+          w.address = uint16_t(address);
+          w.word_count = 1;
+          w.encoded = uint32_t(raw);
+          w.full_width = true;
+          const auto armed = jk_cluster_runtime::arm_write(jk_cluster_runtime::g_entity_write_requests, w, millis());
+          if (armed == jk_cluster_runtime::ArmResult::REGISTER_BUSY || armed == jk_cluster_runtime::ArmResult::POOL_FULL)
+            ESP_LOGW("jk_write_tx", "Write to 0x%04X rejected -- %s", unsigned(w.address),
+                     armed == jk_cluster_runtime::ArmResult::REGISTER_BUSY ? "another write to this register is waiting" : "every write request is busy");
+      - script.execute: entity_write_step
 
   # Stage 4 (typed-petting-puzzle plan §5 Phase 4): real packed read-modify-
   # write entry point -- used ONLY by fields whose canonical
@@ -4450,19 +4463,23 @@ script:
   # (address/word_count/mask/shift only).
   #
   # Sequence (clustered read plan M5): the raw register value comes only
-  # from the raw cluster cache, through the strict RMW gate
-  # (jk_cluster_runtime::Runtime::check_rmw -- cluster bytes fresher than
-  # jk_cluster_cache::kRmwStrictBudgetMs = 3.5 s, never a background budget,
-  # never fallback-sourced, never the setup passcode). Older or missing
-  # bytes: the owning cluster is pre-read and this write is parked in the
-  # one g_rmw_deferred_* slot, retried by the 100 ms interval below until
-  # fresh or kRmwPreReadDeadlineMs; a second parked RMW is refused (fail
-  # closed). freshness_budget_ms is kept for the caller signature only and
-  # is not a gate any more. Then merge (jk_write_tx::merge_field_into_raw)
-  # and hand off to the EXISTING begin_write_tx (steps 7-9, 14-17: single-
-  # flight, ACK/readback, WRITE_UNCERTAIN+recovery, no auto-retry, resume
-  # -- all already implemented and tested there, reused verbatim, never
-  # duplicated).
+  # through the strict RMW gate (jk_cluster_runtime::RmwRequest ->
+  # Runtime::check_rmw: cluster bytes, or in a latched fallback group the
+  # register's own narrow block read after the latch, fresher than
+  # jk_cluster_cache::kRmwStrictBudgetMs = 3.5 s; never a background budget,
+  # never the setup passcode). This script only arms one tracked request in
+  # the entity pool (g_entity_write_requests, at most one per register) and
+  # takes its first decision in entity_write_step; older or missing bytes
+  # make it WAIT for one tracked pre-read, re-decided by the 100 ms interval
+  # until queued, NO_CHANGE (the field already holds the value: no Modbus
+  # command at all) or rejected for good (refused / kRmwPreReadDeadlineMs).
+  # A different write to a register that already has one waiting is refused
+  # at once (fail closed). The raw that is queued is the merged raw of the
+  # deciding lookup -- nothing re-gates it.
+  # freshness_budget_ms is kept for the caller signature only and is not a
+  # gate. The hand-off is the EXISTING begin_write_tx (steps 7-9, 14-17:
+  # single-flight, ACK/readback, WRITE_UNCERTAIN+recovery, no auto-retry,
+  # resume -- reused verbatim, never duplicated).
   - id: begin_write_tx_rmw
     parameters:
       address: int
@@ -4473,34 +4490,42 @@ script:
       freshness_budget_ms: int
     then:
       - lambda: |-
-          (void) freshness_budget_ms;  // not a gate: the strict cluster gate below decides
-          const uint16_t addr = uint16_t(address);
+          (void) freshness_budget_ms;  // not a gate: the strict RMW gate decides
+          jk_cluster_runtime::RmwWrite w;
+          w.address = uint16_t(address);
+          w.word_count = uint8_t(word_count);
+          w.mask = uint32_t(mask);
+          w.shift = uint8_t(shift);
+          w.encoded = uint32_t(encoded_raw);
+          const auto armed = jk_cluster_runtime::arm_write(jk_cluster_runtime::g_entity_write_requests, w, millis());
+          if (armed == jk_cluster_runtime::ArmResult::REGISTER_BUSY || armed == jk_cluster_runtime::ArmResult::POOL_FULL)
+            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- %s", unsigned(w.address),
+                     armed == jk_cluster_runtime::ArmResult::REGISTER_BUSY ? "another write to this register is waiting" : "every write request is busy");
+      - script.execute: entity_write_step
+
+  # One decision for every tracked HA entity write request
+  # (g_entity_write_requests): QUEUE hands exactly that decision's raw to
+  # begin_write_tx; NO_CHANGE and REJECT are final and create no Modbus
+  # command; WAIT leaves it for the 100 ms interval above.
+  - id: entity_write_step
+    then:
+      - lambda: |-
           const uint32_t now = millis();
-          const auto rmw = jk_cluster_runtime::g_runtime.check_rmw(addr, uint8_t(word_count), now);
-          if (rmw.gate == jk_cluster_runtime::RmwGate::WAIT) {
-            const bool same = id(g_rmw_deferred_active) && id(g_rmw_deferred_address) == address && id(g_rmw_deferred_mask) == mask &&
-                              id(g_rmw_deferred_shift) == shift && id(g_rmw_deferred_encoded) == encoded_raw;
-            if (id(g_rmw_deferred_active) && !same) {
-              ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- another RMW write is waiting for its pre-read", unsigned(addr));
-              return;
+          for (auto &req : jk_cluster_runtime::g_entity_write_requests) {
+            if (!req.active()) continue;
+            const jk_cluster_runtime::RmwWrite w = req.write();
+            const auto narrow = jk_cluster_runtime::make_narrow_view(jk_read_plan::kBlocks, jk_read_plan::kBlockCount, w.address,
+                                                                     id(g_rp_last_success_ms), id(g_rp_last_raw_word), id(g_rp_pending_index));
+            const auto st = req.step(jk_cluster_runtime::g_runtime, now, narrow);
+            if (st.step == jk_cluster_runtime::RmwStep::QUEUE) {
+              id(begin_write_tx)->execute(int(w.address), int(w.word_count), int(st.merged_raw), int(w.tx_compare_mask()), 0);
+            } else if (st.step == jk_cluster_runtime::RmwStep::NO_CHANGE) {
+              ESP_LOGI("jk_write_tx", "Write to 0x%04X: no change -- the register already holds the value, no Modbus command", unsigned(w.address));
+            } else if (st.step == jk_cluster_runtime::RmwStep::REJECT) {
+              ESP_LOGW("jk_write_tx", "Write to 0x%04X rejected -- %s raw %s", unsigned(w.address), st.narrow ? "narrow fallback" : "cluster",
+                       st.deadline_expired ? "pre-read did not land in time (stale)" : jk_cluster_cache::lookup_name(st.reason));
             }
-            if (!id(g_rmw_deferred_active)) {
-              id(g_rmw_deferred_active) = true;
-              id(g_rmw_deferred_address) = address;
-              id(g_rmw_deferred_word_count) = word_count;
-              id(g_rmw_deferred_mask) = mask;
-              id(g_rmw_deferred_shift) = shift;
-              id(g_rmw_deferred_encoded) = encoded_raw;
-              id(g_rmw_deferred_deadline_ms) = now + jk_cluster_runtime::kRmwPreReadDeadlineMs;
-            }
-            return;  // retried by the 100 ms deferred-RMW interval once the pre-read landed
           }
-          if (rmw.gate == jk_cluster_runtime::RmwGate::REFUSE) {
-            ESP_LOGW("jk_write_tx", "RMW write to 0x%04X rejected -- cluster raw %s", unsigned(addr), jk_cluster_cache::lookup_name(rmw.reason));
-            return;
-          }
-          const uint32_t merged_raw = jk_write_tx::merge_field_into_raw(rmw.raw, uint32_t(mask), uint8_t(shift), uint32_t(encoded_raw));
-          id(begin_write_tx)->execute(address, word_count, int(merged_raw), mask, 0);
 
   # ---- Topology Resolver — the single source of truth for whether
   # CellCount (BMS *configuration*) can be trusted as the pack's actual
@@ -4690,19 +4715,15 @@ number:
   # register (0x1504) and each re-reads its sibling's live value so the
   # untouched byte is preserved on write (registers.canonical.json's own
   # overlap_rule for this pair).
-  - platform: template
-    id: set_smart_sleep
-    internal: true
-    name: "set smart sleep"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(smart_sleep).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1000
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
+  #
+  # Settings write migration (clustered-read plan M5, owner decision
+  # 2026-09-29): all 18 owner-authorized Settings fields (smart_sleep ...
+  # start_balance, including the 4 signed S32 temperature recoveries
+  # charge_otpr/discharge_otpr/charge_utpr/mos_otpr) moved into the GENERATED
+  # write registry (protocol/generated/write_registry.yaml, same set_<key>
+  # ids), so their hand-written entities are gone from here and the web UI
+  # writes them only through /settings/register-write. See write_registry.json
+  # settings_write_migration.
 
   - platform: template
     id: set_cell_uvp
@@ -4721,19 +4742,6 @@ number:
           ESP_LOGE("jk_write_block", "Write to set_cell_uvp (0x1004) rejected: "
                    "reverted to fail-closed pending write-contract verification "
                    "(disruptive/unverified) -- no Modbus command was queued.");
-  - platform: template
-    id: set_cell_uvpr
-    internal: true
-    name: "set cell uvpr"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(cell_uvpr).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1008
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
 
   - platform: template
     id: set_cell_ovp
@@ -4752,89 +4760,6 @@ number:
           ESP_LOGE("jk_write_block", "Write to set_cell_ovp (0x100C) rejected: "
                    "reverted to fail-closed pending write-contract verification "
                    "(disruptive/unverified) -- no Modbus command was queued.");
-  - platform: template
-    id: set_cell_ovpr
-    internal: true
-    name: "set cell ovpr"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(cell_ovpr).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1010
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
-
-  - platform: template
-    id: set_start_balance_trigger
-    internal: true
-    name: "set start balance trigger"
-    min_value: 0
-    max_value: 1
-    step: 0.001
-    lambda: return id(start_balance_trigger).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1014
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
-
-  - platform: template
-    id: set_soc_100
-    internal: true
-    name: "set soc 100"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(soc_100).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1018
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
-
-  - platform: template
-    id: set_soc_0
-    internal: true
-    name: "set soc 0"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(soc_0).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x101C
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
-
-  - platform: template
-    id: set_cell_rcv
-    internal: true
-    name: "set cell rcv"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(cell_rcv).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1020
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
-
-  - platform: template
-    id: set_cell_rfv
-    internal: true
-    name: "set cell rfv"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(cell_rfv).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1024
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
 
   - platform: template
     id: set_system_power_off
@@ -4887,19 +4812,6 @@ number:
           ESP_LOGE("jk_write_block", "Write to set_charge_ocp_delay (0x1030) rejected: "
                    "reverted to fail-closed pending write-contract verification "
                    "(disruptive/unverified) -- no Modbus command was queued.");
-  - platform: template
-    id: set_charge_ocpr_time
-    internal: true
-    name: "set charge ocpr time"
-    min_value: 0
-    max_value: 2147483647
-    step: 1
-    lambda: return id(charge_ocpr_time).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1034
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1.0f)));'
 
   - platform: template
     id: set_continued_discharge_current
@@ -4935,47 +4847,6 @@ number:
           ESP_LOGE("jk_write_block", "Write to set_discharge_ocp_delay (0x103C) rejected: "
                    "reverted to fail-closed pending write-contract verification "
                    "(disruptive/unverified) -- no Modbus command was queued.");
-  - platform: template
-    id: set_discharge_ocpr_time
-    internal: true
-    name: "set discharge ocpr time"
-    min_value: 0
-    max_value: 2147483647
-    step: 1
-    lambda: return id(discharge_ocpr_time).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1040
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1.0f)));'
-
-  - platform: template
-    id: set_scpr_time
-    internal: true
-    name: "set scpr time"
-    min_value: 0
-    max_value: 2147483647
-    step: 1
-    lambda: return id(scpr_time).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1044
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1.0f)));'
-
-  - platform: template
-    id: set_max_balance_current
-    internal: true
-    name: "set max balance current"
-    min_value: 0
-    max_value: 20
-    step: 0.001
-    lambda: return id(max_balance_current).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1048
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
 
   - platform: template
     id: set_charge_otp
@@ -4994,19 +4865,6 @@ number:
           ESP_LOGE("jk_write_block", "Write to set_charge_otp (0x104C) rejected: "
                    "reverted to fail-closed pending write-contract verification "
                    "(disruptive/unverified) -- no Modbus command was queued.");
-  - platform: template
-    id: set_charge_otpr
-    internal: true
-    name: "set charge otpr"
-    min_value: -100
-    max_value: 200
-    step: 0.1
-    lambda: return id(charge_otpr).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1050
-          raw: !lambda 'return int(int32_t(lroundf(x * 10.0f)));'
 
   - platform: template
     id: set_discharge_otp
@@ -5025,19 +4883,6 @@ number:
           ESP_LOGE("jk_write_block", "Write to set_discharge_otp (0x1054) rejected: "
                    "reverted to fail-closed pending write-contract verification "
                    "(disruptive/unverified) -- no Modbus command was queued.");
-  - platform: template
-    id: set_discharge_otpr
-    internal: true
-    name: "set discharge otpr"
-    min_value: -100
-    max_value: 200
-    step: 0.1
-    lambda: return id(discharge_otpr).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1058
-          raw: !lambda 'return int(int32_t(lroundf(x * 10.0f)));'
 
   - platform: template
     id: set_charge_utp
@@ -5056,19 +4901,6 @@ number:
           ESP_LOGE("jk_write_block", "Write to set_charge_utp (0x105C) rejected: "
                    "reverted to fail-closed pending write-contract verification "
                    "(disruptive/unverified) -- no Modbus command was queued.");
-  - platform: template
-    id: set_charge_utpr
-    internal: true
-    name: "set charge utpr"
-    min_value: -100
-    max_value: 200
-    step: 0.1
-    lambda: return id(charge_utpr).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1060
-          raw: !lambda 'return int(int32_t(lroundf(x * 10.0f)));'
 
   - platform: template
     id: set_mos_otp
@@ -5087,33 +4919,6 @@ number:
           ESP_LOGE("jk_write_block", "Write to set_mos_otp (0x1064) rejected: "
                    "reverted to fail-closed pending write-contract verification "
                    "(disruptive/unverified) -- no Modbus command was queued.");
-  - platform: template
-    id: set_mos_otpr
-    internal: true
-    name: "set mos otpr"
-    min_value: -100
-    max_value: 200
-    step: 0.1
-    lambda: return id(mos_otpr).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1068
-          raw: !lambda 'return int(int32_t(lroundf(x * 10.0f)));'
-
-  - platform: template
-    id: set_battery_capacity
-    internal: true
-    name: "set battery capacity"
-    min_value: 1
-    max_value: 2000
-    step: 0.001
-    lambda: return id(battery_capacity).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x107C
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
 
   - platform: template
     id: set_scp_delay
@@ -5132,19 +4937,6 @@ number:
           ESP_LOGE("jk_write_block", "Write to set_scp_delay (0x1080) rejected: "
                    "reverted to fail-closed pending write-contract verification "
                    "(disruptive/unverified) -- no Modbus command was queued.");
-  - platform: template
-    id: set_start_balance
-    internal: true
-    name: "set start balance"
-    min_value: 0
-    max_value: 6
-    step: 0.001
-    lambda: return id(start_balance).state;
-    set_action:
-      - script.execute:
-          id: write_bms_u32
-          address: 0x1084
-          raw: !lambda 'return int(uint32_t(lroundf(x * 1000.0f)));'
 
   - platform: template
     id: set_rcv_time

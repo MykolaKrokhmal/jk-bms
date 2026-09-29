@@ -1372,7 +1372,8 @@ function buildServicerInterval() {
   L("const bool lease = id(g_active_group_hint) >= 0 && now < id(g_active_group_hint_expires_ms);");
   L("const int next = rt.issue(now, false, lease);");
   L("if (next == jk_cluster_runtime::Runtime::kPasscodeRead) {");
-  L("  // Isolated setup-passcode status read: only the response LENGTH is used;");
+  L("  // Isolated setup-passcode status read, strictly on demand (never after");
+  L("  // boot, never periodic): only the response LENGTH is used;");
   L("  // the bytes are never decoded, stored, logged or published.");
   L("  const uint32_t gen = rt.generation();");
   L("  auto pcmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(");
@@ -1435,10 +1436,15 @@ function buildServicerInterval() {
   L("// failed kFallbackAfterFailures times in a row, at their original cadence.");
   L("// Never the credential block (its cadence is masked to 0 here).");
   L("if (rt.fallback_mask() == 0) return;");
+  L("// An RMW write's one tracked narrow pre-read (plan section 10) goes first:");
+  L("// only a block of a latched cluster, never the credential block.");
+  L("int urgent = rt.take_narrow_request();");
+  L("if (urgent >= 0 && (std::size_t(urgent) >= jk_read_plan::kBlockCount ||");
+  L("                    !rt.cluster_fallback(jk_read_plan::kBlockCluster[urgent].cluster))) urgent = -1;");
   L("// The pre-migration bespoke readers (cells 1 s, cell_resistance_17-32 15 s,");
   L("// CellConWireRes 0-31 300 s) of a latched group come first; their bytes go");
   L("// to the runtime's fallback image and are published from there.");
-  L("{");
+  L("if (urgent < 0) {");
   L("  const bool ext_needed = jk_capability::needs_cellwireres_extended_read(id(cell_count).state);");
   L("  const int bespoke = rt.issue_bespoke(now, false, ext_needed);");
   L("  if (bespoke >= 0) {");
@@ -1472,7 +1478,7 @@ function buildServicerInterval() {
   L("  const int owner = jk_read_plan::kBlockCluster[i].cluster;");
   L("  cadence_ms[i] = (owner >= 0 && rt.cluster_fallback(owner)) ? jk_read_plan::kBlocks[i].cadence_ms : 0U;");
   L("}");
-  L("const int chosen = jk_poll_scheduler::pick_next_block(states, cadence_ms, false, jk_poll_scheduler::NO_BLOCK, now);");
+  L("const int chosen = urgent >= 0 ? urgent : jk_poll_scheduler::pick_next_block(states, cadence_ms, false, jk_poll_scheduler::NO_BLOCK, now);");
   L("if (chosen < 0) return;");
   L("jk_poll_scheduler::mark_issued(states[chosen], now);");
   L("id(g_rp_last_attempt_ms)[chosen] = states[chosen].last_attempt_ms;");

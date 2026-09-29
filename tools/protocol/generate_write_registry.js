@@ -108,6 +108,55 @@ for (const b of blockersDoc.blockers) {
 
 function parseHex(s) { return s === null ? null : parseInt(s, 16); }
 
+// Settings write migration (clustered-read plan M5, owner decision
+// 2026-09-29): EXACTLY these 18 owner-authorized (owner_write_override),
+// previously hardware-verified Settings fields move from their hand-written
+// internal set_<key> entities into this generated registry, so the web UI
+// writes them only through /settings/register-write. An explicit, closed
+// list -- owner_write_override alone never makes a field eligible. Each one
+// is migrated only if its canonical write facts are complete and consistent
+// (migrationContradiction()); otherwise it stays out, with the reason
+// recorded in write_registry.json's settings_write_migration table.
+const SETTINGS_WRITE_MIGRATION_KEYS = Object.freeze([
+  "smart_sleep", "cell_uvpr", "cell_ovpr", "start_balance_trigger", "soc_100", "soc_0", "cell_rcv", "cell_rfv",
+  "charge_ocpr_time", "discharge_ocpr_time", "scpr_time", "max_balance_current", "charge_otpr", "discharge_otpr",
+  "charge_utpr", "mos_otpr", "battery_capacity", "start_balance",
+]);
+const SETTINGS_WRITE_MIGRATION = new Set(SETTINGS_WRITE_MIGRATION_KEYS);
+// Canonical wire types (register-source.schema.json): S16/S32 are the
+// signed 16/32-bit types.
+const WIRE_TYPE_BITS = { U16: 16, S16: 16, U32: 32, S32: 32 };
+
+// null when the field's canonical write facts are complete and mutually
+// consistent; otherwise the exact missing/contradictory fact. Never guesses.
+function migrationContradiction(reg, field) {
+  const missing = ["wire_type", "signedness", "scale", "offset", "minimum", "maximum", "step", "field_width_bits", "mask", "shift"]
+    .filter((k) => field[k] === null || field[k] === undefined);
+  if (reg.word_count !== 1 && reg.word_count !== 2) missing.push("word_count");
+  if (!reg.write_function) missing.push("write_function");
+  if (missing.length) return `missing canonical write fact(s): ${missing.join(", ")}`;
+  if (field.signedness !== "signed" && field.signedness !== "unsigned") return `unknown signedness "${field.signedness}"`;
+  if (field.signedness === "unsigned" && field.minimum < 0) {
+    return `contradiction: signedness "unsigned" (wire_type ${field.wire_type}) with minimum ${field.minimum} ` +
+      `-- an unsigned register cannot hold a negative value; the signed encoding is not established by canonical evidence`;
+  }
+  const bits = WIRE_TYPE_BITS[field.wire_type];
+  if (bits === undefined) return `unsupported wire_type "${field.wire_type}"`;
+  if ((field.wire_type[0] === "S") !== (field.signedness === "signed")) return `contradiction: wire_type ${field.wire_type} vs signedness ${field.signedness}`;
+  if (bits !== 16 * reg.word_count || field.field_width_bits !== bits) {
+    return `contradiction: wire_type ${field.wire_type} (${bits} bits) vs word_count ${reg.word_count} / field_width_bits ${field.field_width_bits}`;
+  }
+  const fullMask = bits === 32 ? "0xFFFFFFFF" : "0xFFFF";
+  if (String(field.mask).toUpperCase() !== fullMask.toUpperCase() || field.shift !== 0) return `not a full-width field (mask ${field.mask}, shift ${field.shift})`;
+  if (!(field.scale > 0) || !(field.step > 0)) return `non-positive scale ${field.scale} or step ${field.step}`;
+  if (field.minimum > field.maximum) return `minimum ${field.minimum} > maximum ${field.maximum}`;
+  const ratio = field.step / field.scale;
+  if (Math.abs(ratio - Math.round(ratio)) > 1e-9) return `step ${field.step} is not a whole number of scale ${field.scale} units`;
+  const maxRaw = bits === 32 ? 0xFFFFFFFF : 0xFFFF;
+  if (field.signedness === "unsigned" && (field.maximum - field.offset) / field.scale > maxRaw) return `maximum ${field.maximum} does not fit ${bits} bits at scale ${field.scale}`;
+  return null;
+}
+
 function isEligible(reg, field) {
   if (field.access !== "rw") return false;
   if (field.projection_of !== null && field.projection_of !== undefined) return false;
@@ -128,7 +177,7 @@ function isEligible(reg, field) {
   // into canonical.json -- owner_write_override is the one field this
   // generator itself never writes, so it stays a stable, non-circular
   // exclusion signal.
-  if (ownerAuthorized) return false;
+  if (ownerAuthorized) return SETTINGS_WRITE_MIGRATION.has(field.key) && migrationContradiction(reg, field) === null;
   // Fail LOUDLY, never silently, if a field otherwise eligible for a real
   // write path lives on a register with no write_function -- this should
   // already be structurally impossible (semantic-checks.js's own
@@ -203,6 +252,35 @@ const outJsonDoc = {
   live_count: registryEntries.filter((e) => e.submit_policy === "live").length,
   authorization_required_count: registryEntries.filter((e) => e.submit_policy === "authorization_required").length,
   entries: registryEntries,
+  // The audited Settings write migration table: all 18 fields, their exact
+  // canonical write facts and the outcome (migrated, or blocked + reason).
+  settings_write_migration: SETTINGS_WRITE_MIGRATION_KEYS.map((key) => {
+    let reg = null;
+    let field = null;
+    for (const r of canonicalDoc.registers) for (const f of r.fields) if (f.key === key) { reg = r; field = f; }
+    if (!field) return { key, outcome: "blocked", blocked_reason: "no canonical field with this key" };
+    const migrated = registryEntries.some((e) => e.key === key);
+    const contradiction = migrationContradiction(reg, field);
+    return {
+      key,
+      address: reg.address,
+      word_count: reg.word_count,
+      write_function: reg.write_function || null,
+      wire_type: field.wire_type,
+      signedness: field.signedness,
+      scale: field.scale,
+      offset: field.offset,
+      minimum: field.minimum,
+      maximum: field.maximum,
+      step: field.step,
+      unit: field.canonical_unit || null,
+      mask: field.mask,
+      shift: field.shift,
+      write_safety_class: field.write_safety_class,
+      outcome: migrated ? "migrated" : "blocked",
+      blocked_reason: migrated ? null : (contradiction || "not eligible under the registry's other rules (see isEligible())"),
+    };
+  }),
 };
 
 // ---------------------------------------------------------------------------

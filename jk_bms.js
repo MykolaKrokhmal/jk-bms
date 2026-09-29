@@ -139,6 +139,7 @@
         statusUnknown: "The device no longer recognizes this write request — outcome unknown.",
         pollTimedOut: "No response from the device in time — outcome unknown.",
         sentUnverified: "Sent — the device never confirms this field by reading it back.",
+        noChange: "Already set — the device holds this value, nothing was written.",
       },
       serviceActions: {
         title: "Service commands (Stage 5)",
@@ -197,7 +198,7 @@
         browserConnection: "Browser connection", firmware: "Firmware", uiBuild: "UI build",
         wifiSignal: "Wi-Fi signal", ipAddress: "IP address", uptime: "Uptime",
         lastCommand: "Last command", command: "Command", outcome: "Outcome", at: "At",
-        writeOutcomes: "Write outcomes since load", confirmed: "Confirmed", mismatch: "Mismatch", timeout: "Timeout", error: "Error",
+        writeOutcomes: "Write outcomes since load", confirmed: "Confirmed", mismatch: "Mismatch", timeout: "Timeout", error: "Error", no_change: "No change (nothing written)",
         sentUnverified: "Sent (unverified)",
         readEntities: "BMS parameter values", readEntitiesCaption: "Values received from ESPHome",
         readEntityId: "Entity", readEntityType: "Type", readEntityValue: "Value",
@@ -369,6 +370,7 @@
         statusUnknown: "Пристрій більше не розпізнає цей запит на запис — результат невідомий.",
         pollTimedOut: "Пристрій не відповів вчасно — результат невідомий.",
         sentUnverified: "Надіслано — пристрій ніколи не підтверджує це поле зчитуванням.",
+        noChange: "Вже встановлено — пристрій має це значення, запис не виконувався.",
       },
       serviceActions: {
         title: "Сервісні команди (Stage 5)",
@@ -427,7 +429,7 @@
         browserConnection: "З'єднання браузера", firmware: "Прошивка", uiBuild: "Версія UI",
         wifiSignal: "Рівень Wi-Fi", ipAddress: "IP-адреса", uptime: "Час роботи",
         lastCommand: "Остання команда", command: "Команда", outcome: "Результат", at: "О",
-        writeOutcomes: "Результати запису з моменту завантаження", confirmed: "Підтверджено", mismatch: "Розбіжність", timeout: "Тайм-аут", error: "Помилка",
+        writeOutcomes: "Результати запису з моменту завантаження", confirmed: "Підтверджено", mismatch: "Розбіжність", timeout: "Тайм-аут", error: "Помилка", no_change: "Без змін (запис не виконувався)",
         sentUnverified: "Надіслано (без підтвердження)",
         readEntities: "Значення параметрів BMS", readEntitiesCaption: "Фактично отримано від ESPHome",
         readEntityId: "Сутність", readEntityType: "Тип", readEntityValue: "Значення",
@@ -642,10 +644,6 @@
   const diagSoftwareVarRows = new Map();
   let diagnosticReadoutRebuild = 0;
   let diagnosticReadoutRebuildDeferred = false;
-  // UI state for per-register write feedback. It is intentionally separate
-  // from a button DOM node: incoming telemetry may rebuild the register list
-  // while a write is awaiting its BMS read-back.
-  const registerWriteVisualStates = new Map();
   const dirty = new Set();
   const cellVoltageBuffer = new Float32Array(MAX_CELL_COUNT);
   const cellResistanceBuffer = new Float32Array(MAX_CELL_COUNT);
@@ -661,46 +659,22 @@
 
   // Output permissions live in Configuration with the rest of the BMS
   // registers. Overview is a read-only status surface that links there.
-  //
-  // Owner-authorized write re-enablement (2026-09-10): populated with the
-  // fields whose owner_write_override is set in registers.canonical.json
-  // (repo owner's explicit risk acceptance on their own hardware — see
-  // docs/adr/0001-protocol-catalog.md's addendum). Every field NOT listed
-  // here stays exactly as fail-closed as before — this is an allowlist,
-  // not a default, and the corresponding validator/tests assert it stays
-  // in sync with the canonical source's owner_write_override set.
-  // Reverted to fail-closed for "charging"/"discharging" (2026-09-10,
-  // second critical audit — both write_safety_class "disruptive",
-  // pending independent write-contract verification). "balancing" is
-  // write_safety_class "normal" and stays unlocked.
-  // Third critical audit (2026-09-10): "balancing" reverted to fail-closed
-  // too — registers.canonical.json had wrongly classified it "normal"
-  // when batterylifepo4.yaml's own comment always declared
-  // charging/discharging/balancing all "disruptive" together. CONTROL_DEFS
-  // is now empty; kept as a real (not dead) allowlist for whichever
-  // control register is independently verified first.
-  const CONTROL_DEFS = Object.freeze({});
-
   const DEVICE_NAME_ENDPOINT = "/text/device_name_override/set";
 
-  // Modbus register address for every RW register the generic Write
-  // Transaction Manager (jk_write_tx_core.h / register_catalog.json,
-  // "manager":"generic") tracks — used ONLY to correlate this browser's
-  // own write against the matching entry in the write_tx_snapshot JSON
-  // (see watchWriteTxSnapshot() below) for a fast, forced-readback-backed
-  // confirmation instead of waiting on the target entity's own possibly-
-  // slow poll cycle. cell_count and setup_passcode are deliberately
-  // absent — each has its own bespoke transaction/confirmation path
-  // already (sendCellCountWrite / the unverifiable passcode flow) and
-  // isn't tracked by the generic snapshot. Keep in sync with
-  // register_catalog.json — test/register_catalog/validate.js checks it.
+  // PROTOCOL_CATALOG.genericTxAddress (generated below) lists the Modbus
+  // address of every RW register the generic Write Transaction Manager
+  // (jk_write_tx_core.h / register_catalog.json, "manager":"generic")
+  // tracks; register_catalog.json is checked against it by
+  // test/register_catalog/validate.js. The Settings UI no longer reads it:
+  // its only write client is runRegisterWriteTransaction(), which correlates
+  // write_tx_snapshot by the exact tx_id the unified pipeline returns.
   // >>> BEGIN GENERATED PROTOCOL CATALOG (Stage 1, IMPLEMENTATION_ROADMAP.md) — DO NOT EDIT BY HAND.
   // Regenerate with: node tools/protocol/generate.js
   // Source of truth: protocol/registers.canonical.json + protocol/non_register_entities.canonical.json
   // `node tools/protocol/generate.js --check` fails if this block drifts from that source.
-  // Generated by tools/protocol/generate.js from protocol/registers.canonical.json + protocol/non_register_entities.canonical.json. DO NOT EDIT BY HAND. catalog_version=1.1.0 source_hash=b6986480be7eac21
+  // Generated by tools/protocol/generate.js from protocol/registers.canonical.json + protocol/non_register_entities.canonical.json. DO NOT EDIT BY HAND. catalog_version=1.1.0 source_hash=b0ac1bab9be22b49
   const PROTOCOL_CATALOG = Object.freeze({
-    releaseGenerationId: "87fd8bcabd906ea5",
+    releaseGenerationId: "112acf76b230e76f",
     genericTxAddress: Object.freeze({
       smart_sleep: 0x1000,
       cell_uvpr: 0x1008,
@@ -1241,6 +1215,24 @@
   const WRITE_REGISTRY = Object.freeze({
     // submitPolicy "live": a real, immediate POST to /settings/register-write is allowed.
     live: Object.freeze([
+      { key: "smart_sleep", address: 4096, minimum: 0, maximum: 6, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "cell_uvpr", address: 4104, minimum: 0, maximum: 6, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "cell_ovpr", address: 4112, minimum: 0, maximum: 6, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "start_balance_trigger", address: 4116, minimum: 0, maximum: 1, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "soc_100", address: 4120, minimum: 0, maximum: 6, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "soc_0", address: 4124, minimum: 0, maximum: 6, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "cell_rcv", address: 4128, minimum: 0, maximum: 6, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "cell_rfv", address: 4132, minimum: 0, maximum: 6, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "charge_ocpr_time", address: 4148, minimum: 0, maximum: 2147483647, step: 1, scale: 1, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 0, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "discharge_ocpr_time", address: 4160, minimum: 0, maximum: 2147483647, step: 1, scale: 1, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 0, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "scpr_time", address: 4164, minimum: 0, maximum: 2147483647, step: 1, scale: 1, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 0, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "max_balance_current", address: 4168, minimum: 0, maximum: 20, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "charge_otpr", address: 4176, minimum: -100, maximum: 200, step: 0.1, scale: 0.1, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "signed", wireType: "S32", wordCount: 2, decimalPrecision: 1, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "discharge_otpr", address: 4184, minimum: -100, maximum: 200, step: 0.1, scale: 0.1, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "signed", wireType: "S32", wordCount: 2, decimalPrecision: 1, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "charge_utpr", address: 4192, minimum: -100, maximum: 200, step: 0.1, scale: 0.1, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "signed", wireType: "S32", wordCount: 2, decimalPrecision: 1, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "mos_otpr", address: 4200, minimum: -100, maximum: 200, step: 0.1, scale: 0.1, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "signed", wireType: "S32", wordCount: 2, decimalPrecision: 1, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "battery_capacity", address: 4220, minimum: 1, maximum: 2000, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
+      { key: "start_balance", address: 4228, minimum: 0, maximum: 6, step: 0.001, scale: 0.001, offset: 0, mask: "0xFFFFFFFF", shift: 0, signedness: "unsigned", wireType: "U32", wordCount: 2, decimalPrecision: 3, writeSafetyClass: "normal", submitPolicy: "live" },
       { key: "gps_heartbeat", address: 4372, minimum: 0, maximum: 1, step: 1, scale: 1, offset: 0, mask: "0x0004", shift: 2, signedness: "unsigned", wireType: "BIT", wordCount: 1, decimalPrecision: 0, writeSafetyClass: "normal", submitPolicy: "live" },
       { key: "lcd_always_on", address: 4372, minimum: 0, maximum: 1, step: 1, scale: 1, offset: 0, mask: "0x0010", shift: 4, signedness: "unsigned", wireType: "BIT", wordCount: 1, decimalPrecision: 0, writeSafetyClass: "normal", submitPolicy: "live" },
       { key: "smart_sleep_enabled", address: 4372, minimum: 0, maximum: 1, step: 1, scale: 1, offset: 0, mask: "0x0040", shift: 6, signedness: "unsigned", wireType: "BIT", wordCount: 1, decimalPrecision: 0, writeSafetyClass: "normal", submitPolicy: "live" },
@@ -1554,37 +1546,37 @@
     { id: "Shutdown", canonicalKey: null, manifestId: "Shutdown", access: "W", effectiveAccess: null, wireType: null, valueKind: "unknown", stage4State: null, uiSection: "service_actions", uiOrder: null, uiGroup: null, labelUk: "Примусове вимкнення плати BMS", labelEn: null, unit: null, ukUnit: null, enUnit: null, precision: null, editorKind: "service_action", min: null, max: null, step: null, options: null, readEntityId: null, writeEntityId: null, readWriteState: "service_action_blocked", submitPolicy: "authorization_required", writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: null, blockedReason: "PAYLOAD_VALUE_CONTRACT_NOT_ESTABLISHED", blockerClosureCriterion: "The exact trigger payload (e.g. a specific magic value such as 0x0001, vs. 'any non-zero write triggers shutdown', vs. some other fixed code) is established by an official errata/clarification or a controlled protocol-capture experiment on a lab-safe device. The official PDF and V2 workbook confirm only the register's address/access=W/wire type/length (UINT16, 2 bytes, internally consistent -- no width ambiguity here) and the command's PURPOSE ('forced BMS board shutdown'); neither states what value the command register actually expects. Guessing a trigger value for a command that cuts board power is exactly the fabrication this Stage explicitly forbids.", hardwareVerificationProvenance: null, revalidationRequired: null, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: null },
     { id: "Timecalibration", canonicalKey: null, manifestId: "Timecalibration", access: "W", effectiveAccess: null, wireType: null, valueKind: "unknown", stage4State: null, uiSection: "service_actions", uiOrder: null, uiGroup: null, labelUk: "Синхронізація часу BMS (RTC)", labelEn: null, unit: null, ukUnit: null, enUnit: null, precision: null, editorKind: "service_action", min: null, max: null, step: null, options: null, readEntityId: null, writeEntityId: null, readWriteState: "service_action_blocked", submitPolicy: "authorization_required", writeSafetyClass: "normal", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: null, blockedReason: "PAYLOAD_VALUE_CONTRACT_NOT_ESTABLISHED", blockerClosureCriterion: "A unit of seconds is stated only by the V2 workbook (row 254, column E 'секунди (S)'), not by the official PDF, whose unit cell for this row is empty; a unit is in any case not an encoding, and the exact reference/encoding is not established: is the written UINT32 a Unix epoch timestamp, seconds since an unstated device-specific epoch, or a relative/delta value? The official PDF states only 'UINT32, 4 bytes, W, 对时/Timecalibration' with no unit, no worked example and no epoch definition. Writing an assumed epoch (e.g. guessing Unix time) to a real BMS RTC without source confirmation is exactly the fabricated-payload-value case this Stage forbids, even though a unit is stated here (by the V2 workbook only) unlike for the other 7 commands. The register WORD ORDER of this 2-register UINT32 is equally unestablished (word_order=null): no source states it for 0x1612, and the high-word-first order shown by the PDF's worked FC16 frames for other UINT32 registers (base 0x1000) is not transferred to this address by inference. Resolved by an official clarification of the epoch/reference point AND the word order, or a controlled protocol-capture experiment comparing a written value against the BMS's own subsequently-read wall-clock behavior.", hardwareVerificationProvenance: null, revalidationRequired: null, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: null },
     { id: "VoltageCalibration", canonicalKey: null, manifestId: "VoltageCalibration", access: "W", effectiveAccess: null, wireType: null, valueKind: "unknown", stage4State: null, uiSection: "service_actions", uiOrder: null, uiGroup: null, labelUk: "Калібрування напруги батареї", labelEn: null, unit: null, ukUnit: null, enUnit: null, precision: null, editorKind: "service_action", min: null, max: null, step: null, options: null, readEntityId: null, writeEntityId: null, readWriteState: "service_action_blocked", submitPolicy: "authorization_required", writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: null, blockedReason: "REGISTER_WIDTH_AMBIGUOUS_AND_PAYLOAD_VALUE_CONTRACT_NOT_ESTABLISHED", blockerClosureCriterion: "Both: (1) the real wire width (1 vs 2 sixteen-bit registers) is confirmed by an official errata/clarification or a controlled protocol-capture experiment on a lab-safe device, per protocol/evidence/protocol_blockers.json's own VoltageCalibration (0x1600) entry; AND (2) the exact payload encoding (does the command take the calibration reference voltage in mV as its raw integer value, some other scale, or a fixed trigger constant?) is established by the same means -- the official PDF and V2 workbook state only the register's existence, access=W, wire type, and unit (mV); neither gives a worked example or a prose description of what value to write. Until both hold, this command is never implemented, never has a production endpoint, and this project never fabricates either the width or the payload value.", hardwareVerificationProvenance: null, revalidationRequired: null, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: null },
-    { id: "VolSmartSleep", canonicalKey: "smart_sleep", manifestId: "VolSmartSleep", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 10, uiGroup: null, labelUk: "Напруга розумного сну", labelEn: "Smart sleep voltage", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "smart_sleep", writeEntityId: "set_smart_sleep", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_smart_sleep", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:e7ed6d63ea78d953" },
+    { id: "VolSmartSleep", canonicalKey: "smart_sleep", manifestId: "VolSmartSleep", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 10, uiGroup: null, labelUk: "Напруга розумного сну", labelEn: "Smart sleep voltage", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "smart_sleep", writeEntityId: "set_smart_sleep", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_smart_sleep", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:e7ed6d63ea78d953" },
     { id: "CellCount", canonicalKey: "cell_count", manifestId: "CellCount", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 15, uiGroup: null, labelUk: "Кількість комірок", labelEn: "Cell count", unit: null, ukUnit: null, enUnit: null, precision: 0, editorKind: "readonly", min: 1, max: null, step: 1, options: null, readEntityId: "cell_count", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "topology", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "RANGE_NOT_ESTABLISHED", blockerClosureCriterion: "minimum/maximum/step are not established in canonical.json for this field -- a real write path requires a proven safe operating range, not a guessed one.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:4182dd29c83ae5ea" },
     { id: "VolCellUV", canonicalKey: "cell_uvp", manifestId: "VolCellUV", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 20, uiGroup: null, labelUk: "Захист комірки від низької напруги (UVP)", labelEn: "Cell under-voltage protection (UVP)", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "readonly", min: 0, max: 6, step: 0.001, options: null, readEntityId: "cell_uvp", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:15f9ed64c45b13ad" },
-    { id: "VolCellUVPR", canonicalKey: "cell_uvpr", manifestId: "VolCellUVPR", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 30, uiGroup: null, labelUk: "Відновлення після глибокого розряду (UVPR)", labelEn: "Cell under-voltage protection recovery (UVPR)", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "cell_uvpr", writeEntityId: "set_cell_uvpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_cell_uvpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:b2c6e6fe3efd111c" },
+    { id: "VolCellUVPR", canonicalKey: "cell_uvpr", manifestId: "VolCellUVPR", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 30, uiGroup: null, labelUk: "Відновлення після глибокого розряду (UVPR)", labelEn: "Cell under-voltage protection recovery (UVPR)", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "cell_uvpr", writeEntityId: "set_cell_uvpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_cell_uvpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:b2c6e6fe3efd111c" },
     { id: "VolCellOV", canonicalKey: "cell_ovp", manifestId: "VolCellOV", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 40, uiGroup: null, labelUk: "Захист комірки від перенапруги (OVP)", labelEn: "Cell over-voltage protection (OVP)", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "readonly", min: 0, max: 6, step: 0.001, options: null, readEntityId: "cell_ovp", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:b75c8bc270b78f11" },
-    { id: "VolCellOVPR", canonicalKey: "cell_ovpr", manifestId: "VolCellOVPR", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 50, uiGroup: null, labelUk: "Відновлення після перенапруги (OVPR)", labelEn: "Cell over-voltage protection recovery (OVPR)", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "cell_ovpr", writeEntityId: "set_cell_ovpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_cell_ovpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:09507fc10e830b41" },
-    { id: "VolBalanTrig", canonicalKey: "start_balance_trigger", manifestId: "VolBalanTrig", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 60, uiGroup: null, labelUk: "Дельта запуску балансування", labelEn: "Balance start delta", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 1, step: 0.001, options: null, readEntityId: "start_balance_trigger", writeEntityId: "set_start_balance_trigger", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_start_balance_trigger", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:f79c6e1594d22af7" },
-    { id: "VolSOC100%", canonicalKey: "soc_100", manifestId: "VolSOC100%", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 70, uiGroup: null, labelUk: "Напруга 100% заряду", labelEn: "100% SOC voltage", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "soc_100", writeEntityId: "set_soc_100", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_soc_100", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:87c4c309773411f2" },
-    { id: "VolSOC0%", canonicalKey: "soc_0", manifestId: "VolSOC0%", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 80, uiGroup: null, labelUk: "Напруга 0% заряду", labelEn: "0% SOC voltage", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "soc_0", writeEntityId: "set_soc_0", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_soc_0", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:40adf7422b095199" },
-    { id: "VolCellRCV", canonicalKey: "cell_rcv", manifestId: "VolCellRCV", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 90, uiGroup: null, labelUk: "Цільова напруга заряду (RCV)", labelEn: "Cell request charge voltage (RCV)", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "cell_rcv", writeEntityId: "set_cell_rcv", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_cell_rcv", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:035b8d2824ef6277" },
-    { id: "VolCellRFV", canonicalKey: "cell_rfv", manifestId: "VolCellRFV", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 100, uiGroup: null, labelUk: "Цільова напруга підтримки (RFV)", labelEn: "Cell request float voltage (RFV)", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "cell_rfv", writeEntityId: "set_cell_rfv", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_cell_rfv", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:a2d22ed4a0f379b6" },
+    { id: "VolCellOVPR", canonicalKey: "cell_ovpr", manifestId: "VolCellOVPR", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 50, uiGroup: null, labelUk: "Відновлення після перенапруги (OVPR)", labelEn: "Cell over-voltage protection recovery (OVPR)", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "cell_ovpr", writeEntityId: "set_cell_ovpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_cell_ovpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:09507fc10e830b41" },
+    { id: "VolBalanTrig", canonicalKey: "start_balance_trigger", manifestId: "VolBalanTrig", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 60, uiGroup: null, labelUk: "Дельта запуску балансування", labelEn: "Balance start delta", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 1, step: 0.001, options: null, readEntityId: "start_balance_trigger", writeEntityId: "set_start_balance_trigger", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_start_balance_trigger", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:f79c6e1594d22af7" },
+    { id: "VolSOC100%", canonicalKey: "soc_100", manifestId: "VolSOC100%", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 70, uiGroup: null, labelUk: "Напруга 100% заряду", labelEn: "100% SOC voltage", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "soc_100", writeEntityId: "set_soc_100", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_soc_100", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:87c4c309773411f2" },
+    { id: "VolSOC0%", canonicalKey: "soc_0", manifestId: "VolSOC0%", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 80, uiGroup: null, labelUk: "Напруга 0% заряду", labelEn: "0% SOC voltage", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "soc_0", writeEntityId: "set_soc_0", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_soc_0", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:40adf7422b095199" },
+    { id: "VolCellRCV", canonicalKey: "cell_rcv", manifestId: "VolCellRCV", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 90, uiGroup: null, labelUk: "Цільова напруга заряду (RCV)", labelEn: "Cell request charge voltage (RCV)", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "cell_rcv", writeEntityId: "set_cell_rcv", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_cell_rcv", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:035b8d2824ef6277" },
+    { id: "VolCellRFV", canonicalKey: "cell_rfv", manifestId: "VolCellRFV", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 100, uiGroup: null, labelUk: "Цільова напруга підтримки (RFV)", labelEn: "Cell request float voltage (RFV)", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "cell_rfv", writeEntityId: "set_cell_rfv", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_cell_rfv", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:a2d22ed4a0f379b6" },
     { id: "VolSysPwrOff", canonicalKey: "system_power_off", manifestId: "VolSysPwrOff", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 110, uiGroup: null, labelUk: "Аварійний поріг вимкнення (UVP)", labelEn: "System power-off voltage", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "readonly", min: 0, max: 6, step: 0.001, options: null, readEntityId: "system_power_off", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:81b3258fbe15fc8a" },
     { id: "CurBatCOC", canonicalKey: "continued_charge_current", manifestId: "CurBatCOC", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 120, uiGroup: null, labelUk: "Тривалий струм заряду", labelEn: "Continued charge current", unit: "A", ukUnit: "А", enUnit: "A", precision: 3, editorKind: "readonly", min: 0, max: 2000, step: 0.001, options: null, readEntityId: "continued_charge_current", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:df842e894cc1c82a" },
     { id: "TIMBatCOCPDly", canonicalKey: "charge_ocp_delay", manifestId: "TIMBatCOCPDly", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 130, uiGroup: null, labelUk: "Затримка захисту струму заряду", labelEn: "Charge OCP delay", unit: "s", ukUnit: "с", enUnit: "s", precision: 0, editorKind: "readonly", min: 0, max: 2147483647, step: 1, options: null, readEntityId: "charge_ocp_delay", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:b71d0d824ca2fa43" },
-    { id: "TIMBatCOCPRDly", canonicalKey: "charge_ocpr_time", manifestId: "TIMBatCOCPRDly", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 140, uiGroup: null, labelUk: "Відновлення захисту струму заряду", labelEn: "Charge OCP recovery time", unit: "s", ukUnit: "с", enUnit: "s", precision: 0, editorKind: "number", min: 0, max: 2147483647, step: 1, options: null, readEntityId: "charge_ocpr_time", writeEntityId: "set_charge_ocpr_time", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_charge_ocpr_time", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:40b77f9e4f07ffac" },
+    { id: "TIMBatCOCPRDly", canonicalKey: "charge_ocpr_time", manifestId: "TIMBatCOCPRDly", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 140, uiGroup: null, labelUk: "Відновлення захисту струму заряду", labelEn: "Charge OCP recovery time", unit: "s", ukUnit: "с", enUnit: "s", precision: 0, editorKind: "number", min: 0, max: 2147483647, step: 1, options: null, readEntityId: "charge_ocpr_time", writeEntityId: "set_charge_ocpr_time", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_charge_ocpr_time", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:40b77f9e4f07ffac" },
     { id: "CurBatDcOC", canonicalKey: "continued_discharge_current", manifestId: "CurBatDcOC", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 150, uiGroup: null, labelUk: "Тривалий струм розряду", labelEn: "Continued discharge current", unit: "A", ukUnit: "А", enUnit: "A", precision: 3, editorKind: "readonly", min: 0, max: 2000, step: 0.001, options: null, readEntityId: "continued_discharge_current", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:ddb69c414c655da2" },
     { id: "TIMBatDcOCPDly", canonicalKey: "discharge_ocp_delay", manifestId: "TIMBatDcOCPDly", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 160, uiGroup: null, labelUk: "Затримка захисту струму розряду", labelEn: "Discharge OCP delay", unit: "s", ukUnit: "с", enUnit: "s", precision: 0, editorKind: "readonly", min: 0, max: 2147483647, step: 1, options: null, readEntityId: "discharge_ocp_delay", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:9fa99aec7a2445a8" },
-    { id: "TIMBatDcOCPRDly", canonicalKey: "discharge_ocpr_time", manifestId: "TIMBatDcOCPRDly", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 170, uiGroup: null, labelUk: "Відновлення захисту струму розряду", labelEn: "Discharge OCP recovery time", unit: "s", ukUnit: "с", enUnit: "s", precision: 0, editorKind: "number", min: 0, max: 2147483647, step: 1, options: null, readEntityId: "discharge_ocpr_time", writeEntityId: "set_discharge_ocpr_time", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_discharge_ocpr_time", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:3c9a01d8d80915f9" },
-    { id: "TIMBatSCPRDly", canonicalKey: "scpr_time", manifestId: "TIMBatSCPRDly", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 180, uiGroup: null, labelUk: "Відновлення після короткого замикання", labelEn: "Short-circuit protection recovery time", unit: "s", ukUnit: "с", enUnit: "s", precision: 0, editorKind: "number", min: 0, max: 2147483647, step: 1, options: null, readEntityId: "scpr_time", writeEntityId: "set_scpr_time", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_scpr_time", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:8e8b3de06e901d6c" },
-    { id: "CurBalanMax", canonicalKey: "max_balance_current", manifestId: "CurBalanMax", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 190, uiGroup: null, labelUk: "Макс. струм балансування", labelEn: "Max balance current", unit: "A", ukUnit: "А", enUnit: "A", precision: 3, editorKind: "number", min: 0, max: 20, step: 0.001, options: null, readEntityId: "max_balance_current", writeEntityId: "set_max_balance_current", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_max_balance_current", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:2d77e24f6738d9f5" },
+    { id: "TIMBatDcOCPRDly", canonicalKey: "discharge_ocpr_time", manifestId: "TIMBatDcOCPRDly", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 170, uiGroup: null, labelUk: "Відновлення захисту струму розряду", labelEn: "Discharge OCP recovery time", unit: "s", ukUnit: "с", enUnit: "s", precision: 0, editorKind: "number", min: 0, max: 2147483647, step: 1, options: null, readEntityId: "discharge_ocpr_time", writeEntityId: "set_discharge_ocpr_time", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_discharge_ocpr_time", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:3c9a01d8d80915f9" },
+    { id: "TIMBatSCPRDly", canonicalKey: "scpr_time", manifestId: "TIMBatSCPRDly", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 180, uiGroup: null, labelUk: "Відновлення після короткого замикання", labelEn: "Short-circuit protection recovery time", unit: "s", ukUnit: "с", enUnit: "s", precision: 0, editorKind: "number", min: 0, max: 2147483647, step: 1, options: null, readEntityId: "scpr_time", writeEntityId: "set_scpr_time", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_scpr_time", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:8e8b3de06e901d6c" },
+    { id: "CurBalanMax", canonicalKey: "max_balance_current", manifestId: "CurBalanMax", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 190, uiGroup: null, labelUk: "Макс. струм балансування", labelEn: "Max balance current", unit: "A", ukUnit: "А", enUnit: "A", precision: 3, editorKind: "number", min: 0, max: 20, step: 0.001, options: null, readEntityId: "max_balance_current", writeEntityId: "set_max_balance_current", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_max_balance_current", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:2d77e24f6738d9f5" },
     { id: "TMPBatCOT", canonicalKey: "charge_otp", manifestId: "TMPBatCOT", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 200, uiGroup: null, labelUk: "Перегрів під час заряду", labelEn: "Charge over-temperature protection", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "readonly", min: -100, max: 200, step: 0.1, options: null, readEntityId: "charge_otp", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:fa66f04351cea3a1" },
-    { id: "TMPBatCOTPR", canonicalKey: "charge_otpr", manifestId: "TMPBatCOTPR", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 210, uiGroup: null, labelUk: "Відновлення температури заряду", labelEn: "Charge OTP recovery", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "number", min: -100, max: 200, step: 0.1, options: null, readEntityId: "charge_otpr", writeEntityId: "set_charge_otpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_charge_otpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:b473228d19309cd9" },
+    { id: "TMPBatCOTPR", canonicalKey: "charge_otpr", manifestId: "TMPBatCOTPR", access: "RW", effectiveAccess: "RW", wireType: "S32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 210, uiGroup: null, labelUk: "Відновлення температури заряду", labelEn: "Charge OTP recovery", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "number", min: -100, max: 200, step: 0.1, options: null, readEntityId: "charge_otpr", writeEntityId: "set_charge_otpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_charge_otpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:b473228d19309cd9" },
     { id: "TMPBatDcOT", canonicalKey: "discharge_otp", manifestId: "TMPBatDcOT", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 220, uiGroup: null, labelUk: "Перегрів під час розряду", labelEn: "Discharge over-temperature protection", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "readonly", min: -100, max: 200, step: 0.1, options: null, readEntityId: "discharge_otp", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:6ea14a1cbf4bd959" },
-    { id: "TMPBatDcOTPR", canonicalKey: "discharge_otpr", manifestId: "TMPBatDcOTPR", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 230, uiGroup: null, labelUk: "Відновлення температури розряду", labelEn: "Discharge OTP recovery", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "number", min: -100, max: 200, step: 0.1, options: null, readEntityId: "discharge_otpr", writeEntityId: "set_discharge_otpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_discharge_otpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:835efcf346017860" },
+    { id: "TMPBatDcOTPR", canonicalKey: "discharge_otpr", manifestId: "TMPBatDcOTPR", access: "RW", effectiveAccess: "RW", wireType: "S32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 230, uiGroup: null, labelUk: "Відновлення температури розряду", labelEn: "Discharge OTP recovery", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "number", min: -100, max: 200, step: 0.1, options: null, readEntityId: "discharge_otpr", writeEntityId: "set_discharge_otpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_discharge_otpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:835efcf346017860" },
     { id: "TMPBatCUT", canonicalKey: "charge_utp", manifestId: "TMPBatCUT", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 240, uiGroup: null, labelUk: "Низька температура заряду", labelEn: "Charge under-temperature protection", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "readonly", min: -100, max: 200, step: 0.1, options: null, readEntityId: "charge_utp", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:a0b437d99d320e18" },
-    { id: "TMPBatCUTPR", canonicalKey: "charge_utpr", manifestId: "TMPBatCUTPR", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 250, uiGroup: null, labelUk: "Відновлення низької температури заряду", labelEn: "Charge UTP recovery", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "number", min: -100, max: 200, step: 0.1, options: null, readEntityId: "charge_utpr", writeEntityId: "set_charge_utpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_charge_utpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:48d367733e39aadd" },
+    { id: "TMPBatCUTPR", canonicalKey: "charge_utpr", manifestId: "TMPBatCUTPR", access: "RW", effectiveAccess: "RW", wireType: "S32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 250, uiGroup: null, labelUk: "Відновлення низької температури заряду", labelEn: "Charge UTP recovery", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "number", min: -100, max: 200, step: 0.1, options: null, readEntityId: "charge_utpr", writeEntityId: "set_charge_utpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_charge_utpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:48d367733e39aadd" },
     { id: "TMPMosOT", canonicalKey: "mos_otp", manifestId: "TMPMosOT", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 260, uiGroup: null, labelUk: "Перегрів MOSFET", labelEn: "MOSFET over-temperature protection", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "readonly", min: -100, max: 200, step: 0.1, options: null, readEntityId: "mos_otp", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:865ed792ad5ecf1f" },
-    { id: "TMPMosOTPR", canonicalKey: "mos_otpr", manifestId: "TMPMosOTPR", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 270, uiGroup: null, labelUk: "Відновлення температури MOSFET", labelEn: "MOSFET OTP recovery", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "number", min: -100, max: 200, step: 0.1, options: null, readEntityId: "mos_otpr", writeEntityId: "set_mos_otpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_mos_otpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:3fa90f6aff1ea374" },
-    { id: "CapBatCell", canonicalKey: "battery_capacity", manifestId: "CapBatCell", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 290, uiGroup: null, labelUk: "Номінальна ємність", labelEn: "Rated battery capacity", unit: "Ah", ukUnit: "А·год", enUnit: "Ah", precision: 3, editorKind: "number", min: 1, max: 2000, step: 0.001, options: null, readEntityId: "battery_capacity", writeEntityId: "set_battery_capacity", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_battery_capacity", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:b442d14d9daca017" },
+    { id: "TMPMosOTPR", canonicalKey: "mos_otpr", manifestId: "TMPMosOTPR", access: "RW", effectiveAccess: "RW", wireType: "S32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 270, uiGroup: null, labelUk: "Відновлення температури MOSFET", labelEn: "MOSFET OTP recovery", unit: "°C", ukUnit: "°C", enUnit: "°C", precision: 1, editorKind: "number", min: -100, max: 200, step: 0.1, options: null, readEntityId: "mos_otpr", writeEntityId: "set_mos_otpr", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_mos_otpr", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:3fa90f6aff1ea374" },
+    { id: "CapBatCell", canonicalKey: "battery_capacity", manifestId: "CapBatCell", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 290, uiGroup: null, labelUk: "Номінальна ємність", labelEn: "Rated battery capacity", unit: "Ah", ukUnit: "А·год", enUnit: "Ah", precision: 3, editorKind: "number", min: 1, max: 2000, step: 0.001, options: null, readEntityId: "battery_capacity", writeEntityId: "set_battery_capacity", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_battery_capacity", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:b442d14d9daca017" },
     { id: "SCPDelay", canonicalKey: "scp_delay", manifestId: "SCPDelay", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "numeric", stage4State: "blocked", uiSection: "settings", uiOrder: 300, uiGroup: null, labelUk: "Затримка короткого замикання", labelEn: "Short-circuit protection delay", unit: "µs", ukUnit: "мкс", enUnit: "µs", precision: 0, editorKind: "readonly", min: 0, max: 2147483647, step: 1, options: null, readEntityId: "scp_delay", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:4e5345f9f9f90cca" },
-    { id: "VolStartBalan", canonicalKey: "start_balance", manifestId: "VolStartBalan", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 310, uiGroup: null, labelUk: "Напруга запуску балансування", labelEn: "Balance start voltage", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "start_balance", writeEntityId: "set_start_balance", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "legacy_setting_def", currentWriteEndpoint: "set_start_balance", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:1c52f813418a5659" },
+    { id: "VolStartBalan", canonicalKey: "start_balance", manifestId: "VolStartBalan", access: "RW", effectiveAccess: "RW", wireType: "U32", valueKind: "numeric", stage4State: "write-hardware-verified", uiSection: "settings", uiOrder: 310, uiGroup: null, labelUk: "Напруга запуску балансування", labelEn: "Balance start voltage", unit: "V", ukUnit: "В", enUnit: "V", precision: 3, editorKind: "number", min: 0, max: 6, step: 0.001, options: null, readEntityId: "start_balance", writeEntityId: "set_start_balance", readWriteState: "live", submitPolicy: "live", writeSafetyClass: "normal", writePathKind: "stage4_write_registry", currentWriteEndpoint: "set_start_balance", writeUsesReadModifyWrite: false, blockedReason: null, blockerClosureCriterion: null, hardwareVerificationProvenance: "Pre-existing (Stage 1, owner-authorized 2026-09-10): real ACK + forced-readback write-transaction confirmed on real hardware. Unaffected by this Stage's schema/registry/RMW additions -- write_bms_u32/u16 dispatch is unchanged for full-width fields.", revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:1c52f813418a5659" },
     { id: "BatChargeEN", canonicalKey: "charging", manifestId: "BatChargeEN", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "binary", stage4State: "blocked", uiSection: "settings", uiOrder: 400, uiGroup: null, labelUk: "Заряд дозволено", labelEn: "Charge enabled", unit: null, ukUnit: null, enUnit: null, precision: 0, editorKind: "readonly", min: 0, max: 1, step: 1, options: {"0":"Off","1":"On"}, readEntityId: "charging_allowed", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:48ed07954ec73532" },
     { id: "BatDisChargeEN", canonicalKey: "discharging", manifestId: "BatDisChargeEN", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "binary", stage4State: "blocked", uiSection: "settings", uiOrder: 410, uiGroup: null, labelUk: "Розряд дозволено", labelEn: "Discharge enabled", unit: null, ukUnit: null, enUnit: null, precision: 0, editorKind: "readonly", min: 0, max: 1, step: 1, options: {"0":"Off","1":"On"}, readEntityId: "discharging_allowed", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:6695aab63abeeb71" },
     { id: "BalanEN", canonicalKey: "balancing", manifestId: "BalanEN", access: "RW", effectiveAccess: "R", wireType: "U32", valueKind: "binary", stage4State: "blocked", uiSection: "settings", uiOrder: 420, uiGroup: null, labelUk: "Балансування дозволено", labelEn: "Balancing enabled", unit: null, ukUnit: null, enUnit: null, precision: 0, editorKind: "readonly", min: 0, max: 1, step: 1, options: {"0":"Off","1":"On"}, readEntityId: "balancing_allowed", writeEntityId: null, readWriteState: "blocked", submitPolicy: null, writeSafetyClass: "disruptive", writePathKind: null, currentWriteEndpoint: null, writeUsesReadModifyWrite: false, blockedReason: "INSUFFICIENT_EVIDENCE", blockerClosureCriterion: "verification_status is not \"confirmed\" (2+ independent evidence groups) and no owner_write_override exists -- evidence-pending, not guessed.", hardwareVerificationProvenance: null, revalidationRequired: false, compositeGroup: null, compositeRole: null, topologyChannelIndex: null, evidenceRef: "project_implementation:b68d680bbd2e7d42" },
@@ -1623,49 +1615,15 @@
   ]);
   // <<< END GENERATED SETTINGS VIEW MODEL
 
-  const GENERIC_TX_ADDRESS = PROTOCOL_CATALOG.genericTxAddress;
-
-  // Readback comparator: an integer-stepped register (delays in s/µs,
-  // cell_count) can only ever echo a whole number back, so "integer"
-  // (±0.5 tolerance) is correct there; every fractional-stepped register
-  // (voltage/current/temperature, all step 0.001 or 0.1) uses "decimal"
-  // (±0.0005) so a real BMS re-quantizing to its own LSB still confirms,
-  // without the ±0.5 slop being wide enough to hide an actually-wrong value.
-  // Stage 5: min/max/step are sourced from PROTOCOL_CATALOG.fieldMeta
-  // (generated from protocol/registers.canonical.json) rather than
-  // retyped per call site — this is now the single source of truth for
-  // these bounds; a canonical-source range change propagates here
-  // automatically on the next `node tools/protocol/generate.js` run
-  // instead of silently drifting out of sync with a hand-typed literal.
-  // Final-preparation-plan Stage 1, commit boundary 1 (§3.8): the endpoint
-  // string was always mechanically `/number/set_${key}/set` — verified
-  // across every one of the 18 entries below, no exceptions — so it is now
-  // synthesized here instead of being retyped at every call site. This is
-  // NOT a relaxation of the allowlist: SETTING_KEYS (below) is still the
-  // one thing that stays hand-curated, unchanged in content from before.
-  function settingDef(key) {
-    const meta = PROTOCOL_CATALOG.fieldMeta[key] || {};
-    const min = meta.min ?? -Infinity;
-    const max = meta.max ?? Infinity;
-    const step = meta.step ?? NaN;
-    const comparator = Number.isInteger(step) ? "integer" : "decimal";
-    return { key, endpoint: `/number/set_${key}/set`, comparator, min, max, step, inputId: `reg_${key}`, messageId: "settingsMessage" };
-  }
-  // Reverted to fail-closed (2026-09-10, second critical audit) for every
-  // disruptive/topology/credential/unresolved-dynamic/packed field: an
-  // explicit owner_write_override is risk acceptance, not protocol
-  // verification, and several of those fields also share a real
-  // Modbus register with another field (packed siblings) — a hazard the
-  // generic Write Transaction Manager's per-ADDRESS correlation cannot
-  // yet disambiguate (see docs/adr/0001-protocol-catalog.md's sixth-pass
-  // addendum). Only "normal" write_safety_class, non-packed, fully
-  // dependency-resolved fields remain here. This is a deliberate,
-  // hand-curated allowlist of WHICH keys are currently write-enabled
-  // (a safety gate, not derived data) — only the bounds/endpoint for each
-  // key are synthesized from the canonical source now, never the key
-  // selection itself. `test_blocked_write_surface.js` independently proves
-  // this list's key set is EXACTLY the canonical `access:"rw" &&
-  // effective_access:"rw"` set, byte for byte, at every commit.
+  // The 18 owner-authorized Settings keys (owner_write_override) of the
+  // Settings write migration (clustered-read plan M5, owner decision
+  // 2026-09-29). NOT a write path and NOT an allowlist: a Settings write goes
+  // only through the generated write registry's /settings/register-write
+  // pipeline. All 18 are in that registry (live), including the 4 signed S32
+  // temperature recoveries (write_registry.json settings_write_migration).
+  // Kept as the canonical
+  // record the protocol-catalog tests cross-check against
+  // registers.canonical.json and write_registry.json.
   const SETTING_KEYS = Object.freeze([
     "smart_sleep",
     "cell_uvpr",
@@ -1686,7 +1644,6 @@
     "battery_capacity",
     "start_balance",
   ]);
-  const SETTING_DEFS = Object.freeze(SETTING_KEYS.map(settingDef));
 
   for (let i = 0; i < MAX_CELL_COUNT; i += 1) {
     const index = i + 1;
@@ -2533,7 +2490,7 @@
       const value = row.querySelector(".settings-catalog-value") || row.querySelector(".settings-catalog-editor");
       applySettingsFreshness(value, key);
       const button = row.querySelector(".settings-catalog-action");
-      if (button && !activeTransactionKeys.has(key) && !registerWriteVisualStates.has(key)) {
+      if (button && !activeTransactionKeys.has(key)) {
         button.disabled = settingsFieldFreshness(key).kind !== "fresh";
       }
     }
@@ -2896,7 +2853,7 @@
     en: { charging: "Charge enabled", discharging: "Discharge enabled", balancing: "Balancing enabled" },
   };
 
-  // Label for a SETTING_DEFS/CONTROL_DEFS key, used in write-transaction
+  // Label for a write-registry key, used in write-transaction
   // log/status messages ("cell OVP → 3.65"). Final-preparation-plan Stage 1
   // (§3.8): PROTOCOL_CATALOG.fieldMeta's labelUk/labelEn — generated
   // straight from protocol/registers.canonical.json's own
@@ -3122,31 +3079,6 @@
     return cellChannelRowIndex(diagnosticObjectId(entry)) !== null;
   }
 
-  function writableDefinitionForEntry(entry) {
-    const objectId = diagnosticObjectId(entry);
-    // Owner-authorized write re-enablement (2026-09-10): a field is only
-    // ever editable here if it appears in SETTING_DEFS/CONTROL_DEFS —
-    // both hand-maintained allowlists that must stay in sync with
-    // registers.canonical.json's owner_write_override set (asserted by
-    // test/protocol_catalog/test_blocked_write_surface.js). Any field NOT
-    // in either table still falls through to blockedWriteReason()'s
-    // read-only badge, exactly as every field did before this pass.
-    //
-    // Defense in depth (second critical audit, 2026-09-10): blockedWriteKeys
-    // is GENERATED straight from registers.canonical.json's effective_access
-    // — the single source of truth. It wins over SETTING_DEFS/CONTROL_DEFS
-    // unconditionally, so a hand-maintained table left stale after a field
-    // is reverted to fail-closed (or never updated in the first place)
-    // can never expose a live editor for it. This check must stay FIRST.
-    if (blockedWriteReason(entry)) return null;
-    if (CONTROL_DEFS[objectId]) {
-      return { key: objectId, kind: "select", inputId: `reg_${objectId}`, ...CONTROL_DEFS[objectId] };
-    }
-    const setting = SETTING_DEFS.find((item) => item.key === objectId);
-    if (setting) return { ...setting, kind: "number" };
-    return null;
-  }
-
   function blockedWriteReason(entry) {
     return PROTOCOL_CATALOG.blockedWriteKeys[diagnosticObjectId(entry)] || null;
   }
@@ -3261,11 +3193,7 @@
       id.textContent = diagnosticEntityLabel(entry);
       id.dataset.registerLabel = id.textContent;
       id.title = entry.id;
-      // Programmatic accessible name for the writable control this row
-      // may render below (switch or number input) — the visible label is
-      // otherwise only adjacent in the DOM, not associated with it, so a
-      // screen reader would announce a bare "switch"/"edit text" with no
-      // name for every row in a long register list.
+      // Stable id for the row's label (the row is read-only).
       id.id = `diag-label-${entry.id}`;
       const value = document.createElement("b");
       value.className = "num diag-entity-value";
@@ -3276,108 +3204,25 @@
         value.classList.toggle("is-stale", stale);
         if (stale) value.title = staleTitle(entry.key);
       }
-      const writable = writableDefinitionForEntry(entry);
-      if (writable) {
-        const editor = document.createElement("span");
-        editor.className = "register-editor";
-        // On/off registers use the same switch component as the rest of the
-        // UI, but with an armed two-tap confirmation: the first tap previews
-        // the requested state and asks for confirmation; the second performs
-        // the write and waits for read-back. HTMLButtonElement.value is a
-        // standard DOM property (reflects the value="" attribute), so the
-        // existing setting transaction can read "On"/"Off" directly.
-        const input = writable.kind === "select" ? document.createElement("button") : document.createElement("input");
-        input.id = writable.inputId;
-        if (writable.kind === "select") {
-          input.type = "button";
-          input.className = "switch register-toggle";
-          input.setAttribute("role", "switch");
-          input.setAttribute("aria-labelledby", id.id);
-          input.dataset.registerToggle = writable.key;
-          input.appendChild(document.createElement("i"));
-          const isOn = booleanValue(writable.key) === true;
-          const armed = armedRegisterToggle?.key === writable.key;
-          const shown = armed ? armedRegisterToggle.next : isOn;
-          input.value = shown ? "On" : "Off";
-          input.classList.toggle("is-on", shown);
-          input.classList.toggle("is-armed", armed);
-          input.setAttribute("aria-checked", String(shown));
-          if (armed) { id.textContent = t("common.confirmQuestion"); id.classList.add("register-confirm-label"); }
-        } else {
-          // `type=number` silently rejects a comma in Chromium, while the
-          // Ukrainian UI displays and users naturally enter 3,450. Keep a
-          // numeric mobile keyboard, but accept both decimal separators;
-          // submitRegisterSetting() normalizes comma → dot before its real
-          // range/step validation and before any write is sent to the BMS.
-          input.type = "text";
-          input.setAttribute("aria-labelledby", id.id);
-          input.inputMode = "decimal";
-          // Stage 1 hardware acceptance corrective pass: a bare, unescaped
-          // trailing "-" inside a character class is valid under the plain
-          // and "u" (unicode) regex flags this HTML5 pattern attribute used
-          // to compile under, but WebKit/Safari has moved to compiling
-          // pattern= against the newer, stricter "v" (unicodeSets) flag,
-          // which rejects it outright -- confirmed directly: `new
-          // RegExp("[0-9.,+-]*", "v")` throws "Invalid character in
-          // character class" in this exact Node version, while the
-          // hyphen-escaped form below is valid under both "u" and "v" and
-          // matches the byte-for-byte identical set of characters (this is
-          // a keystroke-level allow-list only -- real numeric-format/range
-          // validation happens in submitRegisterSetting(), unchanged).
-          input.pattern = "[0-9.,+\\-]*";
-          input.spellcheck = false;
-          input.autocomplete = "off";
-          if (Number.isFinite(writable.min)) input.min = String(writable.min);
-          if (Number.isFinite(writable.max)) input.max = String(writable.max);
-          if (Number.isFinite(writable.step)) input.step = String(writable.step);
-          input.value = String(entry.value ?? "");
-        }
-        const unit = writable.kind === "select" ? "" : diagnosticUnit(entry);
-        if (writable.kind === "select") {
-          // Binary permissions write directly from their toggle, but only
-          // after a second, explicitly-confirming toggle press.
-          editor.classList.add("toggle-editor");
-          editor.append(input);
-        } else {
-          const ok = document.createElement("button");
-          ok.type = "button";
-          ok.className = "register-ok";
-          ok.dataset.registerWrite = writable.key;
-          ok.textContent = t("configuration.save");
-          const writeVisual = registerWriteVisualStates.get(writable.key);
-          if (writeVisual) setRegisterWriteButton(ok, writeVisual.state, false);
-          if (unit) {
-          editor.classList.add("has-unit");
-          // No longer needs a "unit-long" size variant: the wrap is a
-          // flex box that centers the value+unit pair as a group, so it
-          // already accommodates a longer unit (e.g. "А·год") without a
-          // separate reserved-padding class.
-          const inputWrap = document.createElement("span");
-          inputWrap.className = "register-input-wrap";
-          const suffix = document.createElement("span");
-          suffix.className = "register-unit";
-          suffix.textContent = unit;
-          inputWrap.append(input, suffix);
-            editor.append(inputWrap, ok);
-          } else editor.append(input, ok);
-        }
-        row.append(id, editor);
+      // Unified write contract (clustered-read plan M5, owner decision
+      // 2026-09-29): this register list is read-only. A Settings write
+      // starts only from that parameter's own OK button in the Settings
+      // catalog and goes through /settings/register-write -- never an
+      // editor, toggle or legacy number-entity REST request from here.
+      const blockedReason = blockedWriteReason(entry);
+      if (blockedReason) {
+        row.classList.add("register-write-blocked");
+        value.title = (currentLang === "uk" ? "Запис заблоковано: " : "Write blocked: ") + blockedReason;
+        const badge = document.createElement("i");
+        badge.className = "register-blocked-badge";
+        badge.textContent = currentLang === "uk" ? "лише читання" : "read-only";
+        badge.title = value.title;
+        row.append(id, value, badge);
       } else {
-        const blockedReason = blockedWriteReason(entry);
-        if (blockedReason) {
-          row.classList.add("register-write-blocked");
-          value.title = (currentLang === "uk" ? "Запис заблоковано: " : "Write blocked: ") + blockedReason;
-          const badge = document.createElement("i");
-          badge.className = "register-blocked-badge";
-          badge.textContent = currentLang === "uk" ? "лише читання" : "read-only";
-          badge.title = value.title;
-          row.append(id, value, badge);
-        } else {
-          row.append(id, value);
-        }
+        row.append(id, value);
       }
       fragment.appendChild(row);
-      diagnosticReadoutRows.set(entry.id, writable ? row.querySelector("input, .register-toggle") : value);
+      diagnosticReadoutRows.set(entry.id, value);
     }
     const receivedObjectIds = new Set(entries.map(diagnosticObjectId));
     for (const [objectId, ukLabel, address] of OPTIONAL_REGISTER_ROWS) {
@@ -4832,10 +4677,6 @@
     bind("battery_capacity", renderSohDiagnostics);
     bind("full_charge_capacity", renderSohDiagnostics);
     bind("charging_cycles", renderSohDiagnostics);
-    for (let i = 0; i < SETTING_DEFS.length; i += 1) {
-      const definition = SETTING_DEFS[i];
-      bind(definition.key, () => renderSettingInput(definition.key, definition.inputId));
-    }
     bind("total_voltage", refreshTimelineNow);
     bind("power", refreshTimelineNow);
     bind("current", refreshTimelineNow);
@@ -5532,7 +5373,7 @@
         try { body = await fetchRegisterWriteStatus(requestId); } catch { body = null; }
         if (cancelled) return;
         const status = body && typeof body.status === "string" ? body.status : null;
-        if (status === "accepted" || status === "rejected" || status === "expired" || status === "unknown") {
+        if (status === "accepted" || status === "rejected" || status === "no_change" || status === "expired" || status === "unknown") {
           resolve(body);
           return;
         }
@@ -5592,19 +5433,10 @@
     // shown) so there is never a premature success OR failure indication
     // while the real answer is still being determined.
     UNCERTAIN: "uncertain",
-  });
-
-  // Reusable per-field comparators — one generic epsilon across every
-  // writable entity was hiding real differences in representation (a
-  // boolean select and a step:1 integer number don't fail the same way).
-  const COMPARATORS = Object.freeze({
-    exact: (requested, actual) => actual !== null && String(actual) === String(requested),
-    decimal: (requested, actual) => actual !== null && Math.abs(actual - Number(requested)) < 0.0005,
-    // All four writable numbers in batterylifepo4.yaml (heating on/off,
-    // dry contact 1/2 source) are declared step: 1 — a real BMS echo can
-    // still legitimately round/re-quantize, so 0.5 is "nearest integer",
-    // not an arbitrary fudge factor.
-    integer: (requested, actual) => actual !== null && Math.abs(actual - Number(requested)) < 0.5
+    // Clustered-read plan M5 (owner decision 2026-09-29): the device already
+    // held the requested value, so it wrote nothing -- no Modbus command, no
+    // transaction, no readback. Terminal, and a success (not an error).
+    NO_CHANGE: "no_change",
   });
 
   // One live transaction per entity key at a time — enforced here so every
@@ -5620,7 +5452,7 @@
   // independent of which control/setting caused it, so Diagnostics can show
   // one real "what happened last" line plus outcome counters without each
   // caller having to report in separately.
-  const txCounters = { confirmed: 0, mismatch: 0, timeout: 0, error: 0, sent_unverified: 0, rejected: 0 };
+  const txCounters = { confirmed: 0, mismatch: 0, timeout: 0, error: 0, sent_unverified: 0, rejected: 0, no_change: 0 };
   let lastCommandLabel = "—";
   let lastCommandOutcome = "—";
   let lastCommandAt = 0;
@@ -5658,149 +5490,6 @@
     return parseWriteTxSnapshot().find((entry) => entry && entry.addr === address) || null;
   }
 
-  function writeTransaction(cfg) {
-    // cfg: { key, endpoint, matches(entry)->bool, describe(entry)->string,
-    //        readbackTimeoutMs, onState(txState, detail), address }
-    // `address` (from GENERIC_TX_ADDRESS) is optional: when present, this
-    // transaction ALSO races a write_tx_snapshot-based confirmation (the
-    // firmware's own forced-readback verdict) alongside the existing
-    // entity-state-based one below — whichever settles first wins
-    // (finish() is idempotent), and a register with no known address
-    // behaves EXACTLY as before. The snapshot path is trusted directly
-    // (status 4 -> CONFIRMED, 5/7/8 -> failure) rather than re-checked
-    // against cfg.matches(): the firmware already compared requested vs.
-    // readback raw register words itself, which is more authoritative
-    // than the frontend re-deriving the same comparison from a possibly
-    // not-yet-repolled display sensor.
-    const timeoutMs = cfg.readbackTimeoutMs || 6000;
-    let unwatch = null;
-    let unwatchSnapshot = null;
-    let timer = 0;
-    let settled = false;
-    function finish(next, detail) {
-      if (settled) return; // terminal states only ever fire once per transaction
-      settled = true;
-      if (timer) { window.clearTimeout(timer); timer = 0; }
-      if (unwatch) { unwatch(); unwatch = null; }
-      if (unwatchSnapshot) { unwatchSnapshot(); unwatchSnapshot = null; }
-      activeTransactionKeys.delete(cfg.key);
-      if (Object.prototype.hasOwnProperty.call(txCounters, next)) txCounters[next] += 1;
-      lastCommandLabel = cfg.label || cfg.key;
-      lastCommandOutcome = next;
-      lastCommandAt = Date.now();
-      renderDiagnosticsLog();
-      if (cfg.onState) cfg.onState(next, detail);
-    }
-    function set(next, detail) { if (cfg.onState) cfg.onState(next, detail); }
-    return {
-      async send() {
-        if (activeTransactionKeys.has(cfg.key)) {
-          set(TX_STATE.ERROR, t("tx.anotherInProgress"));
-          return;
-        }
-        activeTransactionKeys.add(cfg.key);
-        // Captured before the request even goes out — see COMPARATORS/
-        // stateRevision above. Any real SSE update to this key from this
-        // point on counts as newer; one that arrived and was already
-        // processed before this line never can, however it got here.
-        const startRevision = stateRevision[cfg.key] || 0;
-        const startTxId = cfg.address != null ? ((findWriteTxEntry(cfg.address) || {}).tx_id || 0) : null;
-        function armTimer(ms) {
-          if (timer) window.clearTimeout(timer);
-          timer = window.setTimeout(() => finish(TX_STATE.TIMEOUT, t("tx.noConfirmation")), ms);
-        }
-        function checkSnapshotTerminal() {
-          if (cfg.address == null) return false;
-          const entry = findWriteTxEntry(cfg.address);
-          if (!entry || !(entry.tx_id > startTxId)) return false;
-          if (entry.status === 6) {
-            // Third critical audit (2026-09-10, item 7): WRITE_UNCERTAIN —
-            // the backend's own recovery probe is running. Not terminal:
-            // show the honest "still verifying" state and give the probe
-            // real time to finish instead of racing it with the ordinary
-            // (much shorter) client-side write timeout.
-            set(TX_STATE.UNCERTAIN, t("tx.uncertainRecovering"));
-            armTimer(cfg.uncertainRecoveryTimeoutMs || 10000);
-            return false;
-          }
-          if (!WTX_TERMINAL_STATUS.has(entry.status)) return false;
-          if (entry.status === 4) finish(TX_STATE.CONFIRMED, cfg.describe ? cfg.describe(state[cfg.key]) : "");
-          else if (entry.status === 5) finish(TX_STATE.MISMATCH, cfg.describe ? cfg.describe(state[cfg.key]) : "BMS reports a different state");
-          else if (entry.status === 9) finish(TX_STATE.REJECTED, t("tx.rejectedBusy"));
-          else if (entry.status === 10) finish(TX_STATE.CONFIRMED, `${cfg.describe ? cfg.describe(state[cfg.key]) : ""} ${t("tx.recoveredAfterUncertainty")}`.trim());
-          else if (entry.status === 11) finish(TX_STATE.MISMATCH, t("tx.recoveredMismatchAfterUncertainty"));
-          else finish(TX_STATE.TIMEOUT, t("tx.noConfirmation"));
-          return true;
-        }
-        set(TX_STATE.SENDING);
-        try {
-          await postCommand(cfg.endpoint);
-        } catch (error) {
-          finish(TX_STATE.ERROR, error.name === "AbortError" ? t("tx.requestTimedOut") : t("tx.requestFailed"));
-          return;
-        }
-        if (cfg.unverifiable) {
-          // setup_passcode: the entity itself can never echo the real value
-          // back (always masked), so there is nothing to wait for — HTTP 200
-          // is the entire signal, and it must not be dressed up as CONFIRMED.
-          finish(TX_STATE.SENT_UNVERIFIED, t("configuration.sentUnverified"));
-          return;
-        }
-        set(TX_STATE.PENDING_READBACK);
-        // Third critical audit (2026-09-10, item 5): a plain entity SSE
-        // update is NEVER allowed to resolve CONFIRMED/MISMATCH on its own
-        // when an authoritative backend transaction (write_tx_snapshot,
-        // keyed by exact tx_id/address) is available — the entity can
-        // legitimately re-publish from its own unrelated poll cycle at any
-        // time, including one that happens to already equal the requested
-        // value while the real write's ACK was silently lost (the exact
-        // false-green scenario test_write_transaction_entity_sse_cannot_
-        // confirm_without_ack in test/topology/run.js now proves). The
-        // renderer pipeline (scheduleRender via the state Proxy,
-        // independent of this transaction) already keeps the DISPLAYED
-        // value current regardless; this watcher used to ALSO treat that
-        // same update as authoritative, which is exactly what item 5
-        // forbids. checkSnapshotTerminal() (the write_tx_snapshot path)
-        // is now the ONLY way this transaction can reach a terminal
-        // verdict whenever cfg.address is known — which is every current
-        // caller (SETTING_DEFS/CONTROL_DEFS only ever populate defs whose
-        // key has a GENERIC_TX_ADDRESS entry).
-        const hasAuthoritativeAddress = cfg.address != null;
-        if (hasAuthoritativeAddress) {
-          // The snapshot event can legitimately arrive while this POST's
-          // own fetch() was still in flight — check synchronously once,
-          // immediately, before ever arming a watcher for a future event.
-          if (checkSnapshotTerminal()) return;
-        } else {
-          // No known address for this key — cannot correlate against
-          // write_tx_snapshot at all. Falls back to the entity-state
-          // comparison as the only available signal (no current caller
-          // hits this path; kept for defensive correctness only).
-          if ((stateRevision[cfg.key] || 0) > startRevision) {
-            const already = state[cfg.key];
-            if (cfg.matches(already)) { finish(TX_STATE.CONFIRMED, cfg.describe ? cfg.describe(already) : ""); return; }
-            finish(TX_STATE.MISMATCH, cfg.describe ? cfg.describe(already) : "BMS reports a different state");
-            return;
-          }
-        }
-        // checkSnapshotTerminal() may already have armed an extended
-        // recovery-probe timer (WRITE_UNCERTAIN, above) — only fall back
-        // to the normal write-timeout budget if it didn't.
-        if (!timer) armTimer(timeoutMs);
-        if (hasAuthoritativeAddress) {
-          unwatchSnapshot = watchKey("write_tx_snapshot", checkSnapshotTerminal);
-        } else {
-          unwatch = watchKey(cfg.key, () => {
-            if ((stateRevision[cfg.key] || 0) <= startRevision) return; // stale — keep listening for a newer one
-            const entry = state[cfg.key];
-            if (cfg.matches(entry)) finish(TX_STATE.CONFIRMED, cfg.describe ? cfg.describe(entry) : "");
-            else finish(TX_STATE.MISMATCH, cfg.describe ? cfg.describe(entry) : "BMS reports a different state");
-          });
-        }
-      }
-    };
-  }
-
   // ============================================================
   // ASYNC REGISTER-WRITE TRANSACTION (2026-09-21 corrective pass)
   // ============================================================
@@ -5813,10 +5502,9 @@
   //        -> (once accepted+tx_id known) correlate write_tx_snapshot by
   //           the EXACT tx_id + address, never "any tx_id > startTxId"
   //           (the old, pre-async-contract correlation writeTransaction()
-  //           above still uses for every OTHER caller — this function is
-  //           deliberately separate rather than a branch inside
-  //           writeTransaction(), so that shared logic stays untouched
-  //           for SETTING_DEFS/CONTROL_DEFS/CellCount/etc).
+  //           was retired together with the legacy number-entity REST Settings
+  //           path by the unified write contract, owner decision
+  //           2026-09-29 -- this is now the ONLY Settings write client).
   //
   // Reuses the SAME TX_STATE enum, activeTransactionKeys single-flight
   // guard, txCounters/lastCommand* diagnostics bookkeeping, and
@@ -5913,6 +5601,11 @@
           finish(TX_STATE.REJECTED, t("writeRegistry.rejected", { reason: statusBody.reason || "rejected" }));
           return;
         }
+        if (statusBody.status === "no_change") {
+          // Terminal success without a write: nothing to watch for.
+          finish(TX_STATE.NO_CHANGE, t("writeRegistry.noChange"));
+          return;
+        }
         if (statusBody.status === "expired") {
           finish(TX_STATE.ERROR, t("writeRegistry.statusExpired"));
           return;
@@ -5988,68 +5681,6 @@
     };
   }
 
-  /* Register-list interactions ------------------------------------------------
-     Numeric fields retain an explicit OK action. The button itself carries the
-     write lifecycle so the user can see exactly whether the BMS confirmed the
-     requested value: >> while sending, ✓ on matching read-back, × otherwise. */
-  function resetRegisterWriteButton(button) {
-    if (!button) return;
-    const key = button.dataset.registerWrite;
-    if (key) registerWriteVisualStates.delete(key);
-    button.disabled = !!(key && settingsFieldFreshness(key).kind !== "fresh");
-    button.classList.remove("is-sending", "is-success", "is-error");
-    button.textContent = t("configuration.save");
-  }
-
-  function setRegisterWriteButton(button, state, remember = true) {
-    if (!button) return;
-    const key = button.dataset.registerWrite;
-    // A second tap must never start another transaction or dismiss the
-    // result early. Only the normal blue “OK” state is interactive.
-    button.disabled = state !== "idle";
-    if (remember && key && state !== "idle") registerWriteVisualStates.set(key, { state });
-    button.classList.remove("is-sending", "is-success", "is-error");
-    if (state === "sending") {
-      button.classList.add("is-sending");
-      button.textContent = ">>";
-    } else if (state === "success") {
-      button.classList.add("is-success");
-      button.textContent = "✓";
-    } else if (state === "error") {
-      button.classList.add("is-error");
-      button.textContent = "×";
-    } else resetRegisterWriteButton(button);
-  }
-
-  function flashRegisterWriteButton(button, state) {
-    setRegisterWriteButton(button, state);
-    const key = button?.dataset.registerWrite;
-    const visual = key ? registerWriteVisualStates.get(key) : null;
-    window.setTimeout(() => {
-      // Do not reset a newer write to the same register if one starts during
-      // this one-second feedback window. Find the current button because a
-      // telemetry-driven rebuild may have replaced the original DOM node.
-      if (!key || registerWriteVisualStates.get(key) !== visual) return;
-      const currentButton = document.querySelector(`button[data-register-write="${key}"]`);
-      if (currentButton instanceof HTMLButtonElement) resetRegisterWriteButton(currentButton);
-      else registerWriteVisualStates.delete(key);
-    }, 1000);
-  }
-
-  function restoreRegisterReadback(input, key) {
-    // The long register list may have been rebuilt while awaiting BMS
-    // read-back. In that case `input` is the detached old node; always
-    // target the current visible field before restoring the real value.
-    const currentInput = input?.id ? document.getElementById(input.id) : input;
-    if (!(currentInput instanceof HTMLInputElement)) return;
-    const readback = state[key];
-    if (!readback) return;
-    const raw = readback.value !== undefined && readback.value !== null ? readback.value : readback.state;
-    if (raw !== undefined && raw !== null) currentInput.value = String(raw);
-    currentInput.dataset.dirty = "false";
-    markInvalid(currentInput, false);
-  }
-
   // CellCount is not just another writable register: it changes which
   // physical channels the whole app trusts (see activeCellCount()/
   // topologyState()). While the device hasn't confirmed a topology yet
@@ -6057,92 +5688,9 @@
   // to even judge against. While it disagrees with itself (MISMATCH/
   // INVALID) a second, explicit tap is required before the write goes out,
   // exactly like the Charge/Discharge disable confirm-arm above.
-  let cellCountRewriteArmed = false;
-  let cellCountRewriteArmTimer = 0;
-
-  function resetCellCountRewriteArm() {
-    if (cellCountRewriteArmTimer) { window.clearTimeout(cellCountRewriteArmTimer); cellCountRewriteArmTimer = 0; }
-    cellCountRewriteArmed = false;
-  }
 
   // Store only data, never a DOM node: live BMS telemetry can rebuild the
   // long register list while the four-second confirmation window is open.
-  let armedRegisterToggle = null;
-  let registerToggleArmTimer = 0;
-
-  function resetRegisterToggleArm() {
-    if (registerToggleArmTimer) { window.clearTimeout(registerToggleArmTimer); registerToggleArmTimer = 0; }
-    const armed = armedRegisterToggle;
-    armedRegisterToggle = null;
-    if (!armed) return;
-    const input = getDom(`reg_${armed.key}`);
-    if (!input) return;
-    const actual = booleanValue(armed.key);
-    input.value = actual === true ? "On" : "Off";
-    input.classList.toggle("is-on", actual === true);
-    input.classList.remove("is-armed");
-    input.setAttribute("aria-checked", String(actual === true));
-    input.disabled = false;
-    const label = input.closest(".diag-row")?.firstElementChild;
-    if (label) { label.textContent = label.dataset.registerLabel || label.textContent; label.classList.remove("register-confirm-label"); }
-  }
-
-  function sendRegisterToggle(input, key, next) {
-    const definition = CONTROL_DEFS[key];
-    if (!definition) return;
-    input.disabled = true;
-    input.classList.remove("is-armed");
-    const label = input.closest(".diag-row")?.firstElementChild;
-    if (label) { label.textContent = t("common.sending"); label.classList.remove("register-confirm-label"); }
-    const tx = writeTransaction({
-      key,
-      address: GENERIC_TX_ADDRESS[key],
-      label: `${settingFieldLabel(key)} → ${next ? t("common.on") : t("common.off")}`,
-      endpoint: `${definition.endpoint}?option=${next ? "On" : "Off"}`,
-      matches: () => COMPARATORS.exact(next, booleanValue(key)),
-      describe: () => t("tx.describeReports", { value: booleanValue(key) === true ? t("common.on") : booleanValue(key) === false ? t("common.off") : t("common.unknown") }),
-      onState(txState, detail) {
-        if (txState === TX_STATE.SENDING || txState === TX_STATE.PENDING_READBACK || txState === TX_STATE.UNCERTAIN) return;
-        const actual = booleanValue(key);
-        input.disabled = false;
-        input.value = actual === true ? "On" : "Off";
-        input.classList.toggle("is-on", actual === true);
-        input.setAttribute("aria-checked", String(actual === true));
-        const rowLabel = input.closest(".diag-row")?.firstElementChild;
-        if (rowLabel) rowLabel.textContent = rowLabel.dataset.registerLabel || rowLabel.textContent;
-        if (txState === TX_STATE.CONFIRMED) {
-          input.dataset.dirty = "false";
-          setRequestMessage("settingsMessage", t("tx.saved"), "success");
-        } else {
-          markInvalid(input, true);
-          setRequestMessage("settingsMessage", txState === TX_STATE.MISMATCH ? t("tx.notConfirmed", { value: next ? t("common.on") : t("common.off"), detail }) : detail, "error");
-        }
-      }
-    });
-    tx.send();
-  }
-
-  function toggleRegisterPermission(input) {
-    const key = input.dataset.registerToggle;
-    if (!key || input.disabled) return;
-    const next = input.value !== "On";
-    if (armedRegisterToggle?.key === key) {
-      const requested = armedRegisterToggle.next;
-      if (registerToggleArmTimer) { window.clearTimeout(registerToggleArmTimer); registerToggleArmTimer = 0; }
-      armedRegisterToggle = null;
-      sendRegisterToggle(input, key, requested);
-      return;
-    }
-    resetRegisterToggleArm();
-    armedRegisterToggle = { key, next };
-    input.value = next ? "On" : "Off";
-    input.classList.toggle("is-on", next);
-    input.classList.add("is-armed");
-    input.setAttribute("aria-checked", String(next));
-    const label = input.closest(".diag-row")?.firstElementChild;
-    if (label) { label.textContent = t("common.confirmQuestion"); label.classList.add("register-confirm-label"); }
-    registerToggleArmTimer = window.setTimeout(resetRegisterToggleArm, 4000);
-  }
 
   /* ---------- settings: heating thresholds, dry contacts ----------
      Same transaction model as controls — no arm step (these aren't
@@ -6150,49 +5698,6 @@
      readback wait, not an HTTP-200-is-success shortcut. Numeric readback
      is compared with a small epsilon since the BMS may echo a filtered/
      rounded value. */
-  function submitSettings() {
-    const submit = getDom("settingsSubmit");
-    if (submit && submit.disabled) return;
-    let pendingCount = 0;
-    for (let i = 0; i < SETTING_DEFS.length; i += 1) {
-      const definition = SETTING_DEFS[i];
-      const input = getDom(definition.inputId);
-      if (!input || input.dataset.dirty !== "true" || input.value === "") continue;
-      const value = Number(input.value);
-      if (!Number.isFinite(value)) { markInvalid(input, true); continue; }
-      pendingCount += 1;
-      if (submit) submit.disabled = true;
-      setRequestMessage(definition.messageId, t("tx.saving"), "busy");
-      const compare = COMPARATORS[definition.comparator] || COMPARATORS.integer;
-      const fieldLabel = settingFieldLabel(definition.key);
-      const tx = writeTransaction({
-        key: definition.key,
-        address: GENERIC_TX_ADDRESS[definition.key],
-        label: `${fieldLabel} → ${value}`,
-        endpoint: `${definition.endpoint}?value=${encodeURIComponent(String(value))}`,
-        matches: () => compare(value, numeric(definition.key)),
-        describe: () => { const n = numeric(definition.key); return n === null ? t("tx.describeNoValue") : t("tx.describeReports", { value: n }); },
-        onState: (txState, detail) => {
-          pendingCount -= 1;
-          if (submit && pendingCount <= 0) submit.disabled = false;
-          if (txState === TX_STATE.CONFIRMED) {
-            input.dataset.dirty = "false"; markInvalid(input, false);
-            setRequestMessage(definition.messageId, t("tx.saved"), "success");
-          } else if (txState === TX_STATE.MISMATCH) {
-            markInvalid(input, true);
-            setRequestMessage(definition.messageId, t("tx.notConfirmed", { value, detail }), "error");
-          } else {
-            markInvalid(input, true);
-            setRequestMessage(definition.messageId, detail, "error");
-          }
-        }
-      });
-      tx.send();
-    }
-    if (pendingCount === 0) {
-      setRequestMessage("settingsMessage", t("common.noChangedValues"), "");
-    }
-  }
 
   // Stage 4 production-integration gap fix (2026-09-21, user-directed):
   // catalog-driven UI for the write registry (WRITE_REGISTRY, generated
@@ -7081,24 +6586,6 @@
     return settingsFieldShell(input, editorKind === "select" ? "" : settingsRowUnit(row), "settings-catalog-unit", false);
   }
 
-  // The 18 write-hardware-verified rows reuse the EXISTING legacy
-  // SETTING_DEFS/submitRegisterSetting() production write path unchanged
-  // -- same input id convention (reg_<key>), same globally-delegated
-  // `button[data-register-write]` click handler already wired in
-  // installInteractions() (never a new handler, never a new endpoint).
-  function buildLegacyEditor(row, editorKind) {
-    const wrapper = settingsEditorGroup();
-    wrapper.appendChild(buildLiveSettingsControl(row, editorKind, "reg"));
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "btn small register-ok settings-catalog-action";
-    button.dataset.registerWrite = row.canonicalKey;
-    button.textContent = t("settingsCatalog.action");
-    button.setAttribute("aria-describedby", settingsDomId("settingsCatalogLabel", row.manifestId));
-    wrapper.appendChild(button);
-    return wrapper;
-  }
-
   // Stage 4's live/software-ready rows reuse the EXISTING
   // preflight -> request_id -> tx_id -> ACK/readback client
   // (submitRegisterWrite()/runRegisterWriteTransaction(), unchanged) --
@@ -7220,9 +6707,11 @@
 
     // RW
     const editorKind = settingsEditorKind(row);
-    if (row.readWriteState === "live" && row.writePathKind === "legacy_setting_def") {
-      el.appendChild(editorKind ? buildLegacyEditor(row, editorKind) : buildDisabledEditor(row, null, settingsNoteContent(row)));
-    } else if (row.readWriteState === "live" && row.writePathKind === "stage4_write_registry") {
+    // Unified write contract (owner decision 2026-09-29): the ONLY live
+    // editor is the write registry's (row OK -> preflight -> one POST to
+    // /settings/register-write). Anything else -- including a row with no
+    // registry entry -- is locked.
+    if (row.readWriteState === "live" && row.writePathKind === "stage4_write_registry") {
       el.appendChild(editorKind ? buildStage4LiveEditor(row, editorKind) : buildDisabledEditor(row, null, settingsNoteContent(row)));
     } else {
       el.appendChild(buildDisabledEditor(row, editorKind, settingsNoteContent(row)));
@@ -7299,7 +6788,7 @@
       renderSettingInput(row.canonicalKey, input.id);
       applySettingsFreshness(input, row.canonicalKey);
       const action = el.querySelector(".settings-catalog-action");
-      if (action && !activeTransactionKeys.has(row.canonicalKey) && !registerWriteVisualStates.has(row.canonicalKey)) {
+      if (action && !activeTransactionKeys.has(row.canonicalKey)) {
         action.disabled = settingsFieldFreshness(row.canonicalKey).kind !== "fresh";
       }
       return;
@@ -7543,12 +7032,26 @@
       setRequestMessage(messageId, settingsFieldFreshness(entry.key).explanation, "error");
       return;
     }
-    const rawValue = input.value;
+    // The Ukrainian UI shows and users type a decimal comma ("3,450"):
+    // accept it, then validate the number against the registry entry's own
+    // range and step BEFORE any request (a value the device would refuse
+    // never reaches preflight).
+    const rawValue = String(input.value).trim().replace(",", ".");
     if (rawValue === "" || !Number.isFinite(Number(rawValue))) {
+      markInvalid(input, true);
       setRequestMessage(messageId, t("writeRegistry.notReady"), "error");
       return;
     }
     const value = Number(rawValue);
+    const outOfRange = (Number.isFinite(entry.minimum) && value < entry.minimum) || (Number.isFinite(entry.maximum) && value > entry.maximum);
+    const offStep = Number.isFinite(entry.step) && entry.step > 0 && Number.isFinite(entry.minimum) &&
+      Math.abs((value - entry.minimum) / entry.step - Math.round((value - entry.minimum) / entry.step)) > 1e-7;
+    if (outOfRange || offStep) {
+      markInvalid(input, true);
+      setRequestMessage(messageId, t("writeRegistry.notReady"), "error");
+      return;
+    }
+    markInvalid(input, false);
     if (activeTransactionKeys.has(entry.key)) {
       setRequestMessage(messageId, t("tx.anotherInProgress"), "error");
       return;
@@ -7622,191 +7125,14 @@
         } else if (txState === TX_STATE.SENT_UNVERIFIED) {
           input.dataset.dirty = "false"; markInvalid(input, false);
           setRequestMessage(messageId, detail, "");
+        } else if (txState === TX_STATE.NO_CHANGE) {
+          input.dataset.dirty = "false"; markInvalid(input, false);
+          setRequestMessage(messageId, detail, "success");
         } else {
           markInvalid(input, true);
           setRequestMessage(messageId, detail, "error");
         }
       },
-    });
-    tx.send();
-  }
-
-  // CellCount does not go through the generic writeTransaction(): success
-  // there means only "the watched register's own value changed to match"
-  // — for CellCount that is NOT sufficient (spec §3/§17: "Cell Count не
-  // дає хибного зеленого успіху"). This watches cellcount_tx_status_code
-  // instead (a single explicit terminal signal published by the SAME
-  // ESPHome code path AFTER resolve_topology has already run — see the
-  // 250ms transaction interval in batterylifepo4.yaml), and only ever
-  // reports success once ALL THREE required conditions hold at once:
-  // readback_raw_value == requested, topology_state == CONFIRMED, AND
-  // effective_cell_count == requested. Every intermediate status
-  // (sending/ack_wait/readback_wait) is explicitly "still pending", not
-  // silently treated as failure the way a binary matches() would.
-  const CELLCOUNT_TX_STATUS = Object.freeze({
-    IDLE: 0, SENDING: 1, ACK_WAIT: 2, READBACK_WAIT: 3,
-    CONFIRMED: 4, MISMATCH: 5, WRITE_UNCERTAIN: 6, ACK_TIMEOUT: 7, READBACK_TIMEOUT: 8
-  });
-  function sendCellCountWrite(value, button, input) {
-    if (activeTransactionKeys.has("cell_count")) {
-      setRequestMessage("settingsMessage", t("tx.anotherInProgress"), "error");
-      resetRegisterWriteButton(button);
-      return;
-    }
-    activeTransactionKeys.add("cell_count");
-    const startRevision = stateRevision.cellcount_tx_status_code || 0;
-    setRegisterWriteButton(button, "sending");
-    setRequestMessage("settingsMessage", t("tx.saving"), "busy");
-    // Backend worst case before a terminal status: 3s ACK wait + 4s
-    // forced-readback wait (sequential — readback only starts once ACK
-    // lands) = 7s, plus scheduling/network slack. 9s gives a controlled
-    // ~2s margin without the UI looking stuck for a real timeout.
-    const timeoutMs = 9000;
-    let settled = false;
-    let timer = 0;
-    let unwatch = null;
-
-    function finish(success, detail) {
-      if (settled) return;
-      settled = true;
-      if (timer) { window.clearTimeout(timer); timer = 0; }
-      if (unwatch) { unwatch(); unwatch = null; }
-      activeTransactionKeys.delete("cell_count");
-      const outcome = success ? "confirmed" : "mismatch";
-      if (Object.prototype.hasOwnProperty.call(txCounters, outcome)) txCounters[outcome] += 1;
-      lastCommandLabel = `${settingFieldLabel("cell_count")} → ${value}`;
-      lastCommandOutcome = outcome;
-      lastCommandAt = Date.now();
-      renderDiagnosticsLog();
-      const currentInput = document.getElementById("reg_cell_count");
-      if (success) {
-        if (currentInput instanceof HTMLInputElement) { currentInput.dataset.dirty = "false"; markInvalid(currentInput, false); }
-        setRequestMessage("settingsMessage", t("tx.saved"), "success");
-        flashRegisterWriteButton(button, "success");
-      } else {
-        if (currentInput instanceof HTMLInputElement) markInvalid(currentInput, true);
-        restoreRegisterReadback(currentInput || input, "cell_count");
-        setRequestMessage("settingsMessage", detail, "error");
-        flashRegisterWriteButton(button, "error");
-      }
-    }
-
-    function evaluateTerminal() {
-      const statusCode = numeric("cellcount_tx_status_code");
-      if (statusCode === CELLCOUNT_TX_STATUS.CONFIRMED) {
-        // Defense in depth: re-verify all three conditions client-side
-        // too, rather than trusting the status code label alone.
-        const readback = numeric("cell_count");
-        const effective = numeric("effective_cell_count");
-        const tier = topologyState();
-        if (readback === value && tier === "CONFIRMED" && effective === value) {
-          finish(true, "");
-        } else {
-          finish(false, t("tx.notConfirmed", { value, detail: t("tx.describeReports", { value: readback === null ? t("tx.describeNoValue") : readback }) }));
-        }
-        return true;
-      }
-      if (statusCode === CELLCOUNT_TX_STATUS.MISMATCH) {
-        finish(false, t("tx.notConfirmed", { value, detail: topologyReasonText() || t("tx.describeNoValue") }));
-        return true;
-      }
-      if (statusCode === CELLCOUNT_TX_STATUS.ACK_TIMEOUT || statusCode === CELLCOUNT_TX_STATUS.READBACK_TIMEOUT) {
-        finish(false, t("topology.reason.WRITE_UNCERTAIN"));
-        return true;
-      }
-      return false; // sending/ack_wait/readback_wait — still pending
-    }
-
-    (async () => {
-      try {
-        await postCommand(`/number/set_cell_count/set?value=${encodeURIComponent(String(value))}`);
-      } catch (error) {
-        finish(false, error.name === "AbortError" ? t("tx.requestTimedOut") : t("tx.requestFailed"));
-        return;
-      }
-      // Same race fix as writeTransaction(): the terminal status can
-      // already have landed while this POST's own fetch() was in flight.
-      if ((stateRevision.cellcount_tx_status_code || 0) > startRevision && evaluateTerminal()) return;
-      timer = window.setTimeout(() => finish(false, t("tx.noConfirmation")), timeoutMs);
-      unwatch = watchKey("cellcount_tx_status_code", () => {
-        if ((stateRevision.cellcount_tx_status_code || 0) <= startRevision) return;
-        evaluateTerminal();
-      });
-    })();
-  }
-
-  function submitRegisterSetting(key, button) {
-    const definition = SETTING_DEFS.find((item) => item.key === key) || (CONTROL_DEFS[key] ? { key, kind: "select", inputId: `reg_${key}`, ...CONTROL_DEFS[key] } : null);
-    if (!definition || !button) return;
-    if (settingsFieldFreshness(key).kind !== "fresh") {
-      button.disabled = true;
-      setRequestMessage("settingsMessage", settingsFieldFreshness(key).explanation, "error");
-      return;
-    }
-    if (button.disabled) return;
-    const input = getDom(definition.inputId);
-    if (!input || input.value.trim() === "") return;
-    if (definition.kind === "select") return;
-    const value = Number(input.value.replace(",", "."));
-    if (!Number.isFinite(value)) { markInvalid(input, true); return; }
-    markInvalid(input, false);
-    setRegisterWriteButton(button, "sending");
-    if ((Number.isFinite(definition.min) && value < definition.min) || (Number.isFinite(definition.max) && value > definition.max)) {
-      markInvalid(input, true); resetRegisterWriteButton(button); return;
-    }
-    if (Number.isFinite(definition.step) && definition.step > 0 && Number.isFinite(definition.min)) {
-      const steps = (value - definition.min) / definition.step;
-      if (Math.abs(steps - Math.round(steps)) > 1e-7) {
-        markInvalid(input, true); resetRegisterWriteButton(button); return;
-      }
-    }
-    if (key === "cell_count") {
-      const tier = topologyState();
-      if (tier === "LOADING") {
-        resetRegisterWriteButton(button);
-        setRequestMessage("settingsMessage", t("topology.blockedRewrite"), "error");
-        return;
-      }
-      if (tier !== "CONFIRMED" && !cellCountRewriteArmed) {
-        resetRegisterWriteButton(button);
-        cellCountRewriteArmed = true;
-        if (cellCountRewriteArmTimer) window.clearTimeout(cellCountRewriteArmTimer);
-        cellCountRewriteArmTimer = window.setTimeout(resetCellCountRewriteArm, 4000);
-        setRequestMessage("settingsMessage", t("topology.confirmRewrite"), "error");
-        return;
-      }
-      resetCellCountRewriteArm();
-      sendCellCountWrite(value, button, input);
-      return;
-    }
-    const compare = COMPARATORS[definition.comparator] || COMPARATORS.integer;
-    const fieldLabel = settingFieldLabel(definition.key);
-    const tx = writeTransaction({
-      key: definition.key,
-      address: GENERIC_TX_ADDRESS[definition.key],
-      label: `${fieldLabel} → ${value}`,
-      endpoint: `${definition.endpoint}?value=${encodeURIComponent(String(value))}`,
-      matches: () => compare(value, numeric(definition.key)),
-      describe: () => { const n = numeric(definition.key); return n === null ? t("tx.describeNoValue") : t("tx.describeReports", { value: n }); },
-      onState: (txState, detail) => {
-        if (txState === TX_STATE.SENDING || txState === TX_STATE.PENDING_READBACK || txState === TX_STATE.UNCERTAIN) return;
-        // Use the live field, not the DOM node captured when the button was
-        // clicked: telemetry may have recreated the row in the meantime.
-        const currentInput = document.getElementById(definition.inputId);
-        if (txState === TX_STATE.CONFIRMED) {
-          if (currentInput && currentInput.dataset) {
-            currentInput.dataset.dirty = "false";
-            markInvalid(currentInput, false);
-          }
-          setRequestMessage("settingsMessage", t("tx.saved"), "success");
-          flashRegisterWriteButton(button, "success");
-        } else {
-          if (currentInput instanceof HTMLInputElement) markInvalid(currentInput, true);
-          restoreRegisterReadback(currentInput || input, definition.key);
-          setRequestMessage("settingsMessage", txState === TX_STATE.MISMATCH ? t("tx.notConfirmed", { value, detail }) : detail, "error");
-          flashRegisterWriteButton(button, "error");
-        }
-      }
     });
     tx.send();
   }
@@ -9284,12 +8610,6 @@
       // after pointerup — swallow it so a drag can never be mistaken for
       // a tap-through interaction on whatever sits under the chart.
       if (ccJustDragged && event.target.closest("#ccDragArea")) return;
-      const registerBtn = event.target.closest("button[data-register-write]");
-      if (registerBtn) { submitRegisterSetting(registerBtn.dataset.registerWrite, registerBtn); return; }
-      // Register permissions use an armed two-tap toggle. First tap shows
-      // “Confirm?” in amber; second tap performs the write + read-back.
-      const registerToggle = event.target.closest("button[data-register-toggle]");
-      if (registerToggle) { toggleRegisterPermission(registerToggle); return; }
       // Overview's read-only status pills and health-synthesis tiles are
       // deep links, not controls. Output permissions open Configuration,
       // the single place where those registers can be changed.
@@ -9676,6 +8996,17 @@
     shutdown();
   }
 
+  // Read-only view of the read-freshness state, for tests only (exposed
+  // through __JK_BMS_TEST_HOOKS__ below, never in a real browser).
+  function readFreshnessDebugState() {
+    return {
+      ready: readBlockSnapshotReady,
+      lastSequence: lastReadSuccessSequence,
+      blocks: Array.from(readBlockFreshness, ([address, v]) => [address, v.revision, v.updatedAt]),
+      clusters: Array.from(readClusterGeometry, ([id, g]) => [id, g.start, g.end, readClusterRevision.has(id) ? readClusterRevision.get(id) : null]),
+    };
+  }
+
   function connectionDebugState() {
     return {
       generation: connectionGeneration,
@@ -9777,7 +9108,7 @@
       // updateSettingsCatalogValue() render path -- not a reimplementation.
       renderSettingsCatalog, relocalizeSettingsCatalog, updateSettingsCatalogValue,
       SETTINGS_CATALOG_ROWS, settingsFieldFreshness, refreshSettingsFreshness,
-      sweepDiagnosticStaleness, setBrowserLink, submitRegisterSetting,
+      sweepDiagnosticStaleness, setBrowserLink,
       acceptReadBlockSnapshot, readBlockSuccess, mergeReadBlockSnapshot, requestReadBlockResync,
       READ_FRESHNESS_RESYNC_SPACING_MS,
       // Global freshness panel (2026-09-25): exposed read-only for
@@ -9796,7 +9127,7 @@
       // Browser resume/reconnect fix: exposed for test_sse_reconnect.js, which
       // drives the REAL connection manager with a fake EventSource and a
       // controlled clock/timer queue.
-      connect, checkConnection, sseWatchdogTick, connectionDebugState,
+      connect, checkConnection, sseWatchdogTick, connectionDebugState, readFreshnessDebugState,
       SSE_TIMING: { DISCONNECTED_ESCALATION_MS, RECONNECT_BASE_MS, RECONNECT_MAX_MS, SSE_STALL_MS,
         SSE_RESUME_STALL_MS, SSE_WATCHDOG_INTERVAL_MS, SSE_MIN_CONNECT_SPACING_MS,
         SSE_RESUME_RECOVERY_MS, SSE_RESUME_RETRY_MAX_MS },

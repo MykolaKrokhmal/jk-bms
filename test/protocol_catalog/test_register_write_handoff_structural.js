@@ -87,18 +87,28 @@ const consumerStart = wholeFileAfterHandler.indexOf("- interval: 100ms");
 check("a dedicated interval: 100ms main-loop consumer exists after the HTTP handlers", consumerStart !== -1);
 const consumerBlock = wholeFileAfterHandler.slice(consumerStart, consumerStart + wholeFileAfterHandler.slice(consumerStart).indexOf("- interval: 30s"));
 check("the main-loop consumer takes from the mailbox via try_take_write_request", consumerBlock.includes("try_take_write_request("));
-check("the main-loop consumer calls begin_write_tx_rmw (the ONLY safe place to)", consumerBlock.includes("begin_write_tx_rmw)->execute"));
-check("the main-loop consumer calls write_bms_u32", consumerBlock.includes("write_bms_u32)->execute"));
-check("the main-loop consumer calls write_bms_u16", consumerBlock.includes("write_bms_u16)->execute"));
+// Clustered reads M5 corrective pass (owner decision 2026-09-29): an RMW
+// request is decided by ONE tracked gate (jk_cluster_runtime::RmwRequest)
+// and the consumer queues exactly that decision's merged raw through
+// begin_write_tx -- never begin_write_tx_rmw, which would gate a second time.
+// ... and (write-only-when-changed, owner decision 2026-09-29) the same one
+// tracked gate now covers full-width 16/32-bit writes too: every write the
+// consumer queues goes through begin_write_tx with the decided raw.
+check("the main-loop consumer queues every write via begin_write_tx with the tracked gate's decided raw (the ONLY safe place to)",
+  consumerBlock.includes("id(begin_write_tx)->execute(int(w.address), int(w.word_count), int(rmw_merged_raw), int(w.tx_compare_mask()), 0);") &&
+  consumerBlock.includes("rmw_req.step(jk_cluster_runtime::g_runtime, now, narrow)"));
+check("the main-loop consumer never calls begin_write_tx_rmw / write_bms_u16 / write_bms_u32 (no second gate)",
+  !consumerBlock.includes("begin_write_tx_rmw)->execute") && !consumerBlock.includes("write_bms_u32)->execute") && !consumerBlock.includes("write_bms_u16)->execute"));
 check("the main-loop consumer publishes its outcome via publish_write_result", consumerBlock.includes("publish_write_result("));
 
 // Confirm the dangerous calls appear EXACTLY where expected: nowhere in
 // the handler blocks, and in the consumer block.
 const wholeHandlerRegion = handlerBlock + statusBlock;
 for (const call of ["begin_write_tx_rmw)->execute", "write_bms_u32)->execute", "write_bms_u16)->execute"]) {
-  check(`"${call}" appears in the main-loop consumer but NOT in either HTTP handler`,
-    consumerBlock.includes(call) && !wholeHandlerRegion.includes(call));
+  check(`neither HTTP handler calls ${call}`, !wholeHandlerRegion.includes(call));
 }
+check('"begin_write_tx)->execute" appears in the main-loop consumer but NOT in either HTTP handler',
+  consumerBlock.includes("begin_write_tx)->execute") && !wholeHandlerRegion.includes("begin_write_tx)->execute"));
 
 // ---------------------------------------------------------------------
 // 5. Fail-closed prerequisites: single-flight, queue-full, stale-RAW,

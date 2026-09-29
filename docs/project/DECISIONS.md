@@ -560,6 +560,57 @@ until the cluster budgets replace it.
   The servicer first reads the owning cluster when they are older (automatic
   pre-read); it never uses the background budget.
 
+**M5 corrective decisions (owner, 2026-09-29):**
+- The setup passcode 0x1470×8 is strictly on demand: no read after boot, no
+  periodic read. The passcode write transaction keeps its isolated readback.
+  Its bytes are never exposed, cached, logged or published.
+- RMW in a latched fallback group follows the plan's section 10: a narrow
+  pre-read of the register's own read-plan block, and the strict budget
+  applied to that narrow read's success time. Fallback alone is not a reason
+  to refuse the write.
+- A write request has exactly one final, observable result. No write may
+  execute after a rejected or not-queued result: one tracked gate decision
+  per request, and the queued raw is that decision's raw.
+- Write only when the value changes. Every register write (a packed RMW
+  field, or a full-width 16/32-bit register; the UI request and every HA
+  entity write; clustered or fallback mode) compares the value it would
+  write with the register's fresh current raw (strict 3.5 s, one tracked
+  pre-read when stale). Equal: a terminal NO_CHANGE result -- no Modbus
+  command, no write transaction slot, no ACK/readback, nothing later. Not a
+  failure: the status endpoint reports it as "no_change" and the UI shows
+  "already set". A stale value whose pre-read fails is rejected, never
+  guessed as NO_CHANGE. Writes target only the one register (1 or 2
+  words), never a read cluster.
+- One Settings write contract (owner decision 2026-09-29): editing only
+  changes a local draft; a write starts only from that parameter's own OK;
+  it goes through the generated write registry's `/settings/register-write`
+  pipeline (preflight, one POST, request_id/status, ACK + forced readback,
+  NO_CHANGE); the row shows its own terminal result. A parameter without a
+  live write-registry entry shows the lock, never an OK. The legacy
+  number-entity REST Settings path (`submitRegisterSetting`/
+  `writeTransaction`, `/number/set_<key>/set`) is removed.
+- Settings write migration (owner decision 2026-09-29): the 18
+  owner-authorized Settings fields that had an active OK stay writable, but
+  only through the unified pipeline. `generate_write_registry.js` admits
+  them through an explicit, closed list (never every owner_write_override),
+  and only when their canonical write facts are complete and consistent;
+  the audited result is `write_registry.json` `settings_write_migration`.
+  All 18 are migrated (their hand-written internal `set_<key>` entities are
+  replaced by the generated ones, same ids).
+- Temperature recovery signedness (owner decision 2026-09-29): charge_otpr
+  0x1050, discharge_otpr 0x1058, charge_utpr 0x1060 and mos_otpr 0x1068 were
+  declared `U32`/`unsigned` in `registers.canonical.json` although their own
+  range is -100..200 °C. This was a canonical-data defect, not a protocol
+  ambiguity: the pinned upstream source `upstream_syssi_esphome_jk_bms`
+  (`esp32-jk-pb-modbus-example.yaml` @ `08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1`,
+  local copy sha256 `00ad253c…868d`) lists them as `INT32` and implements
+  them with `value_type: S_DWORD`, and the legacy project encoder was
+  `int32_t`. They are now `S32`/`signed`; width (32 bit, 2 registers), FC16,
+  high-word-first order, scale 0.1, range -100..200 and step 0.1 are
+  unchanged. The generator's consistency check (`migrationContradiction`)
+  still rejects any unsigned field with a negative minimum and any wire type
+  whose sign disagrees with `signedness`.
+
 **Reason:** 120 is proven on hardware with a margin. ×121 also succeeded,
 and no failure was seen below 124. The exact limit does not matter for the
 migration, and probing it would add hardware steps without benefit.

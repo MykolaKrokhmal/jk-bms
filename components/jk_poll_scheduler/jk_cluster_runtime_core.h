@@ -15,14 +15,24 @@
 //     to the legacy per-register reads for the rest of the boot session.
 //     It never unlatches (no oscillation) and is always visible
 //     (fallback_mask(), the diagnostics text and the freshness snapshot);
-//   - RMW gate: a write merges only into cluster bytes fresher than the
-//     strict budget (jk_cluster_cache::kRmwStrictBudgetMs). Missing or stale
-//     bytes trigger a pre-read of the owning cluster and the write waits
-//     (up to kRmwPreReadDeadlineMs); credential, unknown, fallback-sourced
-//     or bad-width data refuse the write at once;
-//   - the passcode read (0x1470 x8, not in any cluster) runs once after boot
-//     and on request; its bytes are never stored or returned -- the caller
-//     only learns whether the read had the expected length;
+//   - RMW gate: a write merges only into bytes fresher than the strict
+//     budget (jk_cluster_cache::kRmwStrictBudgetMs). Missing or stale bytes
+//     trigger ONE tracked pre-read and the write waits (up to
+//     kRmwPreReadDeadlineMs); credential, unknown or bad-width data refuse
+//     at once. In a latched fallback group the source is the register's own
+//     narrow read-plan block (plan section 10): its success time after the
+//     latch, under the same strict budget, with a narrow pre-read;
+//   - RmwRequest: one register write (a packed field merged into its
+//     register, or a full-width 16/32-bit value) = one tracked gate. Every
+//     step() is a single decision against the current raw: QUEUE with the
+//     merged raw, NO_CHANGE when that raw already holds it (no write at all),
+//     WAIT, or REJECT. QUEUE, NO_CHANGE and REJECT are terminal, so such a
+//     request can never be queued later, and the caller queues exactly the
+//     raw that decision returned (no second gate);
+//   - the passcode read (0x1470 x8, not in any cluster) is strictly on
+//     demand: never after boot, never periodic, only after
+//     request_passcode_status(). Its bytes are never stored or returned --
+//     the caller only learns whether the read had the expected length;
 //   - a latched group also gets back the pre-migration bespoke readers of
 //     the registers the generic per-register plan never read (cells, cell
 //     wire resistance 17-32, CellConWireRes 0-31) at their old cadences,
@@ -37,6 +47,7 @@
 #include <cstdio>
 
 #include "jk_cluster_cache_core.h"
+#include "jk_write_tx_core.h"
 #include "jk_cluster_scheduler_core.h"
 #include "read_clusters_table.h"
 
@@ -98,7 +109,40 @@ struct RmwDecision {
   jk_cluster_cache::Lookup reason = jk_cluster_cache::Lookup::UNKNOWN;
   uint32_t raw = 0;
   int cluster = jk_read_clusters::kNoCluster;
+  bool narrow = false;  // decided from the narrow fallback block, not the cluster
 };
+
+// The register's own narrow read-plan block, as the servicer's fallback path
+// maintains it (g_rp_last_success_ms / g_rp_last_raw_word / g_rp_pending_index).
+// Only consulted when the owning cluster is latched to its fallback.
+struct NarrowBlockView {
+  int block = -1;               // read-plan block index; -1: none
+  uint16_t address = 0;
+  uint16_t register_count = 0;
+  bool has_success = false;
+  uint32_t last_success_ms = 0;
+  uint32_t raw = 0;             // the block's first (up to 4) payload bytes
+  bool in_flight = false;       // this block's narrow read is outstanding
+};
+
+// Builds the view from the generated read plan and the servicer's globals.
+template <typename Blocks>
+inline NarrowBlockView make_narrow_view(const Blocks &blocks, std::size_t block_count, uint16_t address,
+                                        const uint32_t *last_success_ms, const uint32_t *last_raw_word, int pending_index) {
+  NarrowBlockView v;
+  for (std::size_t i = 0; i < block_count; i++) {
+    if (blocks[i].address != address) continue;
+    v.block = int(i);
+    v.address = blocks[i].address;
+    v.register_count = blocks[i].register_count;
+    v.has_success = last_success_ms[i] != 0;
+    v.last_success_ms = last_success_ms[i];
+    v.raw = last_raw_word[i];
+    v.in_flight = pending_index == int(i);
+    break;
+  }
+  return v;
+}
 
 class Runtime {
  public:
@@ -106,7 +150,9 @@ class Runtime {
     sched_.begin(now_ms);
     in_flight_ = InFlight::NONE;
     in_flight_cluster_ = -1;
-    passcode_requested_ = true;  // one status read after boot
+    passcode_requested_ = false;  // strictly on demand: no read after boot
+    narrow_request_ = -1;
+    latched_ms_.fill(0);
     for (auto &h : health_) h = ClusterHealth();
     event_sequence_.fill(0);
     bespoke_issued_.fill(false);
@@ -210,7 +256,9 @@ class Runtime {
     in_flight_ = InFlight::NONE;
     return true;
   }
+  // The only way to read 0x1470: one isolated read per request.
   void request_passcode_status() { passcode_requested_ = true; }
+  bool passcode_requested() const { return passcode_requested_; }
 
   // The UI-visible success sequence ('<cluster>:<revision>:<sequence>' and
   // the fallback blocks' events share one counter) of this cluster's last
@@ -236,27 +284,39 @@ class Runtime {
     return c;
   }
 
-  // RMW gate for a register write (strict budget + pre-read).
-  RmwDecision check_rmw(uint16_t address, uint8_t word_count, uint32_t now_ms) {
+  // RMW gate for a register write (strict budget + pre-read). `narrow` is
+  // the register's narrow read-plan block, used only when its cluster is
+  // latched to the fallback (plan section 10). allow_*_preread = false:
+  // decide only, never ask for that pre-read again (RmwRequest asks at most
+  // once per request and source).
+  RmwDecision check_rmw(uint16_t address, uint8_t word_count, uint32_t now_ms, const NarrowBlockView &narrow = NarrowBlockView(),
+                        bool allow_cluster_preread = true, bool allow_narrow_preread = true) {
     RmwDecision d;
     const auto r = cache_.register_raw(address, word_count, now_ms);
     d.reason = r.status;
     d.cluster = r.cluster;
     if (r.status == jk_cluster_cache::Lookup::OK) { d.gate = RmwGate::READY; d.raw = r.raw; return d; }
-    const bool refreshable = (r.status == jk_cluster_cache::Lookup::STALE || r.status == jk_cluster_cache::Lookup::MISSING) &&
-                             r.cluster >= 0 && !health_[std::size_t(r.cluster)].fallback;
-    if (refreshable) {
-      // The caller re-checks every tick while it waits: request the pre-read
-      // only once -- not while it (or its lead's cycle) is queued or in flight.
+    if (r.status == jk_cluster_cache::Lookup::FALLBACK) return check_rmw_narrow(r.cluster, address, word_count, now_ms, narrow, allow_narrow_preread);
+    if (r.status == jk_cluster_cache::Lookup::STALE || r.status == jk_cluster_cache::Lookup::MISSING) {
+      // Not while it (or its lead's cycle) is already queued or in flight.
       const int lead = kClusters[r.cluster].sequence_after == jk_read_clusters::kNoCluster ? r.cluster : kClusters[r.cluster].sequence_after;
       const bool in_flight = in_flight_ == InFlight::CLUSTER && (in_flight_cluster_ == r.cluster || in_flight_cluster_ == lead);
-      if (!in_flight && !sched_.read_pending(r.cluster)) sched_.request_now(r.cluster);
+      if (allow_cluster_preread && !in_flight && !sched_.read_pending(r.cluster)) sched_.request_now(r.cluster);
       d.gate = RmwGate::WAIT;
       return d;
     }
     d.gate = RmwGate::REFUSE;
     return d;
   }
+
+  // The narrow block a fallback RMW asked to pre-read (then forgotten), or -1.
+  int take_narrow_request() {
+    const int b = narrow_request_;
+    narrow_request_ = -1;
+    return b;
+  }
+  int narrow_request() const { return narrow_request_; }
+  uint32_t latched_ms(std::size_t c) const { return latched_ms_[c]; }
 
   const jk_cluster_cache::Cache &cache() const { return cache_; }
   const jk_cluster_scheduler::Scheduler &scheduler() const { return sched_; }
@@ -282,6 +342,29 @@ class Runtime {
   }
 
  private:
+  // Plan section 10: in a latched group the register's own narrow block is
+  // the RMW source -- only a success AFTER the latch, only within the strict
+  // budget, and the exact register (address and width), else refuse.
+  RmwDecision check_rmw_narrow(int cluster, uint16_t address, uint8_t word_count, uint32_t now_ms, const NarrowBlockView &n,
+                               bool request_preread) {
+    RmwDecision d;
+    d.cluster = cluster;
+    d.narrow = true;
+    d.reason = jk_cluster_cache::Lookup::FALLBACK;
+    if (n.block < 0 || n.address != address || n.register_count != word_count) return d;  // REFUSE
+    const bool after_latch = n.has_success && int32_t(n.last_success_ms - latched_ms_[std::size_t(cluster)]) > 0;
+    if (after_latch && uint32_t(now_ms - n.last_success_ms) <= jk_cluster_cache::kRmwStrictBudgetMs) {
+      d.gate = RmwGate::READY;
+      d.reason = jk_cluster_cache::Lookup::OK;
+      d.raw = word_count == 1 ? (n.raw & 0xFFFFU) : n.raw;
+      return d;
+    }
+    d.reason = after_latch ? jk_cluster_cache::Lookup::STALE : jk_cluster_cache::Lookup::MISSING;
+    if (request_preread && !n.in_flight) narrow_request_ = n.block;
+    d.gate = RmwGate::WAIT;
+    return d;
+  }
+
   void finish_cluster(int c, uint32_t now_ms, Completion outcome) {
     ClusterHealth &h = health_[std::size_t(c)];
     if (outcome == Completion::OK) {
@@ -290,7 +373,7 @@ class Runtime {
     } else {
       if (outcome == Completion::TIMEOUT) h.timeouts++; else h.length_errors++;
       if (h.consecutive_failures < 0xFF) h.consecutive_failures++;
-      if (!h.fallback && h.consecutive_failures >= kFallbackAfterFailures) latch_fallback(c);
+      if (!h.fallback && h.consecutive_failures >= kFallbackAfterFailures) latch_fallback(c, now_ms);
     }
     sched_.complete(c, now_ms);
     in_flight_ = InFlight::NONE;
@@ -298,11 +381,12 @@ class Runtime {
   }
 
   // The lead's group (lead + followers) moves to the legacy readers for good.
-  void latch_fallback(int c) {
+  void latch_fallback(int c, uint32_t now_ms) {
     const int lead = kClusters[c].sequence_after == jk_read_clusters::kNoCluster ? c : kClusters[c].sequence_after;
     for (std::size_t i = 0; i < kClusterCount; i++) {
       if (int(i) == lead || kClusters[i].sequence_after == lead) {
         health_[i].fallback = true;
+        latched_ms_[i] = now_ms;
         cache_.mark_fallback(int(i));
       }
     }
@@ -319,6 +403,8 @@ class Runtime {
   uint32_t generation_ = 0;
   bool passcode_requested_ = false;
   bool begun_ = false;
+  int narrow_request_ = -1;
+  std::array<uint32_t, kClusterCount> latched_ms_{};
   int in_flight_bespoke_ = -1;
   std::array<bool, kBespokeCount> bespoke_issued_{};
   std::array<uint32_t, kBespokeCount> bespoke_last_issue_ms_{};
@@ -328,13 +414,98 @@ class Runtime {
   bool cells_valid_ = false, cells_ext_valid_ = false, conwireres_valid_ = false;
 };
 
-// Deferred RMW write: holds one write while its cluster is pre-read.
-struct DeferredRmw {
-  bool active = false;
-  uint32_t deadline_ms = 0;
-  void start(uint32_t now_ms) { active = true; deadline_ms = now_ms + kRmwPreReadDeadlineMs; }
-  bool expired(uint32_t now_ms) const { return active && int32_t(now_ms - deadline_ms) >= 0; }
-  void clear() { active = false; }
+// --- One tracked RMW request -------------------------------------------------
+// A write request's RMW gate from arm() to its one terminal decision. Each
+// step() is ONE decision against ONE lookup; the merged raw it returns is the
+// raw the caller queues (never re-gated), so a request cannot pass one gate
+// and fail another. QUEUE and REJECT disarm the request for good: a rejected
+// request can never be queued later. WAIT asks for exactly one pre-read per
+// request and source (the cluster, or the narrow block in fallback) and expires at
+// kRmwPreReadDeadlineMs.
+// NO_CHANGE: the register already holds exactly the value that would be
+// written -- a terminal success, not a failure: no Modbus command, no write
+// transaction slot, no ACK/readback, nothing later.
+enum class RmwStep : uint8_t { IDLE = 0, QUEUE = 1, WAIT = 2, REJECT = 3, NO_CHANGE = 4 };
+
+inline uint32_t register_width_mask(uint8_t word_count) { return word_count >= 2 ? 0xFFFFFFFFU : 0xFFFFU; }
+
+struct RmwWrite {
+  uint16_t address = 0;
+  uint8_t word_count = 0;
+  uint32_t mask = 0;        // packed field mask (ignored for a full-width write)
+  uint8_t shift = 0;
+  uint32_t encoded = 0;     // the field's / register's encoded raw
+  bool full_width = false;  // the whole register (16 or 32 bits) is the value
+  // What begin_write_tx compares on readback: the field, or the whole register.
+  uint32_t tx_compare_mask() const { return full_width ? 0xFFFFFFFFU : mask; }
+  bool operator==(const RmwWrite &o) const {
+    return address == o.address && word_count == o.word_count && mask == o.mask && shift == o.shift && encoded == o.encoded &&
+           full_width == o.full_width;
+  }
+};
+
+struct RmwStepResult {
+  RmwStep step = RmwStep::IDLE;
+  uint32_t old_raw = 0;
+  uint32_t merged_raw = 0;  // QUEUE: exactly what to write (NO_CHANGE: == old_raw)
+  jk_cluster_cache::Lookup reason = jk_cluster_cache::Lookup::UNKNOWN;
+  bool deadline_expired = false;
+  bool narrow = false;
+};
+
+class RmwRequest {
+ public:
+  bool active() const { return active_; }
+  const RmwWrite &write() const { return w_; }
+  uint32_t deadline_ms() const { return deadline_ms_; }
+  // Starts tracking one request; false while another one is active.
+  bool arm(const RmwWrite &w, uint32_t now_ms) {
+    if (active_) return false;
+    active_ = true;
+    w_ = w;
+    deadline_ms_ = now_ms + kRmwPreReadDeadlineMs;
+    cluster_preread_requested_ = narrow_preread_requested_ = false;
+    return true;
+  }
+  // The caller dropped the request for another reason (terminal, too).
+  void cancel() { active_ = false; }
+
+  RmwStepResult step(Runtime &rt, uint32_t now_ms, const NarrowBlockView &narrow = NarrowBlockView()) {
+    RmwStepResult r;
+    if (!active_) return r;  // IDLE: nothing tracked, nothing to write
+    const RmwDecision d = rt.check_rmw(w_.address, w_.word_count, now_ms, narrow, !cluster_preread_requested_, !narrow_preread_requested_);
+    r.reason = d.reason;
+    r.narrow = d.narrow;
+    if (d.gate == RmwGate::READY) {
+      active_ = false;
+      r.old_raw = d.raw;
+      r.merged_raw = w_.full_width ? (w_.encoded & register_width_mask(w_.word_count))
+                                   : jk_write_tx::merge_field_into_raw(d.raw, w_.mask, w_.shift, w_.encoded);
+      // Write only when the register value actually changes.
+      r.step = r.merged_raw == r.old_raw ? RmwStep::NO_CHANGE : RmwStep::QUEUE;
+      return r;
+    }
+    if (d.gate == RmwGate::REFUSE) {
+      active_ = false;
+      r.step = RmwStep::REJECT;
+      return r;
+    }
+    if (int32_t(now_ms - deadline_ms_) >= 0) {
+      active_ = false;
+      r.step = RmwStep::REJECT;
+      r.deadline_expired = true;
+      return r;
+    }
+    (d.narrow ? narrow_preread_requested_ : cluster_preread_requested_) = true;
+    r.step = RmwStep::WAIT;
+    return r;
+  }
+
+ private:
+  bool active_ = false;
+  RmwWrite w_;
+  uint32_t deadline_ms_ = 0;
+  bool cluster_preread_requested_ = false, narrow_preread_requested_ = false;
 };
 
 // --- Cross-task cluster snapshot for GET /settings/read-freshness -----------
@@ -392,6 +563,29 @@ inline ClusterSnapshot read_cluster_snapshot(const ClusterSnapshotTable &t, std:
 // variables, like the diagnostic probe's globals).
 inline Runtime g_runtime;
 inline ClusterSnapshotTable g_cluster_snapshot_table;
-inline DeferredRmw g_deferred_register_write;
+// The web UI's register-write request (main-loop consumer) and the HA entity
+// writes (begin_write_tx_rmw): one tracked RMW request each.
+inline RmwRequest g_register_write_rmw;
+
+// HA entity writes (begin_write_tx_rmw, write_bms_u16, write_bms_u32): a
+// small, visible pool of tracked requests, at most one per register. The
+// same write again while it waits is a no-op; a different write to a
+// register that already has one waiting, or a full pool, is refused.
+enum class ArmResult : uint8_t { ARMED = 0, ALREADY_WAITING = 1, REGISTER_BUSY = 2, POOL_FULL = 3 };
+template <std::size_t N>
+inline ArmResult arm_write(std::array<RmwRequest, N> &pool, const RmwWrite &w, uint32_t now_ms) {
+  for (auto &q : pool) {
+    if (q.active() && q.write().address == w.address) return q.write() == w ? ArmResult::ALREADY_WAITING : ArmResult::REGISTER_BUSY;
+  }
+  for (auto &q : pool) {
+    if (!q.active()) {
+      q.arm(w, now_ms);
+      return ArmResult::ARMED;
+    }
+  }
+  return ArmResult::POOL_FULL;
+}
+constexpr std::size_t kEntityWriteRequests = 4;
+inline std::array<RmwRequest, kEntityWriteRequests> g_entity_write_requests;
 
 }  // namespace jk_cluster_runtime

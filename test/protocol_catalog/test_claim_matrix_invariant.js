@@ -113,8 +113,13 @@ check("2. logical field count: canonical field count matches claim_matrix.counts
   r.logicalFields === r.claimCounts.logical_fields, `canonical=${r.logicalFields} claim=${r.claimCounts.logical_fields}`);
 check("3. declared RW count is 96 (documented baseline -- Stage 3 completion pass, 2026-09-20: 9 new RW-declared 0x1114 bit fields (heat_en/disable_temp_sensor/gps_heartbeat/port_switch/lcd_always_on/special_charger/smart_sleep_enabled/disable_pcl_module/timed_stored_data) + 1 new RW-declared 0x1118 field (smart_sleep_timeout_hours), all landing effective_access:'r' via dynamic_dependency.resolved=false -- write path fail-closed, same 'not write-enabled' pattern as every prior RW-declared addition; a further change here must again be a reviewed, deliberate catalog edit. Previous baseline: 86 (Stage 3 cell-channel batch, 2026-09-17).", r.declaredRw === 96, `actual=${r.declaredRw}`);
 check("4. effective RW count is 60 (documented baseline -- Stage 4 typed-petting-puzzle plan §5: the pre-existing 18 owner-authorized fields + 42 newly-confirmed, registry-backed fields promoted this round)", r.effectiveRw === 60, `actual=${r.effectiveRw}`);
-check("4b. of the 60 effective-RW fields, exactly 18 are owner-authorized and 42 are registry-backed (the two authorization avenues never overlap)",
-  r.ownerAuthorizedKeys.size === 18 && r.registryBackedKeys.size === 42 && [...r.ownerAuthorizedKeys].every((k) => !r.registryBackedKeys.has(k)),
+// Settings write migration (clustered-read plan M5, owner decision
+// 2026-09-29): 14 of the 18 owner-authorized fields are now ALSO
+// registry-backed (the generator's explicit migration list); the 4
+// contradictory temperature recoveries are not.
+check("4b. of the 60 effective-RW fields, exactly 18 are owner-authorized and all 60 are registry-backed; the 18 owner-authorized ones are exactly the migrated Settings fields",
+  r.ownerAuthorizedKeys.size === 18 && r.registryBackedKeys.size === 60 &&
+  [...r.ownerAuthorizedKeys].every((k) => r.registryBackedKeys.has(k)),
   `owner=${r.ownerAuthorizedKeys.size} registry=${r.registryBackedKeys.size}`);
 check("5. effective R count is 191 (documented baseline -- Stage 4 typed-petting-puzzle plan §5 promoted 42 of the prior 232 to effective_access rw, then unmapped-rows cleanup 2026-09-22 added 1 new read-only projection field, temperature_sensor_status_mask)", r.effectiveR === 191, `actual=${r.effectiveR}`);
 check("6. unsupported count is 4 (documented baseline -- Stage 2 typed-petting-puzzle plan added 3 new intentionally_not_exposed reserved half-registers, 0x12EE/0x130C/0x1506, alongside the pre-existing reserved_0x12d2; a further change here must again be a reviewed, deliberate catalog edit)",

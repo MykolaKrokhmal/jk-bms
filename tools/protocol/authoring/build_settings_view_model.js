@@ -86,6 +86,9 @@ const stage5Inventory = loadJson(STAGE5_INVENTORY_PATH);
 const blockersDoc = loadJson(BLOCKERS_PATH);
 
 const writeRegistryByKey = new Map(writeRegistry.entries.map((e) => [e.key, e]));
+// The audited Settings write migration (generate_write_registry.js): the
+// exact reason a migration field stayed out of the registry.
+const settingsWriteMigrationByKey = new Map((writeRegistry.settings_write_migration || []).map((m) => [m.key, m]));
 const stage4ByManifestId = new Map(stage4Inventory.rows.map((r) => [r.manifest_id, r]));
 const stage5ByManifestId = new Map(stage5Inventory.rows.map((r) => [r.manifest_id, r]));
 
@@ -305,11 +308,37 @@ for (const p of eligibleParams) {
       //       carry a real write_registry.json entry and current_write_endpoint.
       // Registry membership distinguishes the two. The original 18 also
       // have current_write_endpoint values from their legacy set_* entities.
+      // Unified write contract (owner decision 2026-09-29, clustered-read
+      // plan M5): a Settings write goes ONLY through the generated write
+      // registry's /settings/register-write pipeline (preflight -> one POST
+      // -> request_id/status -> tx ACK + forced readback, NO_CHANGE when the
+      // register already holds the value). (a) has no registry entry, so it
+      // has no such path: it is locked, never "live" through its legacy
+      // internal set_* number entity (ESPHome's /number/<id>/set cannot even
+      // reach an internal entity). No mapping is invented: the registry entry
+      // must be generated first (generate_write_registry.js's isEligible()
+      // admits owner_write_override fields only from its explicit, audited
+      // Settings write migration list, and only with consistent facts).
       const wrEntry = s4.canonical_key ? writeRegistryByKey.get(s4.canonical_key) : null;
-      readWriteState = "live";
-      submitPolicy = wrEntry ? wrEntry.submit_policy : "live";
-      writePathKind = wrEntry ? "stage4_write_registry" : "legacy_setting_def";
-      currentWriteEndpoint = s4.current_write_endpoint;
+      if (wrEntry) {
+        submitPolicy = wrEntry.submit_policy;
+        readWriteState = submitPolicy === "live" ? "live" : "authorization_required";
+        writePathKind = "stage4_write_registry";
+        currentWriteEndpoint = s4.current_write_endpoint;
+      } else {
+        readWriteState = "blocked";
+        submitPolicy = null;
+        writePathKind = null;
+        currentWriteEndpoint = null;
+        blockedReason = "NOT_IN_UNIFIED_WRITE_REGISTRY";
+        const migration = s4.canonical_key ? settingsWriteMigrationByKey.get(s4.canonical_key) : null;
+        blockerClosureCriterion = migration && migration.blocked_reason
+          ? `No generated write-registry entry, so no /settings/register-write path: ${migration.blocked_reason}. ` +
+            "It stays locked until the canonical fact is corrected with evidence."
+          : "No generated write-registry entry, so no /settings/register-write path: this owner-authorized field " +
+            "(owner_write_override) is not in generate_write_registry.js's Settings write migration list. It stays " +
+            "locked until a registry entry is generated for it.";
+      }
     } else if (s4.stage4_state === "write-software-ready") {
       const wrEntry = s4.canonical_key ? writeRegistryByKey.get(s4.canonical_key) : null;
       submitPolicy = wrEntry ? wrEntry.submit_policy : null;

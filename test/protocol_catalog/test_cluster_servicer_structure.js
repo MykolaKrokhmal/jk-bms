@@ -94,5 +94,80 @@ check("cluster decode only runs for a stored, exact-length cluster (Completion::
 check("no publish-on-change logic was added to the cluster decode (every read republishes)",
   !/last_published|publish_on_change|if \(.*!= .*->state\) id\(/.test(servicer.slice(at("switch (next) {"), at("default: break;"))));
 
+// 5. One authoritative RMW gate per request (owner decision 2026-09-29).
+const runtimeCore = fs.readFileSync(path.join(ROOT, "components", "jk_poll_scheduler", "jk_cluster_runtime_core.h"), "utf8");
+const lambdaText = yaml + plan;
+check("RMW: no YAML lambda calls check_rmw directly -- every gate decision goes through RmwRequest::step",
+  !/\.check_rmw\(/.test(lambdaText));
+check("RMW: the untracked g_rmw_deferred_* slot and DeferredRmw are gone",
+  !/g_rmw_deferred_|DeferredRmw|g_deferred_register_write/.test(lambdaText + runtimeCore));
+{
+  const c0 = yaml.indexOf("auto &rmw_req = jk_cluster_runtime::g_register_write_rmw;");
+  const terminal = yaml.indexOf("rmw_req.cancel();\n          deferred = false;", c0);
+  const noChange = yaml.indexOf("if (no_change) {", c0);
+  const queue = yaml.indexOf("id(begin_write_tx)->execute(int(w.address), int(w.word_count), int(rmw_merged_raw), int(w.tx_compare_mask()), 0);", c0);
+  const firstResult = yaml.indexOf("jk_write_tx::publish_write_result(", c0);
+  check("write (UI request): one armed request for EVERY write (RMW and full-width), stepped once per tick; WAIT returns before any result",
+    c0 > 0 && yaml.indexOf("w.full_width = !e_ptr->uses_rmw;", c0) > c0 &&
+    yaml.indexOf("const auto st = rmw_req.step(jk_cluster_runtime::g_runtime, now, narrow);", c0) > c0 &&
+    /if \(st\.step == jk_cluster_runtime::RmwStep::WAIT\) \{[\s\S]{0,600}?return;  \/\/ no result yet/.test(yaml.slice(c0, firstResult)));
+  check("write (UI request): the gate is disarmed for good before any result or queueing (a rejected / no-change request can never write later)",
+    terminal > c0 && terminal < firstResult && terminal < queue && terminal < noChange);
+  check("write (UI request): the NO_CHANGE decision sets no_change (never the queued raw); only QUEUE sets the raw to write",
+    /\} else if \(st\.step == jk_cluster_runtime::RmwStep::NO_CHANGE\) \{\s*\n\s*no_change = true;\s*\n\s*\} else \{/.test(yaml.slice(c0, terminal)) &&
+    (yaml.slice(c0, terminal).match(/rmw_merged_raw = st\.merged_raw;/g) || []).length === 1 &&
+    /if \(st\.step == jk_cluster_runtime::RmwStep::QUEUE\) \{\s*\n\s*rmw_merged_raw = st\.merged_raw;/.test(yaml.slice(c0, terminal)));
+  const ncBlock = yaml.slice(noChange, yaml.indexOf("\n          }\n", noChange));
+  check("write (UI request): NO_CHANGE publishes its own terminal result (RejectReason::NO_CHANGE) and returns before any queueing",
+    noChange > terminal && noChange < queue && ncBlock.includes("jk_write_tx::RejectReason::NO_CHANGE") && ncBlock.includes("return;") &&
+    !/begin_write_tx|write_bms_u|queue_command/.test(ncBlock));
+  check("write (UI request): queues exactly the decided raw via begin_write_tx, never begin_write_tx_rmw / write_bms_u16 / write_bms_u32",
+    queue > noChange && !/id\(begin_write_tx_rmw\)->execute\(int\(e_ptr|id\(write_bms_u(16|32)\)->execute\(int\(e_ptr/.test(yaml));
+  check("status endpoint: NO_CHANGE is reported as its own terminal status 'no_change', not as a rejection",
+    yaml.includes("} else if (lookup.reason == jk_write_tx::RejectReason::NO_CHANGE) {") && yaml.includes('json += "{\\"status\\":\\"no_change\\",\\"request_id\\":";'));
+}
+{
+  const scriptBody = (id) => { const a = yaml.indexOf(`  - id: ${id}\n`); return a < 0 ? "" : yaml.slice(a, yaml.indexOf("\n  - id: ", a + 10)); };
+  const step = scriptBody("entity_write_step");
+  const rmwArm = scriptBody("begin_write_tx_rmw");
+  const u16 = scriptBody("write_bms_u16");
+  const u32 = scriptBody("write_bms_u32");
+  check("write (HA entity): begin_write_tx_rmw, write_bms_u16 and write_bms_u32 only arm a tracked request in the entity pool -- none queues a write",
+    [rmwArm, u16, u32].every((b) => b.includes("jk_cluster_runtime::arm_write(jk_cluster_runtime::g_entity_write_requests, w, millis());") &&
+      b.includes("script.execute: entity_write_step") && !b.includes("begin_write_tx)->execute") && !/id: begin_write_tx,/.test(b)) &&
+    u16.includes("w.full_width = true;") && u32.includes("w.full_width = true;") && u16.includes("w.word_count = 1;") && u32.includes("w.word_count = 2;"));
+  check("write (HA entity): entity_write_step queues exactly the decision's raw; NO_CHANGE and REJECT only log",
+    step.includes("id(begin_write_tx)->execute(int(w.address), int(w.word_count), int(st.merged_raw), int(w.tx_compare_mask()), 0);") &&
+    (step.match(/begin_write_tx\)->execute/g) || []).length === 1 &&
+    /RmwStep::NO_CHANGE\) \{\s*\n\s*ESP_LOGI\([^;]*no change[^;]*;\s*\n\s*\}/.test(step));
+  check("write (HA entity): the 100 ms interval only re-decides tracked requests",
+    yaml.includes("for (const auto &req : jk_cluster_runtime::g_entity_write_requests) {\n            if (req.active()) { id(entity_write_step)->execute(); break; }"));
+  // Every Modbus write goes through the one create_write_multiple_command in
+  // begin_write_tx, with at most 2 registers -- never a read cluster.
+  check("writes: exactly one Modbus write command site (begin_write_tx), 1 or 2 registers, never a whole read cluster",
+    (yaml.match(/create_write_multiple_command\(/g) || []).length === 1 && !/create_write_single_command|create_custom_command/.test(yaml + plan) &&
+    yaml.includes("if (word_count >= 2) words = {uint16_t(uint32_t(raw) >> 16), uint16_t(uint32_t(raw) & 0xFFFFU)};") &&
+    yaml.includes("else words = {uint16_t(raw)};") && clusters.clusters.every((c) => c.register_count > 2));
+  const writeRegistry = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "write_registry.json"), "utf8"));
+  const callWidths = [...(yaml + fs.readFileSync(path.join(ROOT, "protocol", "generated", "write_registry.yaml"), "utf8"))
+    .matchAll(/id\((?:begin_write_tx_rmw|begin_write_tx)\)->execute\(0x[0-9A-Fa-f]+, (\d+),/g)].map((m) => Number(m[1]));
+  check("writes: every generated write-registry entry and literal write call targets 1 or 2 registers",
+    writeRegistry.entries.every((e) => e.word_count === 1 || e.word_count === 2) && callWidths.every((n) => n === 1 || n === 2),
+    JSON.stringify(callWidths));
+}
+{
+  const fb = servicer.indexOf("if (rt.fallback_mask() == 0) return;");
+  const urgent = servicer.indexOf("int urgent = rt.take_narrow_request();", fb);
+  const bespoke = servicer.indexOf("const int bespoke = rt.issue_bespoke(", fb);
+  check("fallback RMW (plan section 10): the tracked narrow pre-read is issued before the bespoke readers and the cadence pick",
+    fb > 0 && urgent > fb && bespoke > urgent && servicer.includes("if (urgent < 0) {") &&
+    servicer.includes("const int chosen = urgent >= 0 ? urgent : jk_poll_scheduler::pick_next_block("));
+  check("fallback RMW: only a block of a latched cluster is pre-read (never the credential block, kBlockCluster -1)",
+    servicer.includes("!rt.cluster_fallback(jk_read_plan::kBlockCluster[urgent].cluster))) urgent = -1;"));
+}
+check("passcode: strictly on demand -- no read after boot, and no caller requests one",
+  runtimeCore.includes("passcode_requested_ = false;  // strictly on demand: no read after boot") &&
+  !runtimeCore.includes("passcode_requested_ = true;  // one") && !/request_passcode_status\(\)/.test(lambdaText));
+
 console.log(`\ncluster servicer structure: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);
