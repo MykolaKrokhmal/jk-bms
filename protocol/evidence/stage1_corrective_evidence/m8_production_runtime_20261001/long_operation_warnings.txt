@@ -1,0 +1,4 @@
+1790886183.597 data: [W][component:419]: modbus took a long time for an operation (361 ms), max is 280 ms
+1790886211.586 data: [W][component:419]: modbus took a long time for an operation (371 ms), max is 370 ms
+1790886216.630 data: [W][component:419]: modbus took a long time for an operation (381 ms), max is 380 ms
+1790886225.865 data: [W][component:419]: modbus took a long time for an operation (638 ms), max is 390 ms

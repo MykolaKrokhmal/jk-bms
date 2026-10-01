@@ -58,8 +58,8 @@ sub-plan:
 [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md).
 Gate A verified the conservative cluster geometry on 2026-09-28, and M2–M4
 are done. M5 (`3ee3f36`) was compiled with ESPHome 2026.9.1 and deployed on
-2026-10-01. M6/M7 followed in `bfa2b44` the same day; their read-only runtime
-audit passed
+2026-10-01. M6/M7 followed in `bfa2b44` and M8 in `3e1981c` the same day
+(M8 audit: `protocol/evidence/stage1_corrective_evidence/m8_production_runtime_20261001.md`). Their read-only runtime audits passed
 (`protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`). A read-only production observation found exact cluster cadence,
 no fallback and no reset
 (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).

@@ -2,9 +2,9 @@
 
 **Status: AUTHORITATIVE active architecture-migration sub-plan** of
 [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
-Approved as a design by the owner on 2026-09-27. **M0–M7 are implemented.
-`bfa2b44` (M5+M6+M7) has been the deployed production firmware since
-2026-10-01** (M6/M7 runtime evidence:
+Approved as a design by the owner on 2026-09-27. **M0–M8 are implemented.
+`3e1981c` (M5–M8) has been the deployed production firmware since
+2026-10-01** (M8 runtime evidence: `protocol/evidence/stage1_corrective_evidence/m8_production_runtime_20261001.md`; M6/M7 runtime evidence:
 `protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`;
 M5: `protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`). Any address range, latency, budget or timing below
 that is not marked [measured] stays a proposal or a model output until the
@@ -1186,10 +1186,17 @@ Rules that apply to every phase:
 - **Commit:** `feat(settings): refresh Settings under an active lease`.
 - **Deploy:** `jk_bms.js`, `batterylifepo4.yaml` patch, generated files.
 
-### M8 — Write interleaving or explicit write pause; gate D — HOST-COMPLETE (2026-10-01)
+### M8 — Write interleaving or explicit write pause; gate D — DEPLOYED (`3e1981c`, 2026-10-01); gate D not started
 
-> **Status (2026-10-01): HOST-COMPLETE, not compiled or deployed; no BMS
-> write is authorized (gate D still open).**
+> **Production (2026-10-01, 23:13): DEPLOYED in `3e1981c`.**
+> - Compile: 0 new warnings, `config_hash 0x761ac342`.
+> - Read-only runtime audit PASSED (`protocol/evidence/stage1_corrective_evidence/m8_production_runtime_20261001.md`): `read_pause_reason` = `none`,
+>   LIVE, `clusters`, lease 0, exact cadence.
+> - Open observation L16: `modbus took a long time` warnings of
+>   361–638 ms and a 5.3 s SSE gap, cause unknown.
+> - No BMS write is authorized; gate D has not started.
+>
+> **Host status (2026-10-01): HOST-COMPLETE.**
 >
 > **Owner decision:** full read pause during writes, no interleaving in
 > W1/W2, no widened budget, and a distinct "paused for write" state that

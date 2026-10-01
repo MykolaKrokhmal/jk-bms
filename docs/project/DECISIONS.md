@@ -526,8 +526,8 @@ bytes in shared caches.
 - Gate A hardware-verified the conservative geometry, and M2–M4 are
   complete.
 - M5 (`3ee3f36`) was deployed on 2026-10-01 (ESPHome 2026.9.1). The same
-  day M6/M7 followed in `bfa2b44`, which is now the deployed production
-  firmware, with its runtime audit passed. Its read-only production observation found exact
+  day M6/M7 followed in `bfa2b44` and M8 in `3e1981c`, which is now the
+  deployed production firmware. All runtime audits passed. Its read-only production observation found exact
   cadence, no fallback and no reset (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
 - Gate B is folded into the combined gate C (see the decision below). The
   combined gate C passed on 2026-10-01 (`protocol/evidence/stage1_corrective_evidence/gate_c_20261001.md`). Gate D and M8–M10 remain
@@ -741,5 +741,5 @@ add FIFO/readback-ordering risk. Holding the pause through
 - widening freshness budgets during a write;
 - treating a paused value as fresh.
 
-**Status:** Active from 2026-10-01 (host-complete; deployment and gate D
-open).
+**Status:** Active from 2026-10-01. Deployed in `3e1981c` with its runtime
+audit passed; gate D is not started.

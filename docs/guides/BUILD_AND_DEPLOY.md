@@ -51,9 +51,19 @@ in the same commit.
 
 ## Deployed baseline (test ESP32)
 
-- **Currently deployed code (2026-10-01, 15:40):** commit `bfa2b44` (M5
+- **Currently deployed code (2026-10-01, 23:13):** commit `3e1981c` (M5–M8:
+  adds M8 write coordination and `read_pause_reason`) plus the owner-local
+  overlay below.
+  - It was applied as an incremental patch from `bfa2b44` (2 hunks).
+  - ESPHome 2026.9.1 / ESP-IDF 5.5.5: 0 errors, the 26 known warnings,
+    RAM 108,192 B, flash 1,261,987 B, `config_hash=0x761ac342`.
+  - Source identity: UI cryptographic (`/0.js` = `jk_bms.js@3e1981c`);
+    firmware high, not cryptographic (all 26 warning lines match).
+  - The read-only M8 runtime audit passed (`protocol/evidence/stage1_corrective_evidence/m8_production_runtime_20261001.md`).
+  - **Settings writes stay prohibited until gate D.**
+- **Previous deployment (2026-10-01, 15:40):** commit `bfa2b44` (M5
   clustered reads, M6 cell freshness and the M7 Settings lease) plus the
-  owner-local overlay below.
+  owner-local overlay below. It is the rollback target for `3e1981c`.
   - It was applied as an incremental patch from `3ee3f36`.
   - The owner compiled it with ESPHome **2026.9.1** / ESP-IDF 5.5.5: 0
     errors, RAM 59.8 % (108,120 B), flash 68.7 % (1,260,739 B),
@@ -111,7 +121,7 @@ in the same commit.
   the observation window. No endpoint required authentication (the overlay
   above).
 - **Delta reports:** until the owner deploys a newer commit, every deployment
-  delta is computed against `bfa2b44`. A commit is recorded here as deployed
+  delta is computed against `3e1981c`. A commit is recorded here as deployed
   only after the owner has transferred, compiled and uploaded it.
 - **Local YAML:** when `batterylifepo4.yaml` did not change since the
   deployed baseline, the owner keeps their local copy (with the overlay). When
@@ -120,7 +130,7 @@ in the same commit.
 ## Deployment-delta reporting rule
 
 Every change that touches the build must be reported as an exact deployment
-delta against the previously deployed commit (currently `bfa2b44`, see
+delta against the previously deployed commit (currently `3e1981c`, see
 above). For each changed file in the set above, give its path, size, full
 SHA-256 and its destination in the owner's layout (the `jk_bms_ui/` mapping). Exclude tests, docs,
 evidence-only files, `demo/mock-server.js` and unchanged files. For example:
@@ -190,8 +200,8 @@ deployed as production firmware.
       equals production's, so an accidental Install would replace
       production.
     - Production is restored by rebuilding and installing
-      `batterylifepo4.yaml`; verify `config_hash=0x5dc113b1` for
-      `bfa2b44`.
+      `batterylifepo4.yaml` and verifying its `config_hash`:
+      `0x5dc113b1` for `bfa2b44`, `0x761ac342` for `3e1981c`.
     The text below documents the gate B mode itself and its pass criteria,
     which gate C applies to its A1/A2 part.
   - **Selection:** it is never the default. The YAML stays on
@@ -255,6 +265,6 @@ deployed as production firmware.
   - legacy, present before M5:
     - `components/jk_diag/jk_reset_diag_rtc.h:90` (`-Wextra`, enumerated
       and non-enumerated type in a conditional expression);
-    - `batterylifepo4.yaml:5425` (line 5438 before `bfa2b44`; `-Waddress`, an always-true NULL check of
+    - `batterylifepo4.yaml:5441` (5425 in `bfa2b44`, 5438 before; `-Waddress`, an always-true NULL check of
       `total_runtime_in_seconds`).
   - These are tracked as `docs/project/CURRENT_LIMITATIONS.md` L14.

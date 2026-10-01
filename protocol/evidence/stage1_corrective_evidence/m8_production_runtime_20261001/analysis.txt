@@ -1,0 +1,29 @@
+window: 239.6 s, state events 32177, logs 4, pings 25
+read_plan_success events: 533; non-cluster (fallback block) events: 0
+cluster | events | rev first..last (delta) | rev gaps (coalesced) | mean interval s | max interval s | max rev step
+A1 | 224 | 526..755 (229) | 2 (non-increasing: 0) | 1.027 | 5.304 | 5
+A2 | 229 | 523..755 (232) | 4 (non-increasing: 2) | 1.018 | 3.225 | 3
+C1 | 16 | 52..67 (15) | 0 (non-increasing: 0) | 15.003 | 15.064 | 1
+C2 | 16 | 52..67 (15) | 0 (non-increasing: 0) | 15.003 | 15.099 | 1
+S1 | 16 | 36..51 (15) | 0 (non-increasing: 0) | 14.977 | 15.025 | 1
+S2 | 16 | 36..51 (15) | 0 (non-increasing: 0) | 14.995 | 15.105 | 1
+S3 | 16 | 36..51 (15) | 0 (non-increasing: 0) | 14.996 | 15.125 | 1
+global success seq: 1253..1797, non-monotonic steps: 2
+text_sensor/bms health: 118 events, distinct sequence: ['LIVE']
+text_sensor/read cluster mode: 3 events, distinct sequence: ['clusters']
+text_sensor/reset reason: 3 events, distinct sequence: ['SW (esp_restart)']
+sensor/reset count since power on: 3 events, distinct sequence: ['2']
+text_sensor/write transaction snapshot: 3 events, distinct sequence: ['']
+text_sensor/last write crash stage: 3 events, distinct sequence: ['IDLE']
+sensor/cell count transaction status code: 3 events, distinct sequence: ['NA']
+sensor/setup passcode transaction status code: 3 events, distinct sequence: ['NA']
+sensor/cell count transaction id: 3 events, distinct sequence: ['NA']
+text_sensor/topology state: 229 events, distinct sequence: ['CONFIRMED']
+system uptime: 515.0 -> 755.0 s, decreases: 0
+ping uptime: 517 -> 752, decreases: 0
+logs:
+  +   10.6s [W][component:419]: modbus took a long time for an operation (361 ms), max is 280 ms
+  +   38.6s [W][component:419]: modbus took a long time for an operation (371 ms), max is 370 ms
+  +   43.7s [W][component:419]: modbus took a long time for an operation (381 ms), max is 380 ms
+  +   52.9s [W][component:419]: modbus took a long time for an operation (638 ms), max is 390 ms
+flagged logs: 0

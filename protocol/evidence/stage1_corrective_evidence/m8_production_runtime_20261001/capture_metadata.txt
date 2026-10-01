@@ -1,0 +1,10 @@
+# Capture metadata
+## t_start (before GET /0.js)
+2026-10-01T20:22:42Z
+## SSE (one connection, curl -m 240; epoch s)
+1790886172 CONNECT
+1790886412 DISCONNECT
+## t_end (end freshness GET)
+2026-10-01T20:26:52Z
+## curl stderr
+curl: (28) Operation timed out after 240005 milliseconds with 2936287 bytes received

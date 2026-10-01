@@ -69,15 +69,21 @@ generated inventories linked below, not in prose.
       `over1.5x = 0`, constant `queue_ms`;
     - production `bfa2b44` was then restored (same `config_hash`
       `0x5dc113b1`) and checked LIVE.
-  - **M8 is host-complete (2026-10-01; not compiled or deployed):**
+  - **M8 is deployed in `3e1981c` since 2026-10-01 at 23:13** (0 new
+    warnings, `config_hash 0x761ac342`). Its read-only runtime audit passed:
+    `read_pause_reason` = `none`, LIVE, `clusters`, lease 0, A 1 s, C/S
+    15 s, 102/103 blocks fresh.
+    - Open observation (L16): `modbus took a long time` warnings of
+      361–638 ms and a 5.3 s SSE gap, cause unknown.
+  - M8 design:
     - full read pause during writes, from `jk_write_tx::bus_owner()`, with
       a published `read_pause_reason`;
     - a proven maximum of 7500 ms per write;
     - `WRITE_UNCERTAIN` no longer holds the pause; before M8 that pause
       was unbounded;
     - a "paused for write" browser state that is never fresh.
-  - Next: production compile and deploy of M8, then gate D with per-field
-    approval, then M9 and M10.
+  - Next: host analysis of L16, then gate D with per-field approval (not
+    started), then M9 and M10.
   - **Settings writes stay prohibited until gate D.**
 
   ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not
@@ -92,7 +98,7 @@ generated inventories linked below, not in prose.
 - **Protocol model:** the official V1.1 manifest, canonical registers,
   non-register entities and service actions, plus blockers and evidence. All
   runtime definitions are generated from them.
-- **Read path:** the deployed firmware (`bfa2b44`) services the
+- **Read path:** the deployed firmware (`3e1981c`) services the
   generated plan through seven wide clusters, with latched per-group
   narrow/bespoke fallback and an isolated on-demand passcode read. Every
   implemented key is published through exactly one ESPHome entity, which HA
@@ -118,10 +124,10 @@ generated inventories linked below, not in prose.
 
 ## Deployment and open security items
 
-- **Deployed baseline (2026-10-01):** `bfa2b44` (M5+M6+M7) plus the owner's
-  local overlay (web auth commented out; UI files, and at least the
+- **Deployed baseline (2026-10-01, 23:13):** `3e1981c` (M5–M8) plus the
+  owner's local overlay (web auth commented out; UI files, and at least the
   generated package, under `jk_bms_ui/`). The previous deployment was
-  `3ee3f36`.
+  `bfa2b44`.
   - Built with ESPHome 2026.9.1.
   - Source confidence: the UI is cryptographically matched; the firmware
     match is high but not cryptographic.
