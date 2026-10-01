@@ -398,6 +398,20 @@
       "note": "Production: batterylifepo4.yaml template text_sensor id read_cluster_mode (entity_category diagnostic). 'clusters' while every cluster is read as one Modbus request (docs/project/RS485_CLUSTERED_READ_MIGRATION_PLAN.md, M5); 'fallback:<cluster ids>' (e.g. 'fallback:A1,A2') once a lead cluster failed 3 consecutive reads and its group latched into the bounded legacy per-block readers. The latch holds until reboot, so the value never oscillates; it is published only on change from the 100 ms snapshot interval. Rendered read-only in the web UI's Diagnostics software list so a latched fallback is visible; never a Settings parameter or writable."
     },
     {
+      "key": "read_pause_reason",
+      "category": "calculated_esphome",
+      "esphome_domain": "text_sensor",
+      "esphome_entity_id": "read pause reason",
+      "esphome_configured_name": "read pause reason",
+      "esphome_yaml_id": "read_pause_reason",
+      "unit": "",
+      "uk_display_unit": "",
+      "en_display_unit": "",
+      "frontend_label_uk": "Причина паузи читання",
+      "frontend_label_en": "Read pause reason",
+      "note": "Production: batterylifepo4.yaml template text_sensor id read_pause_reason (entity_category diagnostic). Clustered-read plan M8: 'none', or the transaction that owns the RS485 bus and pauses every ordinary read -- 'register_write' (a generic write slot in SENDING/ACK_WAIT/READBACK_WAIT; WRITE_UNCERTAIN does not hold the bus), 'cellcount', 'topology_recovery' or 'passcode'. Computed by jk_write_tx::bus_owner(), the same predicate the generated read servicer pauses on, and published on change from the 100 ms snapshot interval. The web UI shows 'paused for write' from it and disables every OK; it never refreshes or freezes physical freshness. Read-only, never a Settings parameter."
+    },
+    {
       "key": "cellcount_tx_id",
       "category": "calculated_esphome",
       "esphome_domain": "sensor",

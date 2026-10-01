@@ -138,14 +138,16 @@ int main() {
     if (cadence == 15000) check(gap < 2 * cadence + 1500, "  ... a 2 x cadence budget would show it for < 1.5 s only (" + std::to_string(gap - 2 * cadence) + " ms)");
   }
 
-  // 5. A failed write (ACK 3 s + readback 4 s timeouts: reads paused 7 s) is a
-  //    genuine delay, never a missed cycle: no block reaches 2 x cadence.
+  // 5. A failed write is a genuine delay, never a missed cycle: no block
+  //    reaches 2 x cadence. The pause is the proven worst-case bus ownership
+  //    of one write on the 250 ms servicer: 3250 ms (ACK edge) + 4250 ms
+  //    (readback edge) = 7500 ms (test/jk_write_tx/test_jk_write_tx_bus_pause.cpp).
   {
-    const Result r = run(calibrated(), {{300000, 307000}});
+    const Result r = run(calibrated(), {{300000, 307500}});
     bool below_two = true;
     for (size_t i = 0; i < N; i++)
       if (jk_read_plan::kBlocks[i].cadence_ms && max_interval(r, i, kWarmupMs) >= 2 * jk_read_plan::kBlocks[i].cadence_ms) below_two = false;
-    check(below_two, "failed write (7 s pause): data older than budget may show stale, but no block misses a whole cycle");
+    check(below_two, "failed write (7.5 s worst-case pause): data older than budget may show stale, but no block misses a whole cycle");
   }
 
   std::printf("poll cadence simulation: %d/%d checks passed (nominal rate %.3f/s, bus %.1f%%, worst nominal margin %d ms)\n",

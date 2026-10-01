@@ -1186,54 +1186,70 @@ Rules that apply to every phase:
 - **Commit:** `feat(settings): refresh Settings under an active lease`.
 - **Deploy:** `jk_bms.js`, `batterylifepo4.yaml` patch, generated files.
 
-### M8 — Write interleaving or explicit write pause; gate D
+### M8 — Write interleaving or explicit write pause; gate D — HOST-COMPLETE (2026-10-01)
 
-> **Preparation (2026-10-01): host-only, not started; no BMS write is
-> authorized.**
+> **Status (2026-10-01): HOST-COMPLETE, not compiled or deployed; no BMS
+> write is authorized (gate D still open).**
 >
-> **Current code (`bfa2b44`): a full write pause.** The generated servicer
-> issues no cluster, bespoke or passcode read while any of these is
-> pending:
-> - a write-tx slot (`is_pending()`);
-> - the CellCount transaction;
-> - topology recovery;
-> - the setup-passcode transaction (the §5 passcode gap is closed in M5).
+> **Owner decision:** full read pause during writes, no interleaving in
+> W1/W2, no widened budget, and a distinct "paused for write" state that
+> never counts as fresh.
 >
-> **Timing inputs:**
-> - The write-tx `tick()` runs every 250 ms. ACK timeout 3000 ms, readback
->   4000 ms.
-> - Gate C bus timings: `bms_ms` ≤ 30 ms; `total_ms` max 44 ms (A1/C1) and
->   62 ms (A2/C2).
-> - A successful write therefore holds the bus for about
->   write + ≤250 ms + readback + ≤250 ms, roughly 0.6 s. That is below the
->   A1 1.5 s budget and the 3 s cell budget, so it costs at most one telemetry
->   slot.
-> - A failed write can hold the pause for up to about 7 s, which turns
->   telemetry genuinely stale today.
+> **Model:** `test/jk_write_tx/test_jk_write_tx_bus_pause.cpp` drives the
+> real `jk_write_tx::tick()` on the 250 ms servicer at every tick phase
+> 0–249 ms, with ACK/readback arrival times up to the timeout edges and
+> "never" (46,046 checks).
+> - A typical write (ACK and readback 62 ms, the Gate C maximum) owns the
+>   bus for 312–561 ms.
+> - An ACK timeout releases it in (3000, 3250] ms.
+> - The **proven maximum ownership of one write is exactly 7500 ms**:
+>   3250 ms at the ACK edge plus 4250 ms at the readback edge. The slowest
+>   CONFIRMED write takes the same.
+> - Add main-loop jitter on top of that; the production observations saw
+>   main-loop blocking of up to 252 ms.
 >
-> **Proposal, to be decided by simulation as §5 requires:**
-> - Keep the full pause; do not interleave in W1/W2. The gain is at most
->   one slot per write, and interleaving adds FIFO/readback-ordering risk.
-> - Add the bounded **write-pause** state, firmware-published and
->   UI-rendered:
->   - telemetry shows "paused for write" instead of stale, for at most
->     ACK + readback (7 s) per transaction;
->   - normal budgets are never widened;
->   - a timeout or overrun becomes genuine stale;
->   - CellCount and topology recovery keep a full pause.
+> **Defect found and fixed:** before M8 the read pause used `is_pending()`,
+> which includes `WRITE_UNCERTAIN`. After an ACK or readback timeout, the
+> recovery probe is retried every 2 s with no limit. An unanswered or
+> wrong-length probe therefore paused every read indefinitely.
 >
-> **Host work:**
-> - a write-pause model in the scheduler/runtime core plus the publication
->   of the pause state;
-> - the UI freshness rule;
-> - simulation of 1 s and 7 s writes;
-> - mutations:
->   - a read issued during an outstanding write;
->   - interleaving during CellCount;
->   - a widened budget in place of the pause state;
->   - a pause that never ends.
+> **Design:**
+> - `jk_write_tx::owns_bus()` covers SENDING, ACK_WAIT and READBACK_WAIT
+>   only. `WRITE_UNCERTAIN` stays pending for its address, still blocking
+>   a new write there, but its recovery probe is one ordinary FC03 read.
+> - `jk_write_tx::bus_owner()` is the single predicate. The generated
+>   servicer pauses every cluster, fallback, bespoke and passcode read on
+>   it, and the firmware publishes its name as `read_pause_reason`
+>   (`none` / `register_write` / `cellcount` / `topology_recovery` /
+>   `passcode`) on change from the 100 ms snapshot interval.
+> - The CellCount driver, topology recovery and the passcode transaction
+>   keep full ownership, each bounded by its own 3 s / 4 s / 4 s timeouts on
+>   the 250 ms servicer.
+> - ACK and forced-readback order are unchanged; the write servicer never
+>   consults the read pause.
 >
-> **Hardware:** none until gate D (per-field authorization).
+> **Browser:**
+> - While `read_pause_reason` ≠ `none`, every OK is disabled.
+> - A value past its budget shows **paused** (dashed and muted, never fresh
+>   or stale); a value still inside its budget stays fresh.
+> - Physical-read times and the 1.5 s / 3.5 s budgets are untouched.
+> - When the pause ends, an over-budget value is genuinely **stale** until
+>   a new physical read; the browser runs no pause timer of its own.
+>
+> **Tests:**
+> - the bus-pause model;
+> - the servicer structure test (36/36);
+> - the settings catalog test (300/300, M8 scenario);
+> - the poll-cadence simulation updated from 7 s to the proven 7.5 s.
+>
+> **Mutations killed:** an ordinary read during a pending write (core and
+> servicer); interleaving during CellCount; a widened budget instead of the
+> pause state; a pause that never ends (`WRITE_UNCERTAIN` holding the
+> bus).
+>
+> **Residual:** while topology stays uncertain, its recovery probe still
+> pauses reads for up to about 4.25 s every 5 s. After a failed CellCount
+> the worst contiguous pause is about 7.5 + 4.25 s.
 
 - **Prerequisite:** M7.
 - **Files:** the write-tx loop in `batterylifepo4.yaml`, the scheduler

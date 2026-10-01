@@ -1,8 +1,8 @@
 {
   "$schema": "protocol-entity-routes-generated-v1",
   "generated_by": "tools/protocol/authoring/build_protocol_entity_routes.js",
-  "source_hash": "acbeab17c79ec08e",
-  "route_count": 321,
+  "source_hash": "1a1fad76748edc12",
+  "route_count": 322,
   "routes": [
     {
       "key": "active_cells_voltage_sum",
@@ -1623,6 +1623,12 @@
       "domain": "text_sensor",
       "entityId": "read_cluster_mode",
       "configuredName": "read cluster mode"
+    },
+    {
+      "key": "read_pause_reason",
+      "domain": "text_sensor",
+      "entityId": "read_pause_reason",
+      "configuredName": "read pause reason"
     },
     {
       "key": "read_plan_success",

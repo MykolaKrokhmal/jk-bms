@@ -58,6 +58,12 @@ g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
 "$BUILD_DIR/test_jk_write_tx_core"
 
 echo
+echo "=== jk_write_tx bus pause (plan M8): real tick() at 250 ms, every phase; proven max ownership; bus_owner() ==="
+g++ -std=c++17 -O2 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
+  "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_bus_pause.cpp" -o "$BUILD_DIR/test_jk_write_tx_bus_pause"
+"$BUILD_DIR/test_jk_write_tx_bus_pause"
+
+echo
 echo "=== jk_write_tx_core RMW (Stage 4) unit tests ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
   "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_rmw_core.cpp" -o "$BUILD_DIR/test_jk_write_tx_rmw_core"

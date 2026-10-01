@@ -9,14 +9,14 @@
     "protocol/generated/protocol_entity_routes.json"
   ],
   "source_sha256": {
-    "batterylifepo4.yaml": "b41c3b4e798eaae67e1c8ddba58b522b5dab9e5e6705b81d9a01ade50cad879b",
-    "protocol/registers.canonical.json": "b62d1d775eeb6fd7495886fcca7f4562eeb446150daca5a30b551f620aba8d98",
-    "protocol/generated/read_clusters.json": "11602a418e2e3c608d8b39406d3212f3b1dfa1fbeb7c07e2c1e4a76d43b8ea91",
-    "protocol/generated/read_plan.json": "5088fdf145870b078b88e2e3de22fa7f0f0a3f58487b61cf73805af6493dcb7c",
-    "protocol/generated/write_registry.json": "f9356e2ee95fb1a0f1f014b41063db3c12d339df9eceb5a2a1626a934750351e",
-    "protocol/generated/protocol_entity_routes.json": "cfd8a865e9e8125c04a6cff79777119ad0c10b99f220ae14252fc3e7dd3700e6"
+    "batterylifepo4.yaml": "29644d6748f0f630f5afb7266a32fb41e3d07497f1817aea4d0941ca6b13fa78",
+    "protocol/registers.canonical.json": "f12c69a07e33cf3ff102239758343d3fe67fd94d7148bc300f029f3d89597f5e",
+    "protocol/generated/read_clusters.json": "9e55b023d9426c896c018be02caa1c737ea4882844cea68e5ed5acac3863262c",
+    "protocol/generated/read_plan.json": "9a28908b3fd098acd9812cdeded86171d33bf9694f17625acdc4ecd525f86142",
+    "protocol/generated/write_registry.json": "3b61143b604683dc3b9164a031325455f763a645dd48d45a6d48aebfe0836c1e",
+    "protocol/generated/protocol_entity_routes.json": "b5f44a4a6e8d28c12a1b9ae7e877d82b4c0daf099d333340c49da4ed430f21f5"
   },
-  "total_lines": 5909,
+  "total_lines": 5925,
   "runtime_bindings": [
     {
       "source_path": "batterylifepo4.yaml",
@@ -126,7 +126,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/280",
+            "json_pointer": "/routes/281",
             "key": "smart_sleep",
             "domain": "sensor",
             "entity_id": "smart_sleep",
@@ -238,7 +238,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/280"
+                "json_pointer": "/routes/281"
               }
             }
           }
@@ -979,7 +979,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/288",
+            "json_pointer": "/routes/289",
             "key": "start_balance_trigger",
             "domain": "sensor",
             "entity_id": "start_balance_trigger",
@@ -1091,7 +1091,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/288"
+                "json_pointer": "/routes/289"
               }
             }
           }
@@ -1172,7 +1172,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/284",
+            "json_pointer": "/routes/285",
             "key": "soc_100",
             "domain": "sensor",
             "entity_id": "soc_100",
@@ -1284,7 +1284,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/284"
+                "json_pointer": "/routes/285"
               }
             }
           }
@@ -1365,7 +1365,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/283",
+            "json_pointer": "/routes/284",
             "key": "soc_0",
             "domain": "sensor",
             "entity_id": "soc_0",
@@ -1477,7 +1477,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/283"
+                "json_pointer": "/routes/284"
               }
             }
           }
@@ -1920,7 +1920,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/291",
+            "json_pointer": "/routes/292",
             "key": "system_power_off",
             "domain": "sensor",
             "entity_id": "system_power_off",
@@ -2000,7 +2000,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/291"
+                "json_pointer": "/routes/292"
               }
             }
           }
@@ -3015,7 +3015,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/275",
+            "json_pointer": "/routes/276",
             "key": "scpr_time",
             "domain": "sensor",
             "entity_id": "scpr_time",
@@ -3127,7 +3127,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/275"
+                "json_pointer": "/routes/276"
               }
             }
           }
@@ -5438,7 +5438,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/274",
+            "json_pointer": "/routes/275",
             "key": "scp_delay",
             "domain": "sensor",
             "entity_id": "scp_delay",
@@ -5518,7 +5518,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/274"
+                "json_pointer": "/routes/275"
               }
             }
           }
@@ -5599,7 +5599,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/287",
+            "json_pointer": "/routes/288",
             "key": "start_balance",
             "domain": "sensor",
             "entity_id": "start_balance",
@@ -5711,7 +5711,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/287"
+                "json_pointer": "/routes/288"
               }
             }
           }
@@ -11057,7 +11057,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/299",
+            "json_pointer": "/routes/300",
             "key": "tim_prodischarge",
             "domain": "sensor",
             "entity_id": "tim_prodischarge",
@@ -11137,7 +11137,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/299"
+                "json_pointer": "/routes/300"
               }
             }
           }
@@ -11658,7 +11658,7 @@
           },
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/286",
+            "json_pointer": "/routes/287",
             "key": "special_charger",
             "domain": "binary_sensor",
             "entity_id": "special_charger",
@@ -11666,7 +11666,7 @@
           },
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/281",
+            "json_pointer": "/routes/282",
             "key": "smart_sleep_enabled",
             "domain": "binary_sensor",
             "entity_id": "smart_sleep_enabled",
@@ -11682,7 +11682,7 @@
           },
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/301",
+            "json_pointer": "/routes/302",
             "key": "timed_stored_data",
             "domain": "binary_sensor",
             "entity_id": "timed_stored_data",
@@ -12402,7 +12402,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/286"
+                "json_pointer": "/routes/287"
               }
             }
           },
@@ -12520,7 +12520,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/281"
+                "json_pointer": "/routes/282"
               }
             }
           },
@@ -12756,7 +12756,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/301"
+                "json_pointer": "/routes/302"
               }
             }
           },
@@ -12929,7 +12929,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/282",
+            "json_pointer": "/routes/283",
             "key": "smart_sleep_timeout_hours",
             "domain": "sensor",
             "entity_id": "smart_sleep_timeout_hours",
@@ -13051,7 +13051,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/282"
+                "json_pointer": "/routes/283"
               }
             }
           },
@@ -17772,7 +17772,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/308",
+            "json_pointer": "/routes/309",
             "key": "total_voltage_raw",
             "domain": "sensor",
             "entity_id": "total_voltage_raw",
@@ -17798,7 +17798,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/308"
+                "json_pointer": "/routes/309"
               }
             }
           }
@@ -18048,7 +18048,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/293",
+            "json_pointer": "/routes/294",
             "key": "temperature_1",
             "domain": "sensor",
             "entity_id": "temperature_sensor_1",
@@ -18128,7 +18128,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/293"
+                "json_pointer": "/routes/294"
               }
             }
           }
@@ -18185,7 +18185,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/294",
+            "json_pointer": "/routes/295",
             "key": "temperature_2",
             "domain": "sensor",
             "entity_id": "temperature_sensor_2",
@@ -18265,7 +18265,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/294"
+                "json_pointer": "/routes/295"
               }
             }
           }
@@ -20774,7 +20774,7 @@
           },
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/289",
+            "json_pointer": "/routes/290",
             "key": "state_of_charge",
             "domain": "sensor",
             "entity_id": "state_of_charge",
@@ -20930,7 +20930,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/289"
+                "json_pointer": "/routes/290"
               }
             }
           }
@@ -21549,7 +21549,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/290",
+            "json_pointer": "/routes/291",
             "key": "state_of_health",
             "domain": "sensor",
             "entity_id": "state_of_health",
@@ -21637,7 +21637,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/290"
+                "json_pointer": "/routes/291"
               }
             }
           },
@@ -21921,7 +21921,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/306",
+            "json_pointer": "/routes/307",
             "key": "total_runtime",
             "domain": "text_sensor",
             "entity_id": "total_runtime_exact",
@@ -22001,7 +22001,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/306"
+                "json_pointer": "/routes/307"
               }
             }
           }
@@ -22978,7 +22978,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/315",
+            "json_pointer": "/routes/316",
             "key": "uvpr_left",
             "domain": "sensor",
             "entity_id": "uvpr_left",
@@ -23058,7 +23058,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/315"
+                "json_pointer": "/routes/316"
               }
             }
           }
@@ -23364,7 +23364,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/276",
+            "json_pointer": "/routes/277",
             "key": "sensor_heating_mask",
             "domain": "sensor",
             "entity_id": "sensor_heating_mask",
@@ -23428,7 +23428,7 @@
           },
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/298",
+            "json_pointer": "/routes/299",
             "key": "temperature_sensor_status_mask",
             "domain": "sensor",
             "entity_id": "temperature_sensor_status_mask",
@@ -23508,7 +23508,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/276"
+                "json_pointer": "/routes/277"
               }
             }
           },
@@ -24116,7 +24116,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/298"
+                "json_pointer": "/routes/299"
               }
             }
           }
@@ -25469,7 +25469,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/297",
+            "json_pointer": "/routes/298",
             "key": "temperature_sensor_3",
             "domain": "sensor",
             "entity_id": "temperature_sensor_3",
@@ -25549,7 +25549,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/297"
+                "json_pointer": "/routes/298"
               }
             }
           }
@@ -25606,7 +25606,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/295",
+            "json_pointer": "/routes/296",
             "key": "temperature_4",
             "domain": "sensor",
             "entity_id": "temperature_sensor_4",
@@ -25686,7 +25686,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/295"
+                "json_pointer": "/routes/296"
               }
             }
           }
@@ -25743,7 +25743,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/296",
+            "json_pointer": "/routes/297",
             "key": "temperature_5",
             "domain": "sensor",
             "entity_id": "temperature_sensor_5",
@@ -25823,7 +25823,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/296"
+                "json_pointer": "/routes/297"
               }
             }
           }
@@ -25894,7 +25894,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/272",
+            "json_pointer": "/routes/273",
             "key": "rtc_ticks",
             "domain": "text_sensor",
             "entity_id": "rtc_ticks_exact",
@@ -25974,7 +25974,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/272"
+                "json_pointer": "/routes/273"
               }
             }
           }
@@ -26031,7 +26031,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/300",
+            "json_pointer": "/routes/301",
             "key": "time_enter_sleep",
             "domain": "sensor",
             "entity_id": "time_enter_sleep",
@@ -26111,7 +26111,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/300"
+                "json_pointer": "/routes/301"
               }
             }
           }
@@ -26591,7 +26591,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/285",
+            "json_pointer": "/routes/286",
             "key": "software_version",
             "domain": "text_sensor",
             "entity_id": "software_version",
@@ -26671,7 +26671,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/285"
+                "json_pointer": "/routes/286"
               }
             }
           }
@@ -27016,7 +27016,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/277",
+            "json_pointer": "/routes/278",
             "key": "setup_passcode",
             "domain": "text_sensor",
             "entity_id": "setup_passcode_status",
@@ -27096,7 +27096,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/277"
+                "json_pointer": "/routes/278"
               }
             }
           }
@@ -27167,7 +27167,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/310",
+            "json_pointer": "/routes/311",
             "key": "uart1_mprtol_nbr",
             "domain": "sensor",
             "entity_id": "uart1_mprtol_nbr",
@@ -27255,7 +27255,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/310"
+                "json_pointer": "/routes/311"
               }
             }
           },
@@ -27388,7 +27388,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/309",
+            "json_pointer": "/routes/310",
             "key": "uart1_mprtol_enable",
             "domain": "text_sensor",
             "entity_id": "uart1_mprtol_enable",
@@ -27468,7 +27468,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/309"
+                "json_pointer": "/routes/310"
               }
             }
           }
@@ -27525,7 +27525,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/313",
+            "json_pointer": "/routes/314",
             "key": "uart_mprtol_enable_0_15",
             "domain": "text_sensor",
             "entity_id": "uart_mprtol_enable_0_15",
@@ -27605,7 +27605,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/313"
+                "json_pointer": "/routes/314"
               }
             }
           }
@@ -27676,7 +27676,7 @@
         "entity_routes": [
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/312",
+            "json_pointer": "/routes/313",
             "key": "uart2_mprtol_nbr",
             "domain": "sensor",
             "entity_id": "uart2_mprtol_nbr",
@@ -27684,7 +27684,7 @@
           },
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/311",
+            "json_pointer": "/routes/312",
             "key": "uart2_mprtol_enable_0",
             "domain": "sensor",
             "entity_id": "uart2_mprtol_enable_0",
@@ -27764,7 +27764,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/312"
+                "json_pointer": "/routes/313"
               }
             }
           },
@@ -27840,7 +27840,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/311"
+                "json_pointer": "/routes/312"
               }
             }
           }
@@ -28154,7 +28154,7 @@
           },
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/314",
+            "json_pointer": "/routes/315",
             "key": "uart_protocol_library_version",
             "domain": "sensor",
             "entity_id": "uart_protocol_library_version",
@@ -28310,7 +28310,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/314"
+                "json_pointer": "/routes/315"
               }
             }
           }
@@ -29348,7 +29348,7 @@
           },
           {
             "source_path": "protocol/generated/protocol_entity_routes.json",
-            "json_pointer": "/routes/271",
+            "json_pointer": "/routes/272",
             "key": "rfv_time",
             "domain": "sensor",
             "entity_id": "rfv_time",
@@ -29504,7 +29504,7 @@
               },
               "implementation_entity_mapping": {
                 "source_path": "protocol/generated/protocol_entity_routes.json",
-                "json_pointer": "/routes/271"
+                "json_pointer": "/routes/272"
               }
             }
           }
@@ -29661,5 +29661,5 @@
       }
     ]
   },
-  "release_generation_id": "da1d06c468fa6a5a"
+  "release_generation_id": "921dd28face2a1af"
 }

@@ -27,6 +27,7 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -131,6 +132,49 @@ inline bool is_pending(uint8_t status) {
   // becomes writable again the instant recovery finishes, same as any
   // other terminal status).
   return status == SENDING || status == ACK_WAIT || status == READBACK_WAIT || status == WRITE_UNCERTAIN;
+}
+
+// Clustered-read plan M8: whether this slot owns the RS485 bus, so every
+// ordinary read (cluster, fallback, bespoke, passcode status) must pause.
+// Only while its own write or forced readback can still be on the wire.
+// WRITE_UNCERTAIN is still pending for its address (is_pending) but does
+// not own the bus: its recovery probe is one ordinary FC03 read, retried
+// until it answers, and holding the read pause for it had no bound (an
+// unanswered probe paused every read indefinitely). With tick() on the
+// 250 ms servicer, ownership is bounded by 3250 ms (ACK edge) + 4250 ms
+// (readback edge) = 7500 ms (test_jk_write_tx_bus_pause.cpp).
+inline bool owns_bus(uint8_t status) {
+  return status == SENDING || status == ACK_WAIT || status == READBACK_WAIT;
+}
+
+// The one authoritative answer to "who owns the bus right now". The
+// generated read servicer pauses every ordinary read while this is not
+// NONE, and the firmware publishes its name (text_sensor read_pause_reason)
+// so the browser can show "paused for write" without a timer of its own.
+// The CellCount driver, topology recovery and the setup-passcode
+// transaction keep their own full ownership (pending flags), each already
+// bounded by its own ACK/readback/recovery timeouts on the 250 ms servicer.
+enum class BusOwner : uint8_t { NONE = 0, REGISTER_WRITE = 1, CELLCOUNT = 2, TOPOLOGY_RECOVERY = 3, PASSCODE = 4 };
+
+inline BusOwner bus_owner(const uint8_t *slot_in_use, const uint8_t *slot_status, std::size_t slots, bool cellcount_pending,
+                          bool topology_recovery_pending, bool passcode_pending) {
+  if (cellcount_pending) return BusOwner::CELLCOUNT;
+  if (topology_recovery_pending) return BusOwner::TOPOLOGY_RECOVERY;
+  if (passcode_pending) return BusOwner::PASSCODE;
+  for (std::size_t i = 0; i < slots; i++) {
+    if (slot_in_use[i] && owns_bus(slot_status[i])) return BusOwner::REGISTER_WRITE;
+  }
+  return BusOwner::NONE;
+}
+
+inline const char *bus_owner_name(BusOwner o) {
+  switch (o) {
+    case BusOwner::REGISTER_WRITE: return "register_write";
+    case BusOwner::CELLCOUNT: return "cellcount";
+    case BusOwner::TOPOLOGY_RECOVERY: return "topology_recovery";
+    case BusOwner::PASSCODE: return "passcode";
+    default: return "none";
+  }
 }
 
 // Starts a new transaction in a free slot. Enforces the single-flight-

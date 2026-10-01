@@ -1456,6 +1456,12 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 .cell-composite-row b[data-freshness="pending"]{ color:var(--ink-dim); }
 .settings-catalog-value[data-freshness="offline"],
 .cell-composite-row b[data-freshness="offline"]{ color:var(--ink-faint); }
+/* M8: reads paused for a write -- muted and dashed, never the stale yellow. */
+.settings-field-shell:has(> [data-freshness="paused"]){ border-style:dashed; }
+.settings-field-shell:has(> [data-freshness="paused"]) > :not(:disabled){ color:var(--ink-dim); -webkit-text-fill-color:var(--ink-dim); }
+.settings-catalog-value[data-freshness="paused"],
+.cell-composite-row b[data-freshness="paused"],
+.is-paused{ color:var(--ink-dim); }
 
 /* The action slot: OK, or the lock that replaces it, in one footprint. */
 .settings-catalog-action,

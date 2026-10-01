@@ -69,8 +69,15 @@ generated inventories linked below, not in prose.
       `over1.5x = 0`, constant `queue_ms`;
     - production `bfa2b44` was then restored (same `config_hash`
       `0x5dc113b1`) and checked LIVE.
-  - Next: **M8** (write coordination with clustered reads), then gate D
-    with per-field approval, then M9 and M10.
+  - **M8 is host-complete (2026-10-01; not compiled or deployed):**
+    - full read pause during writes, from `jk_write_tx::bus_owner()`, with
+      a published `read_pause_reason`;
+    - a proven maximum of 7500 ms per write;
+    - `WRITE_UNCERTAIN` no longer holds the pause; before M8 that pause
+      was unbounded;
+    - a "paused for write" browser state that is never fresh.
+  - Next: production compile and deploy of M8, then gate D with per-field
+    approval, then M9 and M10.
   - **Settings writes stay prohibited until gate D.**
 
   ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not

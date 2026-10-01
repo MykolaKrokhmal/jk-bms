@@ -720,7 +720,7 @@ function main() {
   runFalseStaleScenario();
 
   runRealReconnectScenario("visible").then(() => runRealReconnectScenario("ping")).then(() => runUnifiedWriteContractScenario())
-    .then(() => runSettingsLeaseScenario()).then(() => {
+    .then(() => runSettingsLeaseScenario()).then(() => runBusPauseScenario()).then(() => {
     console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
     process.exit(failures ? 1 : 0);
   }, (error) => { console.error(error); process.exit(1); });
@@ -1873,6 +1873,59 @@ async function runSettingsLeaseScenario() {
     p.legacyButton.disabled === true);
   p.document.visibilityState = "visible";
   check("M7: zero write requests in the whole lease scenario", fetchCallLog.length === 0);
+}
+
+// M8: the firmware's read_pause_reason (who owns the bus) through the real
+// SSE ingest path; the browser never runs a pause timer of its own.
+async function runBusPauseScenario() {
+  fakeNow = 2900000;
+  const p = bootStartupPage();                       // connected + Settings lease held
+  const { hooks } = p;
+  const { PROTOCOL_CATALOG, physicalReadSource, settingsWriteReadiness, settingsFieldFreshness, readBlockSuccess, ingestPayload } = hooks;
+  const pause = (reason) => ingestPayload({ id: "text_sensor/read pause reason", state: reason, value: reason });
+  health(p, "LIVE");
+  hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);
+  ingestStartupValues(p);
+  pause("none");
+  check("M8: no bus owner -> the C2 row is writable after its active read", p.legacyButton.disabled === false &&
+    settingsWriteReadiness("smart_sleep_timeout_hours").kind === "fresh");
+  const budgetsBefore = JSON.stringify([PROTOCOL_CATALOG.fieldMeta.cell_voltage_4.freshnessBudgetS, PROTOCOL_CATALOG.fieldMeta.smart_sleep_timeout_hours.freshnessBudgetS]);
+  const cellReadAt = physicalReadSource(PROTOCOL_CATALOG.fieldMeta.cell_voltage_4).at;
+
+  pause("register_write");
+  check("M8: a register write owning the bus disables every OK at once (still-fresh data)",
+    p.legacyButton.disabled === true && p.binaryButton.disabled === true &&
+    settingsWriteReadiness("smart_sleep_timeout_hours").kind === "paused" && settingsWriteReadiness("lcd_always_on").kind === "paused");
+  check("M8: a value still inside its budget stays fresh while paused (pause never invents staleness)",
+    settingsFieldFreshness("cell_voltage_4").kind === "fresh" && p.cell4().voltage.dataset.freshness === "fresh");
+  fakeNow += 4000;                                    // cell budget 3 s passes during the pause
+  hooks.sweepDiagnosticStaleness();
+  const pausedCell = settingsFieldFreshness("cell_voltage_4");
+  check("M8: past its budget during a pause a value is 'paused' -- never fresh, not stale", pausedCell.kind === "paused" &&
+    /register write/.test(pausedCell.explanation) && p.cell4().voltage.dataset.freshness === "paused", JSON.stringify(pausedCell));
+  ingestPayload({ id: "sensor/cell voltage 4", state: "3.452 V", value: 3.452 });
+  check("M8: a value published during the pause does not refresh freshness (no physical read)",
+    settingsFieldFreshness("cell_voltage_4").kind === "paused" && physicalReadSource(PROTOCOL_CATALOG.fieldMeta.cell_voltage_4).at === cellReadAt);
+  check("M8: the pause leaves budgets and physical-read times untouched", JSON.stringify([PROTOCOL_CATALOG.fieldMeta.cell_voltage_4.freshnessBudgetS,
+    PROTOCOL_CATALOG.fieldMeta.smart_sleep_timeout_hours.freshnessBudgetS]) === budgetsBefore &&
+    physicalReadSource(PROTOCOL_CATALOG.fieldMeta.cell_voltage_4).at === cellReadAt);
+  for (const [reason, word] of [["cellcount", "cell-count"], ["topology_recovery", "topology"], ["passcode", "passcode"]]) {
+    pause(reason);
+    check(`M8: '${reason}' ownership is shown with its own reason and keeps every OK disabled`,
+      settingsFieldFreshness("cell_voltage_4").explanation.includes(word) && p.legacyButton.disabled === true);
+  }
+
+  pause("none");
+  check("M8: when the pause ends the over-budget value is genuinely stale until a physical read",
+    settingsFieldFreshness("cell_voltage_4").kind === "stale" && p.cell4().voltage.dataset.freshness === "stale");
+  check("M8: the C2 row stays locked after the pause until a new active read (strict 3.5 s budget not widened)",
+    p.legacyButton.disabled === true && settingsWriteReadiness("smart_sleep_timeout_hours").kind === "stale");
+  fakeNow += 1;
+  readBlockSuccess("A1:2");
+  readBlockSuccess("C2:2");
+  check("M8: new physical reads after the pause restore fresh values and the OK",
+    settingsFieldFreshness("cell_voltage_4").kind === "fresh" && p.legacyButton.disabled === false);
+  check("M8: zero write requests in the pause scenario", fetchCallLog.length === 0);
 }
 
 function document_visible(page) {

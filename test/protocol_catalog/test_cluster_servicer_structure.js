@@ -33,13 +33,28 @@ const at = (s) => servicer.indexOf(s);
 // 1. Bus ownership: nothing is issued while a read is in flight or a write
 // (generic slots, CellCount, setup passcode) owns the bus.
 const busyReturn = at("if (rt.busy() || id(g_rp_pending_index) >= 0) return;");
-const writeReturn = at("if (write_in_flight) return;");
+const writeReturn = at("if (bus_owner != jk_write_tx::BusOwner::NONE) return;");
 const firstIssue = at("rt.issue(now, false, lease)");
 check("servicer: the busy check and the write-in-flight return both precede the first issue",
   servicerStart >= 0 && busyReturn > 0 && writeReturn > busyReturn && firstIssue > writeReturn);
-check("servicer: write_in_flight covers the generic write slots, the CellCount driver and the setup-passcode write",
-  servicer.includes("bool write_in_flight = id(g_cellcount_tx_pending) || id(g_topology_recovery_pending) || id(g_passcode_tx_pending);") &&
-  servicer.includes("if (id(g_wtx_in_use)[i] && jk_write_tx::is_pending(id(g_wtx_status)[i])) { write_in_flight = true; break; }"));
+check("servicer (M8): the pause is jk_write_tx::bus_owner() over the generic write slots, CellCount, topology recovery and the setup-passcode write",
+  servicer.includes("const auto bus_owner = jk_write_tx::bus_owner(id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending),") &&
+  servicer.includes("id(g_topology_recovery_pending), id(g_passcode_tx_pending));") && !/jk_write_tx::is_pending\(/.test(servicer));
+{
+  // M8: the transaction's own ACK/readback/recovery commands are queued by the
+  // 250 ms write servicer, which never consults the read pause; the pause
+  // reason is published from the same predicate.
+  const wStart = yaml.indexOf("const auto result = jk_write_tx::tick(s, now);");
+  const wEnd = yaml.indexOf("\n  - interval:", wStart);
+  const writeServicer = wStart >= 0 ? yaml.slice(wStart, wEnd) : "";
+  check("write servicer (M8): issues its forced readback after the ACK tick and never consults the read pause",
+    writeServicer.includes("if (result.issue_readback) {") && !writeServicer.includes("bus_owner("));
+  check("firmware (M8): read_pause_reason is published on change from jk_write_tx::bus_owner() with the same four ownership sources",
+    yaml.includes("const char *pause = jk_write_tx::bus_owner_name(jk_write_tx::bus_owner(") &&
+    yaml.includes("id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),") &&
+    yaml.includes("if (id(read_pause_reason).state != pause) id(read_pause_reason).publish_state(pause);") &&
+    /id: read_pause_reason\n\s+name: "read pause reason"/.test(yaml));
+}
 check("servicer: every read (cluster, passcode, bespoke fallback, per-block fallback) is issued after those returns",
   [...servicer.matchAll(/create_read_command\(/g)].every((m) => m.index > writeReturn) &&
   (servicer.match(/create_read_command\(/g) || []).length === 4);

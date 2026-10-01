@@ -706,3 +706,40 @@ stat output.
 
 **Status:** Active from 2026-10-01. Settings writes remain prohibited until
 gate D.
+
+## Decision: Full read pause during writes, bounded by bus ownership (M8)
+
+**Context (2026-10-01):** M8 had to choose between interleaving reads in
+the W1/W2 idle windows of a write and a full pause (plan §5). The
+real-`tick()` model (`test/jk_write_tx/test_jk_write_tx_bus_pause.cpp`)
+showed:
+- a typical write owns the bus for 312–561 ms;
+- the worst case is exactly 7500 ms;
+- the pre-M8 pause predicate (`is_pending`, including `WRITE_UNCERTAIN`) had
+  no upper bound once a recovery probe went unanswered.
+
+**Decision:**
+- Keep the full read pause; no W1/W2 interleaving.
+- The pause follows bus ownership (`owns_bus`: SENDING / ACK_WAIT /
+  READBACK_WAIT), not address pendency. `WRITE_UNCERTAIN` keeps blocking
+  writes to its address, but its recovery probe is an ordinary FC03 read.
+- One predicate, `jk_write_tx::bus_owner()`, drives both the servicer pause
+  and the published `read_pause_reason`.
+- The browser shows "paused for write", never fresh, and disables every OK.
+- Budgets are never widened.
+
+**Reason:** interleaving would gain at most one telemetry slot per write and
+add FIFO/readback-ordering risk. Holding the pause through
+`WRITE_UNCERTAIN` made a single unanswered probe stop every read forever.
+
+**Alternatives considered:**
+- W1/W2 interleaving;
+- a fixed recovery-attempt limit while still holding the pause;
+- a browser-side pause timer.
+
+**Rejected approaches:**
+- widening freshness budgets during a write;
+- treating a paused value as fresh.
+
+**Status:** Active from 2026-10-01 (host-complete; deployment and gate D
+open).

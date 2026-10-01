@@ -2568,6 +2568,14 @@ interval:
           char mode[64];
           jk_cluster_runtime::g_runtime.format_mode(mode, sizeof(mode));
           if (id(read_cluster_mode).state != mode) id(read_cluster_mode).publish_state(mode);
+          // Write coordination (plan M8): who owns the bus, from the same
+          // authoritative predicate the read servicer pauses on. Published
+          // on change only; the browser shows "paused" from it and never
+          // runs a pause timer of its own.
+          const char *pause = jk_write_tx::bus_owner_name(jk_write_tx::bus_owner(
+              id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),
+              id(g_passcode_tx_pending)));
+          if (id(read_pause_reason).state != pause) id(read_pause_reason).publish_state(pause);
 
   - interval: 30s
     then:
@@ -5268,6 +5276,14 @@ text_sensor:
   - platform: template
     id: read_cluster_mode
     name: "read cluster mode"
+    entity_category: diagnostic
+    update_interval: never
+
+  # Write coordination (plan M8): 'none' or the bus owner pausing every read
+  # -- 'register_write', 'cellcount', 'topology_recovery' or 'passcode'.
+  - platform: template
+    id: read_pause_reason
+    name: "read pause reason"
     entity_category: diagnostic
     update_interval: never
 
