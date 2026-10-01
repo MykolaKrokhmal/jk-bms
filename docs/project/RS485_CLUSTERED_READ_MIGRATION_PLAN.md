@@ -2,10 +2,11 @@
 
 **Status: AUTHORITATIVE active architecture-migration sub-plan** of
 [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
-Approved as a design by the owner on 2026-09-27. **Nothing in this plan is
-implemented or hardware-proven yet.** Every address range, latency, budget
-and timing below is a proposal or a model output until the hardware gate
-named next to it has passed and its evidence is committed under
+Approved as a design by the owner on 2026-09-27. **M0–M5 are implemented.
+M5 (`3ee3f36`) has been the deployed production firmware since 2026-10-01**
+(runtime evidence: `protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`). Any address range, latency, budget or timing below
+that is not marked [measured] stays a proposal or a model output until the
+hardware gate named next to it has passed and its evidence is committed under
 `protocol/evidence/`.
 
 Evidence labels used throughout:
@@ -561,16 +562,39 @@ restored.**
   checks and the gate B mutations. How to run it and the pass criteria are in
   `docs/guides/BUILD_AND_DEPLOY.md` ("Gate B").
 
+**Phase B status (2026-10-01): no separate gate B run — risk-based owner
+decision. This is not a gate B pass.**
+- A read-only production observation of the deployed M5 firmware lasted
+  534.7 s (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`) and found:
+  - exact 1 s A1/A2 and 15 s C/S cadence;
+  - `missed = 0`, from device-side revision accounting;
+  - no fallback, no reset and no write.
+- It cannot provide:
+  - the per-request counters (`issued`, `short`, `long`, `exc`, `timeout`,
+    `resends`, `late`);
+  - the per-read interval distribution (p99, max, `over1.5x`);
+  - `queue_ms`;
+  - bus-level FC03 and single-outstanding proof.
+- The owner deferred those to one combined gate C, whose `C_COEXISTENCE`
+  workload already contains gate B's A1/A2 workload, to avoid a redundant
+  OTA. No production diagnostic entities are added just to reproduce gate B.
+
 **Phase C (read-only):** 1 Hz telemetry + Settings every 3 s for 15–30 min.
 Validate:
 - staggering;
 - the lease;
 - dynamic freshness;
-- no queue accumulation.
+- no queue accumulation;
+- **added 2026-10-01 (combined gate C):**
+  - every gate B pass criterion for the A1/A2 part of the workload
+    (counters, interval distribution, `queue_ms`);
+  - an explicit check of the `modbus took a long time` blocking warning (one
+    252 ms occurrence in the M5 production observation).
 
 **Phase D:** writes, separately authorized per field and value. It needs
-§5 and §6 implemented and host-proven, and gates A–C passed. Nothing is
-pre-authorized here.
+§5 and §6 implemented and host-proven, gate A passed, and the combined gate C
+passed (gate B is folded into it by the 2026-10-01 owner decision). Nothing
+is pre-authorized here.
 
 **Final acceptance:** a 24–72 h observation.
 - **Pass criteria:**
@@ -762,6 +786,9 @@ Rules that apply to every phase:
 
 ### M1 — Hardware gates A–C (execution step 4)
 
+> **Status (2026-10-01): gate B folded into one combined gate C** by owner
+> decision (§13, "Phase B status"). Gate C is open.
+>
 > **Status (2026-09-28, 20:58): gate A COMPLETE.**
 > - The boundary-control run (`e93a5a9`, build 20:55:11) passed 29/29 steps.
 > - The verified cluster geometry is: A1 0x1200 ×120, A2′ 0x12F0 ×15,
@@ -931,9 +958,19 @@ Rules that apply to every phase:
 - **Commit:** `feat(protocol): decode clusters and cache writable raw`.
 - **Deploy:** none until M5.
 
-### M5 — Firmware servicer on clusters, with fallback — HOST CANDIDATE COMMITTED
+### M5 — Firmware servicer on clusters, with fallback — DEPLOYED (2026-10-01)
 
-> **Status (2026-09-30):** M2–M4 are host-implemented and tested. M5 is
+> **Status (2026-10-01): deployed.**
+> - `3ee3f36` plus the owner's local overlay was compiled with ESPHome
+>   2026.9.1, with 0 errors and only the known deprecation and legacy
+>   warnings. RAM is 59.8 % and flash 68.6 %.
+> - It was flashed by OTA on 2026-10-01 and observed read-only for 534.7 s,
+>   with exact cadence, no fallback, no reset and no write (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
+> - Settings writes stay prohibited until gate D.
+> - Open: combined gate C (including the deferred gate B metrics and the
+>   252 ms blocking warning), M6–M10 and gate D.
+>
+> **Earlier status (2026-09-30):** M2–M4 are host-implemented and tested. M5 is
 > committed as host-verified candidate `c83a676` (first pass `24c94e6` plus
 > corrective pass). The full host suite and a clean staged export passed and
 > the deployment delta was prepared. It is **not** production-ready until a
@@ -1106,8 +1143,10 @@ Rules that apply to every phase:
 
 ### Future: ESPHome Modbus API migration (not scheduled; blocks upgrading ESPHome)
 
-- **Baseline:** ESPHome **2026.9.0** is the current controlled build
-  baseline for production and the diagnostic probe.
+- **Baseline:** ESPHome **2026.9.1** has been the controlled build baseline
+  since 2026-10-01. The deployed M5 production firmware was compiled with
+  it. The diagnostic probe and the pre-M5 baseline were compiled with
+  2026.9.0; that evidence stays as recorded.
 - **The change:** ESPHome 2026.9.0 deprecates `ModbusCommandItem`, its
   factories (`create_read_command`, `create_write_multiple_command`, …),
   `queue_command()`, `unqueue_command()` and related APIs. Their documented

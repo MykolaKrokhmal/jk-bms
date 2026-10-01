@@ -1,0 +1,12 @@
+# Capture metadata (UTC ISO timestamps; epoch seconds in sse_conn lines)
+## t_start.txt (before GET /0.js + start freshness)
+2026-10-01T08:06:45Z
+## sse_conn.log (one SSE connection; rc=28 = planned curl -m 535 deadline)
+1790842015.839 CONNECT 1 remaining=535s
+1790842550 DISCONNECT 1 rc=28
+## t_end.txt (end freshness GET)
+2026-10-01T08:15:50Z
+end freshness rc 0
+2026-10-01T08:15:51Z
+## sse.curl.err
+curl: (28) Operation timed out after 535002 milliseconds with 6450430 bytes received

@@ -5,7 +5,7 @@
   "version_context": {
     "esphome_project_version": "3.0.0 (batterylifepo4.yaml esphome.project.version)",
     "web_ui_version": "2026.09.08-v5 (jk_bms.js UI_VERSION)",
-    "esphome_framework_version_used_for_verification": "2026.9.0 (pinned in toolchain.lock.json; diagnostic probe and the deployed pre-M5 production baseline compiled in the owner's environment; the current M5 production candidate still requires compile-only validation)",
+    "esphome_framework_version_used_for_verification": "2026.9.1 (pinned in toolchain.lock.json since 2026-10-01; the deployed M5 production firmware 3ee3f36 was compiled with it in the owner's environment; the diagnostic probe and the pre-M5 8fbe54f baseline were compiled with 2026.9.0)",
     "upstream_reference_pin": "github://syssi/esphome-jk-bms@08f25eb4941b03b6ee0b6c38660aeadfc4ef7cd1",
     "bms_model_identity": "JK-PB2A16S15P (register 0x1400, manufacturer_device_id — confirmed by both HARDWARE_AUDIT_2026-09-09.md and the workbook)",
     "bms_protocol_variant": "unknown (no register in the JK-PB Modbus map this project reads is documented as a protocol-family/variant identifier; 'JK-PB RS485/Modbus' is inferred from the device model string and the pinned upstream reference, not independently confirmed by any source)",

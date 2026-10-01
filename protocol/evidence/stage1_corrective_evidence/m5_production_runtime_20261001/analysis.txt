@@ -1,0 +1,26 @@
+window: 534.7 s, state events 72441, logs 1, pings 55
+read_plan_success events: 1226; non-cluster (fallback block) events: 0
+cluster | events | rev first..last (delta) | rev gaps (coalesced) | mean interval s | max interval s | max rev step
+A1 | 525 | 1169..1693 (524) | 0 (non-increasing: 0) | 1.000 | 1.112 | 1
+A2 | 526 | 1165..1693 (528) | 1 (non-increasing: 0) | 1.004 | 3.257 | 4
+C1 | 35 | 79..113 (34) | 0 (non-increasing: 0) | 15.000 | 15.057 | 1
+C2 | 35 | 79..113 (34) | 0 (non-increasing: 0) | 15.000 | 15.033 | 1
+S1 | 35 | 79..113 (34) | 0 (non-increasing: 0) | 15.000 | 15.032 | 1
+S2 | 35 | 79..113 (34) | 0 (non-increasing: 0) | 15.000 | 15.035 | 1
+S3 | 35 | 79..113 (34) | 0 (non-increasing: 0) | 15.001 | 15.025 | 1
+global success seq: 2720..3951, non-monotonic steps: 0
+text_sensor/bms health: 264 events, distinct sequence: ['LIVE']
+text_sensor/read cluster mode: 1 events, distinct sequence: ['clusters']
+text_sensor/reset reason: 1 events, distinct sequence: ['SW (esp_restart)']
+sensor/reset count since power on: 1 events, distinct sequence: ['4']
+text_sensor/write transaction snapshot: 1 events, distinct sequence: ['']
+text_sensor/last write crash stage: 1 events, distinct sequence: ['IDLE']
+sensor/cell count transaction status code: 1 events, distinct sequence: ['NA']
+sensor/setup passcode transaction status code: 1 events, distinct sequence: ['NA']
+sensor/cell count transaction id: 1 events, distinct sequence: ['NA']
+text_sensor/topology state: 526 events, distinct sequence: ['CONFIRMED']
+system uptime: 1145.0 -> 1685.0 s, decreases: 0
+ping uptime: 1161 -> 1691, decreases: 0
+logs:
+  +   32.9s [W][component:419]: modbus took a long time for an operation (252 ms), max is 250 ms
+flagged logs: 0

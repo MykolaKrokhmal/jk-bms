@@ -477,7 +477,7 @@ second (more SSE traffic than the one sequence number).
 **Status:** Active. Evidence:
 `protocol/evidence/stage1_corrective_evidence/poll_cadence_freshness_20260927.md`.
 
-## Decision: Migrate RS485 reads to wide clusters (host candidate committed; runtime gates open)
+## Decision: Migrate RS485 reads to wide clusters (M5 deployed; gates C/D open)
 
 **Original context (2026-09-27):** the deployed read path issues one FC03 read
 per canonical register address: 103 scheduler blocks plus bespoke readers,
@@ -522,14 +522,18 @@ latency).
 from value publication; a background budget as a write gate; credential
 bytes in shared caches.
 
-**Status (2026-09-30):** Gate A hardware-verified the conservative geometry;
-M2–M4 are complete and M5 is committed as host candidate `c83a676`. The
-production M5 firmware has not been compiled or run; Gates B–D and M6–M10
-remain open. Plan and gates:
-[`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md).
-The earlier per-address freshness budgets remain relevant only to deployed
-`8fbe54f` and to latched fallback; the repository host candidate derives its
-normal read timing from the cluster table.
+**Status (2026-10-01):**
+- Gate A hardware-verified the conservative geometry, and M2–M4 are
+  complete.
+- M5 (`3ee3f36`) has been the deployed production firmware since 2026-10-01
+  (ESPHome 2026.9.1). Its read-only production observation found exact
+  cadence, no fallback and no reset (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
+- Gate B is folded into the combined gate C (see the decision below). Gate C,
+  gate D and M6–M10 remain open.
+- Plan and gates:
+  [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md).
+- The earlier per-address freshness budgets remain relevant only to latched
+  fallback. Normal read timing comes from the cluster table.
 
 ## Decision: Clustered reads use a verified 120-register operational maximum
 
@@ -629,3 +633,44 @@ protocol limit; treating gap words as reserved zeros.
 **Status:** Active for the migration plan (M2 onward). Evidence:
 `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_20260928.md`
 §6.
+
+## Decision: Fold gate B into one combined gate C; keep M5 deployed
+
+**Context (2026-10-01):** the owner compiled M5 (`3ee3f36` plus the local
+overlay) with ESPHome 2026.9.1 and flashed it before gates B/C. A read-only
+production observation (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`) then showed:
+- exact 1 s A1/A2 and 15 s C/S cadence;
+- `missed = 0`, from device-side revision accounting;
+- no fallback, no reset and no write;
+- one 252 ms `modbus took a long time` warning.
+
+**Decision:**
+- Keep the M5 firmware deployed; no rollback.
+- Run no separate gate B diagnostic OTA. The gate B metrics production cannot
+  expose are deferred to one combined gate C, whose `C_COEXISTENCE` workload
+  already includes gate B's A1/A2 workload:
+  - the per-request counters;
+  - the per-read interval distribution;
+  - `queue_ms`;
+  - bus-level FC03 and single-outstanding proof.
+- The 252 ms blocking warning is an explicit gate C observation target.
+- Add no production diagnostic entities solely to reproduce gate B.
+- Accept ESPHome 2026.9.1 as the controlled build baseline. Evidence built
+  with 2026.9.0 stays historically accurate.
+- Settings writes stay prohibited until gate D (after M6–M8, with per-field
+  approval).
+
+**Reason:** the production observation already established what gate B was
+meant to de-risk for deployment: cadence, successful reads, no fallback and
+stability. A separate probe OTA plus a production re-flash would only add
+the missing counters, and the combined gate C provides them anyway.
+
+**Alternatives considered:**
+- a separate gate B probe OTA (rejected as redundant);
+- publishing the probe counters as production entities (rejected: they
+  would add runtime surface only to reproduce a gate);
+- rolling back to `8fbe54f` (rejected: no defect was observed).
+
+**Rejected approaches:** declaring gate B passed from production observation.
+
+**Status:** Active from 2026-10-01.

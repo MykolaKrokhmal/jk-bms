@@ -51,16 +51,28 @@ in the same commit.
 
 ## Deployed baseline (test ESP32)
 
-- **Currently deployed code (owner-confirmed, 2026-09-27):** commit `8fbe54f`
-  (`style(settings): replace blocked badges with lock affordance`). This is
-  the last hardware-tested deployment the owner has confirmed. It contains
-  the security baseline `be99c96`, which is recorded below.
+- **Currently deployed code (2026-10-01):** commit `3ee3f36` (M5, clustered
+  reads) plus the owner-local overlay below.
+  - The owner compiled it with ESPHome **2026.9.1** / ESP-IDF 5.5.5: 0
+    errors, RAM 59.8 %, flash 68.6 %, `config_hash=0x849e265d`.
+  - The owner flashed it by OTA on 2026-10-01.
+  - Source identity:
+    - **UI: cryptographic.** The served `/0.js`, gunzipped, equals
+      `jk_bms.js@3ee3f36`.
+    - **Firmware: high, not cryptographic.** Every compiler-warning line
+      number matches `3ee3f36`.
+  - A read-only runtime observation followed (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`). **Settings writes stay
+    prohibited until gate D.**
+- **Previous deployed code:** `8fbe54f` (`style(settings): replace blocked
+  badges with lock affordance`, owner-confirmed 2026-09-27; ESPHome
+  2026.9.0). It is the rollback target and contains the security baseline
+  `be99c96`, recorded below.
 - **Earlier security baseline:** commit `be99c96` (`fix(mock): publish
   configured cell count`, on top of the security fix `70a6aae`). The owner
   transferred the complete 14-file compile/runtime set above (every row
   except the local `secrets.yaml`), compiled it with ESPHome **2026.9.0** in
-  the owner's environment (now the version pinned by `toolchain.lock.json`)
-  and uploaded it to the test ESP32 on **2026-09-25**.
+  the owner's environment and uploaded it to the test ESP32 on
+  **2026-09-25**.
 - **Owner-local overlay (not in the repository, never committed):**
   - `web_server:` `auth:` is commented out -- a temporary, development-only
     security exception (see `docs/project/CURRENT_LIMITATIONS.md` ->
@@ -73,9 +85,18 @@ in the same commit.
   |---|---|
   | `jk_bms.js` | `jk_bms_ui/jk_bms.js` |
   | `jk_bms.css` | `jk_bms_ui/jk_bms.css` |
-  | every other file in the table above | the same relative path |
+  | every other file in the table above | the same relative path, **but see the note below** |
 
   The repository keeps `jk_bms.js` / `jk_bms.css` at its root on purpose.
+
+  **Observed 2026-10-01:** the owner's validate log resolved
+  `protocol/generated/read_plan.yaml` from
+  `/config/esphome/jk_bms_ui/protocol/generated/`. So the owner's local YAML
+  also prefixes at least the generated package path with `jk_bms_ui/`. The
+  other include paths were not observed.
+  - A `batterylifepo4.yaml` patch that adds or changes `packages:` /
+    `includes:` lines cannot be applied unchanged.
+  - Before such a patch, confirm the owner's actual include paths.
 - **Read-only post-deployment check (2026-09-25):** the served `/0.js`,
   gunzipped, is byte-identical to `jk_bms.js` at `be99c96`; the retired
   `setup_passcode_readback` entity is no longer advertised and published no
@@ -85,7 +106,7 @@ in the same commit.
   the observation window. No endpoint required authentication (the overlay
   above).
 - **Delta reports:** until the owner deploys a newer commit, every deployment
-  delta is computed against `8fbe54f`. A commit is recorded here as deployed
+  delta is computed against `3ee3f36`. A commit is recorded here as deployed
   only after the owner has transferred, compiled and uploaded it.
 - **Local YAML:** when `batterylifepo4.yaml` did not change since the
   deployed baseline, the owner keeps their local copy (with the overlay). When
@@ -94,7 +115,7 @@ in the same commit.
 ## Deployment-delta reporting rule
 
 Every change that touches the build must be reported as an exact deployment
-delta against the previously deployed commit (currently `8fbe54f`, see
+delta against the previously deployed commit (currently `3ee3f36`, see
 above). For each changed file in the set above, give its path, size, full
 SHA-256 and its destination in the owner's layout (the `jk_bms_ui/` mapping). Exclude tests, docs,
 evidence-only files, `demo/mock-server.js` and unchanged files. For example:
@@ -155,6 +176,10 @@ deployed as production firmware.
   - Capture the log from boot until `diag done`.
 - **Gate B (`B_TELEMETRY_SOAK`)** is host-prepared but not compiled or
   authorized.
+  - **Owner decision (2026-10-01): no separate gate B run.** Its metrics are
+    collected by the combined gate C instead (`docs/project/DECISIONS.md`).
+    The text below documents the gate B mode itself and its pass criteria,
+    which gate C applies to its A1/A2 part.
   - **Selection:** it is never the default. The YAML stays on
     `A_COMPATIBILITY`, and gate B is selected only on the command line:
 
@@ -204,5 +229,18 @@ deployed as production firmware.
   - Check it on the first compile: the log line `Compiling app... Build
     path: …` must name a `jk-bms-probe` directory, not
     `/data/build/jk-bms`.
-- **ESPHome version:** builds are validated on 2026.9.0. Do not use 2027.3.0
-  or newer until the Modbus API migration in the plan is complete.
+- **ESPHome version:** **2026.9.1** has been the controlled build baseline
+  since 2026-10-01 (`toolchain.lock.json`). The diagnostic probe and the
+  earlier baselines were built with 2026.9.0, as their evidence records. Do
+  not use 2027.3.0 or newer until the Modbus API migration in the plan is
+  complete.
+- **Known compiler warnings** (any other warning is new and must be
+  reviewed):
+  - `-Wdeprecated-declarations` for `ModbusCommandItem` / `queue_command`:
+    the Modbus API migration item;
+  - legacy, present before M5:
+    - `components/jk_diag/jk_reset_diag_rtc.h:90` (`-Wextra`, enumerated
+      and non-enumerated type in a conditional expression);
+    - `batterylifepo4.yaml:5438` (`-Waddress`, an always-true NULL check of
+      `total_runtime_in_seconds`).
+  - These are tracked as `docs/project/CURRENT_LIMITATIONS.md` L14.

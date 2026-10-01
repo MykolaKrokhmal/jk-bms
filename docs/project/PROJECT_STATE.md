@@ -10,7 +10,8 @@ generated inventories linked below, not in prose.
   cleanup on `codex/repository-cleanup`. Development history before that is on
   `bms-v1.1-manifest-audit`.
 - **Active plan:** [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
-  Stages 1–2 are done on `codex/rs485-unified-pipeline`. The next task is
+  Stages 1–2 are done on `feature/rs485-unified-pipeline` (renamed from
+  `codex/rs485-unified-pipeline` on 2026-10-01). The next task is
   Stage 3, which starts only after owner review.
 - **Active architecture-migration sub-plan:**
   [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md)
@@ -36,30 +37,29 @@ generated inventories linked below, not in prose.
       hardware limit.
     - **Owner decision:** 120 registers is the verified conservative
       operational maximum. The exact global device limit was not determined.
-    - **Next:** gate B (1 Hz A1 + A2′ soak).
-      - It is host-prepared (`test(diag): harden gate B telemetry soak`) but
-        not compiled or authorized.
-      - Before any OTA, production must be confirmed restored, gate B must
-        pass a compile-only check, and the owner must give separate
-        authorization.
+    - **Gate B (2026-10-01): folded into one combined gate C** by owner
+      decision (no separate probe OTA; see `DECISIONS.md`). This is not a
+      gate B pass.
     - Evidence:
       `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_20260928.md`.
   - Evidence:
     `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_rollback_20260927.md`.
 
-  **M2–M5 (2026-09-29):** M2–M4 are host-implemented and tested
-  (`0d8aed8`, `33c4102`, `da44183`, cadence `b951402`). M5 was committed as
-  the host-verified candidate in `c83a676` (first pass `24c94e6` plus the
-  corrective pass). The full host suite and a clean staged export passed,
-  and the deployment delta was prepared. The M5 production candidate is not
-  production-ready until a real ESPHome compile-only validation and the
-  required hardware gates succeed; it has not been compiled, flashed or run
-  on the device. Open: production restore confirmation, gate B, gate C,
-  production compile-only, M6, M7, M8, gate D, M9 and M10.
+  **M2–M5:** M2–M4 are host-implemented and tested (`0d8aed8`, `33c4102`,
+  `da44183`, cadence `b951402`). M5 (`c83a676`, with follow-ups up to
+  `3ee3f36`) is **deployed since 2026-10-01**.
+  - The owner compiled it with ESPHome 2026.9.1: 0 errors, RAM 59.8 %,
+    flash 68.6 %.
+  - The owner flashed it by OTA.
+  - A read-only production observation of 534.7 s found exact 1 s / 15 s
+    cluster cadence, `missed = 0`, no fallback, no reset and no write
+    (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
+  - Open: combined gate C (with the deferred gate B metrics and the 252 ms
+    `modbus took a long time` warning), M6, M7, M8, gate D, M9 and M10.
+  - **Settings writes stay prohibited until gate D.**
 
-  ESPHome 2026.9.0 is the controlled build baseline. Do not adopt 2027.3.0+
-  before the Modbus API migration in the plan. No production runtime has
-  changed.
+  ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not
+  adopt 2027.3.0+ before the Modbus API migration in the plan.
 - **Known limitations:** [`CURRENT_LIMITATIONS.md`](CURRENT_LIMITATIONS.md).
 - **Architecture decisions:** [`DECISIONS.md`](DECISIONS.md) (principles) and
   [`docs/adr/0001-protocol-catalog.md`](../adr/0001-protocol-catalog.md)
@@ -70,10 +70,9 @@ generated inventories linked below, not in prose.
 - **Protocol model:** the official V1.1 manifest, canonical registers,
   non-register entities and service actions, plus blockers and evidence. All
   runtime definitions are generated from them.
-- **Read path:** the repository's M5 candidate services the generated plan
-  through seven wide clusters, with latched per-group narrow/bespoke fallback
-  and an isolated on-demand passcode read. The deployed `8fbe54f` firmware
-  still uses the earlier per-address scheduler plus bespoke readers. Every
+- **Read path:** the deployed M5 firmware (`3ee3f36`) services the
+  generated plan through seven wide clusters, with latched per-group
+  narrow/bespoke fallback and an isolated on-demand passcode read. Every
   implemented key is published through exactly one ESPHome entity, which HA
   (native API) and the browser (SSE) both consume.
 - **Settings:** a generated catalog (`settings_view_model.json`) covering
@@ -87,19 +86,24 @@ generated inventories linked below, not in prose.
   [`write_registry.json`](../../protocol/generated/write_registry.json).
   Hardware provenance is recorded in
   [`hardware_verified_writes.json`](../../protocol/evidence/hardware_verified_writes.json).
-  In the M5 host candidate every Settings row writes only through the unified
-  registry after its own OK button; 23 fields are live, including all 18
-  migrated owner-authorized Settings fields. Device validation remains open.
+  In M5 every Settings row writes only through the unified registry after
+  its own OK button. 23 fields are live, including all 18 migrated
+  owner-authorized Settings fields. M5 is deployed, but its writes are not
+  device-validated, so **Settings writes stay prohibited by owner decision
+  until gate D**.
 - **Service actions:** [`stage5_service_action_inventory.json`](../../protocol/generated/stage5_service_action_inventory.json);
   all are blocked, and local evidence is exhausted.
 
 ## Deployment and open security items
 
-- **Deployed baseline:** `8fbe54f` is the last owner-confirmed,
-  hardware-tested deployment on the test ESP32. It contains the earlier
-  security baseline `be99c96` (deployed 2026-09-25). The owner's local
-  overlay applies (web auth commented out, UI files under `jk_bms_ui/`).
-  Later commits are not deployed. Details and the delta rule:
+- **Deployed baseline (2026-10-01):** `3ee3f36` (M5) plus the owner's local
+  overlay (web auth commented out; UI files, and at least the generated
+  package, under `jk_bms_ui/`).
+  - Built with ESPHome 2026.9.1.
+  - Source confidence: the UI is cryptographically matched; the firmware
+    match is high but not cryptographic.
+  - The previous baseline, and the rollback target, is `8fbe54f`, which
+    contains the security baseline `be99c96`. Details and the delta rule:
   [`docs/guides/BUILD_AND_DEPLOY.md`](../guides/BUILD_AND_DEPLOY.md).
 - **Setup passcode:** the remediated firmware is on the device; rotating the
   passcode and cleaning HA history remain owner actions (see

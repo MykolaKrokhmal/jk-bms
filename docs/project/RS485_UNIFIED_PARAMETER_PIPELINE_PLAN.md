@@ -56,9 +56,14 @@ The read architecture is being migrated from one FC03 read per register
 address to a small set of wide clusters. That work has its own active
 sub-plan:
 [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md).
-Gate A verified the conservative cluster geometry on 2026-09-28; M2–M4 are
-done and M5 is committed as the host-verified candidate `c83a676`. The M5
-production firmware has not been compiled or run, and Gates B–D remain open.
+Gate A verified the conservative cluster geometry on 2026-09-28, and M2–M4
+are done. M5 (`3ee3f36`) was compiled with ESPHome 2026.9.1 and deployed on
+2026-10-01. A read-only production observation found exact cluster cadence,
+no fallback and no reset
+(`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
+By owner decision the formal Gate B metrics are deferred to one combined
+Gate C. Gate D remains open, and Settings writes stay prohibited until it
+passes.
 Stage 4 below (freshness from physical reads for the bespoke cell keys) is
 delivered by that sub-plan's step M6, unless the owner decides otherwise.
 
@@ -200,9 +205,10 @@ runtime behaviour — no audit-only stages.
 - **Host result (`c83a676`):** the second browser encoder and legacy Settings
   submit path are removed. All 18 former legacy rows use the generated
   registry, one row-local OK and the same NO_CHANGE/ACK/forced-readback flow.
-- **Hardware:** this is not a declaration that the migrated implementation
-  was revalidated on the BMS. Production compile-only and the owner-approved
-  Gate D write matrix remain required before deployment.
+- **Hardware:** the M5 firmware is deployed (`3ee3f36`, 2026-10-01). That is
+  not a declaration that the migrated writes were revalidated on the BMS.
+  Settings writes stay prohibited until the owner-approved per-field Gate D
+  write matrix passes (after M6–M8).
 
 ## Open owner decisions
 

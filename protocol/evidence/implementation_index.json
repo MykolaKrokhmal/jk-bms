@@ -10,11 +10,11 @@
   ],
   "source_sha256": {
     "batterylifepo4.yaml": "04b124ca57ab9dfe8704b686aa85d32da9e2af7439ab4984bcdff7f8b04516e6",
-    "protocol/registers.canonical.json": "b7e548bfa1aca423e5b63245acede15e33cf09ae0003fbfd6f6768bba13a743b",
-    "protocol/generated/read_clusters.json": "848141643b282c2ffc1c35bffe22d520fcf44e476bd4ba62e52cf9dc68bf84c0",
-    "protocol/generated/read_plan.json": "925a88109afd76466ff24b6515b00281398821ceab9bf36ccb3578ed476cb52c",
-    "protocol/generated/write_registry.json": "0b4d19f85897f732f68d8e3e2d7c42442f8aa117c799e4d8c2158f2642ca31a6",
-    "protocol/generated/protocol_entity_routes.json": "2e608519aac5aed10fa67da582dc9ac98cfa56eb7290e856c312168c91244653"
+    "protocol/registers.canonical.json": "f2c0553162f8933e7e9eee6b8bb4f28efa24c85272968825cd28bc1b15afde36",
+    "protocol/generated/read_clusters.json": "ea970d1390b77bf6a8ddbad71e67e44d5eb62b354453e0275682ff03c3d652f4",
+    "protocol/generated/read_plan.json": "7def863e92c0503828e15e8a922113c4e6f587610088a07cac3b6d9ad596257f",
+    "protocol/generated/write_registry.json": "39bc47eb30556b9578d5785cbfab07d0e79d969c2c22b1c1b031d7cdce467962",
+    "protocol/generated/protocol_entity_routes.json": "0e0c1c1069ef39de1c55cd3469f98636615bd408e9abb0c967b41d0f8eb7af8e"
   },
   "total_lines": 5922,
   "runtime_bindings": [
@@ -29661,5 +29661,5 @@
       }
     ]
   },
-  "release_generation_id": "ef1b6baec41f0b70"
+  "release_generation_id": "69e4b2c663da455b"
 }
