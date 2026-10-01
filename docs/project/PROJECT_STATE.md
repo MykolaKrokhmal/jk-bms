@@ -48,13 +48,14 @@ generated inventories linked below, not in prose.
     `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_rollback_20260927.md`.
 
   **M2–M5 (2026-09-29):** M2–M4 are host-implemented and tested
-  (`0d8aed8`, `33c4102`, `da44183`, cadence `b951402`). M5 (`24c94e6` plus a
-  corrective pass, uncommitted) is a host implementation candidate under
-  corrective verification. It is not production-ready until clean host
-  verification, deployment preparation, real ESPHome compile-only
-  validation and the required hardware gates succeed. Nothing of it has been
-  compiled, flashed or run. Open: production restore confirmation, gate B,
-  gate C, compile-only, M6, M7, M8, gate D.
+  (`0d8aed8`, `33c4102`, `da44183`, cadence `b951402`). M5 was committed as
+  the host-verified candidate in `c83a676` (first pass `24c94e6` plus the
+  corrective pass). The full host suite and a clean staged export passed,
+  and the deployment delta was prepared. The M5 production candidate is not
+  production-ready until a real ESPHome compile-only validation and the
+  required hardware gates succeed; it has not been compiled, flashed or run
+  on the device. Open: production restore confirmation, gate B, gate C,
+  production compile-only, M6, M7, M8, gate D, M9 and M10.
 
   ESPHome 2026.9.0 is the controlled build baseline. Do not adopt 2027.3.0+
   before the Modbus API migration in the plan. No production runtime has
@@ -69,10 +70,12 @@ generated inventories linked below, not in prose.
 - **Protocol model:** the official V1.1 manifest, canonical registers,
   non-register entities and service actions, plus blockers and evidence. All
   runtime definitions are generated from them.
-- **Read path:** the generated read plan, decoded by `jk_poll_scheduler`, plus
-  bespoke drivers for the cell blocks and a few others. Every implemented key
-  is published through exactly one ESPHome entity, which HA (native API) and
-  the browser (SSE) both consume.
+- **Read path:** the repository's M5 candidate services the generated plan
+  through seven wide clusters, with latched per-group narrow/bespoke fallback
+  and an isolated on-demand passcode read. The deployed `8fbe54f` firmware
+  still uses the earlier per-address scheduler plus bespoke readers. Every
+  implemented key is published through exactly one ESPHome entity, which HA
+  (native API) and the browser (SSE) both consume.
 - **Settings:** a generated catalog (`settings_view_model.json`) covering
   every official R/RW/W parameter. Blocked, unsupported and write-only states
   are shown explicitly. Freshness is per value; startup `pending` state is
@@ -84,6 +87,9 @@ generated inventories linked below, not in prose.
   [`write_registry.json`](../../protocol/generated/write_registry.json).
   Hardware provenance is recorded in
   [`hardware_verified_writes.json`](../../protocol/evidence/hardware_verified_writes.json).
+  In the M5 host candidate every Settings row writes only through the unified
+  registry after its own OK button; 23 fields are live, including all 18
+  migrated owner-authorized Settings fields. Device validation remains open.
 - **Service actions:** [`stage5_service_action_inventory.json`](../../protocol/generated/stage5_service_action_inventory.json);
   all are blocked, and local evidence is exhausted.
 

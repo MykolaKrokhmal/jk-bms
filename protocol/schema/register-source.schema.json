@@ -12,7 +12,7 @@
       "type": "object",
       "required": [
         "esphome_project_version", "web_ui_version", "esphome_framework_version_used_for_verification",
-        "external_component_pin", "bms_model_identity", "bms_protocol_variant", "bms_firmware_version",
+        "upstream_reference_pin", "bms_model_identity", "bms_protocol_variant", "bms_firmware_version",
         "catalog_evidence_set_version"
       ],
       "additionalProperties": true,
@@ -20,7 +20,7 @@
         "esphome_project_version": { "type": "string" },
         "web_ui_version": { "type": "string" },
         "esphome_framework_version_used_for_verification": { "type": "string" },
-        "external_component_pin": { "type": "string" },
+        "upstream_reference_pin": { "type": "string" },
         "bms_model_identity": { "type": "string" },
         "bms_protocol_variant": { "type": "string" },
         "bms_firmware_version": { "type": "string" },

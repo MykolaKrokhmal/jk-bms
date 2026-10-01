@@ -553,8 +553,8 @@ negativeCase("project_version_locator_drift", "VERSION_CONTEXT_PROJECT_MISMATCH"
 negativeCase("ui_version_locator_drift", "VERSION_CONTEXT_UI_MISMATCH", (doc) => {
   doc.version_context.web_ui_version = "synthetic-ui-drift";
 });
-negativeCase("external_component_pin_drift", "VERSION_CONTEXT_EXTERNAL_PIN_MISMATCH", (doc) => {
-  doc.version_context.external_component_pin = "github://example.invalid/project@deadbeef";
+negativeCase("upstream_reference_pin_drift", "VERSION_CONTEXT_UPSTREAM_REFERENCE_MISMATCH", (doc) => {
+  doc.version_context.upstream_reference_pin = "github://example.invalid/project@deadbeef";
 });
 negativeCase("esphome_toolchain_version_drift", "VERSION_CONTEXT_ESPHOME_MISMATCH", (doc) => {
   doc.version_context.esphome_framework_version_used_for_verification = "0.0.0";

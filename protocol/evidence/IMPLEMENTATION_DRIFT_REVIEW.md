@@ -1,5 +1,12 @@
 # Implementation fingerprint drift review
 
+> **Supersession note (2026-09-30):** item 1.1 below records a historical
+> build configuration, not the current one. Production no longer declares the
+> unused `external_components_source` substitution. The pinned syssi revision
+> is now modeled only as a non-runtime upstream provenance reference in
+> `toolchain.lock.json` and `protocol/evidence/sources.json`; attribution is
+> recorded in `THIRD_PARTY_NOTICES.md` and `LICENSES/Apache-2.0.txt`.
+
 Scope: identify, with evidence, every real change to `batterylifepo4.yaml` /
 `jk_bms.js` that caused `project_implementation.fingerprint` (in
 `protocol/evidence/sources.json`) to stop matching

@@ -56,10 +56,11 @@ The read architecture is being migrated from one FC03 read per register
 address to a small set of wide clusters. That work has its own active
 sub-plan:
 [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md).
-It is an approved design (2026-09-27), not yet implemented or
-hardware-proven. Stage 4 below (freshness from physical reads for the
-bespoke cell keys) is delivered by that sub-plan's step M6 (cells on
-cluster freshness), unless the owner decides otherwise.
+Gate A verified the conservative cluster geometry on 2026-09-28; M2–M4 are
+done and M5 is committed as the host-verified candidate `c83a676`. The M5
+production firmware has not been compiled or run, and Gates B–D remain open.
+Stage 4 below (freshness from physical reads for the bespoke cell keys) is
+delivered by that sub-plan's step M6, unless the owner decides otherwise.
 
 ## Stages
 
@@ -194,12 +195,14 @@ runtime behaviour — no audit-only stages.
 - **Hardware:** compile plus a read-only runtime check — owner approval
   required.
 
-### Stage 7 — Migrate the 18 legacy writes to the unified write registry
+### Stage 7 — Migrate the 18 legacy writes to the unified write registry — DONE ON HOST BY M5
 
-- **Objective:** remove the second write encoder (`SETTING_DEFS` plus hand YAML
-  `set_action`).
-- **Hardware:** a hardware write per migrated field, each separately approved
-  by the owner. Without that approval the legacy path stays as it is.
+- **Host result (`c83a676`):** the second browser encoder and legacy Settings
+  submit path are removed. All 18 former legacy rows use the generated
+  registry, one row-local OK and the same NO_CHANGE/ACK/forced-readback flow.
+- **Hardware:** this is not a declaration that the migrated implementation
+  was revalidated on the BMS. Production compile-only and the owner-approved
+  Gate D write matrix remain required before deployment.
 
 ## Open owner decisions
 
@@ -208,7 +211,7 @@ runtime behaviour — no audit-only stages.
    computing its own (Stage 2).~~ Decided 2026-09-25: yes, backend values are
    authoritative.
 3. The compile/flash window for Stages 4 and 6 (read-only).
-4. Per-field hardware-write approval for Stage 7.
+4. The bounded per-field Gate D write matrix for the Stage 7/M5 migration.
 5. Whether the "confirmed toggles" UI decision in
    [`DECISIONS.md`](DECISIONS.md) still applies, given that Settings now
    renders binary fields as dropdowns.

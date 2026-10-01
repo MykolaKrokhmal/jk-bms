@@ -29,7 +29,9 @@
 
 **Rejected approaches:** BLE/UART `0x79–0xC0` або CAN docs; circular validation implementation проти себе; мовчазне перекриття PDF даними workbook.
 
-**Status:** Active; pipeline migration is not yet implemented.
+**Status:** Active. The canonical/generated pipeline is implemented; the
+remaining work is the staged runtime migration and hardware acceptance tracked
+in `PROJECT_STATE.md` and the active plans.
 
 ## Decision: Evidence claims and implementation status are separate
 
@@ -475,12 +477,12 @@ second (more SSE traffic than the one sequence number).
 **Status:** Active. Evidence:
 `protocol/evidence/stage1_corrective_evidence/poll_cadence_freshness_20260927.md`.
 
-## Decision: Migrate RS485 reads to wide clusters (approved design, not hardware-proven)
+## Decision: Migrate RS485 reads to wide clusters (host candidate committed; runtime gates open)
 
-**Context:** today the read path issues one FC03 read per canonical register
-address: 103 scheduler blocks plus bespoke readers, ≈ 54 % modelled bus
-occupancy, and telemetry every 15 s. Transaction overhead (~110 ms), not
-payload bytes, dominates the bus time.
+**Original context (2026-09-27):** the deployed read path issues one FC03 read
+per canonical register address: 103 scheduler blocks plus bespoke readers,
+≈ 54 % modelled bus occupancy, and telemetry every 15 s. Transaction overhead
+(~110 ms), not payload bytes, dominates the bus time.
 
 **Decision (2026-09-27, owner + Codex + Claude review):**
 - Clusters (geometry SUPERSEDED on 2026-09-28; see "Clustered reads use a
@@ -520,12 +522,14 @@ latency).
 from value publication; a background budget as a write gate; credential
 bytes in shared caches.
 
-**Status:** Approved design, not implemented or hardware-proven. Plan and
-gates:
+**Status (2026-09-30):** Gate A hardware-verified the conservative geometry;
+M2–M4 are complete and M5 is committed as host candidate `c83a676`. The
+production M5 firmware has not been compiled or run; Gates B–D and M6–M10
+remain open. Plan and gates:
 [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md).
-The existing "Freshness budget = cadence + one absolute scheduling
-allowance" decision stays in force for the current per-address scheduler
-until the cluster budgets replace it.
+The earlier per-address freshness budgets remain relevant only to deployed
+`8fbe54f` and to latched fallback; the repository host candidate derives its
+normal read timing from the cluster table.
 
 ## Decision: Clustered reads use a verified 120-register operational maximum
 

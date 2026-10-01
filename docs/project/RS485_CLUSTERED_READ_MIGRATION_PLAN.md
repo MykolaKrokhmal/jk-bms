@@ -931,15 +931,15 @@ Rules that apply to every phase:
 - **Commit:** `feat(protocol): decode clusters and cache writable raw`.
 - **Deploy:** none until M5.
 
-### M5 — Firmware servicer on clusters, with fallback — HOST CANDIDATE (corrective verification)
+### M5 — Firmware servicer on clusters, with fallback — HOST CANDIDATE COMMITTED
 
-> **Status (2026-09-29):** M2–M4 are host-implemented and tested. M5 is a
-> host implementation candidate under corrective verification. It is **not**
-> production-ready until clean host verification, deployment preparation,
+> **Status (2026-09-30):** M2–M4 are host-implemented and tested. M5 is
+> committed as host-verified candidate `c83a676` (first pass `24c94e6` plus
+> corrective pass). The full host suite and a clean staged export passed and
+> the deployment delta was prepared. It is **not** production-ready until a
 > real ESPHome compile-only validation and the required hardware gates
-> succeed. The M5 definition above includes owner-authorized compile, flash
-> and a bounded read-only runtime check; none of them has happened. Gate B,
-> gate C, compile-only, OTA, M6, M7, M8 and gate D are all open.
+> succeed. Gate B, gate C, production compile-only, OTA, M6–M10 and gate D
+> are all open.
 >
 > Implemented on the host (first pass `24c94e6`, corrective pass 2026-09-29):
 > - **Servicer** (generated `read_plan.yaml`, 20 ms tick): reads A1…S3 from
