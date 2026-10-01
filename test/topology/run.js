@@ -59,7 +59,7 @@ const post = (p) => httpRequest("POST", p);
    live map of every entity's current {state, value}.
    ============================================================ */
 class SseClient {
-  constructor() { this.entities = Object.create(null); this.revision = Object.create(null); this.buf = ""; this.req = null; this.opened = false; this.rev = 0; }
+  constructor() { this.entities = Object.create(null); this.revision = Object.create(null); this.buf = ""; this.req = null; this.opened = false; this.rev = 0; this.topologyLog = []; }
   connect() {
     return new Promise((resolve, reject) => {
       const req = http.request({ host: HOST, port: PORT, path: "/events", method: "GET" }, (res) => {
@@ -78,6 +78,7 @@ class SseClient {
                 this.entities[payload.id] = payload;
                 this.rev += 1;
                 this.revision[payload.id] = this.rev; // mirrors jk_bms.js's own stateRevision -- lets waitForNext tell a fresh event apart from a stale value that merely happens to already match
+                if (payload.id === "sensor-topology_revision" || payload.id === "text_sensor-topology_state") this.topologyLog.push({ id: payload.id, state: payload.state });
               }
             } catch (_) { /* ignore malformed frame */ }
           }
@@ -93,6 +94,19 @@ class SseClient {
   get(id) { const e = this.entities[id]; return e ? e.value : undefined; }
   getState(id) { const e = this.entities[id]; return e ? e.state : undefined; }
   revisionOf(id) { return this.revision[id] || 0; }
+  // topology_state as published by the resolver run that stamped
+  // topologyRevision -- the mock broadcasts a publish's topology_revision
+  // before its topology_state on one ordered stream, so it is the first
+  // state event after that revision event. undefined until it arrives.
+  topologyStateAtRevision(topologyRevision) {
+    const at = this.topologyLog.findIndex((e) => e.id === "sensor-topology_revision" && e.state === String(topologyRevision));
+    if (at === -1) return undefined;
+    for (let i = at + 1; i < this.topologyLog.length; i += 1) {
+      if (this.topologyLog[i].id === "sensor-topology_revision") return undefined;
+      if (this.topologyLog[i].id === "text_sensor-topology_state") return this.topologyLog[i].state;
+    }
+    return undefined;
+  }
   async waitFor(id, predicate, timeoutMs) {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
@@ -254,10 +268,18 @@ async function testStaleOffline(sse) {
 
 async function testRestartRecovery(sse) {
   await resetTopology(sse, 16);
-  await post("/demo/bms-restart");
-  await sleep(200);
-  const wentOffline = sse.getState("text_sensor-topology_state") === "OFFLINE";
-  assert("topology: simulated BMS restart immediately reports OFFLINE, not a stale CONFIRMED", wentOffline, `state=${sse.getState("text_sensor-topology_state")}`);
+  const restart = await post("/demo/bms-restart");
+  // Assert on the restart's OWN resolver publish (identified by the
+  // topology_revision the endpoint returns), not on the current state some
+  // ms later: the mock's 1Hz tick() legitimately re-resolves CONFIRMED as
+  // soon as comms age decays, so a timed sample raced that tick (flaky
+  // state=CONFIRMED, 2026-09-28). The publish happens synchronously inside
+  // the restart handler, so this is still the immediate post-restart state.
+  const restartRevision = JSON.parse(restart.body).topology_revision;
+  await sse.waitFor("sensor-topology_revision", () => sse.topologyStateAtRevision(restartRevision) !== undefined, 2000);
+  const stateAtRestart = sse.topologyStateAtRevision(restartRevision);
+  assert("topology: simulated BMS restart immediately reports OFFLINE, not a stale CONFIRMED",
+    Number.isInteger(restartRevision) && stateAtRestart === "OFFLINE", `revision=${restartRevision} state=${stateAtRestart}`);
   const recovered = await sse.waitFor("text_sensor-topology_state", (v) => v === "CONFIRMED", 4000);
   assert("topology: resolver self-heals to CONFIRMED after the simulated restart", recovered, `state=${sse.getState("text_sensor-topology_state")}`);
 }
