@@ -1074,7 +1074,21 @@ Rules that apply to every phase:
 - **Commit:** `feat(firmware): read registers in clusters`.
 - **Deploy:** `jk_bms.js`, generated files, `batterylifepo4.yaml` patch.
 
-### M6 — Cells on cluster freshness (closes L2 / Stage 4)
+### M6 — Cells on cluster freshness (closes L2 / Stage 4) — DONE IN REPOSITORY (2026-10-01), NOT DEPLOYED
+
+> **Status (2026-10-01):**
+> - Implemented in `jk_bms.js` without a generator change. A field with no
+>   read-plan block of its own takes freshness from the cluster that
+>   contains its `fieldMeta.readAddress`. The cluster geometry comes from the
+>   M5 `/settings/read-freshness` snapshot (owner instruction: no second
+>   address map).
+> - The 32 CellConWireRes keys sit in C1/C2, not A1, so they follow C1/C2
+>   reads.
+> - A latched-fallback cluster fails closed.
+> - `stateUpdatedAt` is removed.
+> - The mutation (restoring the `stateUpdatedAt` fallback) fails the M6
+>   checks.
+
 - **Prerequisite:** M5.
 - **Files:** `jk_bms.js`, `tools/protocol/generate.js` (`fieldMeta.readAddress`
   → cluster), `test_settings_catalog.js`, `test_cell_composite_rows.js`.

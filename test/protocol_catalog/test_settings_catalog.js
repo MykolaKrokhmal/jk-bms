@@ -221,6 +221,17 @@ class ControlledDate extends Date {
 // /settings/read-freshness snapshot the real onopen fetches. Kept apart from
 // fetchCallLog, which must stay empty (no write is ever dispatched).
 let harness = null;
+// The firmware's /settings/read-freshness clusters[] (M5 schema), built from
+// the GENERATED cluster table rather than a copied address map. All clusters
+// in cluster mode unless `modes` says otherwise; a fallback entry has no age.
+const READ_CLUSTERS = require(path.join(ROOT, "protocol", "generated", "read_clusters.json")).clusters;
+function clusterSnapshot(ageMs, revision = 1, modes = {}) {
+  return READ_CLUSTERS.map((c) => {
+    const mode = modes[c.cluster_id] || "cluster";
+    return { id: c.cluster_id, start: Number(c.start), registers: c.register_count, mode, lease: 0,
+      cadence_ms: c.cadence_ms, budget_ms: c.freshness_budget_ms, age_ms: mode === "cluster" ? ageMs : null, revision, sequence: 0 };
+  });
+}
 // Unified-write-contract scenario only: answers the /settings/register-write
 // preflight/POST/status calls (every call is still recorded in fetchCallLog).
 let fetchResponder = null;
@@ -506,7 +517,7 @@ function main() {
   fakeNow = 200000;
   ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
   setBrowserLink("connected");
-  acceptReadBlockSnapshot({ blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] });
+  acceptReadBlockSnapshot({ blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]], clusters: clusterSnapshot(0) });
   check("initial LIVE accepts a valid register reading that preceded health in the SSE snapshot",
     legacyInput.dataset.freshness === "fresh" && legacyButton.disabled === false);
   ingestPayload({ id: "text_sensor/topology state", state: "CONFIRMED", value: "CONFIRMED" });
@@ -552,9 +563,13 @@ function main() {
     cellVoltage.title.includes("3s"));
   check("15s/300s groups remain fresh at 3s", readValue("total_voltage_raw").dataset.freshness === "fresh" &&
     legacyInput.dataset.freshness === "fresh" && readValue("cell_connected_mask").dataset.freshness === "fresh");
+  // M6 (closes L2): a cell field is fresh only after a successful physical
+  // read of the cluster holding its register -- never because its SSE value
+  // arrived. Restoring the old stateUpdatedAt fallback fails this check.
   ingestPayload({ id: "sensor/cell voltage 4", state: "3.452 V", value: 3.452 });
-  check("unchanged-value SSE clears only its own cell field, not its sibling", cellVoltage.dataset.freshness === "fresh" &&
-    cellResistance.dataset.freshness === "stale");
+  check("M6: an unchanged cell SSE value alone does not make the cell fresh (no stateUpdatedAt fallback)",
+    cellVoltage.dataset.freshness === "stale" && cellResistance.dataset.freshness === "stale" &&
+    settingsFieldFreshness("cell_voltage_4").kind === "stale");
   fakeNow = 222500;
   sweepDiagnosticStaleness();
   check("15s group still fresh exactly at its 22.5 s budget", readValue("total_voltage_raw").dataset.freshness === "fresh" &&
@@ -572,6 +587,31 @@ function main() {
   ingestPayload({ id: "text_sensor/read plan success", state: `${0x1240}:2`, value: `${0x1240}:2` });
   check("successful 0x1240 block read clears stale without a changed mask value",
     readValue("cell_connected_mask").dataset.freshness === "fresh");
+  check("M6: the cell is still stale before its cluster is read again", cellVoltage.dataset.freshness === "stale");
+  readBlockSuccess("A1:2");
+  check("M6: one successful A1 cluster read refreshes every A1 cell field, voltage and resistance alike",
+    cellVoltage.dataset.freshness === "fresh" && cellResistance.dataset.freshness === "fresh" &&
+    settingsFieldFreshness("cell_resistance_4").kind === "fresh");
+  {
+    const { physicalReadSource } = hooks;
+    const blockAddresses = new Set(require(path.join(ROOT, "protocol", "generated", "read_plan.json")).blocks.map((b) => Number(b.address)));
+    const bespoke = require(path.join(ROOT, "protocol", "generated", "read_plan.json")).excluded_bespoke_keys
+      .filter((k) => PROTOCOL_CATALOG.fieldMeta[k] && PROTOCOL_CATALOG.fieldMeta[k].freshnessBudgetS != null &&
+        !blockAddresses.has(PROTOCOL_CATALOG.fieldMeta[k].readAddress));
+    const unresolved = [];
+    const byCluster = {};
+    for (const key of bespoke) {
+      const meta = PROTOCOL_CATALOG.fieldMeta[key];
+      const source = physicalReadSource(meta);
+      const owner = READ_CLUSTERS.find((c) => meta.readAddress >= Number(c.start) && meta.readAddress <= Number(c.end_inclusive));
+      if (!source || !owner || source.cluster !== owner.cluster_id) unresolved.push(key);
+      else byCluster[source.cluster] = (byCluster[source.cluster] || 0) + 1;
+    }
+    const cells = bespoke.filter((k) => /^cell_(voltage|resistance|connection_wire_resistance)_\d+$/.test(k));
+    check("M6: every bespoke-read register key takes freshness from the physical cluster containing its register",
+      unresolved.length === 0 && cells.length === 96 && bespoke.includes("max_voltage_cell_index_native") &&
+      bespoke.includes("min_voltage_cell_index_native"), `${bespoke.length} keys ${JSON.stringify(byCluster)} unresolved=${unresolved.join(",")}`);
+  }
   fakeNow = 520001;
   sweepDiagnosticStaleness();
   check("300s group stale only after its 320s budget", legacyInput.dataset.freshness === "stale" &&
@@ -1025,7 +1065,7 @@ function ingestStartupValues(page) {
   updateSettingsCatalogValue("LCD Always On");
 }
 
-const STARTUP_SNAPSHOT = { blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1200, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] };
+const STARTUP_SNAPSHOT = { blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]], clusters: clusterSnapshot(0) };
 // ingestPayload() schedules the bound bms_health renderer (renderFreshness,
 // via bind()) on the next animation frame; the harness's rAF is async, so
 // run that same real renderer here to observe the frame synchronously.
@@ -1153,7 +1193,7 @@ function runStartupOrderingScenarios() {
   p.hooks.setBrowserLink("connected");
   // The real onopen re-fetches the snapshot; the BMS last read the block
   // 1.5 s ago, i.e. BEFORE the disconnect boundary.
-  p.hooks.acceptReadBlockSnapshot({ blocks: [[0x1118, 1500, 1], [0x1114, 1500, 1], [0x1200, 1500, 1], [0x1240, 1500, 1], [0x1290, 1500, 1]] });
+  p.hooks.acceptReadBlockSnapshot({ blocks: [[0x1118, 1500, 1], [0x1114, 1500, 1], [0x1240, 1500, 1], [0x1290, 1500, 1]], clusters: clusterSnapshot(1500) });
   check("S4: reconnect never falls back to the initial pending state", p.legacyInput.dataset.freshness === "offline" &&
     p.binarySelect.dataset.freshness === "offline" && p.cell4().voltage.dataset.freshness === "offline");
   check("S4: offline-after-reconnect submit attempts produce zero GET/POST", attemptAllSubmits(p) === 0);
@@ -1204,6 +1244,28 @@ function runStartupOrderingScenarios() {
   p.hooks.readBlockSuccess(`${0x1118}:2`);
   check("S6: post-recovery block read restores freshness", p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === false);
   check("S6: zero GET/POST in the whole scenario", fetchCallLog.length === 0);
+
+  // 7. M6: a cluster latched to its fallback has no physical-read evidence
+  // for the bespoke cell keys (the bespoke fallback readers publish no
+  // success event), so those keys fail closed even while values keep
+  // arriving; other clusters are unaffected.
+  fakeNow = 1200000;
+  p = bootStartupPage();
+  health(p, "LIVE");
+  p.hooks.acceptReadBlockSnapshot({ blocks: STARTUP_SNAPSHOT.blocks, clusters: clusterSnapshot(0, 1, { A1: "fallback" }) });
+  ingestStartupValues(p);
+  const fallbackCell = p.hooks.settingsFieldFreshness("cell_voltage_4");
+  check("M6 fallback: an A1-fallback cell value is stale (fail closed) with the fallback reason, never fresh",
+    p.cell4().voltage.dataset.freshness === "stale" && fallbackCell.kind === "stale" && fallbackCell.explanation.includes("A1"),
+    JSON.stringify(fallbackCell));
+  ingestStartupValues(p);
+  p.hooks.readBlockSuccess(`${0x1290}:2:1`);
+  check("M6 fallback: neither new cell SSE values nor another block's fallback read make it fresh",
+    p.hooks.settingsFieldFreshness("cell_voltage_4").kind === "stale" && p.cell4().voltage.dataset.freshness === "stale");
+  check("M6 fallback: a cluster still in cluster mode keeps its own freshness (C1 wire-resistance calibration)",
+    (() => { const src = p.hooks.physicalReadSource(p.hooks.PROTOCOL_CATALOG.fieldMeta.cell_connection_wire_resistance_4);
+      return src.cluster === "C1" && !src.fallback && src.at === fakeNow; })());
+  check("M6 fallback: zero GET/POST", fetchCallLog.length === 0);
 }
 
 // Global (top) freshness panel: same startup race as the Settings fields --
@@ -1604,7 +1666,7 @@ async function runRealReconnectScenario(wake) {
   fakeNow = 1900000;
   const clock = { now: () => fakeNow, get value() { return fakeNow; }, set value(v) { fakeNow = v; } };
   harness = { timers: new TimerQueue(clock), win: new ListenerRegistry(), doc: new ListenerRegistry(), snapshotGets: 0,
-    snapshot: { blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1200, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]] } };
+    snapshot: { blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]], clusters: clusterSnapshot(0) } };
   FakeEventSource.reset();
   const p = bootStartupPage({ connect: false });
   p.hooks.connect();
@@ -1639,7 +1701,7 @@ async function runRealReconnectScenario(wake) {
     p.legacyButton.disabled === true && attemptAllSubmits(p) === 0);
   // The new connection's snapshot is the device's truth: revision 2 of both
   // blocks, read an hour ago, before the loss boundary.
-  harness.snapshot = { blocks: [[0x1118, 3600000, 2], [0x1114, 3600000, 2], [0x1200, 3600000, 1], [0x1240, 3600000, 1], [0x1290, 3600000, 1]] };
+  harness.snapshot = { blocks: [[0x1118, 3600000, 2], [0x1114, 3600000, 2], [0x1240, 3600000, 1], [0x1290, 3600000, 1]], clusters: clusterSnapshot(3600000) };
   second.open();
   await flush();
   check(`${tag}: the reconnect snapshot's pre-loss reads (an hour old) do not unlock anything`, p.legacyInput.dataset.freshness === "offline" &&
