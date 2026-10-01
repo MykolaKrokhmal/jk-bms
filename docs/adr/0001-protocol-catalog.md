@@ -271,18 +271,19 @@ for most of a group's addresses was silently wrong for the exceptions.
 This is fixed architecturally, not just patched at the four named
 addresses: `protocol/evidence/build_workbook_index.py`,
 `build_upstream_index.py`, and `build_implementation_index.py` each
-produce a real, re-runnable, address-indexed JSON extract of their source
-(workbook row numbers, upstream file line numbers with an exact pinned
-commit SHA, implementation `address:` YAML line numbers), and
-`protocol/evidence/reconcile_evidence.py` recomputes **every** field's
-`evidence` array and `verification_status` from those three indices
-directly — an evidence citation can no longer be "probably right for most
-of the group." `tools/protocol/lib/semantic-checks.js` additionally
-cross-checks every `workbook`/`upstream_reference` evidence entry in the
-canonical source against the same two index files at validation time
-(`EVIDENCE_ADDRESS_NOT_IN_WORKBOOK_INDEX`/`_UPSTREAM_INDEX`), so a future
-hand-edit that reintroduces a false citation fails the validator, not just
-a one-time manual check.
+produce a real, re-runnable, address-indexed JSON extract. The workbook
+index records exact rows; the upstream index records exact line ranges at
+an immutable revision; and the implementation index records the current
+runtime-owned cluster/isolated read, fallback block, write-registry and
+entity-route projections with source hashes and JSON-pointer locators.
+That last model replaced the obsolete `address:`-line scan when M5 removed
+all legacy per-register polling entities. `build_claim_matrix.js` consumes
+the three indexes for claim-level evidence, while
+`tools/protocol/lib/semantic-checks.js` independently cross-checks every
+`workbook`/`upstream_reference` citation against the corresponding index
+(`EVIDENCE_ADDRESS_NOT_IN_WORKBOOK_INDEX`/`_UPSTREAM_INDEX`). A future
+hand-edit that reintroduces a false external citation therefore fails the
+validator, not just a one-time manual check.
 
 **`verification_status` is now a formal, deterministic function** (spec
 Крок F) of which independent *evidence-source groups* (`official`,

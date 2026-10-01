@@ -205,6 +205,10 @@ echo "=== upstream provenance: reference-vs-runtime model + Apache-2.0 attributi
 node test/protocol_catalog/test_upstream_provenance_model.js
 
 echo
+echo "=== implementation evidence: architecture-aware address index ==="
+node test/protocol_catalog/test_implementation_index.js
+
+echo
 echo "=== protocol catalog: packed-register codec round-trip tests ==="
 node test/protocol_catalog/test_packed_codec.js
 

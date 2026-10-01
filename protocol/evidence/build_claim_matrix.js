@@ -23,20 +23,13 @@ const workbookV2 = read("protocol/evidence/workbook_v2_index.json");
 const upstream = read("protocol/evidence/upstream_index.json");
 const implementation = read("protocol/evidence/implementation_index.json");
 const sources = new Map(sourceDoc.sources.map((s) => [s.source_id, s]));
-// Stage 4 (typed-petting-puzzle plan §5): fields promoted to effective_
-// access "rw" via verification_status="confirmed" alone (no
-// owner_write_override) have their real write implementation in the
-// GENERATED protocol/generated/write_registry.yaml package, not directly
-// in batterylifepo4.yaml -- build_implementation_index.py's own address-
-// anchored regex (predates the generated-scheduler architecture) cannot
-// find them there. write_registry.json (the audit sibling of that
-// package, always regenerated alongside it) is this project's own
-// authoritative record of exactly which fields have a real, generated,
-// tested write path -- read directly here as a second, independent
-// implementation-evidence source, the same role ownerAuthorized already
-// plays for the original 18 fields below. Optional (a fresh checkout or
-// this script's own --root tmp sandbox may not have it yet): absent ->
-// empty set, never a crash, and no field is bypassed by its absence.
+// Stage 4 (typed-petting-puzzle plan §5): write_registry.json is the
+// authoritative exact key set for real generated write paths. The
+// architecture-aware implementation index also records those entries for
+// evidence/navigation, but this direct read remains the independent policy
+// gate used below. Optional (a fresh checkout or this script's own --root tmp
+// sandbox may not have it yet): absent -> empty set, never a crash, and no
+// field is bypassed by its absence.
 let writeRegistryKeys = new Set();
 try {
   const wr = read("protocol/generated/write_registry.json");
@@ -65,33 +58,6 @@ function sourceRecord(sourceId, locator, claimType, value) {
   };
 }
 
-function implValue(claim, register, field) {
-  const values = {
-    address: register.address,
-    register_width: register.register_width_bits,
-    word_count: register.word_count,
-    payload_byte_length: register.payload_bytes,
-    byte_order: register.byte_order,
-    word_order: register.word_order,
-    field_width: field.field_width_bits,
-    mask_shift_byte_offset: { mask: field.mask, shift: field.shift, byte_offset: field.byte_offset },
-    signedness: field.signedness,
-    wire_type: field.wire_type,
-    scale: field.scale,
-    offset: field.offset,
-    canonical_unit: field.canonical_unit,
-    declared_access: field.access,
-    minimum_maximum_step: { minimum: field.minimum, maximum: field.maximum, step: field.step },
-    implementation_entity_mapping: {
-      domain: field.esphome_domain,
-      read_entity_id: field.esphome_read_entity_id,
-      write_entity_id: field.esphome_write_entity_id,
-      backend_key: field.backend_key,
-    },
-  };
-  return values[claim];
-}
-
 function addClaim(claims, record) {
   if (record.normalized_value === undefined) return;
   (claims[record.claim_type] ||= []).push(record);
@@ -101,9 +67,19 @@ function deriveField(register, field) {
   const claims = {};
   const implBlocks = implementation.address_index[register.address] || [];
   if (["implemented", "partially_implemented"].includes(field.implementation_status) && implBlocks.length) {
-    const locator = `batterylifepo4.yaml:${implBlocks[0].start_line}-${implBlocks[0].end_line}`;
-    for (const claim of sources.get("project_implementation").claims_supported) {
-      addClaim(claims, sourceRecord("project_implementation", locator, claim, implValue(claim, register, field)));
+    const fieldImplementation = implBlocks
+      .flatMap((block) => block.field_implementations || [])
+      .find((entry) => entry.key === field.key);
+    if (fieldImplementation) {
+      const supported = new Set(sources.get("project_implementation").claims_supported);
+      for (const [claim, value] of Object.entries(fieldImplementation.claims || {})) {
+        if (!supported.has(claim)) continue;
+        const claimLocator = (fieldImplementation.claim_locators || {})[claim] || implBlocks[0].locator;
+        const locator = claimLocator && claimLocator.source_path && claimLocator.json_pointer
+          ? `${claimLocator.source_path}#${claimLocator.json_pointer}`
+          : "implementation locator unavailable";
+        addClaim(claims, sourceRecord("project_implementation", locator, claim, value));
+      }
     }
   }
 

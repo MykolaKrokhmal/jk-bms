@@ -44,9 +44,12 @@ Full audit of this stage's work (historical): `../docs/archive/project-arc/STAGE
   `owner_write_override` track. Re-stamp it only through
   `tools/protocol/fingerprint.js` (below).
 - `evidence/build_workbook_index.py`, `build_upstream_index.py`, `build_implementation_index.py`
-  — **generated outputs; the scripts themselves are hand-maintained.** Normalize the three raw
-  sources into address-indexed JSON. Run individually only for debugging — normal use is
-  through `tools/protocol/pipeline.js` (below).
+  — **generated outputs; the scripts themselves are hand-maintained.** Normalize the evidence
+  sources into address-indexed JSON. The implementation index is architecture-aware: after the
+  M5 removal of legacy per-entity `address:` declarations, it indexes the runtime-consumed
+  cluster, fallback read-plan, write-registry and entity-route projections, plus their exact
+  source hashes and JSON-pointer locators. Run these scripts individually only for debugging —
+  normal use is through `tools/protocol/pipeline.js` (below).
 - `evidence/build_claim_matrix.js` — reads the three indices + `sources.json` +
   `registers.canonical.json` and writes `generated/claim_matrix.json`, the full per-field
   claim-coverage matrix. Also run through the pipeline, not directly.
