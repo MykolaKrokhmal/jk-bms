@@ -444,7 +444,11 @@ async function main() {
   // this transaction-contract test before exercising preflight/POST.
   ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
   hooks.setBrowserLink("connected");
-  hooks.acceptReadBlockSnapshot({ blocks: [[0x1114, 0, 1]] });
+  // Physical-read freshness only (M6): 0x1118 (smart_sleep_timeout_hours) is a
+  // real read-plan block and must be in the snapshot; an SSE value alone no
+  // longer counts as a read. The pre-M5 snapshot format (blocks only, no
+  // clusters[]) keeps the M7 lease gate out of this transaction-contract test.
+  hooks.acceptReadBlockSnapshot({ blocks: [[0x1114, 0, 1], [0x1118, 0, 1]] });
   ingestPayload({ id: "binary_sensor/gps heartbeat", state: "OFF", value: false });
   ingestPayload({ id: "binary_sensor/lcd always on", state: "OFF", value: false });
   ingestPayload({ id: "binary_sensor/smart sleep enabled", state: "OFF", value: false });
