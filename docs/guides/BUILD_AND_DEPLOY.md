@@ -183,6 +183,15 @@ deployed as production firmware.
   authorized.
   - **Owner decision (2026-10-01): no separate gate B run.** Its metrics are
     collected by the combined gate C instead (`docs/project/DECISIONS.md`).
+  - **Combined gate C ran on 2026-10-01 and PASSED** (`protocol/evidence/stage1_corrective_evidence/gate_c_20261001.md`).
+    - Device Builder cannot pass `-s`, so `probe_mode` was set to
+      `C_COEXISTENCE` temporarily.
+    - **Keep the YAML default `A_COMPATIBILITY`**: the probe's node name
+      equals production's, so an accidental Install would replace
+      production.
+    - Production is restored by rebuilding and installing
+      `batterylifepo4.yaml`; verify `config_hash=0x5dc113b1` for
+      `bfa2b44`.
     The text below documents the gate B mode itself and its pass criteria,
     which gate C applies to its A1/A2 part.
   - **Selection:** it is never the default. The YAML stays on

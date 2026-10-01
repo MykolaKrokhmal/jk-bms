@@ -38,8 +38,8 @@ generated inventories linked below, not in prose.
     - **Owner decision:** 120 registers is the verified conservative
       operational maximum. The exact global device limit was not determined.
     - **Gate B (2026-10-01): folded into one combined gate C** by owner
-      decision (no separate probe OTA; see `DECISIONS.md`). This is not a
-      gate B pass.
+      decision (no separate probe OTA; see `DECISIONS.md`). Combined gate
+      C passed on 2026-10-01.
     - Evidence:
       `protocol/evidence/stage1_corrective_evidence/diag_probe_gate_a_20260928.md`.
   - Evidence:
@@ -62,9 +62,15 @@ generated inventories linked below, not in prose.
       the last renewal;
     - the OK rows unlocked only after the first active C1/C2 read;
     - no reset, fallback or write.
-  - Open: combined gate C diagnostic counters (`issued` to `late`, interval
-    distribution, `queue_ms`, and the `modbus took a long time` warning,
-    not seen in the M6/M7 window), M8, gate D, M9 and M10.
+  - **Combined gate C PASSED on 2026-10-01** (owner decision, with one
+    documented one-off `interval took a long time (60 ms)` exception;
+    `protocol/evidence/stage1_corrective_evidence/gate_c_20261001.md`):
+    - 20 min of `C_COEXISTENCE`: 3200 FC03 reads, 0 errors, `missed = 0`,
+      `over1.5x = 0`, constant `queue_ms`;
+    - production `bfa2b44` was then restored (same `config_hash`
+      `0x5dc113b1`) and checked LIVE.
+  - Next: **M8** (write coordination with clustered reads), then gate D
+    with per-field approval, then M9 and M10.
   - **Settings writes stay prohibited until gate D.**
 
   ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not

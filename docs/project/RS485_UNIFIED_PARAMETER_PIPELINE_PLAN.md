@@ -63,9 +63,9 @@ audit passed
 (`protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`). A read-only production observation found exact cluster cadence,
 no fallback and no reset
 (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
-By owner decision the formal Gate B metrics are deferred to one combined
-Gate C. Gate D remains open, and Settings writes stay prohibited until it
-passes.
+By owner decision the formal Gate B metrics were folded into one combined
+Gate C, which passed on 2026-10-01 (`protocol/evidence/stage1_corrective_evidence/gate_c_20261001.md`). M8 and Gate D remain open, and
+Settings writes stay prohibited until Gate D passes.
 Stage 4 below (freshness from physical reads for the bespoke cell keys) is
 delivered by that sub-plan's step M6, unless the owner decides otherwise.
 

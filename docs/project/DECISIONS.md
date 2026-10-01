@@ -529,8 +529,9 @@ bytes in shared caches.
   day M6/M7 followed in `bfa2b44`, which is now the deployed production
   firmware, with its runtime audit passed. Its read-only production observation found exact
   cadence, no fallback and no reset (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
-- Gate B is folded into the combined gate C (see the decision below). Gate C,
-  gate D and M8–M10 remain open.
+- Gate B is folded into the combined gate C (see the decision below). The
+  combined gate C passed on 2026-10-01 (`protocol/evidence/stage1_corrective_evidence/gate_c_20261001.md`). Gate D and M8–M10 remain
+  open.
 - Plan and gates:
   [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md).
 - The earlier per-address freshness budgets remain relevant only to latched
@@ -675,3 +676,33 @@ the missing counters, and the combined gate C provides them anyway.
 **Rejected approaches:** declaring gate B passed from production observation.
 
 **Status:** Active from 2026-10-01.
+
+## Decision: Accept combined gate C with one documented one-off warning
+
+**Context (2026-10-01):** the 20-minute `C_COEXISTENCE` run
+(`protocol/evidence/stage1_corrective_evidence/gate_c_20261001.md`) produced:
+- 3200 FC03 reads (A1/A2 1200 each, C1/C2 400 each);
+- `ok = issued`, with `short/long/exc/timeout/resends/late = 0`;
+- `missed = 0` and `over1.5x = 0`;
+- `ok_interval` max 1018 ms (A) and 3019 ms (C);
+- constant `queue_ms`;
+- `finished=1 unexpected=0 aborted=no` and `log queue drops=0`.
+
+The strict criterion "no `interval took a long time`" was violated once
+(60 ms, 16 ms after a stat-line burst), and never again in 19 identical
+bursts.
+
+**Decision:** gate C is PASSED, with that warning as a documented one-off
+exception. No rerun.
+
+**Reason:** the warning had no measurable effect on cadence, queueing or
+any of the 3200 requests. A rerun would cost two more OTA cycles without
+new information.
+
+**Alternatives considered:** a rerun; a probe change to rate-limit its own
+stat output.
+
+**Rejected approaches:** relaxing the criterion silently.
+
+**Status:** Active from 2026-10-01. Settings writes remain prohibited until
+gate D.

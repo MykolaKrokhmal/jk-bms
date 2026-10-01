@@ -594,6 +594,17 @@ Validate:
   - an explicit check of the `modbus took a long time` blocking warning (one
     252 ms occurrence in the M5 production observation).
 
+**Phase C status (2026-10-01): PASSED** (`protocol/evidence/stage1_corrective_evidence/gate_c_20261001.md`):
+- 20 min of `C_COEXISTENCE`; A1/A2 1200 and C1/C2 400 reads;
+- 0 errors, `missed = 0`, `over1.5x = 0`, `ok_interval` max 1018 / 3019 ms,
+  constant `queue_ms`, `log queue drops=0`;
+- one 60 ms `interval took a long time`, accepted as a one-off exception by
+  owner decision;
+- no `modbus took a long time` in the probe.
+
+Lease and dynamic freshness were verified separately on production
+(`m6_m7_production_runtime_20261001.md`).
+
 **Phase D:** writes, separately authorized per field and value. It needs
 §5 and §6 implemented and host-proven, gate A passed, and the combined gate C
 passed (gate B is folded into it by the 2026-10-01 owner decision). Nothing
@@ -789,8 +800,9 @@ Rules that apply to every phase:
 
 ### M1 — Hardware gates A–C (execution step 4)
 
-> **Status (2026-10-01): gate B folded into one combined gate C** by owner
-> decision (§13, "Phase B status"). Gate C is open.
+> **Status (2026-10-01): combined gate C PASSED** (gate B folded into it by
+> owner decision; one documented one-off 60 ms `interval` warning accepted):
+> `protocol/evidence/stage1_corrective_evidence/gate_c_20261001.md`. Gates A–C are complete.
 >
 > **Status (2026-09-28, 20:58): gate A COMPLETE.**
 > - The boundary-control run (`e93a5a9`, build 20:55:11) passed 29/29 steps.
@@ -1175,6 +1187,54 @@ Rules that apply to every phase:
 - **Deploy:** `jk_bms.js`, `batterylifepo4.yaml` patch, generated files.
 
 ### M8 — Write interleaving or explicit write pause; gate D
+
+> **Preparation (2026-10-01): host-only, not started; no BMS write is
+> authorized.**
+>
+> **Current code (`bfa2b44`): a full write pause.** The generated servicer
+> issues no cluster, bespoke or passcode read while any of these is
+> pending:
+> - a write-tx slot (`is_pending()`);
+> - the CellCount transaction;
+> - topology recovery;
+> - the setup-passcode transaction (the §5 passcode gap is closed in M5).
+>
+> **Timing inputs:**
+> - The write-tx `tick()` runs every 250 ms. ACK timeout 3000 ms, readback
+>   4000 ms.
+> - Gate C bus timings: `bms_ms` ≤ 30 ms; `total_ms` max 44 ms (A1/C1) and
+>   62 ms (A2/C2).
+> - A successful write therefore holds the bus for about
+>   write + ≤250 ms + readback + ≤250 ms, roughly 0.6 s. That is below the
+>   A1 1.5 s budget and the 3 s cell budget, so it costs at most one telemetry
+>   slot.
+> - A failed write can hold the pause for up to about 7 s, which turns
+>   telemetry genuinely stale today.
+>
+> **Proposal, to be decided by simulation as §5 requires:**
+> - Keep the full pause; do not interleave in W1/W2. The gain is at most
+>   one slot per write, and interleaving adds FIFO/readback-ordering risk.
+> - Add the bounded **write-pause** state, firmware-published and
+>   UI-rendered:
+>   - telemetry shows "paused for write" instead of stale, for at most
+>     ACK + readback (7 s) per transaction;
+>   - normal budgets are never widened;
+>   - a timeout or overrun becomes genuine stale;
+>   - CellCount and topology recovery keep a full pause.
+>
+> **Host work:**
+> - a write-pause model in the scheduler/runtime core plus the publication
+>   of the pause state;
+> - the UI freshness rule;
+> - simulation of 1 s and 7 s writes;
+> - mutations:
+>   - a read issued during an outstanding write;
+>   - interleaving during CellCount;
+>   - a widened budget in place of the pause state;
+>   - a pause that never ends.
+>
+> **Hardware:** none until gate D (per-field authorization).
+
 - **Prerequisite:** M7.
 - **Files:** the write-tx loop in `batterylifepo4.yaml`, the scheduler
   core, `test/jk_write_tx/*`, the simulation.
