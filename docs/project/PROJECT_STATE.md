@@ -54,12 +54,17 @@ generated inventories linked below, not in prose.
   - A read-only production observation of 534.7 s found exact 1 s / 15 s
     cluster cadence, `missed = 0`, no fallback, no reset and no write
     (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
-  - M6 (cell freshness from cluster reads, closes L2) and M7 (the active
-    Settings lease and strict write freshness) are host-complete in the
-    repository. Neither is compiled with ESPHome or deployed.
-  - Open: production compile and deploy of M6/M7, combined gate C (with
-    the deferred gate B metrics and the 252 ms `modbus took a long time`
-    warning), M8, gate D, M9 and M10.
+  - **M6 and M7 are deployed in `bfa2b44` since 2026-10-01** (ESPHome
+    2026.9.1 / ESP-IDF 5.5.5, 0 new warnings). The read-only production
+    audit passed (`protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`):
+    - the lease activation read C1 within 0.25 s;
+    - C1/C2 ran every 3.0 s under the lease and returned to 15 s 30 s after
+      the last renewal;
+    - the OK rows unlocked only after the first active C1/C2 read;
+    - no reset, fallback or write.
+  - Open: combined gate C diagnostic counters (`issued` to `late`, interval
+    distribution, `queue_ms`, and the `modbus took a long time` warning,
+    not seen in the M6/M7 window), M8, gate D, M9 and M10.
   - **Settings writes stay prohibited until gate D.**
 
   ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not
@@ -74,7 +79,7 @@ generated inventories linked below, not in prose.
 - **Protocol model:** the official V1.1 manifest, canonical registers,
   non-register entities and service actions, plus blockers and evidence. All
   runtime definitions are generated from them.
-- **Read path:** the deployed M5 firmware (`3ee3f36`) services the
+- **Read path:** the deployed firmware (`bfa2b44`) services the
   generated plan through seven wide clusters, with latched per-group
   narrow/bespoke fallback and an isolated on-demand passcode read. Every
   implemented key is published through exactly one ESPHome entity, which HA
@@ -100,9 +105,10 @@ generated inventories linked below, not in prose.
 
 ## Deployment and open security items
 
-- **Deployed baseline (2026-10-01):** `3ee3f36` (M5) plus the owner's local
-  overlay (web auth commented out; UI files, and at least the generated
-  package, under `jk_bms_ui/`).
+- **Deployed baseline (2026-10-01):** `bfa2b44` (M5+M6+M7) plus the owner's
+  local overlay (web auth commented out; UI files, and at least the
+  generated package, under `jk_bms_ui/`). The previous deployment was
+  `3ee3f36`.
   - Built with ESPHome 2026.9.1.
   - Source confidence: the UI is cryptographically matched; the firmware
     match is high but not cryptographic.

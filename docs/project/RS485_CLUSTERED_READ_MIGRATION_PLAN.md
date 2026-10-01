@@ -2,9 +2,11 @@
 
 **Status: AUTHORITATIVE active architecture-migration sub-plan** of
 [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
-Approved as a design by the owner on 2026-09-27. **M0–M5 are implemented.
-M5 (`3ee3f36`) has been the deployed production firmware since 2026-10-01**
-(runtime evidence: `protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`). Any address range, latency, budget or timing below
+Approved as a design by the owner on 2026-09-27. **M0–M7 are implemented.
+`bfa2b44` (M5+M6+M7) has been the deployed production firmware since
+2026-10-01** (M6/M7 runtime evidence:
+`protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`;
+M5: `protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`). Any address range, latency, budget or timing below
 that is not marked [measured] stays a proposal or a model output until the
 hardware gate named next to it has passed and its evidence is committed under
 `protocol/evidence/`.
@@ -1075,7 +1077,7 @@ Rules that apply to every phase:
 - **Commit:** `feat(firmware): read registers in clusters`.
 - **Deploy:** `jk_bms.js`, generated files, `batterylifepo4.yaml` patch.
 
-### M6 — Cells on cluster freshness (closes L2 / Stage 4) — DONE IN REPOSITORY (2026-10-01), NOT DEPLOYED
+### M6 — Cells on cluster freshness (closes L2 / Stage 4) — DEPLOYED (`bfa2b44`, 2026-10-01)
 
 > **Status (2026-10-01):**
 > - Implemented in `jk_bms.js` without a generator change. A field with no
@@ -1104,10 +1106,22 @@ Rules that apply to every phase:
 - **Commit:** `fix(ui): take cell freshness from cluster reads`.
 - **Deploy:** `jk_bms.js`.
 
-### M7 — Active Settings lease and dynamic freshness — HOST-COMPLETE (2026-10-01), NOT DEPLOYED
+### M7 — Active Settings lease and dynamic freshness — DEPLOYED AND PRODUCTION-VERIFIED (`bfa2b44`, 2026-10-01)
 
-> **Status (2026-10-01): host-complete.** Not compiled with ESPHome, not
-> deployed, not hardware-checked.
+> **Production result (2026-10-01):** read-only audit PASSED (`protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`).
+> - The lease POST read C1 0.25 s later (next phase slot).
+> - C1/C2 ran every 3.0 s under 14 renewals at a 10 s interval, with no
+>   multiplication.
+> - The lease expired 30.0 s after the last renewal, and C1/C2 returned to
+>   15 s.
+> - The OK rows unlocked only at the first active C1 (18 rows) / C2 (5 rows)
+>   read; a background read from before activation did not unlock any.
+> - All rows locked at once when leaving Settings.
+> - A1/A2 stayed at 1 s and S1–S3 at 15 s.
+> - No reset, fallback or write.
+> - The gate B counters remain open for the combined gate C.
+>
+> **Host status (2026-10-01): host-complete.**
 > - **Firmware:**
 >   - `ActiveGroupHandler` now renews ONE global lease,
 >     `jk_cluster_runtime::g_settings_lease`. It uses atomics on the httpd

@@ -51,18 +51,23 @@ in the same commit.
 
 ## Deployed baseline (test ESP32)
 
-- **Currently deployed code (2026-10-01):** commit `3ee3f36` (M5, clustered
-  reads) plus the owner-local overlay below.
+- **Currently deployed code (2026-10-01, 15:40):** commit `bfa2b44` (M5
+  clustered reads, M6 cell freshness and the M7 Settings lease) plus the
+  owner-local overlay below.
+  - It was applied as an incremental patch from `3ee3f36`.
   - The owner compiled it with ESPHome **2026.9.1** / ESP-IDF 5.5.5: 0
-    errors, RAM 59.8 %, flash 68.6 %, `config_hash=0x849e265d`.
-  - The owner flashed it by OTA on 2026-10-01.
+    errors, RAM 59.8 % (108,120 B), flash 68.7 % (1,260,739 B),
+    `config_hash=0x5dc113b1`.
+  - The owner flashed it by OTA.
   - Source identity:
-    - **UI: cryptographic.** The served `/0.js`, gunzipped, equals
-      `jk_bms.js@3ee3f36`.
-    - **Firmware: high, not cryptographic.** Every compiler-warning line
-      number matches `3ee3f36`.
-  - A read-only runtime observation followed (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`). **Settings writes stay
+    - **UI: cryptographic.** `/0.js` equals `jk_bms.js@bfa2b44`.
+    - **Firmware: high, not cryptographic.** All 26 warning line numbers
+      match `bfa2b44`.
+  - The read-only M6/M7 runtime audit passed (`protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`). **Settings writes stay
     prohibited until gate D.**
+- **Earlier deployment (2026-10-01, 10:46):** `3ee3f36` (M5), with its own
+  runtime evidence in
+  `protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`.
 - **Previous deployed code:** `8fbe54f` (`style(settings): replace blocked
   badges with lock affordance`, owner-confirmed 2026-09-27; ESPHome
   2026.9.0). It is the rollback target and contains the security baseline
@@ -106,7 +111,7 @@ in the same commit.
   the observation window. No endpoint required authentication (the overlay
   above).
 - **Delta reports:** until the owner deploys a newer commit, every deployment
-  delta is computed against `3ee3f36`. A commit is recorded here as deployed
+  delta is computed against `bfa2b44`. A commit is recorded here as deployed
   only after the owner has transferred, compiled and uploaded it.
 - **Local YAML:** when `batterylifepo4.yaml` did not change since the
   deployed baseline, the owner keeps their local copy (with the overlay). When
@@ -115,7 +120,7 @@ in the same commit.
 ## Deployment-delta reporting rule
 
 Every change that touches the build must be reported as an exact deployment
-delta against the previously deployed commit (currently `3ee3f36`, see
+delta against the previously deployed commit (currently `bfa2b44`, see
 above). For each changed file in the set above, give its path, size, full
 SHA-256 and its destination in the owner's layout (the `jk_bms_ui/` mapping). Exclude tests, docs,
 evidence-only files, `demo/mock-server.js` and unchanged files. For example:
@@ -241,6 +246,6 @@ deployed as production firmware.
   - legacy, present before M5:
     - `components/jk_diag/jk_reset_diag_rtc.h:90` (`-Wextra`, enumerated
       and non-enumerated type in a conditional expression);
-    - `batterylifepo4.yaml:5438` (`-Waddress`, an always-true NULL check of
+    - `batterylifepo4.yaml:5425` (line 5438 before `bfa2b44`; `-Waddress`, an always-true NULL check of
       `total_runtime_in_seconds`).
   - These are tracked as `docs/project/CURRENT_LIMITATIONS.md` L14.

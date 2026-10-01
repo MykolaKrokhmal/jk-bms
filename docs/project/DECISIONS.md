@@ -525,11 +525,12 @@ bytes in shared caches.
 **Status (2026-10-01):**
 - Gate A hardware-verified the conservative geometry, and M2–M4 are
   complete.
-- M5 (`3ee3f36`) has been the deployed production firmware since 2026-10-01
-  (ESPHome 2026.9.1). Its read-only production observation found exact
+- M5 (`3ee3f36`) was deployed on 2026-10-01 (ESPHome 2026.9.1). The same
+  day M6/M7 followed in `bfa2b44`, which is now the deployed production
+  firmware, with its runtime audit passed. Its read-only production observation found exact
   cadence, no fallback and no reset (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
 - Gate B is folded into the combined gate C (see the decision below). Gate C,
-  gate D and M6–M10 remain open.
+  gate D and M8–M10 remain open.
 - Plan and gates:
   [`RS485_CLUSTERED_READ_MIGRATION_PLAN.md`](RS485_CLUSTERED_READ_MIGRATION_PLAN.md).
 - The earlier per-address freshness budgets remain relevant only to latched

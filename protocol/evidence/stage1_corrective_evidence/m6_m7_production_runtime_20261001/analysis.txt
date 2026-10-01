@@ -1,0 +1,45 @@
+capture 1790860093.8..1790860453.1; non-cluster success events: 0
+== phase 1 background: 1790860093.8..1790860225.1 (131 s)
+   A1: events=129 mean=1.0 min=0.946 max=1.053 rev_steps!=1:0
+   A2: events=129 mean=1.018 min=0.808 max=3.322 rev_steps!=1:1
+   C1: events=9 mean=15.003 min=14.964 max=15.028 rev_steps!=1:0
+   C2: events=9 mean=14.999 min=14.972 max=15.044 rev_steps!=1:0
+   S1: events=9 mean=15.002 min=14.971 max=15.026 rev_steps!=1:0
+   S2: events=9 mean=15.001 min=14.978 max=15.024 rev_steps!=1:0
+   S3: events=9 mean=15.002 min=14.984 max=15.026 rev_steps!=1:0
+== phase 2 active (after first active read): 1790860225.5..1790860363.6 (138 s)
+   A1: events=138 mean=1.0 min=0.934 max=1.043 rev_steps!=1:0
+   A2: events=138 mean=1.0 min=0.91 max=1.072 rev_steps!=1:0
+   C1: events=46 mean=3.001 min=2.964 max=3.029 rev_steps!=1:0
+   C2: events=46 mean=3.0 min=2.956 max=3.058 rev_steps!=1:0
+   S1: events=9 mean=15.002 min=14.974 max=15.028 rev_steps!=1:0
+   S2: events=9 mean=15.003 min=14.483 max=15.512 rev_steps!=1:0
+   S3: events=9 mean=15.001 min=14.576 max=15.423 rev_steps!=1:0
+== phase 3a lease still held (left, <TTL): 1790860363.6..1790860390.1 (26 s)
+   A1: events=27 mean=1.0 min=0.968 max=1.02 rev_steps!=1:0
+   A2: events=26 mean=1.0 min=0.952 max=1.064 rev_steps!=1:0
+   C1: events=8 mean=3.0 min=2.967 max=3.035 rev_steps!=1:0
+   C2: events=8 mean=3.0 min=2.965 max=3.03 rev_steps!=1:0
+   S1: events=2 mean=15.016 min=15.016 max=15.016 rev_steps!=1:0
+   S2: events=2 mean=15.005 min=15.005 max=15.005 rev_steps!=1:0
+   S3: events=2 mean=15.013 min=15.013 max=15.013 rev_steps!=1:0
+== phase 3b expired: 1790860391.1..1790860454.1 (63 s)
+   A1: events=40 mean=1.564 min=0.969 max=22.992 rev_steps!=1:1
+   A2: events=42 mean=1.512 min=0.962 max=19.954 rev_steps!=1:2
+   C1: events=2 mean=45.001 min=45.001 max=45.001 rev_steps!=1:1
+   C2: events=2 mean=45.007 min=45.007 max=45.007 rev_steps!=1:1
+   S1: events=3 mean=22.494 min=14.975 max=30.013 rev_steps!=1:1
+   S2: events=3 mean=22.49 min=14.967 max=30.013 rev_steps!=1:1
+   S3: events=3 mean=22.493 min=14.973 max=30.014 rev_steps!=1:1
+C1 events around activation: [(1790860216.428, 394), (1790860225.416, 395), (1790860228.4, 396), (1790860231.403, 397)]
+C1 events around expiry: [(1790860384.416, 448), (1790860387.411, 449), (1790860402.414, 450), (1790860447.415, 453)]
+global seq 4215 -> 5143 non-monotonic 0
+uptime 1565 s -> 1925 s ping 1564 -> 1922 decreases 0
+bms health values ['LIVE'] count 170 | cluster mode ['clusters']
+write-related values [('sensor/cell count transaction status code', 'NA'), ('sensor/setup passcode transaction status code', 'NA'), ('text_sensor/last write crash stage', 'IDLE'), ('text_sensor/write transaction snapshot', '')]
+logs:
+   1790860160.6 [W][component:419]: web_server took a long time for an operation (150 ms), max is 130 ms
+lease flag transitions (C1):
+   1790860087.3 C1 lease=0 cadence=15000 mode=cluster rev=385
+   1790860226.9 C1 lease=1 cadence=3000 mode=cluster rev=395
+   1790860390.3 C1 lease=0 cadence=15000 mode=cluster rev=449
