@@ -56,11 +56,56 @@ const readClusters = READ_CLUSTERS.clusters.map((c) => {
   const end = start + 2 * c.register_count;  // JK addresses advance by 2 per register
   return {
     id: c.cluster_id, start, registers: c.register_count, cadenceMs: c.cadence_ms, budgetMs: c.freshness_budget_ms,
+    activeCadenceMs: c.active_cadence_ms, activeBudgetMs: c.active_freshness_budget_ms,
     sequenceAfter: c.sequence_after, lastSuccessMs: Date.now(), revision: 1, sequence: 0, fallback: false,
     blocks: readPlanFreshness.filter((b) => b.address >= start && b.address < end),
   };
 });
 const readClusterById = new Map(readClusters.map((c) => [c.id, c]));
+// Active Settings lease (clustered-read plan M7), as in the firmware's
+// ActiveGroupHandler + jk_cluster_runtime::g_settings_lease: ONE global
+// lease, renewed by any valid POST /settings/active-group (fixed TTL, no
+// per-client state, so renewals never multiply the cadence), released by
+// "none", expiring by itself; at most one accepted request per 100 ms (429).
+const SETTINGS_LEASE_TTL_MS = 30000;
+let settingsLeaseHeld = false;
+let settingsLeaseDeadlineMs = 0;
+let activeGroupLastRequestMs = 0;
+let activeGroupAccepted = 0;
+function settingsLeaseActive(now) { return settingsLeaseHeld && now < settingsLeaseDeadlineMs; }
+function clusterCadenceMs(cluster, now) {
+  return settingsLeaseActive(now) && cluster.activeCadenceMs ? cluster.activeCadenceMs : cluster.cadenceMs;
+}
+function handleActiveGroup(params, res) {
+  const now = Date.now();
+  if (activeGroupLastRequestMs !== 0 && now - activeGroupLastRequestMs < 100) {
+    res.writeHead(429, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: false, error: "rate limited" }));
+    return;
+  }
+  activeGroupLastRequestMs = now;
+  const raw = params.get("group");
+  if (raw === "none") {
+    settingsLeaseHeld = false;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, group: "none", lease: false }));
+    return;
+  }
+  const group = raw !== null && /^\d+$/.test(raw) ? Number(raw) : NaN;
+  if (!(group >= 1 && group <= 12)) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: false, error: raw ? "group must be 1-12 or 'none'" : "missing group" }));
+    return;
+  }
+  const wasActive = settingsLeaseActive(now);
+  settingsLeaseHeld = true;
+  settingsLeaseDeadlineMs = now + SETTINGS_LEASE_TTL_MS;
+  activeGroupAccepted += 1;
+  // Activation reads the lease clusters at once (the firmware: next phase slot).
+  if (!wasActive) for (const cluster of readClusters) if (cluster.activeCadenceMs && !cluster.fallback) cluster.lastSuccessMs = 0;
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ ok: true, group, lease: true, ttl_ms: SETTINGS_LEASE_TTL_MS }));
+}
 const READ_MODES = ["clusters", "legacy"];
 let readMode = "clusters";
 function readClusterModeText() {
@@ -1122,7 +1167,7 @@ function readPathTick(now) {
       }
       continue;
     }
-    if (now - cluster.lastSuccessMs < cluster.cadenceMs) continue;
+    if (now - cluster.lastSuccessMs < clusterCadenceMs(cluster, now)) continue;
     cluster.lastSuccessMs = now;
     cluster.revision += 1;
     for (const block of cluster.blocks) { block.lastSuccessMs = now; block.revision += 1; }
@@ -1947,11 +1992,16 @@ const server = http.createServer((req, res) => {
     const blocks = readPlanFreshness.map((block) =>
       [block.address, Math.max(0, now - block.lastSuccessMs), block.revision]);
     if (readMode === "legacy") { res.end(JSON.stringify({ blocks })); return; }
-    res.end(JSON.stringify({ blocks, clusters: readClusters.map((c) => ({
-      id: c.id, start: c.start, registers: c.registers, mode: c.fallback ? "fallback" : "cluster", lease: 0,
-      cadence_ms: c.cadenceMs, budget_ms: c.budgetMs, age_ms: c.fallback ? null : Math.max(0, now - c.lastSuccessMs),
-      revision: c.revision, sequence: c.sequence,
-    })) }));
+    res.end(JSON.stringify({ blocks, clusters: readClusters.map((c) => {
+      const active = settingsLeaseActive(now) && Boolean(c.activeCadenceMs);
+      return {
+        id: c.id, start: c.start, registers: c.registers, mode: c.fallback ? "fallback" : "cluster", lease: active ? 1 : 0,
+        cadence_ms: active ? c.activeCadenceMs : c.cadenceMs, budget_ms: active ? c.activeBudgetMs : c.budgetMs,
+        active_cadence_ms: c.activeCadenceMs || null, active_budget_ms: c.activeBudgetMs || null,
+        age_ms: c.fallback || !c.lastSuccessMs ? null : Math.max(0, now - c.lastSuccessMs),
+        revision: c.revision, sequence: c.sequence,
+      };
+    }) }));
     return;
   }
   const ccMatch = p.match(/^\/charge_history\.json(?:\/(\d+))?$/);
@@ -2136,6 +2186,14 @@ const server = http.createServer((req, res) => {
       }
     }
     res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ scenario }));
+    return;
+  }
+  if (p === "/settings/active-group" && req.method === "POST") return handleActiveGroup(url.searchParams, res);
+  if (p === "/demo/settings-lease" && req.method === "GET") {
+    const now = Date.now();
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    res.end(JSON.stringify({ active: settingsLeaseActive(now), remainingMs: settingsLeaseActive(now) ? settingsLeaseDeadlineMs - now : 0,
+      accepted: activeGroupAccepted, c1Revision: readClusterById.get("C1") ? readClusterById.get("C1").revision : null }));
     return;
   }
   if (p === "/demo/read-mode" && req.method === "POST") {

@@ -229,14 +229,25 @@ function clusterSnapshot(ageMs, revision = 1, modes = {}) {
   return READ_CLUSTERS.map((c) => {
     const mode = modes[c.cluster_id] || "cluster";
     return { id: c.cluster_id, start: Number(c.start), registers: c.register_count, mode, lease: 0,
-      cadence_ms: c.cadence_ms, budget_ms: c.freshness_budget_ms, age_ms: mode === "cluster" ? ageMs : null, revision, sequence: 0 };
+      cadence_ms: c.cadence_ms, budget_ms: c.freshness_budget_ms, active_cadence_ms: c.active_cadence_ms,
+      active_budget_ms: c.active_freshness_budget_ms, age_ms: mode === "cluster" ? ageMs : null, revision, sequence: 0 };
   });
 }
 // Unified-write-contract scenario only: answers the /settings/register-write
 // preflight/POST/status calls (every call is still recorded in fetchCallLog).
 let fetchResponder = null;
+// M7: POST /settings/active-group (the Settings lease hint) is answered here,
+// before any other responder, and logged apart from fetchCallLog -- it is
+// not a write and never touches a register.
+let leaseCallLog = [];
+let leaseTtlMs = 30000;
+const LONG_LEASE_MS = 10 * 3600 * 1000;
 async function fakeFetch(url, opts) {
   const method = (opts && opts.method) || "GET";
+  if (method === "POST" && /\/settings\/active-group\?group=\d+$/.test(String(url))) {
+    leaseCallLog.push({ url: String(url), at: fakeNow });
+    return { ok: true, status: 200, json: async () => ({ ok: true, group: 1, lease: true, ttl_ms: leaseTtlMs }) };
+  }
   if (fetchResponder) {
     fetchCallLog.push({ url: String(url), method });
     const r = fetchResponder(String(url), method);
@@ -250,6 +261,19 @@ async function fakeFetch(url, opts) {
   throw new Error(`test shim: unexpected fetch ${method} ${url} -- this test never issues a real HTTP request (no write is dispatched)`);
 }
 
+// M7: open the Settings view (real activateTab -> real lease request, answered
+// by fakeFetch) and apply the grant synchronously through the real grant
+// path, activated 1 ms BEFORE the scenario's next physical read so that read
+// counts as an active-lease read. A long TTL keeps scenarios that jump
+// minutes inside one lease (lease expiry has its own M7 scenario).
+function holdSettingsLease(hooks, ttlMs = LONG_LEASE_MS) {
+  leaseTtlMs = ttlMs;
+  hooks.activateTab("configuration");
+  fakeNow -= 1;
+  hooks.applySettingsLeaseGrant(fakeNow, ttlMs);
+  fakeNow += 1;
+}
+
 function loadRealClosures() {
   idRegistry = new Map();
   activeElement = null;
@@ -259,6 +283,7 @@ function loadRealClosures() {
   const window = {
     __JK_BMS_TEST_HOOKS__: {},
     location: { href: "http://jk-bms.local/" },
+    scrollTo() {},
     addEventListener: (type, fn) => { if (harness) harness.win.add(type, fn); },
     matchMedia() { return { matches: false }; },
     cancelAnimationFrame() {}, requestAnimationFrame(cb) { return setImmediate(cb); },
@@ -517,6 +542,7 @@ function main() {
   fakeNow = 200000;
   ingestPayload({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
   setBrowserLink("connected");
+  holdSettingsLease(hooks);
   acceptReadBlockSnapshot({ blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]], clusters: clusterSnapshot(0) });
   check("initial LIVE accepts a valid register reading that preceded health in the SSE snapshot",
     legacyInput.dataset.freshness === "fresh" && legacyButton.disabled === false);
@@ -658,6 +684,7 @@ function main() {
   check("disconnect immediately marks cached value offline and disables submit",
     legacyInput.dataset.freshness === "offline" && legacyButton.disabled === true);
   setBrowserLink("connected");
+  holdSettingsLease(hooks);  // the reconnect's own new lease
   check("reconnect alone never promotes old cached value to current", legacyInput.dataset.freshness === "offline" && legacyButton.disabled === true);
   ingestPayload({ id: "sensor/smart sleep timeout hours", state: "24", value: 24 });
   check("post-reconnect value snapshot alone does not validate the old register", legacyInput.dataset.freshness === "offline");
@@ -692,7 +719,8 @@ function main() {
   runControlsSimplificationScenario();
   runFalseStaleScenario();
 
-  runRealReconnectScenario("visible").then(() => runRealReconnectScenario("ping")).then(() => runUnifiedWriteContractScenario()).then(() => {
+  runRealReconnectScenario("visible").then(() => runRealReconnectScenario("ping")).then(() => runUnifiedWriteContractScenario())
+    .then(() => runSettingsLeaseScenario()).then(() => {
     console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
     process.exit(failures ? 1 : 0);
   }, (error) => { console.error(error); process.exit(1); });
@@ -941,6 +969,7 @@ function runFalseStaleScenario() {
   check("F1: rerender marks no editor dirty", dirtyEditors().length === 0);
   setBrowserLink("reconnecting");
   setBrowserLink("connected");
+  holdSettingsLease(p.hooks);
   ingestStartupValues(p);
   health(p, "LIVE");
   check("F1: reconnect + value snapshot marks no editor dirty", dirtyEditors().length === 0);
@@ -962,7 +991,9 @@ function runFalseStaleScenario() {
   fakeNow = t0 + B;
   sweepDiagnosticStaleness();
   check("F2: exactly at the budget the field is still fresh (strictly-greater rule)",
-    lcdSelect().dataset.freshness === "fresh" && lcdButton().disabled === false);
+    lcdSelect().dataset.freshness === "fresh");
+  check("M7: a displayed-fresh C2 value older than the strict active write budget (3.5 s) keeps its OK closed",
+    lcdButton().disabled === true && p.hooks.settingsWriteReadiness("lcd_always_on").kind === "stale");
   // Read success lands between two sweep ticks just after the budget: the
   // next tick must never show a stale frame.
   fakeNow = t0 + B + 1;
@@ -1018,7 +1049,7 @@ function runFalseStaleScenario() {
 // the async /settings/read-freshness snapshot and the first bms_health
 // event have no guaranteed relative order.
 function bootStartupPage({ connect = true } = {}) {
-  const { hooks, body } = loadRealClosures();
+  const { hooks, body, document } = loadRealClosures();
   const list = new FakeNode("div");
   list.id = "settingsCatalogList";
   body.appendChild(list);
@@ -1048,7 +1079,7 @@ function bootStartupPage({ connect = true } = {}) {
   const legacyRow = row("TIMSmartSleep");
   const binaryRow = row("LCD Always On");
   const page = {
-    hooks, cellList, panel,
+    hooks, cellList, panel, document,
     legacyInput: legacyRow.querySelector(".settings-catalog-editor"),
     legacyButton: legacyRow.querySelector(".settings-catalog-action"),
     binarySelect: binaryRow.querySelector(".settings-catalog-editor"),
@@ -1062,7 +1093,10 @@ function bootStartupPage({ connect = true } = {}) {
         voltage: cell && cell.querySelector(".cell-composite-voltage") };
     },
   };
-  if (connect) hooks.setBrowserLink("connected"); // EventSource onopen precedes every SSE message
+  if (connect) {
+    hooks.setBrowserLink("connected"); // EventSource onopen precedes every SSE message
+    holdSettingsLease(hooks);
+  }
   hooks.renderFreshness();
   return page;
 }
@@ -1615,6 +1649,7 @@ function runControlsSimplificationScenario() {
 
   // The submitted value is the bare number, never the unit suffix.
   p.hooks.setBrowserLink("connected");
+  holdSettingsLease(p.hooks);
   health(p, "LIVE");
   fakeNow += 1;
   p.hooks.readBlockSuccess(`${0x1118}:9`);
@@ -1682,9 +1717,12 @@ async function runRealReconnectScenario(wake) {
     snapshot: { blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]], clusters: clusterSnapshot(0) } };
   FakeEventSource.reset();
   const p = bootStartupPage({ connect: false });
+  leaseTtlMs = 30000;
+  leaseCallLog = [];
   p.hooks.connect();
   const first = FakeEventSource.instances[0];
   first.open();
+  p.hooks.activateTab("configuration");  // M7: the real lease request, answered by fakeFetch
   await flush();
   ingestStartupValues(p);
   health(p, "LIVE");
@@ -1736,7 +1774,105 @@ async function runRealReconnectScenario(wake) {
   check(`${tag}: the dropdown draft selection survives`, p.binarySelect.value === "0" && p.binarySelect.dataset.dirty === "true");
   check(`${tag}: 16S active-cell rows unchanged`, cell.count === rowCount && cell.count === 16 && cell.maxIndex === 16);
   check(`${tag}: only the read-only freshness snapshot was fetched (twice), never a write`, harness.snapshotGets === 2 && fetchCallLog.length === 0);
+  check(`${tag}: M7: the Settings view requested the lease on open and again after the reconnect (bounded hint POSTs only)`,
+    leaseCallLog.length >= 2 && leaseCallLog.every((c) => /\/settings\/active-group\?group=1$/.test(c.url)), JSON.stringify(leaseCallLog));
   harness = null;
+}
+
+// M7: the active Settings lease, through the REAL request path
+// (activateTab -> maintainSettingsLease -> POST /settings/active-group,
+// answered by fakeFetch) and the real write gate (settingsWriteReadiness).
+async function runSettingsLeaseScenario() {
+  fakeNow = 2600000;
+  leaseTtlMs = 30000;
+  leaseCallLog = [];
+  const p = bootStartupPage({ connect: false });
+  const { hooks } = p;
+  hooks.setBrowserLink("connected");
+  ingestStartupValues(p);
+  health(p, "LIVE");
+  hooks.acceptReadBlockSnapshot(STARTUP_SNAPSHOT);  // background reads at T0
+  await flush();
+  const ready = () => hooks.settingsWriteReadiness("smart_sleep_timeout_hours");
+  check("M7: outside the Settings view no lease is requested and a background read never unlocks a C2 write",
+    leaseCallLog.length === 0 && p.legacyInput.dataset.freshness === "fresh" && p.legacyButton.disabled === true &&
+    ready().kind === "awaiting", JSON.stringify(ready()));
+
+  // Opening Settings requests the lease at once; it is granted after the
+  // background read, so that read (older than the activation) stays locked.
+  fakeNow += 100;
+  hooks.activateTab("configuration");
+  check("M7: opening Settings sends exactly one lease request immediately", leaseCallLog.length === 1 &&
+    /\/settings\/active-group\?group=1$/.test(leaseCallLog[0].url));
+  await flush();
+  check("M7: lease active, but a background read from before activation cannot unlock the write (fail closed)",
+    hooks.settingsLeaseDebugState().lease !== null && p.legacyButton.disabled === true && ready().kind === "awaiting",
+    JSON.stringify(hooks.settingsLeaseDebugState()));
+  fakeNow += 100;
+  hooks.readBlockSuccess(`${0x1118}:2`);
+  check("M7: the first physical read inside the active lease opens the row's OK", p.legacyButton.disabled === false &&
+    ready().kind === "fresh");
+  fakeNow += 3500;
+  hooks.sweepDiagnosticStaleness();
+  check("M7: still writable exactly at the 3.5 s strict active budget", p.legacyButton.disabled === false);
+  fakeNow += 1;
+  hooks.sweepDiagnosticStaleness();
+  await flush();
+  check("M7: one millisecond past the strict active budget the OK closes (display may still be fresh)",
+    p.legacyButton.disabled === true && ready().kind === "stale" && p.legacyInput.dataset.freshness === "fresh");
+  hooks.readBlockSuccess(`${0x1118}:3`);
+  check("M7: the next active read reopens it", p.legacyButton.disabled === false);
+
+  // Renewal is bounded: nothing more before ttl/3, then one hint POST.
+  const beforeRenew = leaseCallLog.length;
+  hooks.sweepDiagnosticStaleness();
+  await flush();
+  check("M7: the 1 s sweep does not re-POST before the renewal interval", leaseCallLog.length === beforeRenew);
+  fakeNow += 10000;
+  hooks.sweepDiagnosticStaleness();
+  await flush();
+  check("M7: the lease is renewed once at ttl/3 (one hint POST, not register polling)", leaseCallLog.length === beforeRenew + 1);
+
+  // Lapsed renewals: the local lease ends at its own deadline -> fail closed,
+  // and a later grant is a NEW activation needing a new read.
+  leaseTtlMs = 0;  // the firmware answers without a usable grant
+  fakeNow += 30001;
+  hooks.sweepDiagnosticStaleness();
+  await flush();
+  hooks.readBlockSuccess(`${0x1118}:4`);
+  check("M7: an expired lease (renewals failing) keeps every C2 write locked even after a fresh read",
+    hooks.settingsLeaseDebugState().lease === null && p.legacyButton.disabled === true && ready().kind === "awaiting");
+  leaseTtlMs = 30000;
+  fakeNow += 1000;
+  hooks.sweepDiagnosticStaleness();
+  await flush();
+  check("M7: after the lease is granted again, the read from before that new activation does not count",
+    hooks.settingsLeaseDebugState().lease !== null && p.legacyButton.disabled === true);
+  fakeNow += 1;
+  hooks.readBlockSuccess(`${0x1118}:5`);
+  check("M7: a read inside the new lease unlocks again", p.legacyButton.disabled === false);
+
+  // Leaving the view and hiding the page drop the local lease at once.
+  hooks.activateTab("overview");
+  check("M7: leaving Settings drops the lease immediately and closes the OK", hooks.settingsLeaseDebugState().lease === null &&
+    p.legacyButton.disabled === true);
+  const afterLeave = leaseCallLog.length;
+  fakeNow += 20000;
+  hooks.sweepDiagnosticStaleness();
+  await flush();
+  check("M7: no lease request outside the Settings view (the device lease just expires; 'none' is never sent)",
+    leaseCallLog.length === afterLeave && leaseCallLog.every((c) => !/group=none/.test(c.url)));
+  hooks.activateTab("configuration");
+  await flush();
+  fakeNow += 1;
+  hooks.readBlockSuccess(`${0x1118}:6`);
+  check("M7: returning to Settings re-activates and a new read unlocks", p.legacyButton.disabled === false);
+  p.document.visibilityState = "hidden";
+  hooks.sweepDiagnosticStaleness();
+  check("M7: a hidden page drops the lease at once (fail closed)", hooks.settingsLeaseDebugState().lease === null &&
+    p.legacyButton.disabled === true);
+  p.document.visibilityState = "visible";
+  check("M7: zero write requests in the whole lease scenario", fetchCallLog.length === 0);
 }
 
 function document_visible(page) {

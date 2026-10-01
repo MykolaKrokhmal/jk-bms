@@ -1368,8 +1368,9 @@ function buildServicerInterval() {
   L("}");
   L("if (write_in_flight) return;");
   L("");
-  L("// Active Settings lease: the browser's (bounded, expiring) Settings hint.");
-  L("const bool lease = id(g_active_group_hint) >= 0 && now < id(g_active_group_hint_expires_ms);");
+  L("// Active Settings lease (plan M7): one global, bounded, expiring lease the");
+  L("// browser renews while Settings is visible (atomics, set by the httpd task).");
+  L("const bool lease = jk_cluster_runtime::settings_lease_active(jk_cluster_runtime::g_settings_lease, now);");
   L("const int next = rt.issue(now, false, lease);");
   L("if (next == jk_cluster_runtime::Runtime::kPasscodeRead) {");
   L("  // Isolated setup-passcode status read, strictly on demand (never after");
@@ -1394,7 +1395,7 @@ function buildServicerInterval() {
   L("      [next, gen](auto, uint16_t, const auto &data) {");
   L("        auto &rt2 = jk_cluster_runtime::g_runtime;");
   L("        const uint32_t t = millis();");
-  L("        const bool lease_now = id(g_active_group_hint) >= 0 && t < id(g_active_group_hint_expires_ms);");
+  L("        const bool lease_now = jk_cluster_runtime::settings_lease_active(jk_cluster_runtime::g_settings_lease, t);");
   L("        const auto done = rt2.on_cluster_response(next, gen, data.data(), data.size(), t, lease_now);");
   L("        if (done == jk_cluster_runtime::Completion::LATE) return;");
   L("        if (done != jk_cluster_runtime::Completion::OK) {");

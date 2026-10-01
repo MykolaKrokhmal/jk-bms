@@ -561,8 +561,30 @@ inline ClusterSnapshot read_cluster_snapshot(const ClusterSnapshotTable &t, std:
 
 // The one runtime and snapshot table of the production firmware (C++17 inline
 // variables, like the diagnostic probe's globals).
+// --- Active Settings lease (plan M7, section 8) -----------------------------
+// One global, bounded lease shared by every client: a renewal only moves the
+// deadline, so any number of clients or requests yields the same boolean
+// lease and never multiplies the cadence. The httpd task renews or releases
+// it through atomics only; the main-loop servicer reads it. Expiry is
+// wrap-safe and has no timer: a lease nobody renews simply ends.
+constexpr uint32_t kSettingsLeaseTtlMs = 30000;
+struct SettingsLease {
+  std::atomic<uint32_t> deadline_ms{0};
+  std::atomic<bool> held{false};
+};
+inline void renew_settings_lease(SettingsLease &l, uint32_t now_ms) {
+  l.deadline_ms.store(now_ms + kSettingsLeaseTtlMs, std::memory_order_relaxed);
+  l.held.store(true, std::memory_order_release);
+}
+inline void release_settings_lease(SettingsLease &l) { l.held.store(false, std::memory_order_release); }
+inline bool settings_lease_active(const SettingsLease &l, uint32_t now_ms) {
+  if (!l.held.load(std::memory_order_acquire)) return false;
+  return int32_t(l.deadline_ms.load(std::memory_order_relaxed) - now_ms) > 0;
+}
+
 inline Runtime g_runtime;
 inline ClusterSnapshotTable g_cluster_snapshot_table;
+inline SettingsLease g_settings_lease;
 // The web UI's register-write request (main-loop consumer) and the HA entity
 // writes (begin_write_tx_rmw): one tracked RMW request each.
 inline RmwRequest g_register_write_rmw;

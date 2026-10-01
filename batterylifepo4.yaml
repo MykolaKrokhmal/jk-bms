@@ -401,18 +401,16 @@ esphome:
           // the plan's own prose ("Body: {group: 1..12 | \"none\"}")
           // without needing it.
           //
-          // Last-write-wins, no per-client registry (deliberately simpler
-          // than a per-client TTL table — see the plan's own §3.4
-          // reasoning). g_active_group_hint is -1 for "no active group";
-          // g_active_group_hint_expires_ms is an ABSOLUTE millis()
-          // deadline, refreshed by every valid POST — any consumer reads
-          // it as "no hint" once millis() has passed that deadline (a
-          // 30s TTL, so a client that stops interacting, or a reboot,
-          // naturally reverts to no boost without needing its own timer).
-          // Nothing yet CONSUMES this hint (that's jk_poll_scheduler's
-          // own tier-2 priority, wired in Stage 1's third commit boundary
-          // alongside the blocks it would prioritize) — this commit only
-          // proves the endpoint itself validates and stores it correctly.
+          // Active Settings lease (clustered-read plan M7, section 8): every
+          // valid POST renews ONE global lease (jk_cluster_runtime::
+          // g_settings_lease, atomics only -- this runs on the httpd task),
+          // with a fixed TTL and no per-client registry, so any number of
+          // clients or renewals yields the same lease and never multiplies
+          // the C1/C2 cadence. "none" releases it. Nothing renews it ->
+          // it expires by itself (a hidden page, disconnect or reboot).
+          // The servicer reads it on its next pass; this handler never
+          // touches Modbus. The group number is validated for wire
+          // compatibility only; any valid group means "Settings visible".
           class ActiveGroupHandler : public AsyncWebHandler {
            public:
             bool canHandle(AsyncWebServerRequest *request) const override {
@@ -427,7 +425,7 @@ esphome:
               // debounced traffic is never rejected, but a misbehaving or
               // scripted client cannot flood this handler at high
               // frequency. Checked before parsing, so a rejected request
-              // never mutates g_active_group_hint either way.
+              // never renews or releases the Settings lease either way.
               const uint32_t now = millis();
               const uint32_t last = id(g_active_group_last_request_ms);
               if (last != 0 && now - last < 100U) {
@@ -460,9 +458,8 @@ esphome:
               id(g_active_group_last_request_ms) = now;
               const std::string raw = request->arg("group");
               if (raw == "none") {
-                id(g_active_group_hint) = -1;
-                id(g_active_group_hint_expires_ms) = millis() + 30000U;
-                request->send(200, "application/json", "{\"ok\":true,\"group\":\"none\"}");
+                jk_cluster_runtime::release_settings_lease(jk_cluster_runtime::g_settings_lease);
+                request->send(200, "application/json", "{\"ok\":true,\"group\":\"none\",\"lease\":false}");
                 return;
               }
               // Strict-integer parse (no partial/garbage suffix accepted)
@@ -478,10 +475,10 @@ esphome:
                 request->send(400, "application/json", "{\"ok\":false,\"error\":\"group must be 1-12 or 'none'\"}");
                 return;
               }
-              id(g_active_group_hint) = int(parsed);
-              id(g_active_group_hint_expires_ms) = millis() + 30000U;
-              char body[48];
-              snprintf(body, sizeof(body), "{\"ok\":true,\"group\":%ld}", parsed);
+              jk_cluster_runtime::renew_settings_lease(jk_cluster_runtime::g_settings_lease, millis());
+              char body[80];
+              snprintf(body, sizeof(body), "{\"ok\":true,\"group\":%ld,\"lease\":true,\"ttl_ms\":%u}", parsed,
+                       unsigned(jk_cluster_runtime::kSettingsLeaseTtlMs));
               request->send(200, "application/json", body);
             }
           };
@@ -1016,6 +1013,12 @@ esphome:
                 json += "\",\"lease\":"; json += active ? "1" : "0";
                 json += ",\"cadence_ms\":"; json += std::to_string(active ? cl.active_cadence_ms : cl.cadence_ms);
                 json += ",\"budget_ms\":"; json += std::to_string(active ? cl.active_freshness_budget_ms : cl.freshness_budget_ms);
+                // The strict budget a write must meet under the lease (plan
+                // M7), stated even while the lease is off; null = this
+                // cluster has no active mode.
+                const bool has_active = cl.active_cadence_ms != jk_read_clusters::kNoCadence;
+                json += ",\"active_cadence_ms\":"; json += has_active ? std::to_string(cl.active_cadence_ms) : std::string("null");
+                json += ",\"active_budget_ms\":"; json += has_active ? std::to_string(cl.active_freshness_budget_ms) : std::string("null");
                 json += ",\"age_ms\":";
                 if (cs.valid && cs.last_success_ms != 0 && !cs.fallback) json += std::to_string(uint32_t(now - cs.last_success_ms));
                 else json += "null";
@@ -1183,22 +1186,6 @@ modbus_controller:
 # Critical-path cache: each Modbus response is decoded once; template entities
 # only publish already-computed scalar values.
 globals:
-  # Final-preparation-plan Stage 1, commit boundary 2 (§3.4): the active-
-  # settings-group scheduling hint, written only by ActiveGroupHandler
-  # above (esphome: on_boot:). -1 means no active group. Consumed by
-  # jk_poll_scheduler's tier-2 priority via resolve_active_group_block_index()
-  # (Stage 1 hardware acceptance corrective pass) -- real block ui_group
-  # data doesn't exist yet (Stage 2's own deliverable), so this currently
-  # resolves to no-op against production reads; see that function's own
-  # comment in components/jk_poll_scheduler/jk_poll_scheduler_core.h.
-  - id: g_active_group_hint
-    type: int8_t
-    restore_value: false
-    initial_value: "-1"
-  - id: g_active_group_hint_expires_ms
-    type: uint32_t
-    restore_value: false
-    initial_value: "0"
   # Stage 1 hardware acceptance corrective pass: minimum-interval rate limit
   # for ActiveGroupHandler (below) -- 0 means "no request processed yet",
   # so the very first request is never itself rate-limited.
@@ -2576,7 +2563,7 @@ interval:
           // Clustered read path (plan M5): the cluster freshness snapshot for
           // GET /settings/read-freshness (httpd task) and the mode entity.
           const uint32_t snap_now = millis();
-          const bool lease = id(g_active_group_hint) >= 0 && snap_now < id(g_active_group_hint_expires_ms);
+          const bool lease = jk_cluster_runtime::settings_lease_active(jk_cluster_runtime::g_settings_lease, snap_now);
           jk_cluster_runtime::publish_cluster_snapshot(jk_cluster_runtime::g_cluster_snapshot_table, jk_cluster_runtime::g_runtime, lease);
           char mode[64];
           jk_cluster_runtime::g_runtime.format_mode(mode, sizeof(mode));

@@ -148,6 +148,15 @@ function transform(body, ids) {
 
 const STUBS = `
 #include <array>
+#include <cstdlib>
+#include <sys/types.h>
+// ESP-IDF esp_http_server.h, as ActiveGroupHandler's 429 path uses it.
+struct httpd_req_t {};
+constexpr ssize_t HTTPD_RESP_USE_STRLEN = -1;
+inline int httpd_resp_set_status(httpd_req_t *, const char *) { return 0; }
+inline int httpd_resp_set_type(httpd_req_t *, const char *) { return 0; }
+inline int httpd_resp_set_hdr(httpd_req_t *, const char *, const char *) { return 0; }
+inline int httpd_resp_send(httpd_req_t *, const char *, ssize_t) { return 0; }
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -182,6 +191,7 @@ struct AsyncWebServerRequest {
   std::string url_to(char *) const { return {}; }
   std::string arg(const char *) const { return {}; }
   void send(int, const char *, const char *) {}
+  operator httpd_req_t *() { return nullptr; }
 };
 struct AsyncWebHandler {
   virtual ~AsyncWebHandler() = default;
@@ -227,6 +237,29 @@ function main() {
   // Every id() a compiled lambda names must be declared somewhere.
   const used = new Set();
   for (const l of found) for (const m of l.body.matchAll(/\bid\(([A-Za-z_][A-Za-z0-9_]*)\)/g)) used.add(m[1]);
+
+  // The handler classes changed by M5 (and ActiveGroupHandler by M7: the
+  // Settings lease), from the on_boot lambda.
+  const handlerClass = (name) => {
+    const start = mainText.indexOf(`class ${name} : public AsyncWebHandler {`);
+    if (start < 0) return { text: "", line: 0 };
+    const lineStart = mainText.lastIndexOf("\n", start) + 1;
+    const indent = start - lineStart;
+    const close = mainText.indexOf(`\n${" ".repeat(indent)}};`, start);
+    return { text: mainText.slice(start, close + indent + 3), line: mainText.slice(0, start).split("\n").length };
+  };
+  const freshness = handlerClass("ReadPlanFreshnessHandler");
+  const status = handlerClass("RegisterWriteStatusHandler");
+  const lease = handlerClass("ActiveGroupHandler");
+  check("the ActiveGroupHandler class was found and renews the global Settings lease (M7)",
+    lease.text.includes("renew_settings_lease(jk_cluster_runtime::g_settings_lease") && lease.text.includes("release_settings_lease("),
+    lease.text.slice(0, 200));
+  check("the ReadPlanFreshnessHandler class was found and names the clusters array", freshness.text.includes("\"],\\\"clusters\\\":[\""),
+    freshness.text.slice(0, 200));
+  check("the RegisterWriteStatusHandler class was found and reports no_change", status.text.includes("\\\"status\\\":\\\"no_change\\\""),
+    status.text.slice(0, 200));
+  // Their ids are declared like the lambdas' (collected before the decls).
+  for (const h of [freshness, status, lease]) for (const m of h.text.matchAll(/\bid\(([A-Za-z_][A-Za-z0-9_]*)\)/g)) used.add(m[1]);
   const undeclared = [...used].filter((n) => !ids.has(n));
   check("every id() used by the compiled lambdas is declared in the YAML", undeclared.length === 0, undeclared.join(", "));
 
@@ -247,22 +280,6 @@ function main() {
     }
   }
 
-  // The handler classes changed by M5, from the on_boot lambda.
-  const handlerClass = (name) => {
-    const start = mainText.indexOf(`class ${name} : public AsyncWebHandler {`);
-    if (start < 0) return { text: "", line: 0 };
-    const lineStart = mainText.lastIndexOf("\n", start) + 1;
-    const indent = start - lineStart;
-    const close = mainText.indexOf(`\n${" ".repeat(indent)}};`, start);
-    return { text: mainText.slice(start, close + indent + 3), line: mainText.slice(0, start).split("\n").length };
-  };
-  const freshness = handlerClass("ReadPlanFreshnessHandler");
-  const status = handlerClass("RegisterWriteStatusHandler");
-  check("the ReadPlanFreshnessHandler class was found and names the clusters array", freshness.text.includes("\"],\\\"clusters\\\":[\""),
-    freshness.text.slice(0, 200));
-  check("the RegisterWriteStatusHandler class was found and reports no_change", status.text.includes("\\\"status\\\":\\\"no_change\\\""),
-    status.text.slice(0, 200));
-  for (const h of [freshness, status]) for (const m of h.text.matchAll(/\bid\(([A-Za-z_][A-Za-z0-9_]*)\)/g)) used.add(m[1]);
 
   const fns = found.map((l, k) => {
     let params = "";
@@ -282,7 +299,8 @@ function main() {
     ...decls, ...fns,
     "using namespace esphome::web_server_idf;",
     `#line ${freshness.line} "batterylifepo4.yaml"`, transform(freshness.text, ids),
-    `#line ${status.line} "batterylifepo4.yaml"`, transform(status.text, ids)].join("\n");
+    `#line ${status.line} "batterylifepo4.yaml"`, transform(status.text, ids),
+    `#line ${lease.line} "batterylifepo4.yaml"`, transform(lease.text, ids)].join("\n");
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jk-lambda-"));
   const file = path.join(dir, "lambdas.cpp");
   fs.writeFileSync(file, cpp);

@@ -54,10 +54,12 @@ generated inventories linked below, not in prose.
   - A read-only production observation of 534.7 s found exact 1 s / 15 s
     cluster cadence, `missed = 0`, no fallback, no reset and no write
     (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
-  - M6 (cell freshness from cluster reads, closes L2) is done in the
-    repository and not yet deployed.
-  - Open: combined gate C (with the deferred gate B metrics and the 252 ms
-    `modbus took a long time` warning), M7, M8, gate D, M9 and M10.
+  - M6 (cell freshness from cluster reads, closes L2) and M7 (the active
+    Settings lease and strict write freshness) are host-complete in the
+    repository. Neither is compiled with ESPHome or deployed.
+  - Open: production compile and deploy of M6/M7, combined gate C (with
+    the deferred gate B metrics and the 252 ms `modbus took a long time`
+    warning), M8, gate D, M9 and M10.
   - **Settings writes stay prohibited until gate D.**
 
   ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not

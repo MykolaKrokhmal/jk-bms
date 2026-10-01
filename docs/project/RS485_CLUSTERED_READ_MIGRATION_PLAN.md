@@ -414,8 +414,9 @@ interval`. No 1 s or 3 s budget is fixed here. Derivation:
   from the HTTP task). It never performs a Modbus read; the scheduler acts on
   its next pass.
 - Rate limiting and expiry follow the `ActiveGroupHandler` pattern (100 ms,
-  expiry). The final TTL and renew interval are chosen and tested in the
-  implementation phase. This plan does not fix them.
+  expiry). **Chosen in M7 (2026-10-01):** TTL 30 s (the existing handler's
+  value), browser renewal every ttl/3 = 10 s, and lease held only by the
+  Settings (`configuration`) view. The browser never sends `none`.
 - Old clients that never send a lease get background cadence. Their writes
   fail closed through the firmware's strict active-budget gate.
 - Lease renewal is a periodic hint POST, not register polling. It is
@@ -1103,7 +1104,45 @@ Rules that apply to every phase:
 - **Commit:** `fix(ui): take cell freshness from cluster reads`.
 - **Deploy:** `jk_bms.js`.
 
-### M7 — Active Settings lease and dynamic freshness
+### M7 — Active Settings lease and dynamic freshness — HOST-COMPLETE (2026-10-01), NOT DEPLOYED
+
+> **Status (2026-10-01): host-complete.** Not compiled with ESPHome, not
+> deployed, not hardware-checked.
+> - **Firmware:**
+>   - `ActiveGroupHandler` now renews ONE global lease,
+>     `jk_cluster_runtime::g_settings_lease`. It uses atomics on the httpd
+>     task; the old plain `g_active_group_hint*` globals are removed.
+>   - Rules: TTL 30 s from the last renewal, wrap-safe expiry, `none`
+>     releases it, and the 100 ms rate limit is kept. The response states
+>     `lease` and `ttl_ms`.
+>   - The servicer reads the lease each pass. Activation makes C1 due at
+>     the next phase slot; under the lease C1/C2 run every 3 s; expiry
+>     restores 15 s.
+>   - `/settings/read-freshness` states each cluster's `active_cadence_ms` /
+>     `active_budget_ms`.
+> - **Browser:**
+>   - While the Settings (`configuration`) view is visible on a connected
+>     page, the browser POSTs `group=1` on open and then every ttl/3
+>     (10 s). This rides the existing 1 s sweep, with no new timer.
+>   - It never sends `none`, so it cannot end other clients' lease.
+>   - Leaving the view, hiding the page, a lost link or a lapsed renewal
+>     drops the local lease at once.
+>   - A write in a cluster with an active mode (all 23 live writes are in
+>     C1/C2) needs a physical read completed after this page's activation
+>     and within the strict 3.5 s active budget.
+>   - Display freshness is unchanged. Write encoding, RMW, ACK and forced
+>     readback are unchanged.
+> - **Tests:**
+>   - lease runtime tests (one global lease, cadence identical for 1 vs 5
+>     clients, activation, expiry, release, wrap);
+>   - the browser lease scenario (`test_settings_catalog.js`, real request
+>     path, reconnect re-activation);
+>   - mutations killed: cadence multiplied, browser re-POST per sweep,
+>     lease without expiry (firmware and browser), old background read
+>     unlocking a write.
+> - **Mock:** `demo/mock-server.js` implements the same endpoint and lease
+>   cadence.
+
 - **Prerequisite:** M6.
 - **Files:** the `batterylifepo4.yaml` handler (the lease),
   `jk_poll_scheduler_core.h`, `jk_bms.js`, `test_sse_reconnect.js`,

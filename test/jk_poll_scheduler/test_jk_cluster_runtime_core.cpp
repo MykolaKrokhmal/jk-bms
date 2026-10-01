@@ -626,6 +626,93 @@ int main() {
           "entity pool: armed / same write already waiting / another write to that register refused / pool full refused");
   }
 
+  // Active Settings lease (plan M7): one global, bounded lease. `renewals`
+  // lists the times some client renews it; the servicer reads it each tick,
+  // exactly like the generated servicer does.
+  {
+    struct LeaseRun {
+      std::vector<uint32_t> c1_issue_ms;
+    };
+    auto run_with_lease = [&](uint32_t until, const std::vector<uint32_t> &renewals, uint32_t release_at) {
+      SettingsLease lease;
+      Runtime rt;
+      rt.begin(0);
+      LeaseRun out;
+      std::size_t next_renewal = 0;
+      for (uint32_t now = 0; now <= until; now += 20) {
+        while (next_renewal < renewals.size() && renewals[next_renewal] <= now) renew_settings_lease(lease, renewals[next_renewal++]);
+        if (release_at != 0 && now == release_at) release_settings_lease(lease);
+        rt.check_timeout(now);
+        const bool active = settings_lease_active(lease, now);
+        const int c = rt.issue(now, false, active);
+        if (c == Runtime::kPasscodeRead) { bool ok = false; rt.on_passcode_response(rt.generation(), 16, ok); continue; }
+        if (c < 0) continue;
+        if (c == C1) out.c1_issue_ms.push_back(now);
+        const auto data = bytes_for(c, 0x11);
+        rt.on_cluster_response(c, rt.generation(), data.data(), data.size(), now + 20, active);
+      }
+      return out;
+    };
+    auto count_in = [](const std::vector<uint32_t> &v, uint32_t from, uint32_t to) {
+      int n = 0;
+      for (uint32_t t : v) if (t >= from && t < to) n++;
+      return n;
+    };
+    auto max_gap_in = [](const std::vector<uint32_t> &v, uint32_t from, uint32_t to) {
+      uint32_t gap = 0, prev = 0;
+      bool have = false;
+      for (uint32_t t : v) {
+        if (t < from || t >= to) continue;
+        if (have && t - prev > gap) gap = t - prev;
+        prev = t;
+        have = true;
+      }
+      return gap;
+    };
+
+    // One client renewing every 10 s from t = 20 s until 60 s.
+    std::vector<uint32_t> one;
+    for (uint32_t t = 20000; t <= 60000; t += 10000) one.push_back(t);
+    // Five clients, each renewing every 100 ms, over the same window.
+    std::vector<uint32_t> many;
+    for (uint32_t t = 20000; t <= 60000; t += 100) for (int k = 0; k < 5; k++) many.push_back(t + uint32_t(k));
+    const auto r1 = run_with_lease(120000, one, 0);
+    const auto rn = run_with_lease(120000, many, 0);
+
+    // Immediate refresh: C1 is read at the next phase slot after activation,
+    // not at its 15 s background cadence.
+    uint32_t first_after = 0;
+    for (uint32_t t : r1.c1_issue_ms) if (t >= 20000) { first_after = t; break; }
+    check(first_after >= 20000 && first_after <= 21000,
+          "lease activation reads C1 at the next phase slot (within 1 s), not at the 15 s background cadence");
+    const int active_one = count_in(r1.c1_issue_ms, 21000, 60000);
+    const int active_many = count_in(rn.c1_issue_ms, 21000, 60000);
+    check(active_one >= 12 && active_one <= 14 && max_gap_in(r1.c1_issue_ms, 21000, 60000) <= 3000,
+          "under the lease C1 is read every 3 s (39 s window -> 12..14 reads, no gap > 3 s)");
+    check(active_one == active_many,
+          "renewals from many clients (5 x every 100 ms) give exactly the same C1 reads as one client: the lease never multiplies the cadence");
+    // Expiry: the last renewal is at 60 s -> the lease ends at 90 s with no
+    // further request, and C1 returns to its 15 s background cadence.
+    check(count_in(r1.c1_issue_ms, 91000, 120000) <= 2 && max_gap_in(r1.c1_issue_ms, 91000, 120000) >= 14980 - 20,
+          "an unrenewed lease expires after its TTL and C1 returns to the 15 s background cadence");
+    check(count_in(r1.c1_issue_ms, 61000, 89000) >= 8,
+          "the lease stays active until its TTL from the last renewal (C1 still every 3 s before 90 s)");
+
+    // release() (group "none") ends the lease immediately.
+    const auto rr = run_with_lease(80000, {20000}, 30000);
+    check(count_in(rr.c1_issue_ms, 31000, 44000) == 0, "release ends the lease at once: no 3 s C1 reads after it");
+
+    // Wrap-safe expiry around the millis() rollover.
+    SettingsLease w;
+    renew_settings_lease(w, 0xFFFFF000u);
+    check(settings_lease_active(w, 0xFFFFF000u + 1000u) && settings_lease_active(w, 0xFFFFF000u + kSettingsLeaseTtlMs - 1u) &&
+              !settings_lease_active(w, 0xFFFFF000u + kSettingsLeaseTtlMs) && !settings_lease_active(w, 0xFFFFF000u + 2 * kSettingsLeaseTtlMs),
+          "lease expiry is wrap-safe across the millis() rollover and never permanent");
+    SettingsLease never;
+    check(!settings_lease_active(never, 0) && !settings_lease_active(never, 123456),
+          "a lease nobody renewed is inactive");
+  }
+
   std::printf("cluster runtime: %d/%d checks passed\n", g_checks - g_failures, g_checks);
   return g_failures == 0 ? 0 : 1;
 }
