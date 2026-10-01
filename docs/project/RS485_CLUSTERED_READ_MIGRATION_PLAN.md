@@ -1082,8 +1082,12 @@ Rules that apply to every phase:
 >   contains its `fieldMeta.readAddress`. The cluster geometry comes from the
 >   M5 `/settings/read-freshness` snapshot (owner instruction: no second
 >   address map).
-> - The 32 CellConWireRes keys sit in C1/C2, not A1, so they follow C1/C2
->   reads.
+> - Scope: the 98 runtime keys (32 voltages, 32 resistances and 2 indices
+>   in A1; 32 CellConWireRes in C1 (26) and C2 (6) by address).
+>   `reserved_0x12d2` is catalog-only (no route or UI) and outside the
+>   contract.
+> - Fallback: a read-plan block keeps using its own fallback success events.
+>   The bespoke fallback readers publish none, so their keys stay stale.
 > - A latched-fallback cluster fails closed.
 > - `stateUpdatedAt` is removed.
 > - The mutation (restoring the `stateUpdatedAt` fallback) fails the M6

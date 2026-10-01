@@ -593,24 +593,37 @@ function main() {
     cellVoltage.dataset.freshness === "fresh" && cellResistance.dataset.freshness === "fresh" &&
     settingsFieldFreshness("cell_resistance_4").kind === "fresh");
   {
+    // The L2/M6 contractual set is exactly 98 runtime keys: 32 cell voltages,
+    // 32 cell resistances, 32 CellConWireRes and the native min/max index.
+    // Each must take freshness from the physical cluster whose geometry (the
+    // generated cluster table) contains its register: A1 for the voltages,
+    // resistances and indices; C1 or C2 for CellConWireRes by address.
     const { physicalReadSource } = hooks;
     const blockAddresses = new Set(require(path.join(ROOT, "protocol", "generated", "read_plan.json")).blocks.map((b) => Number(b.address)));
-    const bespoke = require(path.join(ROOT, "protocol", "generated", "read_plan.json")).excluded_bespoke_keys
-      .filter((k) => PROTOCOL_CATALOG.fieldMeta[k] && PROTOCOL_CATALOG.fieldMeta[k].freshnessBudgetS != null &&
-        !blockAddresses.has(PROTOCOL_CATALOG.fieldMeta[k].readAddress));
-    const unresolved = [];
+    const contract = [];
+    for (let n = 1; n <= 32; n += 1) contract.push(`cell_voltage_${n}`, `cell_resistance_${n}`, `cell_connection_wire_resistance_${n}`);
+    contract.push("min_voltage_cell_index_native", "max_voltage_cell_index_native");
+    const wrong = [];
     const byCluster = {};
-    for (const key of bespoke) {
+    for (const key of contract) {
       const meta = PROTOCOL_CATALOG.fieldMeta[key];
-      const source = physicalReadSource(meta);
-      const owner = READ_CLUSTERS.find((c) => meta.readAddress >= Number(c.start) && meta.readAddress <= Number(c.end_inclusive));
-      if (!source || !owner || source.cluster !== owner.cluster_id) unresolved.push(key);
+      const owner = meta && READ_CLUSTERS.find((c) => meta.readAddress >= Number(c.start) && meta.readAddress <= Number(c.end_inclusive));
+      const source = meta && physicalReadSource(meta);
+      const expected = key.startsWith("cell_connection_wire_resistance_") ? ["C1", "C2"] : ["A1"];
+      if (!meta || blockAddresses.has(meta.readAddress) || !owner || !source || source.cluster !== owner.cluster_id ||
+          !expected.includes(source.cluster)) wrong.push(key);
       else byCluster[source.cluster] = (byCluster[source.cluster] || 0) + 1;
     }
-    const cells = bespoke.filter((k) => /^cell_(voltage|resistance|connection_wire_resistance)_\d+$/.test(k));
-    check("M6: every bespoke-read register key takes freshness from the physical cluster containing its register",
-      unresolved.length === 0 && cells.length === 96 && bespoke.includes("max_voltage_cell_index_native") &&
-      bespoke.includes("min_voltage_cell_index_native"), `${bespoke.length} keys ${JSON.stringify(byCluster)} unresolved=${unresolved.join(",")}`);
+    check("M6: all 98 contractual keys take freshness from the physical cluster containing their register",
+      contract.length === 98 && wrong.length === 0 && byCluster.A1 === 66 && byCluster.C1 + byCluster.C2 === 32,
+      `${JSON.stringify(byCluster)} wrong=${wrong.join(",")}`);
+    // reserved_0x12d2 (upstream "Reserved", intentionally_not_exposed) is a
+    // catalog-only field: no entity route, no published entity, no UI
+    // section. It is outside the M6 contract; nothing consumes its freshness.
+    const routes = JSON.stringify(require(path.join(ROOT, "protocol", "generated", "protocol_entity_routes.json")).routes);
+    check("M6: reserved_0x12d2 is catalog-only (no route, no UI section) and outside the M6 contract",
+      !routes.includes("reserved_0x12d2") && PROTOCOL_CATALOG.fieldMeta.reserved_0x12d2.uiSection === "none" &&
+      !contract.includes("reserved_0x12d2"));
   }
   fakeNow = 520001;
   sweepDiagnosticStaleness();
