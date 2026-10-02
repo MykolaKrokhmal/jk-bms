@@ -1361,10 +1361,13 @@ function buildServicerInterval() {
   L("// the bus -- a generic slot's write or forced readback (SENDING/ACK_WAIT/");
   L("// READBACK_WAIT; WRITE_UNCERTAIN no longer holds it), the CellCount driver,");
   L("// topology recovery, or the setup-passcode write with its 0x1470 readback.");
+  L("// Plan M8.1: an accepted write intent pauses here too, from the instant it");
+  L("// is accepted, while the hub drains before its write is queued.");
   L("// No read of any kind this tick; the transaction's own ACK/readback");
   L("// commands are queued by its own servicer, never here.");
   L("const auto bus_owner = jk_write_tx::bus_owner(id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending),");
-  L("                                              id(g_topology_recovery_pending), id(g_passcode_tx_pending));");
+  L("                                              id(g_topology_recovery_pending), id(g_passcode_tx_pending),");
+  L("                                              jk_cluster_runtime::g_write_intent.active);");
   L("if (bus_owner != jk_write_tx::BusOwner::NONE) return;");
   L("");
   L("// Active Settings lease (plan M7): one global, bounded, expiring lease the");

@@ -202,7 +202,11 @@ struct AsyncWebHandler {
 namespace script { template<typename... Ts> struct Script { void execute(Ts...) {} bool is_running() { return false; } void stop() {} }; }
 // The ESPHome 2026.9.0 shape the device-compiled code already uses:
 // (EntityType, uint16_t start, std::span<const uint8_t> data) handlers.
-namespace modbus { enum class EntityType { COIL, DISCRETE_INPUT, HOLDING, READ }; }
+namespace modbus { enum class EntityType { COIL, DISCRETE_INPUT, HOLDING, READ };
+// ModbusClientHub's two public queries the pre-write quiescence barrier
+// (plan M8.1) reads -- the real 2026.9.1 declarations in modbus.h are
+// \`bool tx_buffer_empty();\` and \`bool tx_blocked() override;\`.
+struct ModbusClientHub { bool tx_buffer_empty() { return true; } bool tx_blocked() { return false; } }; }
 namespace modbus_controller {
 struct ModbusController;
 using Handler = std::function<void(modbus::EntityType, uint16_t, std::span<const uint8_t>)>;
@@ -211,7 +215,8 @@ struct ModbusCommandItem {
   static ModbusCommandItem create_write_multiple_command(ModbusController *, uint16_t, uint16_t, const std::vector<uint16_t> &) { return {}; }
   Handler on_data_func;
 };
-struct ModbusController { void queue_command(const ModbusCommandItem &) {} };
+// hub(): the real 2026.9.1 \`modbus::ModbusClientHub *hub() const\` (modbus_controller.h).
+struct ModbusController { void queue_command(const ModbusCommandItem &) {} modbus::ModbusClientHub *hub() const { return nullptr; } };
 }
 }
 `;

@@ -76,14 +76,22 @@ generated inventories linked below, not in prose.
     - Open observation (L16): `modbus took a long time` warnings of
       361–638 ms and a 5.3 s SSE gap, cause unknown.
   - M8 design:
-    - full read pause during writes, from `jk_write_tx::bus_owner()`, with
+    - read pause during writes, from `jk_write_tx::bus_owner()`, with
       a published `read_pause_reason`;
     - a proven maximum of 7500 ms per write;
     - `WRITE_UNCERTAIN` no longer holds the pause; before M8 that pause
       was unbounded;
     - a "paused for write" browser state that is never fresh.
-  - Next: host analysis of L16, then gate D with per-field approval (not
-    started), then M9 and M10.
+  - **M8 gap (found 2026-10-02, L17):** the pause stopped only new reads; a
+    read the Modbus hub had already accepted could still run between a
+    write's ACK and its forced readback. The deployed `3e1981c` has it.
+  - **M8.1 pre-write quiescence barrier: host-complete (2026-10-02), not
+    compiled or deployed.** A write first becomes a write intent that pauses
+    reads; it is queued only on a provably idle hub after every precondition
+    is re-checked, within 3000 ms or refused. Simulation: 0 reads between
+    ACK and readback; 6 mutants killed.
+  - Next: compile and deploy M8.1, then gate D with per-field approval (not
+    started), then M9 and M10. L16 measurement (W0/W1) is on hold.
   - **Settings writes stay prohibited until gate D.**
 
   ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not

@@ -110,6 +110,9 @@ struct RmwDecision {
   uint32_t raw = 0;
   int cluster = jk_read_clusters::kNoCluster;
   bool narrow = false;  // decided from the narrow fallback block, not the cluster
+  // READY: which physical read the raw came from -- the cluster's revision,
+  // or the narrow block's success time. A newer read changes it.
+  uint32_t source_stamp = 0;
 };
 
 // The register's own narrow read-plan block, as the servicer's fallback path
@@ -295,7 +298,12 @@ class Runtime {
     const auto r = cache_.register_raw(address, word_count, now_ms);
     d.reason = r.status;
     d.cluster = r.cluster;
-    if (r.status == jk_cluster_cache::Lookup::OK) { d.gate = RmwGate::READY; d.raw = r.raw; return d; }
+    if (r.status == jk_cluster_cache::Lookup::OK) {
+      d.gate = RmwGate::READY;
+      d.raw = r.raw;
+      d.source_stamp = r.revision;
+      return d;
+    }
     if (r.status == jk_cluster_cache::Lookup::FALLBACK) return check_rmw_narrow(r.cluster, address, word_count, now_ms, narrow, allow_narrow_preread);
     if (r.status == jk_cluster_cache::Lookup::STALE || r.status == jk_cluster_cache::Lookup::MISSING) {
       // Not while it (or its lead's cycle) is already queued or in flight.
@@ -357,6 +365,7 @@ class Runtime {
       d.gate = RmwGate::READY;
       d.reason = jk_cluster_cache::Lookup::OK;
       d.raw = word_count == 1 ? (n.raw & 0xFFFFU) : n.raw;
+      d.source_stamp = n.last_success_ms;
       return d;
     }
     d.reason = after_latch ? jk_cluster_cache::Lookup::STALE : jk_cluster_cache::Lookup::MISSING;
@@ -451,7 +460,14 @@ struct RmwStepResult {
   jk_cluster_cache::Lookup reason = jk_cluster_cache::Lookup::UNKNOWN;
   bool deadline_expired = false;
   bool narrow = false;
+  uint32_t source_stamp = 0;  // QUEUE / NO_CHANGE: RmwDecision::source_stamp of the deciding read
 };
+
+// The register value a write produces from the register's current raw: the
+// encoded value itself for a full-width write, else the field merged in.
+inline uint32_t merged_raw_for(const RmwWrite &w, uint32_t raw) {
+  return w.full_width ? (w.encoded & register_width_mask(w.word_count)) : jk_write_tx::merge_field_into_raw(raw, w.mask, w.shift, w.encoded);
+}
 
 class RmwRequest {
  public:
@@ -479,8 +495,8 @@ class RmwRequest {
     if (d.gate == RmwGate::READY) {
       active_ = false;
       r.old_raw = d.raw;
-      r.merged_raw = w_.full_width ? (w_.encoded & register_width_mask(w_.word_count))
-                                   : jk_write_tx::merge_field_into_raw(d.raw, w_.mask, w_.shift, w_.encoded);
+      r.source_stamp = d.source_stamp;
+      r.merged_raw = merged_raw_for(w_, d.raw);
       // Write only when the register value actually changes.
       r.step = r.merged_raw == r.old_raw ? RmwStep::NO_CHANGE : RmwStep::QUEUE;
       return r;
@@ -609,5 +625,81 @@ inline ArmResult arm_write(std::array<RmwRequest, N> &pool, const RmwWrite &w, u
 }
 constexpr std::size_t kEntityWriteRequests = 4;
 inline std::array<RmwRequest, kEntityWriteRequests> g_entity_write_requests;
+
+// --- Pre-write quiescence barrier (plan M8.1): the one write intent ---------
+// A QUEUE decision (UI request or HA entity) no longer queues its Modbus
+// write at once. It becomes the single write intent: from that instant
+// bus_owner() reports a register write, so the servicer issues no new read,
+// read_pause_reason shows it and every OK is disabled; the write is queued
+// only when jk_write_tx::quiesce_step() says the hub is quiescent and no
+// other transaction owns the bus, and only after recheck_write_intent()
+// passes. One intent at a time, and none while a transaction owns the bus:
+// after the write starts, nothing but its own ACK and forced readback can be
+// on the bus.
+enum class IntentSource : uint8_t { NONE = 0, REGISTER_REQUEST = 1, ENTITY = 2 };
+
+struct WriteIntent {
+  bool active = false;
+  IntentSource source = IntentSource::NONE;
+  RmwWrite write;
+  uint32_t old_raw = 0;       // the raw the write was merged into
+  uint32_t merged_raw = 0;    // exactly what will be written
+  uint32_t source_stamp = 0;  // the deciding read (RmwDecision::source_stamp)
+  bool narrow = false;        // decided from a narrow fallback block
+  uint32_t accepted_ms = 0;
+  // REGISTER_REQUEST only: the UI request the result is published for, and
+  // its registry entry and value (re-validated before the write).
+  uint32_t request_id = 0;
+  int registry_index = -1;
+  double value = 0.0;
+};
+
+// Accepts a QUEUE decision as the write intent. False (nothing changes) when
+// another intent is draining or `owner` (bus_owner() without any intent) is
+// not NONE: the caller refuses the write, it is never queued alongside one.
+inline bool accept_write_intent(WriteIntent &in, IntentSource source, const RmwWrite &w, const RmwStepResult &queued, uint32_t now_ms,
+                                jk_write_tx::BusOwner owner) {
+  if (in.active || owner != jk_write_tx::BusOwner::NONE || queued.step != RmwStep::QUEUE || source == IntentSource::NONE) return false;
+  in = WriteIntent();
+  in.active = true;
+  in.source = source;
+  in.write = w;
+  in.old_raw = queued.old_raw;
+  in.merged_raw = queued.merged_raw;
+  in.source_stamp = queued.source_stamp;
+  in.narrow = queued.narrow;
+  in.accepted_ms = now_ms;
+  return true;
+}
+
+enum class RecheckStep : uint8_t { DISPATCH = 0, STALE = 1, CHANGED = 2 };
+
+struct RecheckResult {
+  RecheckStep step = RecheckStep::STALE;
+  uint32_t merged_raw = 0;
+  jk_cluster_cache::Lookup reason = jk_cluster_cache::Lookup::UNKNOWN;
+};
+
+// Immediately before the write, after the drain: the register's raw goes
+// through the same strict gate again (kRmwStrictBudgetMs, unchanged), with
+// NO pre-read -- the bus has just been drained and nothing may be read now.
+// DISPATCH only if that raw is still fresh, comes from the same kind of
+// source (cluster vs. narrow fallback block) and from the deciding read or a
+// newer one, still equals the raw the write was merged into, and so merges
+// to exactly the intent's value. Otherwise nothing is written: STALE (no
+// fresh raw any more) or CHANGED.
+inline RecheckResult recheck_write_intent(Runtime &rt, const WriteIntent &in, uint32_t now_ms, const NarrowBlockView &narrow = NarrowBlockView()) {
+  RecheckResult r;
+  const RmwDecision d = rt.check_rmw(in.write.address, in.write.word_count, now_ms, narrow, false, false);
+  r.reason = d.reason;
+  if (d.gate != RmwGate::READY) return r;  // STALE
+  r.merged_raw = merged_raw_for(in.write, d.raw);
+  const bool same_source = d.narrow == in.narrow;
+  const bool not_older = int32_t(d.source_stamp - in.source_stamp) >= 0;
+  r.step = (same_source && not_older && d.raw == in.old_raw && r.merged_raw == in.merged_raw) ? RecheckStep::DISPATCH : RecheckStep::CHANGED;
+  return r;
+}
+
+inline WriteIntent g_write_intent;
 
 }  // namespace jk_cluster_runtime

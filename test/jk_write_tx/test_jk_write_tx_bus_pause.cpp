@@ -129,21 +129,21 @@ int main() {
   {
     uint8_t in_use[6] = {0, 0, 0, 0, 0, 0};
     uint8_t status[6] = {IDLE, IDLE, IDLE, IDLE, IDLE, IDLE};
-    check(bus_owner(in_use, status, 6, false, false, false) == BusOwner::NONE, "nothing pending -> no owner, reads run");
+    check(bus_owner(in_use, status, 6, false, false, false, false) == BusOwner::NONE, "nothing pending -> no owner, reads run");
     for (uint8_t st : {uint8_t(SENDING), uint8_t(ACK_WAIT), uint8_t(READBACK_WAIT)}) {
       in_use[3] = 1; status[3] = st;
-      check(bus_owner(in_use, status, 6, false, false, false) == BusOwner::REGISTER_WRITE, "a slot in its write/readback owns the bus (status " + std::to_string(st) + ")");
+      check(bus_owner(in_use, status, 6, false, false, false, false) == BusOwner::REGISTER_WRITE, "a slot in its write/readback owns the bus (status " + std::to_string(st) + ")");
     }
     status[3] = WRITE_UNCERTAIN;
-    check(bus_owner(in_use, status, 6, false, false, false) == BusOwner::NONE, "a WRITE_UNCERTAIN slot does not hold the read pause");
+    check(bus_owner(in_use, status, 6, false, false, false, false) == BusOwner::NONE, "a WRITE_UNCERTAIN slot does not hold the read pause");
     status[3] = ACK_WAIT; in_use[3] = 0;
-    check(bus_owner(in_use, status, 6, false, false, false) == BusOwner::NONE, "a free slot never owns the bus, whatever its stale status");
+    check(bus_owner(in_use, status, 6, false, false, false, false) == BusOwner::NONE, "a free slot never owns the bus, whatever its stale status");
     in_use[3] = 1;
-    check(bus_owner(in_use, status, 6, true, false, false) == BusOwner::CELLCOUNT, "CellCount keeps full ownership");
-    check(bus_owner(in_use, status, 6, false, true, false) == BusOwner::TOPOLOGY_RECOVERY, "topology recovery keeps full ownership");
-    check(bus_owner(in_use, status, 6, false, false, true) == BusOwner::PASSCODE, "the setup-passcode transaction keeps full ownership");
+    check(bus_owner(in_use, status, 6, true, false, false, false) == BusOwner::CELLCOUNT, "CellCount keeps full ownership");
+    check(bus_owner(in_use, status, 6, false, true, false, false) == BusOwner::TOPOLOGY_RECOVERY, "topology recovery keeps full ownership");
+    check(bus_owner(in_use, status, 6, false, false, true, false) == BusOwner::PASSCODE, "the setup-passcode transaction keeps full ownership");
     in_use[3] = 0;
-    check(bus_owner(in_use, status, 6, true, false, false) == BusOwner::CELLCOUNT, "CellCount owns the bus with no generic slot active");
+    check(bus_owner(in_use, status, 6, true, false, false, false) == BusOwner::CELLCOUNT, "CellCount owns the bus with no generic slot active");
     check(std::string(bus_owner_name(BusOwner::NONE)) == "none" && std::string(bus_owner_name(BusOwner::REGISTER_WRITE)) == "register_write" &&
               std::string(bus_owner_name(BusOwner::CELLCOUNT)) == "cellcount" && std::string(bus_owner_name(BusOwner::TOPOLOGY_RECOVERY)) == "topology_recovery" &&
               std::string(bus_owner_name(BusOwner::PASSCODE)) == "passcode",

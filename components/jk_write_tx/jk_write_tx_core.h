@@ -154,18 +154,79 @@ inline bool owns_bus(uint8_t status) {
 // The CellCount driver, topology recovery and the setup-passcode
 // transaction keep their own full ownership (pending flags), each already
 // bounded by its own ACK/readback/recovery timeouts on the 250 ms servicer.
+// An accepted write intent (plan M8.1, below) owns the bus as a register
+// write from the instant it is accepted, before its Modbus write exists:
+// that is what stops new ordinary reads while the hub drains.
 enum class BusOwner : uint8_t { NONE = 0, REGISTER_WRITE = 1, CELLCOUNT = 2, TOPOLOGY_RECOVERY = 3, PASSCODE = 4 };
 
 inline BusOwner bus_owner(const uint8_t *slot_in_use, const uint8_t *slot_status, std::size_t slots, bool cellcount_pending,
-                          bool topology_recovery_pending, bool passcode_pending) {
+                          bool topology_recovery_pending, bool passcode_pending, bool write_intent_pending) {
   if (cellcount_pending) return BusOwner::CELLCOUNT;
   if (topology_recovery_pending) return BusOwner::TOPOLOGY_RECOVERY;
   if (passcode_pending) return BusOwner::PASSCODE;
+  if (write_intent_pending) return BusOwner::REGISTER_WRITE;
   for (std::size_t i = 0; i < slots; i++) {
     if (slot_in_use[i] && owns_bus(slot_status[i])) return BusOwner::REGISTER_WRITE;
   }
   return BusOwner::NONE;
 }
+
+// --- Pre-write quiescence barrier (plan M8.1) --------------------------------
+// M8 paused only NEW ordinary reads once a write owned the bus. A read that
+// was already accepted by the ESPHome 2026.9.1 Modbus hub still ran: one in
+// flight finished before the write frame, and one still queued (READY, e.g.
+// inside the 50 ms turnaround) was overtaken by the WRITE-class frame and
+// then sent after the ACK, before the forced readback (the hub picks the
+// oldest READY frame within the READ class). The barrier closes that: an
+// accepted write intent pauses new reads at once, and the Modbus write is
+// queued only when the hub itself proves it holds nothing.
+//
+// Hub idle, from the hub's own public state (esphome/components/modbus/
+// modbus.{h,cpp} at 2026.9.1): ModbusClientHub::tx_buffer_empty() is false
+// while any non-continuous frame is READY (queued, not yet sent);
+// ModbusClientHub::tx_blocked() is true while a frame waits for its response
+// (waiting_for_response_, set on transmit and cleared only by the response,
+// exception or send-wait timeout), while rx bytes are pending, or inside the
+// turnaround delay. A retried frame is put back to READY by the hub's sweep
+// inside the same loop() that timed it out, and a finished frame is erased
+// there too, so outside the hub's loop() "tx_buffer_empty() && !tx_blocked()"
+// means: nothing queued, nothing on the wire, nothing about to be resent.
+// This project has no continuous (polling) modbus_controller entities, so
+// the continuous-poll exclusion of tx_buffer_empty() never hides a frame
+// (pinned by test_cluster_servicer_structure.js).
+inline bool hub_quiescent(bool tx_buffer_empty, bool tx_blocked) { return tx_buffer_empty && !tx_blocked; }
+
+// Drain bound. While an intent drains, the hub can only hold frames accepted
+// before it: at most one ordinary servicer read (the runtime keeps one read
+// in flight), plus a topology-recovery or WRITE_UNCERTAIN probe read issued
+// before the intent. On a healthy bus each finishes in one exchange (Gate C:
+// total_ms max 62 incl. queueing) plus the 50 ms turnaround and its own
+// response callback (A1 publishing, up to 638 ms observed), i.e. about 1 s
+// for all of them. The barrier waits at most kQuiesceTimeoutMs = 3000 ms,
+// the same budget the read servicer gives one read before it calls the read
+// failed (jk_cluster_runtime::kReadTimeoutMs). A hub still busy after that
+// is retrying an unanswered frame (send_wait_time 2000 ms per attempt, up to
+// max_cmd_retries 4 more attempts): the write is then refused without ever
+// being queued, never sent into a failing bus.
+constexpr uint32_t kQuiesceTimeoutMs = 3000;
+
+enum class QuiesceStep : uint8_t { IDLE = 0, WAIT = 1, READY = 2, TIMEOUT = 3 };
+
+// One decision of the barrier. READY only when no other transaction owns the
+// bus AND the hub is quiescent; TIMEOUT once the drain reached
+// kQuiesceTimeoutMs without that. `other_owner` is bus_owner() WITHOUT the
+// intent itself.
+inline QuiesceStep quiesce_step(bool intent_active, uint32_t accepted_ms, uint32_t now_ms, bool hub_is_quiescent, BusOwner other_owner) {
+  if (!intent_active) return QuiesceStep::IDLE;
+  if (other_owner == BusOwner::NONE && hub_is_quiescent) return QuiesceStep::READY;
+  if (uint32_t(now_ms - accepted_ms) >= kQuiesceTimeoutMs) return QuiesceStep::TIMEOUT;
+  return QuiesceStep::WAIT;
+}
+
+// A recovery probe (WRITE_UNCERTAIN or topology) is one more read: it may be
+// issued only when no write intent drains and no transaction owns the bus,
+// so it can never land between a write's ACK and its forced readback.
+inline bool recovery_probe_allowed(BusOwner owner) { return owner == BusOwner::NONE; }
 
 inline const char *bus_owner_name(BusOwner o) {
   switch (o) {
@@ -803,6 +864,13 @@ enum class RejectReason : uint8_t {
   // plan M5, owner decision 2026-09-29). Published with accepted=false (no
   // tx_id exists); the status endpoint reports it as "no_change".
   NO_CHANGE = 10,
+  // Plan M8.1: the Modbus hub did not go idle within kQuiesceTimeoutMs after
+  // the write intent was accepted, or another transaction owned the bus --
+  // nothing was queued.
+  BUS_NOT_QUIESCENT = 11,
+  // Plan M8.1: after the drain, the register no longer held the raw the
+  // write was merged into (a newer read changed it) -- nothing was queued.
+  RAW_CHANGED = 12,
 };
 
 inline const char *reject_reason_text(RejectReason reason) {
@@ -819,6 +887,8 @@ inline const char *reject_reason_text(RejectReason reason) {
     case RejectReason::TRANSACTION_UNAVAILABLE:
       return "a transaction for this register is already in flight, or every transaction slot is busy";
     case RejectReason::NO_CHANGE: return "no change";
+    case RejectReason::BUS_NOT_QUIESCENT: return "the Modbus bus did not go idle before the write";
+    case RejectReason::RAW_CHANGED: return "the register changed while the bus drained";
     default: return "unknown reason";
   }
 }

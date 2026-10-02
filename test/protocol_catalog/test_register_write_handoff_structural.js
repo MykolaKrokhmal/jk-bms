@@ -94,9 +94,19 @@ check("the main-loop consumer takes from the mailbox via try_take_write_request"
 // ... and (write-only-when-changed, owner decision 2026-09-29) the same one
 // tracked gate now covers full-width 16/32-bit writes too: every write the
 // consumer queues goes through begin_write_tx with the decided raw.
-check("the main-loop consumer queues every write via begin_write_tx with the tracked gate's decided raw (the ONLY safe place to)",
-  consumerBlock.includes("id(begin_write_tx)->execute(int(w.address), int(w.word_count), int(rmw_merged_raw), int(w.tx_compare_mask()), 0);") &&
-  consumerBlock.includes("rmw_req.step(jk_cluster_runtime::g_runtime, now, narrow)"));
+// Plan M8.1 (pre-write quiescence barrier): the consumer no longer queues
+// the write itself. Its QUEUE decision becomes the one write intent, and the
+// write_barrier_step script -- on the same main loop -- queues exactly that
+// decided raw through begin_write_tx once the Modbus hub has drained.
+const barrierStart = yaml.indexOf("  - id: write_barrier_step\n");
+const barrierBlock = barrierStart < 0 ? "" : yaml.slice(barrierStart, yaml.indexOf("\n  - id: ", barrierStart + 10));
+check("the main-loop consumer hands every QUEUE decision to the pre-write barrier as the write intent and never queues a write itself (plan M8.1)",
+  consumerBlock.includes("jk_cluster_runtime::accept_write_intent(intent, jk_cluster_runtime::IntentSource::REGISTER_REQUEST, w, rmw_queued, now, owner)") &&
+  consumerBlock.includes("rmw_req.step(jk_cluster_runtime::g_runtime, now, narrow)") && consumerBlock.includes("id(write_barrier_step)->execute();") &&
+  !consumerBlock.includes("begin_write_tx)->execute"));
+check("the pre-write barrier queues every write via begin_write_tx with the intent's decided raw (the ONLY place a Modbus write is queued)",
+  barrierBlock.includes("id(begin_write_tx)->execute(int(intent.write.address), int(intent.write.word_count), int(intent.merged_raw),") &&
+  (yaml.match(/id\(begin_write_tx\)->execute\(/g) || []).length === 1);
 check("the main-loop consumer never calls begin_write_tx_rmw / write_bms_u16 / write_bms_u32 (no second gate)",
   !consumerBlock.includes("begin_write_tx_rmw)->execute") && !consumerBlock.includes("write_bms_u32)->execute") && !consumerBlock.includes("write_bms_u16)->execute"));
 check("the main-loop consumer publishes its outcome via publish_write_result", consumerBlock.includes("publish_write_result("));
@@ -107,8 +117,8 @@ const wholeHandlerRegion = handlerBlock + statusBlock;
 for (const call of ["begin_write_tx_rmw)->execute", "write_bms_u32)->execute", "write_bms_u16)->execute"]) {
   check(`neither HTTP handler calls ${call}`, !wholeHandlerRegion.includes(call));
 }
-check('"begin_write_tx)->execute" appears in the main-loop consumer but NOT in either HTTP handler',
-  consumerBlock.includes("begin_write_tx)->execute") && !wholeHandlerRegion.includes("begin_write_tx)->execute"));
+check('"begin_write_tx)->execute" appears only in the main-loop pre-write barrier, NOT in either HTTP handler',
+  barrierBlock.includes("begin_write_tx)->execute") && !wholeHandlerRegion.includes("begin_write_tx)->execute"));
 
 // ---------------------------------------------------------------------
 // 5. Fail-closed prerequisites: single-flight, queue-full, stale-RAW,
@@ -123,10 +133,23 @@ check("the consumer checks topology is CONFIRMED (NEW prerequisite, not present 
   consumerBlock.includes('id(topology_state).state != "CONFIRMED"'));
 check("the consumer re-validates value encoding/range via encode_numeric_field", consumerBlock.includes("encode_numeric_field("));
 check("the consumer re-checks fresh RAW via raw_is_fresh", consumerBlock.includes("raw_is_fresh("));
-check("the consumer enforces single-flight via the existing g_wtx_in_use/g_wtx_address scan", consumerBlock.includes("g_wtx_tx_id)[i] == next_after"));
+check("the barrier enforces single-flight via the existing g_wtx_in_use/g_wtx_address scan", barrierBlock.includes("g_wtx_tx_id)[i] == next_after"));
+check("the barrier re-validates the request's own checks immediately before the write (registry live, BMS LIVE, topology CONFIRMED, same encoding)",
+  barrierBlock.includes("e->submit_policy != jk_write_registry::SubmitPolicy::LIVE") && barrierBlock.includes('id(bms_health).state != "LIVE"') &&
+  barrierBlock.includes('id(topology_state).state != "CONFIRMED"') && barrierBlock.includes("uint32_t(enc.encoded_raw) != intent.write.encoded"));
+{
+  const at = (x) => barrierBlock.indexOf(x);
+  check("the barrier: hub check -> quiesce_step -> intent ended -> recheck -> begin_write_tx, in that order, in one lambda",
+    at("hub->tx_buffer_empty(), hub->tx_blocked()") > 0 && at("jk_write_tx::quiesce_step(") > at("hub->tx_buffer_empty()") &&
+    at("in.active = false;") > at("jk_write_tx::quiesce_step(") && at("recheck_write_intent(") > at("in.active = false;") &&
+    at("id(begin_write_tx)->execute(") > at("recheck_write_intent(") && (barrierBlock.match(/lambda: \|-/g) || []).length === 1);
+  check("a refused intent publishes its rejection and never reaches begin_write_tx",
+    /if \(reason != jk_write_tx::RejectReason::NONE\) \{[\s\S]*?publish_write_result\([\s\S]*?return;\n          \}/.test(barrierBlock) &&
+    barrierBlock.indexOf("if (reason != jk_write_tx::RejectReason::NONE) {") < at("id(begin_write_tx)->execute("));
+}
 check("a rejected request publishes via the result table with tx_id=0, never a fabricated tx_id",
   (consumerBlock.match(/publish_write_result\(jk_write_tx::g_register_write_result_table,[\s\S]{0,260}?false, 0,/g) || []).length >= 3);
-check("an accepted request publishes the real next_after tx_id, never 0", consumerBlock.includes("req.request_id, true,\n                                             next_after, jk_write_tx::RejectReason::NONE"));
+check("an accepted request publishes the real next_after tx_id, never 0", barrierBlock.includes("intent.request_id, true,\n                                             next_after, jk_write_tx::RejectReason::NONE"));
 check("the consumer uses jk_write_tx::RejectReason enum values, never free-form ad hoc strings", consumerBlock.includes("jk_write_tx::RejectReason::"));
 
 // ---------------------------------------------------------------------
@@ -166,8 +189,8 @@ check("last_write_crash_stage is never published as trustworthy without the rtc_
 // accepted_idx is found), never before the call that could still reject.
 // ---------------------------------------------------------------------
 {
-  const successTailStart = consumerBlock.lastIndexOf("jk_diag::mark_write_crash_stage(jk_diag::STAGE_TRANSACTION_ALLOCATED)");
-  const successTail = consumerBlock.slice(successTailStart);
+  const successTailStart = barrierBlock.lastIndexOf("jk_diag::mark_write_crash_stage(jk_diag::STAGE_TRANSACTION_ALLOCATED)");
+  const successTail = barrierBlock.slice(successTailStart);
   check("STAGE_TRANSACTION_ALLOCATED/STAGE_MODBUS_COMMAND_QUEUED are set together, after accepted_idx proof, immediately before the final accepted publish",
     successTailStart !== -1 &&
     successTail.indexOf("jk_diag::STAGE_MODBUS_COMMAND_QUEUED") < successTail.indexOf("publish_write_result") &&

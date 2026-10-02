@@ -1900,6 +1900,12 @@ interval:
             return;
           }
 
+          // Plan M8.1: the probe is two more reads -- never while a write
+          // intent drains the hub or any transaction owns the bus, so it can
+          // never land between a write's ACK and its forced readback.
+          if (!jk_write_tx::recovery_probe_allowed(jk_write_tx::bus_owner(
+                  id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),
+                  id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active))) return;
           if (now - id(g_topology_recovery_last_ms) < 5000U) return;
           id(g_topology_recovery_last_ms) = now;
           id(g_topology_recovery_pending) = true;
@@ -2029,8 +2035,15 @@ interval:
             // callbacks above and additionally re-checks the slot is
             // still WRITE_UNCERTAIN -- a stale or superseded probe result
             // must never mutate a transaction it no longer belongs to.
+            // Plan M8.1: the probe is one more read, so it is issued only
+            // once no write intent drains the hub and no transaction owns
+            // the bus (this slot itself, WRITE_UNCERTAIN, does not) -- it can
+            // never land between another write's ACK and its readback.
             if (s.status == jk_write_tx::WRITE_UNCERTAIN && id(g_wtx_recovery_pending)[i] &&
-                now >= id(g_wtx_recovery_next_ms)[i]) {
+                now >= id(g_wtx_recovery_next_ms)[i] &&
+                jk_write_tx::recovery_probe_allowed(jk_write_tx::bus_owner(
+                    id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),
+                    id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active))) {
               id(g_wtx_recovery_next_ms)[i] = now + 2000U;
               const uint16_t addr = s.address;
               // register_count is Modbus REGISTERS (word_count itself --
@@ -2406,7 +2419,7 @@ interval:
           // holds the value -- no Modbus command, no write slot, no readback
           // (clustered-read plan M5, owner decision 2026-09-29).
           auto &rmw_req = jk_cluster_runtime::g_register_write_rmw;
-          uint32_t rmw_merged_raw = 0;
+          jk_cluster_runtime::RmwStepResult rmw_queued;
           bool no_change = false;
           jk_cluster_runtime::RmwWrite w;
           if (e_ptr != nullptr) {
@@ -2437,7 +2450,7 @@ interval:
               return;  // no result yet: re-decided next tick
             }
             if (st.step == jk_cluster_runtime::RmwStep::QUEUE) {
-              rmw_merged_raw = st.merged_raw;
+              rmw_queued = st;
             } else if (st.step == jk_cluster_runtime::RmwStep::NO_CHANGE) {
               no_change = true;
             } else {
@@ -2477,64 +2490,39 @@ interval:
             return;
           }
 
-          // Single-flight/queued-vs-rejected detection -- unchanged
-          // mechanism from the previous handler, just relocated to where
-          // it is now actually safe to run: jk_write_tx::begin() (called
-          // inside begin_write_tx_rmw/write_bms_u32/write_bms_u16, all
-          // synchronously) always bumps g_write_tx_next_id by exactly 1
-          // once it is reached, whether it accepts (new slot) or rejects
-          // (single-flight/all slots busy -- recorded in the existing
-          // rejected-ring buffer).
-          //
-          // Second corrective pass (2026-09-21): STAGE_TRANSACTION_ALLOCATED
-          // and STAGE_MODBUS_COMMAND_QUEUED are now set ONLY after real
-          // proof (accepted_idx found below), never before the call that
-          // could still reject -- see jk_reset_diag_core.h's own
-          // WriteCrashStage comment for the exact semantics each stage
-          // now guarantees.
-          const uint32_t next_before = id(g_write_tx_next_id);
-          // Exactly the raw the gate decided on above, through begin_write_tx
-          // itself -- never begin_write_tx_rmw / write_bms_u16 / write_bms_u32,
-          // which would gate a second time through the entity pool.
-          id(begin_write_tx)->execute(int(w.address), int(w.word_count), int(rmw_merged_raw), int(w.tx_compare_mask()), 0);
-          const uint32_t next_after = id(g_write_tx_next_id);
-
-          if (next_after == next_before) {
-            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
-                                               jk_write_tx::g_register_write_pending_request_id, req.request_id,
-                                               false, 0, jk_write_tx::RejectReason::WRITE_NOT_QUEUED, now);
-            jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
-            return;
-          }
-
-          int accepted_idx = -1;
-          for (int i = 0; i < 6; i++) {
-            if (id(g_wtx_tx_id)[i] == next_after && id(g_wtx_address)[i] == e_ptr->address) { accepted_idx = i; break; }
-          }
-          if (accepted_idx < 0) {
+          // Plan M8.1: the QUEUE decision becomes the one write intent -- no
+          // Modbus write yet. From here bus_owner() reports a register write
+          // (no new read is issued, read_pause_reason shows it, every OK is
+          // disabled) and write_barrier_step queues the write only once the
+          // hub has drained, re-validating everything first. Refused at once
+          // while another intent drains or any transaction owns the bus.
+          const auto owner = jk_write_tx::bus_owner(id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending),
+                                                    id(g_topology_recovery_pending), id(g_passcode_tx_pending), false);
+          auto &intent = jk_cluster_runtime::g_write_intent;
+          if (!jk_cluster_runtime::accept_write_intent(intent, jk_cluster_runtime::IntentSource::REGISTER_REQUEST, w, rmw_queued, now, owner)) {
+            ESP_LOGW("jk_write_tx", "register-write request_id=%u key=%s refused: another write is draining the bus or owns it",
+                     unsigned(req.request_id), req.key);
             jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
                                                jk_write_tx::g_register_write_pending_request_id, req.request_id,
                                                false, 0, jk_write_tx::RejectReason::TRANSACTION_UNAVAILABLE, now);
             jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
             return;
           }
+          intent.request_id = req.request_id;
+          intent.registry_index = idx;
+          intent.value = req.value;
+          // No result yet -- write_barrier_step publishes it (queued or refused).
+          jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+          id(publish_read_pause_reason)->execute();
+          id(write_barrier_step)->execute();  // an already idle hub: the write is queued right now
 
-          // PROOF now exists: a real slot was found (TRANSACTION_ALLOCATED)
-          // and next_after != next_before means queue_command() genuinely
-          // ran without begin() itself rejecting (MODBUS_COMMAND_QUEUED).
-          // Deliberately NOT set to STAGE_IDLE on this success path -- the
-          // real transaction (ACK/readback) is still outstanding; the
-          // 250ms write-tx tick loop's own aggregate check (above in this
-          // file) is what now owns advancing the marker to
-          // STAGE_TRANSACTION_PENDING (within its next 250ms tick) and,
-          // eventually, back to STAGE_IDLE once every slot genuinely
-          // reaches a terminal status.
-          jk_diag::mark_write_crash_stage(jk_diag::STAGE_TRANSACTION_ALLOCATED);
-          jk_diag::mark_write_crash_stage(jk_diag::STAGE_MODBUS_COMMAND_QUEUED);
-
-          jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
-                                             jk_write_tx::g_register_write_pending_request_id, req.request_id, true,
-                                             next_after, jk_write_tx::RejectReason::NONE, now);
+  # Pre-write quiescence barrier (plan M8.1): re-decides the one write
+  # intent every 20 ms (the read servicer's cadence) -- queue the write once
+  # the hub has drained, or refuse it at kQuiesceTimeoutMs. A no-op return
+  # when no intent is draining.
+  - interval: 20ms
+    then:
+      - script.execute: write_barrier_step
 
   # Second corrective pass (2026-09-21): publishes the read-plan block
   # freshness/raw/generation snapshot RegisterWritePreflightHandler now
@@ -2568,14 +2556,10 @@ interval:
           char mode[64];
           jk_cluster_runtime::g_runtime.format_mode(mode, sizeof(mode));
           if (id(read_cluster_mode).state != mode) id(read_cluster_mode).publish_state(mode);
-          // Write coordination (plan M8): who owns the bus, from the same
-          // authoritative predicate the read servicer pauses on. Published
-          // on change only; the browser shows "paused" from it and never
-          // runs a pause timer of its own.
-          const char *pause = jk_write_tx::bus_owner_name(jk_write_tx::bus_owner(
-              id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),
-              id(g_passcode_tx_pending)));
-          if (id(read_pause_reason).state != pause) id(read_pause_reason).publish_state(pause);
+          // Write coordination (plan M8): who owns the bus -- published on
+          // change by publish_read_pause_reason (also run the instant a write
+          // intent is accepted or ends, plan M8.1).
+          id(publish_read_pause_reason)->execute();
 
   - interval: 30s
     then:
@@ -4401,6 +4385,155 @@ script:
           id(bms0)->queue_command(std::move(command));
           id(publish_write_tx_snapshot)->execute();
 
+  # Write coordination (plan M8): who owns the bus, from the same
+  # authoritative predicate the read servicer pauses on -- a generic slot's
+  # write or forced readback, CellCount, topology recovery, the setup
+  # passcode, or a write intent draining the hub (plan M8.1). Published on
+  # change only; the browser shows "paused" from it, disables every OK and
+  # never runs a pause timer of its own.
+  - id: publish_read_pause_reason
+    then:
+      - lambda: |-
+          const char *pause = jk_write_tx::bus_owner_name(jk_write_tx::bus_owner(
+              id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),
+              id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active));
+          if (id(read_pause_reason).state != pause) id(read_pause_reason).publish_state(pause);
+
+  # ---- Pre-write quiescence barrier (plan M8.1) -- the ONLY caller of
+  # begin_write_tx, so the only way a Modbus write is ever queued. M8 paused
+  # only NEW reads once a write owned the bus; a read the ESPHome hub had
+  # already accepted still ran -- in flight before the write frame, or still
+  # queued and then sent between the ACK and the forced readback (the
+  # WRITE-class frame overtakes a READY read, which then goes before the
+  # readback as the oldest READ-class frame). Now a write is first accepted
+  # as the one write intent (jk_cluster_runtime::g_write_intent, from the UI
+  # request consumer or entity_write_step): bus_owner() reports it at once,
+  # so the servicer and both recovery probes issue nothing more. This step
+  # (run at acceptance and every 20 ms) queues the write only when
+  # jk_write_tx::quiesce_step() is READY -- no other transaction owns the bus
+  # AND the hub proves it holds nothing (tx_buffer_empty() && !tx_blocked())
+  # -- and only after every precondition passes again at that instant: the
+  # request's own checks (registry entry live, BMS LIVE, topology CONFIRMED,
+  # same encoding) and recheck_write_intent() (strict raw freshness, same
+  # source, same or newer read, same raw, same merged value; no pre-read).
+  # The hub check and queue_command() run in this one synchronous lambda, so
+  # no read can be queued between them. Bounded: kQuiesceTimeoutMs (3000 ms)
+  # after acceptance the intent is refused (BUS_NOT_QUIESCENT) and nothing is
+  # queued. Each outcome ends the intent exactly once.
+  - id: write_barrier_step
+    then:
+      - lambda: |-
+          auto &in = jk_cluster_runtime::g_write_intent;
+          if (!in.active) return;
+          const uint32_t now = millis();
+          auto *hub = id(bms0)->hub();
+          const bool quiet = jk_write_tx::hub_quiescent(hub->tx_buffer_empty(), hub->tx_blocked());
+          const auto other = jk_write_tx::bus_owner(id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending),
+                                                    id(g_topology_recovery_pending), id(g_passcode_tx_pending), false);
+          const auto qs = jk_write_tx::quiesce_step(in.active, in.accepted_ms, now, quiet, other);
+          if (qs == jk_write_tx::QuiesceStep::WAIT) return;
+
+          // Terminal from here on: queued once, or refused -- never both, never later.
+          const jk_cluster_runtime::WriteIntent intent = in;
+          in.active = false;
+          const bool ui = intent.source == jk_cluster_runtime::IntentSource::REGISTER_REQUEST;
+          jk_write_tx::RejectReason reason = jk_write_tx::RejectReason::NONE;
+          if (qs != jk_write_tx::QuiesceStep::READY) {
+            reason = jk_write_tx::RejectReason::BUS_NOT_QUIESCENT;
+          } else {
+            if (ui) {
+              const jk_write_registry::Entry *e = intent.registry_index >= 0 ? &jk_write_registry::kEntries[intent.registry_index] : nullptr;
+              if (e == nullptr || e->submit_policy != jk_write_registry::SubmitPolicy::LIVE) {
+                reason = jk_write_tx::RejectReason::AUTHORIZATION_REQUIRED;
+              } else if (id(bms_health).state != "LIVE") {
+                reason = jk_write_tx::RejectReason::BMS_NOT_LIVE;
+              } else if (id(topology_state).state != "CONFIRMED") {
+                reason = jk_write_tx::RejectReason::TOPOLOGY_NOT_CONFIRMED;
+              } else {
+                const auto enc = jk_write_tx::encode_numeric_field(intent.value, e->is_signed, e->scale, e->offset,
+                                                                    e->minimum, e->maximum, e->field_width_bits);
+                if (enc.status != jk_write_tx::EncodeStatus::OK || uint32_t(enc.encoded_raw) != intent.write.encoded)
+                  reason = jk_write_tx::RejectReason::VALUE_REJECTED;
+              }
+            }
+            if (reason == jk_write_tx::RejectReason::NONE) {
+              const auto narrow = jk_cluster_runtime::make_narrow_view(jk_read_plan::kBlocks, jk_read_plan::kBlockCount, intent.write.address,
+                                                                       id(g_rp_last_success_ms), id(g_rp_last_raw_word), id(g_rp_pending_index));
+              const auto rc = jk_cluster_runtime::recheck_write_intent(jk_cluster_runtime::g_runtime, intent, now, narrow);
+              if (rc.step == jk_cluster_runtime::RecheckStep::STALE) {
+                reason = rc.reason == jk_cluster_cache::Lookup::UNKNOWN ? jk_write_tx::RejectReason::NO_READ_PLAN_BLOCK
+                                                                        : jk_write_tx::RejectReason::STALE_RAW;
+              } else if (rc.step == jk_cluster_runtime::RecheckStep::CHANGED) {
+                reason = jk_write_tx::RejectReason::RAW_CHANGED;
+              }
+            }
+          }
+
+          if (reason != jk_write_tx::RejectReason::NONE) {
+            ESP_LOGW("jk_write_tx", "Write to 0x%04X refused before queueing (%s write, %u ms after acceptance): %s",
+                     unsigned(intent.write.address), ui ? "UI" : "entity", unsigned(now - intent.accepted_ms),
+                     jk_write_tx::reject_reason_text(reason));
+            if (ui) {
+              jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
+                                                 jk_write_tx::g_register_write_pending_request_id, intent.request_id,
+                                                 false, 0, reason, now);
+              jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+            }
+            id(publish_read_pause_reason)->execute();
+            return;
+          }
+
+          // Single-flight/queued-vs-rejected detection (moved here unchanged
+          // from the UI request consumer): jk_write_tx::begin() inside
+          // begin_write_tx always bumps g_write_tx_next_id by exactly 1 once
+          // reached, whether it accepts (new slot) or rejects (single-flight/
+          // all slots busy -- recorded in the rejected-ring buffer).
+          // STAGE_TRANSACTION_ALLOCATED and STAGE_MODBUS_COMMAND_QUEUED are
+          // set ONLY after real proof (accepted_idx found below) -- see
+          // jk_reset_diag_core.h's WriteCrashStage comment.
+          const uint32_t next_before = id(g_write_tx_next_id);
+          // Exactly the raw the gate decided on (and the recheck confirmed),
+          // through begin_write_tx itself -- never begin_write_tx_rmw /
+          // write_bms_u16 / write_bms_u32, which would gate a second time.
+          id(begin_write_tx)->execute(int(intent.write.address), int(intent.write.word_count), int(intent.merged_raw),
+                                      int(intent.write.tx_compare_mask()), 0);
+          const uint32_t next_after = id(g_write_tx_next_id);
+          id(publish_read_pause_reason)->execute();
+          if (!ui) return;
+
+          if (next_after == next_before) {
+            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
+                                               jk_write_tx::g_register_write_pending_request_id, intent.request_id,
+                                               false, 0, jk_write_tx::RejectReason::WRITE_NOT_QUEUED, now);
+            jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+            return;
+          }
+
+          int accepted_idx = -1;
+          for (int i = 0; i < 6; i++) {
+            if (id(g_wtx_tx_id)[i] == next_after && id(g_wtx_address)[i] == intent.write.address) { accepted_idx = i; break; }
+          }
+          if (accepted_idx < 0) {
+            jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
+                                               jk_write_tx::g_register_write_pending_request_id, intent.request_id,
+                                               false, 0, jk_write_tx::RejectReason::TRANSACTION_UNAVAILABLE, now);
+            jk_diag::mark_write_crash_stage(jk_diag::STAGE_IDLE);
+            return;
+          }
+
+          // PROOF now exists: a real slot was found (TRANSACTION_ALLOCATED)
+          // and next_after != next_before means queue_command() genuinely
+          // ran without begin() itself rejecting (MODBUS_COMMAND_QUEUED).
+          // Deliberately NOT set to STAGE_IDLE on this success path -- the
+          // 250ms write-tx tick loop's aggregate check owns advancing the
+          // marker to STAGE_TRANSACTION_PENDING and back to STAGE_IDLE.
+          jk_diag::mark_write_crash_stage(jk_diag::STAGE_TRANSACTION_ALLOCATED);
+          jk_diag::mark_write_crash_stage(jk_diag::STAGE_MODBUS_COMMAND_QUEUED);
+
+          jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
+                                             jk_write_tx::g_register_write_pending_request_id, intent.request_id, true,
+                                             next_after, jk_write_tx::RejectReason::NONE, now);
+
   # Shared Modbus write path for full-width numeric RW registers (HA
   # entities). Clustered-read plan M5 (owner decision 2026-09-29): write only
   # when the value changes. Each call arms one tracked request in the entity
@@ -4501,13 +4634,21 @@ script:
       - script.execute: entity_write_step
 
   # One decision for every tracked HA entity write request
-  # (g_entity_write_requests): QUEUE hands exactly that decision's raw to
-  # begin_write_tx; NO_CHANGE and REJECT are final and create no Modbus
-  # command; WAIT leaves it for the 100 ms interval above.
+  # (g_entity_write_requests): QUEUE hands exactly that decision to the
+  # pre-write quiescence barrier as the one write intent (plan M8.1:
+  # write_barrier_step queues it once the hub has drained); NO_CHANGE and
+  # REJECT are final and create no Modbus command; WAIT leaves it for the
+  # 100 ms interval above. While a write intent drains or any transaction
+  # owns the bus, no request is stepped (each keeps its own
+  # kRmwPreReadDeadlineMs): writes run one at a time.
   - id: entity_write_step
     then:
       - lambda: |-
           const uint32_t now = millis();
+          auto &intent = jk_cluster_runtime::g_write_intent;
+          const auto owner = jk_write_tx::bus_owner(id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending),
+                                                    id(g_topology_recovery_pending), id(g_passcode_tx_pending), false);
+          if (intent.active || owner != jk_write_tx::BusOwner::NONE) return;
           for (auto &req : jk_cluster_runtime::g_entity_write_requests) {
             if (!req.active()) continue;
             const jk_cluster_runtime::RmwWrite w = req.write();
@@ -4515,7 +4656,13 @@ script:
                                                                      id(g_rp_last_success_ms), id(g_rp_last_raw_word), id(g_rp_pending_index));
             const auto st = req.step(jk_cluster_runtime::g_runtime, now, narrow);
             if (st.step == jk_cluster_runtime::RmwStep::QUEUE) {
-              id(begin_write_tx)->execute(int(w.address), int(w.word_count), int(st.merged_raw), int(w.tx_compare_mask()), 0);
+              if (!jk_cluster_runtime::accept_write_intent(intent, jk_cluster_runtime::IntentSource::ENTITY, w, st, now, owner)) {
+                ESP_LOGW("jk_write_tx", "Write to 0x%04X refused -- another write is draining the bus or owns it", unsigned(w.address));
+                continue;
+              }
+              id(publish_read_pause_reason)->execute();
+              id(write_barrier_step)->execute();  // an already idle hub: the write is queued right now
+              break;  // one write at a time: the other requests wait for the next step
             } else if (st.step == jk_cluster_runtime::RmwStep::NO_CHANGE) {
               ESP_LOGI("jk_write_tx", "Write to 0x%04X: no change -- the register already holds the value, no Modbus command", unsigned(w.address));
             } else if (st.step == jk_cluster_runtime::RmwStep::REJECT) {

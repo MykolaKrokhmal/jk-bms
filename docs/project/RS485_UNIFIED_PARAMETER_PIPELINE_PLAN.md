@@ -65,7 +65,9 @@ no fallback and no reset
 (`protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`).
 By owner decision the formal Gate B metrics were folded into one combined
 Gate C, which passed on 2026-10-01 (`protocol/evidence/stage1_corrective_evidence/gate_c_20261001.md`). M8 and Gate D remain open, and
-Settings writes stay prohibited until Gate D passes.
+Settings writes stay prohibited until Gate D passes. M8.1 (a pre-write
+quiescence barrier closing the M8 read-interleaving gap) is host-complete
+and must be deployed before Gate D.
 Stage 4 below (freshness from physical reads for the bespoke cell keys) is
 delivered by that sub-plan's step M6, unless the owner decides otherwise.
 

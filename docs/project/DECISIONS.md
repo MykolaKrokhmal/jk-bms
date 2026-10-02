@@ -742,4 +742,50 @@ add FIFO/readback-ordering risk. Holding the pause through
 - treating a paused value as fresh.
 
 **Status:** Active from 2026-10-01. Deployed in `3e1981c` with its runtime
-audit passed; gate D is not started.
+audit passed; gate D is not started. **Amended 2026-10-02 by the pre-write
+quiescence barrier (M8.1, next decision):** the pause above covered only
+new reads, not a read the hub had already accepted.
+
+## Decision: Drain the Modbus hub before every write (M8.1)
+
+**Context (2026-10-02):** host analysis of the ESPHome 2026.9.1 Modbus hub
+showed the M8 pause was incomplete. A read already accepted by the hub
+still ran during the write: one in flight finished before the write frame,
+and one still queued (READY) was overtaken by the WRITE-class frame and then
+sent between the ACK and the forced readback. A millisecond simulation
+reproduced it (up to 1600 of 2000 request phases).
+
+**Decision (owner, 2026-10-02):**
+- A write decision becomes the single write intent first. It pauses new
+  reads at once (`bus_owner` reports `register_write`; every OK disabled).
+- The Modbus write is queued only when the hub itself proves it is idle
+  (`tx_buffer_empty() && !tx_blocked()`), no other transaction owns the bus,
+  and every precondition passes again at that instant (strict freshness,
+  same source and raw, same merged value, BMS LIVE, topology CONFIRMED, same
+  encoding).
+- The drain is bounded by 3000 ms (the servicer's one-read budget); then the
+  write is refused, never queued.
+- One write at a time. Recovery probes never start while an intent drains
+  or a transaction owns the bus.
+- ACK/readback semantics, budgets and the set of allowed writes are
+  unchanged.
+
+**Reason:** only the hub knows what it holds; the project's own read
+accounting gives up after 3 s while the hub may still retry. Proving idle
+from the hub, then deciding and queueing in one synchronous step, leaves no
+window for a read between the write and its readback.
+
+**Alternatives considered:**
+- cancelling queued reads (`clear_tx_queue_for_device`) — cannot reach a
+  frame already on the wire, and drops reads silently;
+- the project's own in-flight counters as the idle signal — not a proof,
+  since the hub retries beyond them;
+- re-reading the raw after the drain — a read during the barrier is exactly
+  what it must exclude.
+
+**Rejected approaches:**
+- widening the strict 3.5 s budget to absorb the drain;
+- an unbounded wait for the hub.
+
+**Status:** Host-complete on 2026-10-02 (`test_write_quiesce_barrier.cpp`,
+6 mutants killed). Not compiled or deployed; required before gate D.

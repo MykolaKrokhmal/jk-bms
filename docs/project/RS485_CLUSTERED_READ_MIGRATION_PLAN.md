@@ -2,7 +2,8 @@
 
 **Status: AUTHORITATIVE active architecture-migration sub-plan** of
 [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
-Approved as a design by the owner on 2026-09-27. **M0–M8 are implemented.
+Approved as a design by the owner on 2026-09-27. **M0–M8 are implemented;
+M8.1 (pre-write quiescence barrier) is host-complete, not deployed.
 `3e1981c` (M5–M8) has been the deployed production firmware since
 2026-10-01** (M8 runtime evidence: `protocol/evidence/stage1_corrective_evidence/m8_production_runtime_20261001.md`; M6/M7 runtime evidence:
 `protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`;
@@ -1196,6 +1197,14 @@ Rules that apply to every phase:
 >   361–638 ms and a 5.3 s SSE gap, cause unknown.
 > - No BMS write is authorized; gate D has not started.
 >
+> **Correction (2026-10-02):** the "full read pause, no interleaving" claim
+> below was incomplete. M8 stops NEW reads once a write owns the bus, but a
+> read the ESPHome 2026.9.1 Modbus hub had already accepted still ran: one in
+> flight finished before the write frame; one still queued (READY, e.g. in
+> the 50 ms turnaround) was overtaken by the WRITE-class frame and then sent
+> after the ACK, before the forced readback. The deployed `3e1981c` has this
+> gap. **M8.1 (below) closes it on the host; it is not deployed.**
+>
 > **Host status (2026-10-01): HOST-COMPLETE.**
 >
 > **Owner decision:** full read pause during writes, no interleaving in
@@ -1257,6 +1266,96 @@ Rules that apply to every phase:
 > **Residual:** while topology stays uncertain, its recovery probe still
 > pauses reads for up to about 4.25 s every 5 s. After a failed CellCount
 > the worst contiguous pause is about 7.5 + 4.25 s.
+
+#### M8.1 — Pre-write quiescence barrier — HOST-COMPLETE (2026-10-02); not compiled, not deployed
+
+> **Owner decision (2026-10-02):** close the M8 gap before gate D.
+>
+> **Idle proof (ESPHome 2026.9.1 source, `esphome/components/modbus/`):**
+> `ModbusClientHub::tx_buffer_empty()` is false while any non-continuous
+> frame is READY; `tx_blocked()` is true while a frame waits for its
+> response, rx bytes are pending or the turnaround runs. A retried frame is
+> put back to READY, and a finished one erased, by the sweep inside the same
+> hub `loop()`. So outside the hub's loop, `tx_buffer_empty() && !tx_blocked()`
+> (`jk_write_tx::hub_quiescent()`, read through `id(bms0)->hub()`) proves
+> nothing is queued, on the wire or about to be resent. There is no
+> continuous `modbus_controller` polling in this firmware, so the
+> continuous-poll exclusion hides nothing (pinned by the structure test).
+>
+> **Design:**
+> - A QUEUE decision (UI request consumer or `entity_write_step`) no longer
+>   queues the write. It becomes the single write intent
+>   (`jk_cluster_runtime::g_write_intent`). From that instant
+>   `bus_owner(..., write_intent_pending)` reports `register_write`: the
+>   servicer issues no new read, `read_pause_reason` is republished at once
+>   and every OK is disabled.
+> - An intent is refused (nothing queued) while another intent drains or any
+>   transaction owns the bus: writes run one at a time.
+> - `write_barrier_step` (at acceptance and every 20 ms) is the only caller
+>   of `begin_write_tx`. It queues the write only when
+>   `quiesce_step()` is READY — no other owner and a quiescent hub — and only
+>   after re-checking, at that instant: registry entry live, BMS LIVE,
+>   topology CONFIRMED and the same encoding (UI requests), then
+>   `recheck_write_intent()`: strict raw freshness (3.5 s, unchanged), same
+>   source kind, the deciding read or a newer one, the same raw and the same
+>   merged value, with no pre-read. Otherwise: `STALE_RAW` or the new
+>   `RAW_CHANGED`. The hub check and `queue_command()` run in one
+>   synchronous lambda.
+> - Bounded: `kQuiesceTimeoutMs` = 3000 ms (the servicer's own one-read
+>   budget, `kReadTimeoutMs`). A healthy drain is one exchange plus the 50 ms
+>   turnaround plus its callback (A1 up to 638 ms observed); a hub still busy
+>   after 3 s is retrying an unanswered frame (2000 ms × up to 5 attempts).
+>   Then the write is refused with the new `BUS_NOT_QUIESCENT`, never queued.
+> - Both recovery probes (WRITE_UNCERTAIN and topology) are issued only when
+>   `recovery_probe_allowed(bus_owner(..., intent))`: never while an intent
+>   drains or a transaction owns the bus.
+> - CellCount and passcode triggers stay fail-closed (no Modbus command), so
+>   every live write goes through the barrier; a re-enabled trigger would
+>   have to call it (the structure test pins the single `begin_write_tx`
+>   caller).
+> - ACK/readback semantics, the written register and the 7500 ms ownership
+>   bound are unchanged.
+>
+> **Proven bounds:** drain ≤ 3000 ms (+ one 20 ms barrier tick); a refused
+> drain ends the pause at ≤ 3014 ms in simulation; whole read pause ≤ drain
+> + 20 + 7500 ms ≈ 10.5 s. These are loop-time bounds; a main-loop block
+> (L16) delays each decision by its own length.
+>
+> **Simulation** (`test/jk_write_tx/test_write_quiesce_barrier.cpp`, 81
+> checks): a ms model of the 2026.9.1 hub (one waiting frame, 50 ms
+> turnaround, WRITE before READ, oldest first, 2000 ms × 5 attempts,
+> callbacks block the loop) driving the real runtime, RMW gate,
+> `begin()`/`tick()` and barrier. Request arrival swept per ms:
+> - M8 legacy reproduces the gap: 400/2000 and 1600/2000 runs (A1 callback
+>   1 / 640 ms), 328 and 134/6000 on the entity path with the lease, and
+>   3000/3000 with an A1 queued at the decision — always from a read
+>   already queued, never from one in flight;
+> - with the barrier: 0 reads between ACK and readback, 0 reads queued after
+>   acceptance, every write queued on a quiescent hub and from the latest
+>   fresh read; max drain 1341 ms, max ownership 515 ms;
+> - drain timeout (BMS silent): 100 refusals, no write queued or sent;
+> - stale after the drain: refused `STALE_RAW`; register changed by another
+>   writer during the drain: 42 `RAW_CHANGED`, 0 writes from an outdated
+>   read; a newer read with the same value is written from that read;
+> - no ACK → WRITE_UNCERTAIN: the probe is sent only after ownership ends.
+>
+> **Mutations** (`test/jk_write_tx/run_quiesce_barrier_mutations.sh`, all 6
+> killed): hub always quiescent (the old interleaving, killed by the
+> simulation: 3000/3000 gap runs); intent not pausing reads; other owner
+> ignored; no drain timeout; no recheck (a 19.7 s old raw was written);
+> probes ignoring the owner. The other-owner and probe mutants are killed by
+> the unit checks only (the simulation has one write slot).
+>
+> **Residual:**
+> - with the lease, a raw up to ~3 s old plus a long drain can exceed the
+>   strict 3.5 s budget: the write is refused `STALE_RAW` (23.3 % of runs in
+>   the constructed worst case: an A1 queued at the decision with a 640 ms
+>   callback; 0 % in the natural sweeps). Fail closed; the user retries;
+> - the ESPHome API (`hub()`, `tx_buffer_empty()`, `tx_blocked()`) is checked
+>   against the 2026.9.1 source and host stubs only — the owner's compile is
+>   the first real check;
+> - unchanged from before: after an ACK timeout the hub itself may retry the
+>   write frame (up to ~10 s); WRITE_UNCERTAIN and its probe resolve the truth.
 
 - **Prerequisite:** M7.
 - **Files:** the write-tx loop in `batterylifepo4.yaml`, the scheduler

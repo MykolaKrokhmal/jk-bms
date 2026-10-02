@@ -37,9 +37,10 @@ const writeReturn = at("if (bus_owner != jk_write_tx::BusOwner::NONE) return;");
 const firstIssue = at("rt.issue(now, false, lease)");
 check("servicer: the busy check and the write-in-flight return both precede the first issue",
   servicerStart >= 0 && busyReturn > 0 && writeReturn > busyReturn && firstIssue > writeReturn);
-check("servicer (M8): the pause is jk_write_tx::bus_owner() over the generic write slots, CellCount, topology recovery and the setup-passcode write",
+check("servicer (M8/M8.1): the pause is jk_write_tx::bus_owner() over the generic write slots, CellCount, topology recovery, the setup-passcode write and an accepted write intent",
   servicer.includes("const auto bus_owner = jk_write_tx::bus_owner(id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending),") &&
-  servicer.includes("id(g_topology_recovery_pending), id(g_passcode_tx_pending));") && !/jk_write_tx::is_pending\(/.test(servicer));
+  servicer.includes("id(g_topology_recovery_pending), id(g_passcode_tx_pending),\n") &&
+  servicer.includes("jk_cluster_runtime::g_write_intent.active);") && !/jk_write_tx::is_pending\(/.test(servicer));
 {
   // M8: the transaction's own ACK/readback/recovery commands are queued by the
   // 250 ms write servicer, which never consults the read pause; the pause
@@ -47,13 +48,27 @@ check("servicer (M8): the pause is jk_write_tx::bus_owner() over the generic wri
   const wStart = yaml.indexOf("const auto result = jk_write_tx::tick(s, now);");
   const wEnd = yaml.indexOf("\n  - interval:", wStart);
   const writeServicer = wStart >= 0 ? yaml.slice(wStart, wEnd) : "";
-  check("write servicer (M8): issues its forced readback after the ACK tick and never consults the read pause",
-    writeServicer.includes("if (result.issue_readback) {") && !writeServicer.includes("bus_owner("));
-  check("firmware (M8): read_pause_reason is published on change from jk_write_tx::bus_owner() with the same four ownership sources",
-    yaml.includes("const char *pause = jk_write_tx::bus_owner_name(jk_write_tx::bus_owner(") &&
-    yaml.includes("id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),") &&
-    yaml.includes("if (id(read_pause_reason).state != pause) id(read_pause_reason).publish_state(pause);") &&
+  const rb0 = writeServicer.indexOf("if (result.issue_readback) {");
+  const readbackBlock = rb0 < 0 ? "" : writeServicer.slice(rb0, writeServicer.indexOf("id(bms0)->queue_command(std::move(read_cmd));", rb0));
+  check("write servicer (M8): issues its forced readback after the ACK tick and that readback never consults the read pause",
+    rb0 > 0 && readbackBlock.length > 0 && !readbackBlock.includes("bus_owner(") && !readbackBlock.includes("recovery_probe_allowed("));
+  check("write servicer (M8.1): the WRITE_UNCERTAIN recovery probe is issued only when nothing owns the bus and no write intent drains",
+    /if \(s\.status == jk_write_tx::WRITE_UNCERTAIN && id\(g_wtx_recovery_pending\)\[i\] &&\s*now >= id\(g_wtx_recovery_next_ms\)\[i\] &&\s*jk_write_tx::recovery_probe_allowed\(jk_write_tx::bus_owner\(\s*id\(g_wtx_in_use\), id\(g_wtx_status\), 6, id\(g_cellcount_tx_pending\), id\(g_topology_recovery_pending\),\s*id\(g_passcode_tx_pending\), jk_cluster_runtime::g_write_intent\.active\)\)\) \{/.test(writeServicer));
+  const probeAt = yaml.indexOf("auto rec_cc_cmd = ");
+  const probeGate = yaml.lastIndexOf("if (!jk_write_tx::recovery_probe_allowed(jk_write_tx::bus_owner(", probeAt);
+  check("topology recovery probe (M8.1): gated on recovery_probe_allowed(bus_owner(..., write intent)) before it queues its two reads",
+    probeAt > 0 && probeGate > 0 && probeAt - probeGate < 1200 &&
+    yaml.slice(probeGate, probeAt).includes("id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active))) return;"));
+  const pauseScript = (() => { const a = yaml.indexOf("  - id: publish_read_pause_reason\n"); return a < 0 ? "" : yaml.slice(a, yaml.indexOf("\n  - id: ", a + 10)); })();
+  check("firmware (M8/M8.1): read_pause_reason is published on change from jk_write_tx::bus_owner() with all five ownership sources, from one script",
+    pauseScript.includes("const char *pause = jk_write_tx::bus_owner_name(jk_write_tx::bus_owner(") &&
+    pauseScript.includes("id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),") &&
+    pauseScript.includes("id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active));") &&
+    pauseScript.includes("if (id(read_pause_reason).state != pause) id(read_pause_reason).publish_state(pause);") &&
+    (yaml.match(/id\(read_pause_reason\)\.publish_state\(/g) || []).length === 1 &&
     /id: read_pause_reason\n\s+name: "read pause reason"/.test(yaml));
+  check("firmware (M8.1): read_pause_reason is republished the instant an intent is accepted (UI request and entity) and when the barrier ends it",
+    (yaml.match(/id\(publish_read_pause_reason\)->execute\(\);/g) || []).length >= 5);
 }
 check("servicer: every read (cluster, passcode, bespoke fallback, per-block fallback) is issued after those returns",
   [...servicer.matchAll(/create_read_command\(/g)].every((m) => m.index > writeReturn) &&
@@ -120,7 +135,7 @@ check("RMW: the untracked g_rmw_deferred_* slot and DeferredRmw are gone",
   const c0 = yaml.indexOf("auto &rmw_req = jk_cluster_runtime::g_register_write_rmw;");
   const terminal = yaml.indexOf("rmw_req.cancel();\n          deferred = false;", c0);
   const noChange = yaml.indexOf("if (no_change) {", c0);
-  const queue = yaml.indexOf("id(begin_write_tx)->execute(int(w.address), int(w.word_count), int(rmw_merged_raw), int(w.tx_compare_mask()), 0);", c0);
+  const queue = yaml.indexOf("jk_cluster_runtime::accept_write_intent(intent, jk_cluster_runtime::IntentSource::REGISTER_REQUEST, w, rmw_queued, now, owner)", c0);
   const firstResult = yaml.indexOf("jk_write_tx::publish_write_result(", c0);
   check("write (UI request): one armed request for EVERY write (RMW and full-width), stepped once per tick; WAIT returns before any result",
     c0 > 0 && yaml.indexOf("w.full_width = !e_ptr->uses_rmw;", c0) > c0 &&
@@ -130,13 +145,13 @@ check("RMW: the untracked g_rmw_deferred_* slot and DeferredRmw are gone",
     terminal > c0 && terminal < firstResult && terminal < queue && terminal < noChange);
   check("write (UI request): the NO_CHANGE decision sets no_change (never the queued raw); only QUEUE sets the raw to write",
     /\} else if \(st\.step == jk_cluster_runtime::RmwStep::NO_CHANGE\) \{\s*\n\s*no_change = true;\s*\n\s*\} else \{/.test(yaml.slice(c0, terminal)) &&
-    (yaml.slice(c0, terminal).match(/rmw_merged_raw = st\.merged_raw;/g) || []).length === 1 &&
-    /if \(st\.step == jk_cluster_runtime::RmwStep::QUEUE\) \{\s*\n\s*rmw_merged_raw = st\.merged_raw;/.test(yaml.slice(c0, terminal)));
+    (yaml.slice(c0, terminal).match(/rmw_queued = st;/g) || []).length === 1 &&
+    /if \(st\.step == jk_cluster_runtime::RmwStep::QUEUE\) \{\s*\n\s*rmw_queued = st;/.test(yaml.slice(c0, terminal)));
   const ncBlock = yaml.slice(noChange, yaml.indexOf("\n          }\n", noChange));
   check("write (UI request): NO_CHANGE publishes its own terminal result (RejectReason::NO_CHANGE) and returns before any queueing",
     noChange > terminal && noChange < queue && ncBlock.includes("jk_write_tx::RejectReason::NO_CHANGE") && ncBlock.includes("return;") &&
     !/begin_write_tx|write_bms_u|queue_command/.test(ncBlock));
-  check("write (UI request): queues exactly the decided raw via begin_write_tx, never begin_write_tx_rmw / write_bms_u16 / write_bms_u32",
+  check("write (UI request, M8.1): the decided step becomes the write intent (queued later by the barrier), never begin_write_tx_rmw / write_bms_u16 / write_bms_u32",
     queue > noChange && !/id\(begin_write_tx_rmw\)->execute\(int\(e_ptr|id\(write_bms_u(16|32)\)->execute\(int\(e_ptr/.test(yaml));
   check("status endpoint: NO_CHANGE is reported as its own terminal status 'no_change', not as a rejection",
     yaml.includes("} else if (lookup.reason == jk_write_tx::RejectReason::NO_CHANGE) {") && yaml.includes('json += "{\\"status\\":\\"no_change\\",\\"request_id\\":";'));
@@ -151,10 +166,31 @@ check("RMW: the untracked g_rmw_deferred_* slot and DeferredRmw are gone",
     [rmwArm, u16, u32].every((b) => b.includes("jk_cluster_runtime::arm_write(jk_cluster_runtime::g_entity_write_requests, w, millis());") &&
       b.includes("script.execute: entity_write_step") && !b.includes("begin_write_tx)->execute") && !/id: begin_write_tx,/.test(b)) &&
     u16.includes("w.full_width = true;") && u32.includes("w.full_width = true;") && u16.includes("w.word_count = 1;") && u32.includes("w.word_count = 2;"));
-  check("write (HA entity): entity_write_step queues exactly the decision's raw; NO_CHANGE and REJECT only log",
-    step.includes("id(begin_write_tx)->execute(int(w.address), int(w.word_count), int(st.merged_raw), int(w.tx_compare_mask()), 0);") &&
-    (step.match(/begin_write_tx\)->execute/g) || []).length === 1 &&
+  check("write (HA entity, M8.1): entity_write_step hands the decision to the barrier as the write intent (one at a time, nothing stepped while one drains or a transaction owns the bus); NO_CHANGE and REJECT only log",
+    step.includes("if (!jk_cluster_runtime::accept_write_intent(intent, jk_cluster_runtime::IntentSource::ENTITY, w, st, now, owner)) {") &&
+    step.includes("if (intent.active || owner != jk_write_tx::BusOwner::NONE) return;") &&
+    step.indexOf("if (intent.active || owner != jk_write_tx::BusOwner::NONE) return;") < step.indexOf("req.step(") &&
+    step.includes("id(write_barrier_step)->execute();") && !step.includes("begin_write_tx)->execute") &&
     /RmwStep::NO_CHANGE\) \{\s*\n\s*ESP_LOGI\([^;]*no change[^;]*;\s*\n\s*\}/.test(step));
+  const barrier = scriptBody("write_barrier_step");
+  check("write (M8.1): write_barrier_step is the one caller of begin_write_tx, and runs every 20 ms",
+    (yaml.match(/id\(begin_write_tx\)->execute\(/g) || []).length === 1 && barrier.includes("id(begin_write_tx)->execute(") &&
+    /- interval: 20ms\n    then:\n      - script\.execute: write_barrier_step\n/.test(yaml));
+  check("write (M8.1): the barrier queues only on quiesce_step READY over the hub's own state (tx_buffer_empty && !tx_blocked) and bus_owner() without the intent",
+    barrier.includes("auto *hub = id(bms0)->hub();") &&
+    barrier.includes("const bool quiet = jk_write_tx::hub_quiescent(hub->tx_buffer_empty(), hub->tx_blocked());") &&
+    barrier.includes("id(g_topology_recovery_pending), id(g_passcode_tx_pending), false);") &&
+    barrier.includes("if (qs == jk_write_tx::QuiesceStep::WAIT) return;") &&
+    barrier.includes("reason = jk_write_tx::RejectReason::BUS_NOT_QUIESCENT;"));
+  check("write (M8.1): the barrier's assumption holds -- no continuous (polling) modbus_controller entity exists, so tx_buffer_empty() hides no frame",
+    !/platform: modbus_controller\b/.test(yaml.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n")) &&
+    !/platform: modbus_controller\b/.test(fs.readFileSync(path.join(ROOT, "protocol", "generated", "write_registry.yaml"), "utf8") + plan));
+  const failClosed = (id) => { const a = yaml.indexOf(`    id: ${id}\n`); const b = yaml.indexOf("set_action:", a); return a < 0 || b < 0 ? null : yaml.slice(b, yaml.indexOf("\n\n", b)); };
+  for (const id of ["set_cell_count", "setup_passcode"]) {
+    const act = failClosed(id);
+    check(`write (M8.1): ${id}'s trigger still queues no Modbus command (fail-closed) -- every live write goes through the barrier`,
+      act !== null && /rejected: reverted to/.test(act) && !/queue_command|begin_write_tx|create_write|g_(cellcount|passcode)_tx_pending\) = true/.test(act));
+  }
   check("write (HA entity): the 100 ms interval only re-decides tracked requests",
     yaml.includes("for (const auto &req : jk_cluster_runtime::g_entity_write_requests) {\n            if (req.active()) { id(entity_write_step)->execute(); break; }"));
   // Every Modbus write goes through the one create_write_multiple_command in

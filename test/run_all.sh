@@ -64,6 +64,16 @@ g++ -std=c++17 -O2 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
 "$BUILD_DIR/test_jk_write_tx_bus_pause"
 
 echo
+echo "=== pre-write quiescence barrier (plan M8.1): ms simulation of the 2026.9.1 hub + real runtime/RMW/tick/barrier; M8 gap reproduced, closed; drain/stale/changed/timeout/WRITE_UNCERTAIN ==="
+g++ -std=c++17 -O2 -Wall -Wextra -I "$REPO_ROOT/components/jk_poll_scheduler" -I "$REPO_ROOT/components/jk_write_tx" -I "$REPO_ROOT/protocol/generated" \
+  "$REPO_ROOT/test/jk_write_tx/test_write_quiesce_barrier.cpp" -o "$BUILD_DIR/test_write_quiesce_barrier"
+"$BUILD_DIR/test_write_quiesce_barrier"
+
+echo
+echo "=== pre-write quiescence barrier: mutants of the real headers (old interleaving, no read pause, no drain bound, no recheck, ...) must fail ==="
+bash "$REPO_ROOT/test/jk_write_tx/run_quiesce_barrier_mutations.sh"
+
+echo
 echo "=== jk_write_tx_core RMW (Stage 4) unit tests ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
   "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_rmw_core.cpp" -o "$BUILD_DIR/test_jk_write_tx_rmw_core"
