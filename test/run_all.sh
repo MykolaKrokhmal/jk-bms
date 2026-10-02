@@ -74,6 +74,14 @@ echo "=== pre-write quiescence barrier: mutants of the real headers (old interle
 bash "$REPO_ROOT/test/jk_write_tx/run_quiesce_barrier_mutations.sh"
 
 echo
+echo "=== gate D send-attempt counter: real TxDevice on a 2026.9.1-lifecycle hub (counted at on_sent; NO_CHANGE/success/timeouts/cancel; never a second FC16) ==="
+g++ -std=c++20 -O2 -Wall -Wextra -I "$REPO_ROOT/test/jk_write_tx/esphome_modbus_stub" -I "$REPO_ROOT/components/jk_write_tx" \
+  "$REPO_ROOT/test/jk_write_tx/test_tx_send_attempts.cpp" -o "$BUILD_DIR/test_tx_send_attempts"
+"$BUILD_DIR/test_tx_send_attempts"
+node "$REPO_ROOT/test/jk_write_tx/test_send_attempt_wiring.js"
+bash "$REPO_ROOT/test/jk_write_tx/run_send_attempt_mutations.sh"
+
+echo
 echo "=== jk_write_tx_core RMW (Stage 4) unit tests ==="
 g++ -std=c++17 -Wall -Wextra -I "$REPO_ROOT/components/jk_write_tx" \
   "$REPO_ROOT/test/jk_write_tx/test_jk_write_tx_rmw_core.cpp" -o "$BUILD_DIR/test_jk_write_tx_rmw_core"

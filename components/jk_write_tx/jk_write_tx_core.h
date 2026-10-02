@@ -261,6 +261,47 @@ inline bool transport_clean(bool hub_is_quiescent, bool any_transaction_frame_ou
   return hub_is_quiescent && !any_transaction_frame_outstanding;
 }
 
+// Send-attempt accounting (gate D diagnostics, 2026-10-02). Counted from the
+// hub's ModbusClientDevice::on_sent(), which ESPHome 2026.9.1 fires once per
+// actual transmission -- right after send_frame_() wrote the frame to the
+// UART (and, with a flow-control pin, flushed it) -- never at queue time, for
+// a frame dropped before it went out, or for a device-less shell. A resend
+// (a granted on_no_response retry, an absorbed duplicate) is a new
+// transmission and is counted again. The FC16 count comes from the function
+// code of the PDU actually sent, not from what the caller meant to send; the
+// purpose only splits the FC03 frames of one transaction into its forced
+// readback and its recovery probes.
+enum class FramePurpose : uint8_t { READ = 0, WRITE = 1, READBACK = 2, PROBE = 3 };
+constexpr uint8_t kFunctionWriteMultipleRegisters = 0x10;
+
+struct FrameAttempts {
+  uint8_t fc16 = 0;      // FC16 frames transmitted
+  uint8_t readback = 0;  // forced-readback frames transmitted (non-FC16)
+  uint8_t probe = 0;     // recovery-probe frames transmitted (non-FC16)
+  uint8_t other = 0;     // any other non-FC16 frame on this device
+};
+
+inline void count_frame_attempt(FrameAttempts &a, FramePurpose purpose, uint8_t function_code) {
+  uint8_t &c = function_code == kFunctionWriteMultipleRegisters ? a.fc16
+               : purpose == FramePurpose::READBACK              ? a.readback
+               : purpose == FramePurpose::PROBE                 ? a.probe
+                                                                : a.other;
+  if (c < 0xFF) c++;  // saturates; 255 means "255 or more"
+}
+
+// The fields a write_tx_snapshot entry gains, appended to the existing
+// {"addr","tx_id","status"[,"req","rb"]} object (no value bytes: the
+// requested/readback raws stay in "req"/"rb", suppressed for the passcode).
+// Returns the snprintf length; the caller's buffer must hold it.
+inline int format_frame_attempts_json(char *buf, size_t size, uint8_t function_code, uint16_t quantity,
+                                      const FrameAttempts &a) {
+  return std::snprintf(buf, size,
+                       ",\"fn\":%u,\"qty\":%u,\"fc16_send_attempts\":%u,\"readback_send_attempts\":%u,"
+                       "\"probe_send_attempts\":%u",
+                       unsigned(function_code), unsigned(quantity), unsigned(a.fc16), unsigned(a.readback),
+                       unsigned(a.probe));
+}
+
 inline const char *bus_owner_name(BusOwner o) {
   switch (o) {
     case BusOwner::REGISTER_WRITE: return "register_write";

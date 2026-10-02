@@ -149,6 +149,10 @@ struct Result {
   int fc16_after_ownership = 0;            // FC16 frames sent after the slot left SENDING/ACK_WAIT/READBACK_WAIT
   int readback_frames_sent = 0;
   int probe_sends = 0;
+  // Gate D diagnostics: the REAL jk_write_tx::count_frame_attempt() fed from
+  // the hub's send event, as TxDevice::on_sent() does; must equal the model's
+  // own frame counts above.
+  jk_write_tx::FrameAttempts attempts;
   int reads_sent_during_cleanup = 0;       // ordinary reads sent while transport cleanup was pending
   int reads_queued_with_tx_in_hub = 0;     // ordinary reads queued (resumed) while the hub still held the write's FC16/readback frame
   bool probe_during_cleanup = false;       // a recovery probe sent while transport cleanup was pending
@@ -337,6 +341,12 @@ class Sim {
   }
 
   void on_sent(const Frame &f) {
+    if (f.tx) {
+      const jk_write_tx::FramePurpose p = f.kind == Kind::WRITE      ? jk_write_tx::FramePurpose::WRITE
+                                          : f.kind == Kind::READBACK ? jk_write_tx::FramePurpose::READBACK
+                                                                     : jk_write_tx::FramePurpose::PROBE;
+      jk_write_tx::count_frame_attempt(res_.attempts, p, f.kind == Kind::WRITE ? jk_write_tx::kFunctionWriteMultipleRegisters : 0x03);
+    }
     if (f.kind == Kind::WRITE) {
       res_.write_frames_sent++;
       if (res_.write_sent_ms == kNever) res_.write_sent_ms = t_;
@@ -659,6 +669,7 @@ struct TransportSweep {
   int reads_resumed_early = 0;
   int confirmed = 0, recovered_confirmed = 0, uncertain_left = 0, probes_after_idle = 0, runs_with_probe = 0, late_dropped = 0, misattributed = 0;
   int bound_violations = 0, queued = 0;
+  int attempts_mismatch = 0, max_fc16_attempts = 0;  // gate D send-attempt counter vs the model's frames
   uint32_t max_pause = 0, max_cleanup_after_ownership = 0, max_write_value = 0, min_write_value = 0xFFFFFFFFu;
   std::string first;
 };
@@ -675,6 +686,10 @@ TransportSweep transport_sweep(Config base, uint32_t from, uint32_t to) {
     s.min_fc16 = std::min(s.min_fc16, r.write_frames_sent);
     s.max_fc16 = std::max(s.max_fc16, r.write_frames_sent);
     s.fc16_after += r.fc16_after_ownership;
+    s.max_fc16_attempts = std::max<int>(s.max_fc16_attempts, r.attempts.fc16);
+    if (r.attempts.fc16 != r.write_frames_sent || r.attempts.readback != r.readback_frames_sent || r.attempts.probe != r.probe_sends ||
+        r.attempts.other != 0)
+      s.attempts_mismatch++;
     s.max_readbacks = std::max(s.max_readbacks, r.readback_frames_sent);
     s.reads_during_cleanup += r.reads_sent_during_cleanup;
     s.reads_resumed_early += r.reads_queued_with_tx_in_hub;
@@ -998,6 +1013,8 @@ int main() {
       check(n.probes_after_idle == n.runs_with_probe, "M8.2 " + tag + ": every recovery FC03 goes out only after the hub let go of the write");
       check(n.reads_resumed_early == 0, "M8.2 " + tag + ": ordinary reads resume only once the hub holds neither the write's FC16 nor its readback");
       check(n.bound_violations == 0, "M8.2 " + tag + ": the read pause stays inside its derived bound");
+      check(n.attempts_mismatch == 0 && n.max_fc16_attempts == 1,
+            "gate D counter " + tag + ": fc16/readback/probe send attempts equal the frames sent; fc16_send_attempts == 1");
     };
 
     // 1. Write without ACK: one FC16, then only recovery FC03.
@@ -1008,6 +1025,8 @@ int main() {
     check(a.first.recovered_confirmed == a.first.queued, "M8.2 no ACK: the recovery probe reads the stored value (RECOVERED_CONFIRMED)");
     check(a.second.max_fc16 >= 2 && a.second.fc16_after > 0,
           "M8.1 transport: the simulation reproduces the transport retry (FC16 resent, also after WRITE_UNCERTAIN)");
+    check(a.second.attempts_mismatch == 0 && a.second.max_fc16_attempts >= 2,
+          "gate D counter: on the M8.1 transport the counter reports the resent FC16 (fc16_send_attempts >= 2)");
 
     // 2. Late ACK: after the hub's send-wait (2000 ms) but before the 3 s ACK timeout.
     Config late = noack;

@@ -1207,6 +1207,26 @@ Rules that apply to every phase:
 > The FC16 frame count on the wire, the absence of a transport retry and
 > every other field type remain unverified.
 >
+> **Gate D send-attempt evidence (host-complete 2026-10-02, needs a production
+> compile + OTA before use).** Every `write_tx_snapshot` entry carries the
+> transaction's own `fn`, `qty`, `fc16_send_attempts`,
+> `readback_send_attempts` and `probe_send_attempts`, counted in
+> `TxDevice::on_sent()` -- ESPHome 2026.9.1 fires it once per transmitted
+> frame, after `send_frame_()` wrote and (flow-control pin) flushed it, never
+> at queue time. The terminal / recovery log lines repeat the three counts.
+> - **Pass criterion per change write:** the transaction's
+>   `fc16_send_attempts = 1`, `readback_send_attempts = 1`,
+>   `probe_send_attempts = 0`, status CONFIRMED. A NO_CHANGE request has no
+>   transaction and must log no Modbus command.
+> - `fc16_sent_total` (boot-wide, in the NO_CHANGE log lines only) is an
+>   auxiliary indicator: unchanged across a NO_CHANGE request. It is not part
+>   of the transaction pass criterion.
+> - Limit: the count proves the firmware transmitted the frame to the UART,
+>   not what the BMS received; it is not a bus sniffer.
+> - Remaining gate D classes (one step + revert each; fields and values to
+>   be approved separately): U32, signed S32, U8 high-byte RMW. The 0x1114
+>   bit RMW is not repeated.
+>
 > **Correction (2026-10-02):** the "full read pause, no interleaving" claim
 > below was incomplete. M8 stops NEW reads once a write owns the bus, but a
 > read the ESPHome 2026.9.1 Modbus hub had already accepted still ran: one in

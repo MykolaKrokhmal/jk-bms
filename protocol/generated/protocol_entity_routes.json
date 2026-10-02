@@ -1,7 +1,7 @@
 {
   "$schema": "protocol-entity-routes-generated-v1",
   "generated_by": "tools/protocol/authoring/build_protocol_entity_routes.js",
-  "source_hash": "b992b46ebb21de5a",
+  "source_hash": "654f3bfb7bdbf18d",
   "route_count": 322,
   "routes": [
     {

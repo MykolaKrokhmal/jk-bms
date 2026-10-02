@@ -68,7 +68,7 @@ check("generic write-tx servicer: 'expected_payload_bytes = size_t(register_coun
 // pass register_count (not byte_count, not a re-inlined word_count*2) as the
 // wire request's register-count argument.
 // ===========================================================================
-const readCmdWithRegisterCount = (yaml.match(/g_slot_devices\[i\]\.read_registers\(id\(bms0\)->hub\(\), id\(bms0\)->device_address\(\), addr,\s*\n\s*register_count, on_(probe|readback)\)/g) || []).length;
+const readCmdWithRegisterCount = (yaml.match(/g_slot_devices\[i\]\.read_registers\(id\(bms0\)->hub\(\), id\(bms0\)->device_address\(\), addr,\s*\n\s*register_count, (on_probe, jk_write_tx::FramePurpose::PROBE|on_readback, jk_write_tx::FramePurpose::READBACK)\)/g) || []).length;
 check("generic write-tx servicer: exactly 2 TxDevice reads request register_count registers (recovery-probe + ACK-readback)",
   readCmdWithRegisterCount === 2);
 

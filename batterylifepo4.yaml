@@ -2120,13 +2120,16 @@ interval:
                     id(g_wtx_status)[i] = matches ? jk_write_tx::RECOVERED_CONFIRMED : jk_write_tx::RECOVERED_MISMATCH;
                     id(g_wtx_recovery_pending)[i] = 0;
                     id(g_wtx_finished_ms)[i] = millis();
-                    ESP_LOGI("jk_write_tx", "Recovery probe resolved tx_id=%u addr=0x%04X -> status=%u (requested=%u recovered=%u)",
+                    const jk_write_tx::FrameAttempts &att = jk_write_tx_bus::g_slot_devices[i].transaction_attempts();
+                    ESP_LOGI("jk_write_tx", "Recovery probe resolved tx_id=%u addr=0x%04X -> status=%u (requested=%u recovered=%u) "
+                             "send attempts: fc16=%u readback=%u probe=%u",
                              unsigned(recovery_tx_id), unsigned(recovery_addr), unsigned(id(g_wtx_status)[i]),
-                             unsigned(id(g_wtx_requested_raw)[i]), unsigned(v));
+                             unsigned(id(g_wtx_requested_raw)[i]), unsigned(v),
+                             unsigned(att.fc16), unsigned(att.readback), unsigned(att.probe));
                     id(publish_write_tx_snapshot)->execute();
                   };
               if (!jk_write_tx_bus::g_slot_devices[i].read_registers(id(bms0)->hub(), id(bms0)->device_address(), addr,
-                                                                     register_count, on_probe))
+                                                                     register_count, on_probe, jk_write_tx::FramePurpose::PROBE))
                 ESP_LOGW("jk_write_tx", "tx_id=%u addr=0x%04X: recovery probe refused by the Modbus hub", unsigned(recovery_tx_id), unsigned(addr));
             }
 
@@ -2243,15 +2246,18 @@ interval:
                     else if (a == 0x14E6) { id(dry_contact_2_trigger_source)->publish_state(float((v >> 8) & 0xFF)); }
                   };
               if (!jk_write_tx_bus::g_slot_devices[i].read_registers(id(bms0)->hub(), id(bms0)->device_address(), addr,
-                                                                     register_count, on_readback))
+                                                                     register_count, on_readback, jk_write_tx::FramePurpose::READBACK))
                 ESP_LOGW("jk_write_tx", "tx_id=%u addr=0x%04X: forced readback refused by the Modbus hub", unsigned(readback_tx_id), unsigned(addr));
             }
 
             if (terminal) {
               id(g_wtx_finished_ms)[i] = now;
-              ESP_LOGI("jk_write_tx", "Transaction tx_id=%u addr=0x%04X terminal status=%u (requested=%u readback=%u)",
+              const jk_write_tx::FrameAttempts &att = jk_write_tx_bus::g_slot_devices[i].transaction_attempts();
+              ESP_LOGI("jk_write_tx", "Transaction tx_id=%u addr=0x%04X terminal status=%u (requested=%u readback=%u) "
+                       "send attempts: fc16=%u readback=%u probe=%u",
                        unsigned(s.tx_id), unsigned(s.address), unsigned(s.status),
-                       unsigned(s.requested_raw), unsigned(id(g_wtx_readback_raw)[i]));
+                       unsigned(s.requested_raw), unsigned(id(g_wtx_readback_raw)[i]),
+                       unsigned(att.fc16), unsigned(att.readback), unsigned(att.probe));
             }
 
             const bool still_pending = s.status == jk_write_tx::SENDING || s.status == jk_write_tx::ACK_WAIT ||
@@ -2511,8 +2517,9 @@ interval:
 
           if (no_change) {
             // One final, observable result -- and no write of any kind.
-            ESP_LOGI("jk_write_tx", "register-write request_id=%u key=%s: no change -- 0x%04X already holds the value, no Modbus command",
-                     unsigned(req.request_id), req.key, unsigned(w.address));
+            ESP_LOGI("jk_write_tx", "register-write request_id=%u key=%s: no change -- 0x%04X already holds the value, no Modbus command "
+                     "(fc16_sent_total=%u)",
+                     unsigned(req.request_id), req.key, unsigned(w.address), unsigned(jk_write_tx_bus::g_fc16_sent_total));
             jk_write_tx::publish_write_result(jk_write_tx::g_register_write_result_table,
                                                jk_write_tx::g_register_write_pending_request_id, req.request_id,
                                                false, 0, jk_write_tx::RejectReason::NO_CHANGE, now);
@@ -4307,14 +4314,21 @@ script:
             if (!first) out += ",";
             first = false;
             if (id(g_wtx_suppress_value)[i]) {
-              snprintf(buf, sizeof(buf), "{\"addr\":%u,\"tx_id\":%u,\"status\":%u}",
+              snprintf(buf, sizeof(buf), "{\"addr\":%u,\"tx_id\":%u,\"status\":%u",
                        unsigned(id(g_wtx_address)[i]), unsigned(id(g_wtx_tx_id)[i]), unsigned(id(g_wtx_status)[i]));
             } else {
-              snprintf(buf, sizeof(buf), "{\"addr\":%u,\"tx_id\":%u,\"status\":%u,\"req\":%u,\"rb\":%u}",
+              snprintf(buf, sizeof(buf), "{\"addr\":%u,\"tx_id\":%u,\"status\":%u,\"req\":%u,\"rb\":%u",
                        unsigned(id(g_wtx_address)[i]), unsigned(id(g_wtx_tx_id)[i]), unsigned(id(g_wtx_status)[i]),
                        unsigned(id(g_wtx_requested_raw)[i]), unsigned(id(g_wtx_readback_raw)[i]));
             }
             out += buf;
+            // Gate D diagnostics: the transaction's actual send attempts
+            // (counted at the hub's on_sent, see jk_write_tx_hub_device.h).
+            jk_write_tx::format_frame_attempts_json(buf, sizeof(buf), jk_write_tx::kFunctionWriteMultipleRegisters,
+                                                    uint16_t(id(g_wtx_word_count)[i]),
+                                                    jk_write_tx_bus::g_slot_devices[i].transaction_attempts());
+            out += buf;
+            out += "}";
           }
           // A begin_write_tx() rejection (single-flight collision, or
           // every slot busy) never allocates a real Slot -- surface EVERY
@@ -4431,6 +4445,8 @@ script:
             }
             id(g_wtx_acked)[idx] = 1;
           };
+          // Gate D diagnostics: this transaction's send attempts start at 0.
+          jk_write_tx_bus::g_slot_devices[idx].begin_transaction_attempts();
           if (!jk_write_tx_bus::g_slot_devices[idx].write_registers(id(bms0)->hub(), id(bms0)->device_address(), addr,
                                                                     std::span<const uint16_t>(words), on_ack)) {
             // Not queued: no frame exists; the ACK timeout makes the slot
@@ -4736,7 +4752,8 @@ script:
               id(write_barrier_step)->execute();  // an already idle hub: the write is queued right now
               break;  // one write at a time: the other requests wait for the next step
             } else if (st.step == jk_cluster_runtime::RmwStep::NO_CHANGE) {
-              ESP_LOGI("jk_write_tx", "Write to 0x%04X: no change -- the register already holds the value, no Modbus command", unsigned(w.address));
+              ESP_LOGI("jk_write_tx", "Write to 0x%04X: no change -- the register already holds the value, no Modbus command (fc16_sent_total=%u)",
+                       unsigned(w.address), unsigned(jk_write_tx_bus::g_fc16_sent_total));
             } else if (st.step == jk_cluster_runtime::RmwStep::REJECT) {
               ESP_LOGW("jk_write_tx", "Write to 0x%04X rejected -- %s raw %s", unsigned(w.address), st.narrow ? "narrow fallback" : "cluster",
                        st.deadline_expired ? "pre-read did not land in time (stale)" : jk_cluster_cache::lookup_name(st.reason));
@@ -5601,7 +5618,8 @@ text_sensor:
 
   # Atomic snapshot of every currently-tracked generic write transaction
   # (jk_write_tx_core.h) as a JSON array, e.g.:
-  #   [{"addr":4108,"tx_id":17,"status":4,"req":6000,"rb":6000},...]
+  #   [{"addr":4108,"tx_id":17,"status":4,"req":6000,"rb":6000,"fn":16,"qty":2,
+  #     "fc16_send_attempts":1,"readback_send_attempts":1,"probe_send_attempts":0},...]
   # Republished as a whole (never a partial/incremental update) any time a
   # slot changes state — one consistent read always reflects one
   # consistent set of transactions, so the frontend never observes a

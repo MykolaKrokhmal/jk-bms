@@ -114,7 +114,7 @@ check("no owner_write_override field outside the migration list is in the regist
   check("write_bms_u32 only arms a tracked request (NO_CHANGE-aware), and begin_write_tx keeps ACK + forced readback",
     writeU32.includes("arm_write(jk_cluster_runtime::g_entity_write_requests, w, millis())") && writeU32.includes("w.full_width = true;") &&
     /id\(g_wtx_acked\)\[idx\] = 1;/.test(mainYaml) && mainYaml.includes("jk_write_tx_bus::g_slot_devices[idx].write_registers(") &&
-    mainYaml.includes("register_count, on_readback))"));
+    mainYaml.includes("register_count, on_readback, jk_write_tx::FramePurpose::READBACK))"));
   const dup = [...settingKeys].filter((k) => ((mainYaml + registryYaml).match(new RegExp(`\\n\\s*id: set_${k}\\n`, "g")) || []).length > 1);
   check("every set_<key> id exists exactly once across batterylifepo4.yaml + write_registry.yaml (migrated = generated only)",
     dup.length === 0 && migrated.every((k) => !new RegExp(`\\n\\s*id: set_${k}\\n`).test(mainYaml) && registryYaml.includes(`id: set_${k}\n`)),

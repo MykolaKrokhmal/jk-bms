@@ -28,6 +28,11 @@
 //   - The same PDU queued again by the same device while live would be
 //     absorbed as a second request (sent again): a device therefore queues
 //     only when it has nothing outstanding.
+//   - on_sent() fires once per actual transmission (ModbusClientHub::
+//     send_next_frame_(): send_frame_() wrote the frame -- with a flow-control
+//     pin, flushed -- then ModbusDeviceCommand::sent()), never at queue time,
+//     for a dropped frame or for a device-less shell. Send-attempt accounting
+//     (jk_write_tx::count_frame_attempt) hangs off it.
 
 #include <cstddef>
 #include <cstdint>
@@ -43,6 +48,10 @@
 
 namespace jk_write_tx_bus {
 
+// Every FC16 frame any transaction device has transmitted since boot. A
+// NO_CHANGE request logs it: unchanged across the request = no FC16 sent.
+inline uint32_t g_fc16_sent_total = 0;
+
 class TxDevice final : public esphome::modbus::ModbusClientDevice {
  public:
   // The response payload (FC03: the register bytes; FC16: the echoed
@@ -53,15 +62,17 @@ class TxDevice final : public esphome::modbus::ModbusClientDevice {
   // One FC16 frame. False when refused or this device still owns a frame.
   bool write_registers(esphome::modbus::ModbusClientHub *hub, uint8_t address, uint16_t start, std::span<const uint16_t> values,
                        Handler on_ack) {
-    if (!this->arm_(hub, address, std::move(on_ack))) return false;
+    if (!this->arm_(hub, address, std::move(on_ack), jk_write_tx::FramePurpose::WRITE)) return false;
     if (this->write_multiple_registers(start, values)) return true;
     this->disarm_();
     return false;
   }
 
   // One FC03 frame. False when refused or this device still owns a frame.
-  bool read_registers(esphome::modbus::ModbusClientHub *hub, uint8_t address, uint16_t start, uint16_t count, Handler on_data) {
-    if (!this->arm_(hub, address, std::move(on_data))) return false;
+  // `purpose` only labels the transaction's send-attempt accounting.
+  bool read_registers(esphome::modbus::ModbusClientHub *hub, uint8_t address, uint16_t start, uint16_t count, Handler on_data,
+                      jk_write_tx::FramePurpose purpose = jk_write_tx::FramePurpose::READ) {
+    if (!this->arm_(hub, address, std::move(on_data), purpose)) return false;
     if (this->read_holding_registers(start, count)) return true;
     this->disarm_();
     return false;
@@ -76,6 +87,12 @@ class TxDevice final : public esphome::modbus::ModbusClientDevice {
 
   bool outstanding() const { return this->outstanding_; }
   uint32_t frames_sent() const { return this->frames_sent_; }
+
+  // Send-attempt accounting of one transaction on this device: zeroed when
+  // the transaction starts (before its FC16 is queued), then counted by
+  // on_sent() across its write, forced readback and recovery probes.
+  void begin_transaction_attempts() { this->tx_attempts_ = {}; }
+  const jk_write_tx::FrameAttempts &transaction_attempts() const { return this->tx_attempts_; }
 
   void on_response(std::span<const uint8_t> request_pdu, std::span<const uint8_t> response_pdu) override {
     (void) request_pdu;
@@ -96,7 +113,9 @@ class TxDevice final : public esphome::modbus::ModbusClientDevice {
     this->disarm_();
   }
   void on_sent(std::span<const uint8_t> request_pdu) override {
-    (void) request_pdu;
+    const uint8_t fc = request_pdu.empty() ? 0 : request_pdu[0];
+    jk_write_tx::count_frame_attempt(this->tx_attempts_, this->purpose_, fc);
+    if (fc == jk_write_tx::kFunctionWriteMultipleRegisters) g_fc16_sent_total++;
     this->frames_sent_++;
     if (this->attempts_ < 0xFF) this->attempts_++;
   }
@@ -109,11 +128,12 @@ class TxDevice final : public esphome::modbus::ModbusClientDevice {
   }
 
  private:
-  bool arm_(esphome::modbus::ModbusClientHub *hub, uint8_t address, Handler h) {
+  bool arm_(esphome::modbus::ModbusClientHub *hub, uint8_t address, Handler h, jk_write_tx::FramePurpose purpose) {
     if (this->outstanding_ || hub == nullptr) return false;
     this->set_parent(hub);
     this->set_address(address);
     this->handler_ = std::move(h);
+    this->purpose_ = purpose;
     this->attempts_ = 0;
     this->outstanding_ = true;
     return true;
@@ -127,6 +147,8 @@ class TxDevice final : public esphome::modbus::ModbusClientDevice {
   bool outstanding_ = false;
   uint8_t attempts_ = 0;
   uint32_t frames_sent_ = 0;
+  jk_write_tx::FramePurpose purpose_ = jk_write_tx::FramePurpose::READ;
+  jk_write_tx::FrameAttempts tx_attempts_;
 };
 
 // One device per generic write slot (its write, then its forced readback,
