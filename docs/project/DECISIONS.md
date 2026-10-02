@@ -788,4 +788,44 @@ window for a read between the write and its readback.
 - an unbounded wait for the hub.
 
 **Status:** Host-complete on 2026-10-02 (`test_write_quiesce_barrier.cpp`,
-6 mutants killed). Not compiled or deployed; required before gate D.
+6 mutants killed). Not compiled or deployed; required before gate D. Its
+"≈ 10.5 s" read-pause figure is superseded by the M8.2 derivation.
+
+## Decision: No transport retry for transaction frames (M8.2)
+
+**Context (2026-10-02):** in ESPHome 2026.9.1 an unanswered
+`ModbusCommandItem` is resent while the controller's shared non-response
+count ≤ `max_cmd_retries` (default 4), writes included. An unacknowledged
+FC16 therefore went out up to 5 times, also after the slot had become
+WRITE_UNCERTAIN, and a late answer could be matched to a resend.
+
+**Decision (owner, 2026-10-02):**
+- One confirmed write = at most one FC16 frame; the transport never
+  repeats a write; `gps_heartbeat = 1` is never repeated.
+- Every transaction frame (write, forced readback, recovery probe,
+  CellCount / topology / passcode reads) is sent by its own
+  `ModbusClientDevice` that never asks for a retry, one frame at a time.
+- Every phase end cancels its device; reads, probes and the next write wait
+  until no transaction frame is outstanding and the hub is quiescent.
+- After an ACK timeout only explicit FC03 recovery probes follow.
+- Ordinary cluster reads keep their retries (per-command change, not a
+  global `max_cmd_retries`).
+
+**Reason:** a write must reach the BMS at most once per user confirmation,
+and the transaction state machine — not the transport — must decide what
+happens after a timeout.
+
+**Alternatives considered:**
+- `max_cmd_retries: 0` on `bms0` — would also remove the retries of every
+  ordinary read;
+- a second `modbus_controller` with no retries for transactions — its
+  offline teardown clears every queued frame of the same address, ordinary
+  reads included;
+- cancelling the `ModbusCommandItem` at the timeout — cannot stop a retry
+  the hub already re-queued from `on_no_response`.
+
+**Rejected approaches:** relying on idempotent registers (`gps_heartbeat`
+is a trigger), or on the ACK timeout being longer than the retries.
+
+**Status:** Host-complete on 2026-10-02. Not compiled or deployed; required
+before gate D.

@@ -37,10 +37,10 @@ const writeReturn = at("if (bus_owner != jk_write_tx::BusOwner::NONE) return;");
 const firstIssue = at("rt.issue(now, false, lease)");
 check("servicer: the busy check and the write-in-flight return both precede the first issue",
   servicerStart >= 0 && busyReturn > 0 && writeReturn > busyReturn && firstIssue > writeReturn);
-check("servicer (M8/M8.1): the pause is jk_write_tx::bus_owner() over the generic write slots, CellCount, topology recovery, the setup-passcode write and an accepted write intent",
+check("servicer (M8/M8.1/M8.2): the pause is jk_write_tx::bus_owner() over the generic write slots, CellCount, topology recovery, the setup-passcode write, an accepted write intent and a pending transport cleanup",
   servicer.includes("const auto bus_owner = jk_write_tx::bus_owner(id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending),") &&
   servicer.includes("id(g_topology_recovery_pending), id(g_passcode_tx_pending),\n") &&
-  servicer.includes("jk_cluster_runtime::g_write_intent.active);") && !/jk_write_tx::is_pending\(/.test(servicer));
+  servicer.includes("jk_cluster_runtime::g_write_intent.active, id(g_tx_cleanup_pending));") && !/jk_write_tx::is_pending\(/.test(servicer));
 {
   // M8: the transaction's own ACK/readback/recovery commands are queued by the
   // 250 ms write servicer, which never consults the read pause; the pause
@@ -49,21 +49,21 @@ check("servicer (M8/M8.1): the pause is jk_write_tx::bus_owner() over the generi
   const wEnd = yaml.indexOf("\n  - interval:", wStart);
   const writeServicer = wStart >= 0 ? yaml.slice(wStart, wEnd) : "";
   const rb0 = writeServicer.indexOf("if (result.issue_readback) {");
-  const readbackBlock = rb0 < 0 ? "" : writeServicer.slice(rb0, writeServicer.indexOf("id(bms0)->queue_command(std::move(read_cmd));", rb0));
+  const readbackBlock = rb0 < 0 ? "" : writeServicer.slice(rb0, writeServicer.indexOf("register_count, on_readback))", rb0));
   check("write servicer (M8): issues its forced readback after the ACK tick and that readback never consults the read pause",
     rb0 > 0 && readbackBlock.length > 0 && !readbackBlock.includes("bus_owner(") && !readbackBlock.includes("recovery_probe_allowed("));
-  check("write servicer (M8.1): the WRITE_UNCERTAIN recovery probe is issued only when nothing owns the bus and no write intent drains",
-    /if \(s\.status == jk_write_tx::WRITE_UNCERTAIN && id\(g_wtx_recovery_pending\)\[i\] &&\s*now >= id\(g_wtx_recovery_next_ms\)\[i\] &&\s*jk_write_tx::recovery_probe_allowed\(jk_write_tx::bus_owner\(\s*id\(g_wtx_in_use\), id\(g_wtx_status\), 6, id\(g_cellcount_tx_pending\), id\(g_topology_recovery_pending\),\s*id\(g_passcode_tx_pending\), jk_cluster_runtime::g_write_intent\.active\)\)\) \{/.test(writeServicer));
-  const probeAt = yaml.indexOf("auto rec_cc_cmd = ");
+  check("write servicer (M8.1/M8.2): the WRITE_UNCERTAIN recovery probe is issued only when nothing owns the bus, no write intent drains, transport cleanup is done and the slot's previous probe has ended",
+    /if \(s\.status == jk_write_tx::WRITE_UNCERTAIN && id\(g_wtx_recovery_pending\)\[i\] &&\s*now >= id\(g_wtx_recovery_next_ms\)\[i\] && !jk_write_tx_bus::g_slot_devices\[i\]\.outstanding\(\) &&\s*jk_write_tx::recovery_probe_allowed\(jk_write_tx::bus_owner\(\s*id\(g_wtx_in_use\), id\(g_wtx_status\), 6, id\(g_cellcount_tx_pending\), id\(g_topology_recovery_pending\),\s*id\(g_passcode_tx_pending\), jk_cluster_runtime::g_write_intent\.active, id\(g_tx_cleanup_pending\)\)\)\) \{/.test(writeServicer));
+  const probeAt = yaml.indexOf("auto on_rec_cc = ");
   const probeGate = yaml.lastIndexOf("if (!jk_write_tx::recovery_probe_allowed(jk_write_tx::bus_owner(", probeAt);
   check("topology recovery probe (M8.1): gated on recovery_probe_allowed(bus_owner(..., write intent)) before it queues its two reads",
     probeAt > 0 && probeGate > 0 && probeAt - probeGate < 1200 &&
-    yaml.slice(probeGate, probeAt).includes("id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active))) return;"));
+    yaml.slice(probeGate, probeAt).includes("id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active, id(g_tx_cleanup_pending)))) return;"));
   const pauseScript = (() => { const a = yaml.indexOf("  - id: publish_read_pause_reason\n"); return a < 0 ? "" : yaml.slice(a, yaml.indexOf("\n  - id: ", a + 10)); })();
-  check("firmware (M8/M8.1): read_pause_reason is published on change from jk_write_tx::bus_owner() with all five ownership sources, from one script",
+  check("firmware (M8/M8.1/M8.2): read_pause_reason is published on change from jk_write_tx::bus_owner() with all six ownership sources, from one script",
     pauseScript.includes("const char *pause = jk_write_tx::bus_owner_name(jk_write_tx::bus_owner(") &&
     pauseScript.includes("id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),") &&
-    pauseScript.includes("id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active));") &&
+    pauseScript.includes("id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active, id(g_tx_cleanup_pending)));") &&
     pauseScript.includes("if (id(read_pause_reason).state != pause) id(read_pause_reason).publish_state(pause);") &&
     (yaml.match(/id\(read_pause_reason\)\.publish_state\(/g) || []).length === 1 &&
     /id: read_pause_reason\n\s+name: "read pause reason"/.test(yaml));
@@ -113,11 +113,16 @@ check("read_cluster_mode is published on change only (no oscillating republish)"
 check("no dedicated cell, CellWireRes16-31 or CellConWireRes reader remains in batterylifepo4.yaml",
   !/create_read_command\([^)]*0x1200/.test(yaml.replace(/\n\s*/g, " ")) &&
   !yaml.includes("0x126A, register_count,") && !yaml.includes("0x1088, register_count,") && !yaml.includes("g_cell_poll_pending"));
-check("the only create_read_command calls left in batterylifepo4.yaml are the write-transaction readbacks (0x106C, 0x1240, 0x1470) and the generic write-tx readback",
+check("M8.2: batterylifepo4.yaml queues no ModbusCommandItem -- every transaction read (0x106C, 0x1240, 0x1470, the write-tx readback and recovery probe) goes through a no-retry TxDevice",
   (() => {
-    const flat = yaml.replace(/\n\s*/g, " ");
-    const calls = [...flat.matchAll(/create_read_command\( id\(bms0\), esphome::modbus::EntityType::HOLDING, ([^,]+),/g)].map((m) => m[1].trim());
-    return calls.length > 0 && calls.every((a) => ["0x106C", "0x1240", "0x1470"].includes(a) || !/^0x/.test(a));
+    const code = yaml.split("\n").filter((l) => !/^\s*(#|\/\/)/.test(l)).join("\n");
+    const flat = code.replace(/\n\s*/g, " ");
+    const reads = [...flat.matchAll(/jk_write_tx_bus::(g_\w+?)(?:\[i\])?\.read_registers\(id\(bms0\)->hub\(\), id\(bms0\)->device_address\(\), ([^,]+),/g)]
+      .map((m) => `${m[1]}@${m[2].trim()}`).sort();
+    const expected = ["g_cellcount_cc_device@0x106C", "g_cellcount_mask_device@0x1240", "g_passcode_device@0x1470",
+      "g_slot_devices@addr", "g_slot_devices@addr", "g_topology_cc_device@0x106C", "g_topology_mask_device@0x1240"].sort();
+    return !/create_read_command|create_write_\w+_command|queue_command\(|ModbusCommandItem/.test(code) &&
+      JSON.stringify(reads) === JSON.stringify(expected);
   })());
 check("cluster decode only runs for a stored, exact-length cluster (Completion::OK)",
   servicer.indexOf("if (done != jk_cluster_runtime::Completion::OK) {") < servicer.indexOf("switch (next) {"));
@@ -173,13 +178,13 @@ check("RMW: the untracked g_rmw_deferred_* slot and DeferredRmw are gone",
     step.includes("id(write_barrier_step)->execute();") && !step.includes("begin_write_tx)->execute") &&
     /RmwStep::NO_CHANGE\) \{\s*\n\s*ESP_LOGI\([^;]*no change[^;]*;\s*\n\s*\}/.test(step));
   const barrier = scriptBody("write_barrier_step");
-  check("write (M8.1): write_barrier_step is the one caller of begin_write_tx, and runs every 20 ms",
+  check("write (M8.1/M8.2): write_barrier_step is the one caller of begin_write_tx, and runs every 20 ms right after transport_cleanup_step",
     (yaml.match(/id\(begin_write_tx\)->execute\(/g) || []).length === 1 && barrier.includes("id(begin_write_tx)->execute(") &&
-    /- interval: 20ms\n    then:\n      - script\.execute: write_barrier_step\n/.test(yaml));
+    /- interval: 20ms\n    then:\n      - script\.execute: transport_cleanup_step\n      - script\.execute: write_barrier_step\n/.test(yaml));
   check("write (M8.1): the barrier queues only on quiesce_step READY over the hub's own state (tx_buffer_empty && !tx_blocked) and bus_owner() without the intent",
     barrier.includes("auto *hub = id(bms0)->hub();") &&
     barrier.includes("const bool quiet = jk_write_tx::hub_quiescent(hub->tx_buffer_empty(), hub->tx_blocked());") &&
-    barrier.includes("id(g_topology_recovery_pending), id(g_passcode_tx_pending), false);") &&
+    barrier.includes("id(g_topology_recovery_pending), id(g_passcode_tx_pending), false, id(g_tx_cleanup_pending));") &&
     barrier.includes("if (qs == jk_write_tx::QuiesceStep::WAIT) return;") &&
     barrier.includes("reason = jk_write_tx::RejectReason::BUS_NOT_QUIESCENT;"));
   check("write (M8.1): the barrier's assumption holds -- no continuous (polling) modbus_controller entity exists, so tx_buffer_empty() hides no frame",
@@ -195,8 +200,10 @@ check("RMW: the untracked g_rmw_deferred_* slot and DeferredRmw are gone",
     yaml.includes("for (const auto &req : jk_cluster_runtime::g_entity_write_requests) {\n            if (req.active()) { id(entity_write_step)->execute(); break; }"));
   // Every Modbus write goes through the one create_write_multiple_command in
   // begin_write_tx, with at most 2 registers -- never a read cluster.
-  check("writes: exactly one Modbus write command site (begin_write_tx), 1 or 2 registers, never a whole read cluster",
-    (yaml.match(/create_write_multiple_command\(/g) || []).length === 1 && !/create_write_single_command|create_custom_command/.test(yaml + plan) &&
+  const beginTx = scriptBody("begin_write_tx");
+  check("writes (M8.2): exactly one Modbus write site -- begin_write_tx's slot TxDevice write_registers -- 1 or 2 registers, never a whole read cluster, no ModbusCommandItem write",
+    (yaml.match(/\.write_registers\(/g) || []).length === 1 && beginTx.includes("jk_write_tx_bus::g_slot_devices[idx].write_registers(id(bms0)->hub(), id(bms0)->device_address(), addr,") &&
+    !/create_write_\w+_command|create_custom_command/.test(yaml + plan) &&
     yaml.includes("if (word_count >= 2) words = {uint16_t(uint32_t(raw) >> 16), uint16_t(uint32_t(raw) & 0xFFFFU)};") &&
     yaml.includes("else words = {uint16_t(raw)};") && clusters.clusters.every((c) => c.register_count > 2));
   const writeRegistry = JSON.parse(fs.readFileSync(path.join(ROOT, "protocol", "generated", "write_registry.json"), "utf8"));
@@ -219,6 +226,27 @@ check("RMW: the untracked g_rmw_deferred_* slot and DeferredRmw are gone",
 check("passcode: strictly on demand -- no read after boot, and no caller requests one",
   runtimeCore.includes("passcode_requested_ = false;  // strictly on demand: no read after boot") &&
   !runtimeCore.includes("passcode_requested_ = true;  // one") && !/request_passcode_status\(\)/.test(lambdaText));
+
+// 6. Plan M8.2: no transport retry, explicit phase ends, transport cleanup.
+{
+  const hdr = fs.readFileSync(path.join(ROOT, "components", "jk_write_tx", "jk_write_tx_hub_device.h"), "utf8");
+  check("M8.2: TxDevice answers on_no_response() with jk_write_tx::transaction_frame_retry() and owns at most one frame",
+    /bool on_no_response\(std::span<const uint8_t> request_pdu\) override \{[\s\S]*?jk_write_tx::transaction_frame_retry\(this->attempts_\)/.test(hdr) &&
+    hdr.includes("if (this->outstanding_ || hub == nullptr) return false;") && hdr.includes("class TxDevice final : public esphome::modbus::ModbusClientDevice"));
+  check("M8.2: the device header is in the ESPHome includes, right after jk_write_tx_core.h",
+    /- components\/jk_write_tx\/jk_write_tx_core\.h\n(?:\s+#.*\n)*\s+- components\/jk_write_tx\/jk_write_tx_hub_device\.h\n/.test(yaml));
+  check("M8.2: ordinary cluster reads keep their transport retries -- no global max_cmd_retries/send_wait_time override",
+    !/max_cmd_retries:|send_wait_time:/.test(yaml.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n")) && /ModbusCommandItem::create_read_command\(/.test(plan));
+  const code = yaml.split("\n").filter((l) => !/^\s*(#|\/\/)/.test(l)).join("\n");
+  const cancels = (code.match(/jk_write_tx_bus::g_\w+?(?:\[i\])?\.cancel\(\);/g) || []).length;
+  check("M8.2: every transaction phase end cancels its device(s) and sets the cleanup latch (slot ownership end and free, CellCount x3, topology x2, passcode x3)",
+    code.includes("if (jk_write_tx::owns_bus(prev_status) && !jk_write_tx::owns_bus(s.status)) {\n              jk_write_tx_bus::g_slot_devices[i].cancel();\n              id(g_tx_cleanup_pending) = true;") &&
+    cancels === 2 + 6 + 4 + 3 && (code.match(/id\(g_tx_cleanup_pending\) = true;/g) || []).length === 1 + 1 + 3 + 2 + 3);
+  const cleanup = (() => { const a = yaml.indexOf("  - id: transport_cleanup_step\n"); return a < 0 ? "" : yaml.slice(a, yaml.indexOf("\n  - id: ", a + 10)); })();
+  check("M8.2: transport_cleanup_step releases the bus only on transport_clean(hub quiescent, no transaction frame outstanding)",
+    cleanup.includes("if (!jk_write_tx::transport_clean(jk_write_tx::hub_quiescent(hub->tx_buffer_empty(), hub->tx_blocked()),") &&
+    cleanup.includes("jk_write_tx_bus::any_outstanding()))") && cleanup.includes("id(g_tx_cleanup_pending) = false;"));
+}
 
 console.log(`\ncluster servicer structure: ${checks - failures}/${checks} passed`);
 process.exit(failures ? 1 : 0);

@@ -156,15 +156,18 @@ inline bool owns_bus(uint8_t status) {
 // bounded by its own ACK/readback/recovery timeouts on the 250 ms servicer.
 // An accepted write intent (plan M8.1, below) owns the bus as a register
 // write from the instant it is accepted, before its Modbus write exists:
-// that is what stops new ordinary reads while the hub drains.
+// that is what stops new ordinary reads while the hub drains. Transport
+// cleanup (plan M8.2, below) keeps that ownership after a transaction phase
+// ended until the hub has really let go of the phase's last frame.
 enum class BusOwner : uint8_t { NONE = 0, REGISTER_WRITE = 1, CELLCOUNT = 2, TOPOLOGY_RECOVERY = 3, PASSCODE = 4 };
 
 inline BusOwner bus_owner(const uint8_t *slot_in_use, const uint8_t *slot_status, std::size_t slots, bool cellcount_pending,
-                          bool topology_recovery_pending, bool passcode_pending, bool write_intent_pending) {
+                          bool topology_recovery_pending, bool passcode_pending, bool write_intent_pending,
+                          bool transport_cleanup_pending) {
   if (cellcount_pending) return BusOwner::CELLCOUNT;
   if (topology_recovery_pending) return BusOwner::TOPOLOGY_RECOVERY;
   if (passcode_pending) return BusOwner::PASSCODE;
-  if (write_intent_pending) return BusOwner::REGISTER_WRITE;
+  if (write_intent_pending || transport_cleanup_pending) return BusOwner::REGISTER_WRITE;
   for (std::size_t i = 0; i < slots; i++) {
     if (slot_in_use[i] && owns_bus(slot_status[i])) return BusOwner::REGISTER_WRITE;
   }
@@ -227,6 +230,36 @@ inline QuiesceStep quiesce_step(bool intent_active, uint32_t accepted_ms, uint32
 // issued only when no write intent drains and no transaction owns the bus,
 // so it can never land between a write's ACK and its forced readback.
 inline bool recovery_probe_allowed(BusOwner owner) { return owner == BusOwner::NONE; }
+
+// --- No transport retry for transaction frames (plan M8.2) -------------------
+// ESPHome 2026.9.1 (modbus_controller.cpp, ModbusCommandItem::on_no_response):
+// an unanswered ModbusCommandItem frame -- FC16 write, forced readback and
+// recovery probe alike, no exception for a write -- is re-queued by the hub
+// while the controller's shared cmd_non_responses_ <= max_cmd_retries
+// (default 4, not set in batterylifepo4.yaml). With send_wait_time 2000 ms a
+// write nobody acknowledges went out up to 5 times, at about 0/2/4/6/8 s:
+// still in the hub when the 3 s ACK timeout made the slot WRITE_UNCERTAIN,
+// and re-sent after it. A late answer to one attempt is matched to the next.
+//
+// Every frame a transaction owns (the write, its forced readback, recovery
+// probes, CellCount / passcode readbacks, topology recovery reads) is now
+// sent by its own ModbusClientDevice (jk_write_tx_hub_device.h), whose
+// on_no_response() returns transaction_frame_retry(): never a retry. One
+// confirmed write = at most one FC16 frame. Ordinary cluster reads keep
+// ModbusCommandItem and its retries unchanged.
+constexpr uint8_t kTransactionFrameAttempts = 1;
+inline bool transaction_frame_retry(uint8_t attempts_sent) { return attempts_sent < kTransactionFrameAttempts; }
+
+// When a transaction phase ends (ACK / readback / probe outcome or timeout,
+// CellCount, passcode, topology recovery), its device is cleared: a frame
+// still queued is dropped silently, a frame on the wire becomes a
+// device-less shell -- no callback, no retry -- that holds the bus until its
+// response or send-wait timeout. Ordinary reads (and the next write or
+// probe) wait until no transaction frame is outstanding AND the hub is
+// quiescent: transport_clean().
+inline bool transport_clean(bool hub_is_quiescent, bool any_transaction_frame_outstanding) {
+  return hub_is_quiescent && !any_transaction_frame_outstanding;
+}
 
 inline const char *bus_owner_name(BusOwner o) {
   switch (o) {

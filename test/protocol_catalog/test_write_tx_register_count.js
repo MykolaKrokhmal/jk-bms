@@ -62,12 +62,14 @@ check("generic write-tx servicer: 'expected_payload_bytes = size_t(register_coun
   expectedBytesCount === 2);
 
 // ===========================================================================
-// 3. Both create_read_command() calls in this servicer pass register_count
-// (not byte_count, not a re-inlined word_count*2) as the wire request's
-// register-count argument.
+// 3. Both reads in this servicer (plan M8.2: sent by the slot's no-retry
+// TxDevice, whose read_registers() count is Modbus REGISTERS, forwarded to
+// ModbusClientDevice::read_holding_registers(start, number_of_registers))
+// pass register_count (not byte_count, not a re-inlined word_count*2) as the
+// wire request's register-count argument.
 // ===========================================================================
-const readCmdWithRegisterCount = (yaml.match(/create_read_command\(\s*\n\s*id\(bms0\), esphome::modbus::EntityType::HOLDING, addr, register_count,/g) || []).length;
-check("generic write-tx servicer: exactly 2 create_read_command() calls request register_count registers (recovery-probe + ACK-readback)",
+const readCmdWithRegisterCount = (yaml.match(/g_slot_devices\[i\]\.read_registers\(id\(bms0\)->hub\(\), id\(bms0\)->device_address\(\), addr,\s*\n\s*register_count, on_(probe|readback)\)/g) || []).length;
+check("generic write-tx servicer: exactly 2 TxDevice reads request register_count registers (recovery-probe + ACK-readback)",
   readCmdWithRegisterCount === 2);
 
 // ===========================================================================

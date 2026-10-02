@@ -81,9 +81,10 @@ mutate hub_always_quiescent wtx \
 
 # M2 -- an accepted intent no longer pauses new reads while the hub drains.
 mutate intent_does_not_pause wtx \
-  '  if (write_intent_pending) return BusOwner::REGISTER_WRITE;
+  '  if (write_intent_pending || transport_cleanup_pending) return BusOwner::REGISTER_WRITE;
 ' \
-  '  (void) write_intent_pending;
+  '  if (transport_cleanup_pending) return BusOwner::REGISTER_WRITE;
+  (void) write_intent_pending;
 ' \
   'barrier: no read or probe is queued after the intent is accepted'
 
@@ -110,8 +111,30 @@ mutate probe_ignores_owner wtx \
   'inline bool recovery_probe_allowed(BusOwner owner) { return owner == BusOwner::NONE; }' \
   'inline bool recovery_probe_allowed(BusOwner owner) { (void) owner; return true; }'
 
+# M7 -- plan M8.2: the old transport retry. A transaction frame (FC16 write,
+# readback, probe) is resent by the hub up to 4 more times again.
+mutate transport_retry wtx \
+  'constexpr uint8_t kTransactionFrameAttempts = 1;' \
+  'constexpr uint8_t kTransactionFrameAttempts = 5;' \
+  'exactly one FC16 frame per confirmed request'
+
+# M8 -- plan M8.2: transport cleanup no longer holds the bus (reads resume
+# while the hub still holds the finished phase's frame).
+mutate cleanup_does_not_pause wtx \
+  '  if (write_intent_pending || transport_cleanup_pending) return BusOwner::REGISTER_WRITE;' \
+  '  (void) transport_cleanup_pending;
+  if (write_intent_pending) return BusOwner::REGISTER_WRITE;' \
+  'no ordinary read and no probe goes out before transport cleanup ends'
+
+# M9 -- plan M8.2: cleanup ends without waiting for the hub.
+mutate cleanup_ignores_hub wtx \
+  '  return hub_is_quiescent && !any_transaction_frame_outstanding;' \
+  '  (void) hub_is_quiescent;
+  return !any_transaction_frame_outstanding;' \
+  'ordinary reads resume only once the hub holds neither the write'"'"'s FC16 nor its readback'
+
 if [ "$failures" -ne 0 ]; then
   echo "quiesce barrier mutations: $failures mutant(s) survived or were vacuous"
   exit 1
 fi
-echo "quiesce barrier mutations: all 6 mutants killed"
+echo "quiesce barrier mutations: all 9 mutants killed"

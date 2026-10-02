@@ -1,11 +1,11 @@
 {
-  "generation_id": "dc2930a4df41e12e",
-  "release_generation_id": "8b67847614dbfb04",
+  "generation_id": "d21c08c287435db8",
+  "release_generation_id": "e6b6ea23b74106a7",
   "catalog_version": "1.1.0",
-  "source_hash": "85c006be9dd07788",
+  "source_hash": "43854e7bd4ade6bc",
   "file_hashes": {
-    "register_catalog.json": "68ad94d4205d126dec2f6f3dfce81365ef20db5e9db618bbe364842b0ebba9a0",
-    "protocol/generated/coverage_report.md": "dd7181561c80c5f5efd3dd8599433feb2724e75dce64f42aa1107018df64ff06",
-    "jk_bms.js#generated_protocol_catalog_block": "6395f066cae72e105fb5ca679e566d050544b3bdad504667a1ebee0ad9b19e79"
+    "register_catalog.json": "5a5d4dad4acbbac6e13f639844cdcce71e5ddea3d64c5648d05d62c1ed735730",
+    "protocol/generated/coverage_report.md": "c228a1d94b7733e822aab6c61defb1e38fbdd521f4124088b924f72b66950f93",
+    "jk_bms.js#generated_protocol_catalog_block": "7027da89c15dfc92c6728d22730655add09a18a921e6f5974a29dcd30413ee48"
   }
 }

@@ -9,14 +9,14 @@
     "protocol/generated/protocol_entity_routes.json"
   ],
   "source_sha256": {
-    "batterylifepo4.yaml": "fead8de07f5eeccf358bcef1adb18bfe8de4d5e7008e3307e885bb6f9756f773",
-    "protocol/registers.canonical.json": "a4fdc094ea55d9767db0702d8002111772a266f406f673a9d19dfb0f66382c0a",
-    "protocol/generated/read_clusters.json": "c2717c110f377562d02ea6d7b88e8b55d7dff80ab15ee384f37a66a3cacfe6da",
-    "protocol/generated/read_plan.json": "14ae37005e54e5e2fbf1ab227dab39dbd5beb6ba9aca6e7642ed9b6d762d2c80",
-    "protocol/generated/write_registry.json": "c6ee96feb5f3891880dca4145caa856d71749499a717ec84a6bd18499409bd73",
-    "protocol/generated/protocol_entity_routes.json": "46e239d809128ed5e4cebea6174466a200958e216864df78890eea19fb05c103"
+    "batterylifepo4.yaml": "edde58805a9fedebf63b4c42f5983bb4220c981f4acd0156dc9b4ef1b8e39b24",
+    "protocol/registers.canonical.json": "db179806ff0637ecefd454008a0e9f34c41f9a2ef23d5b2beda3abc4775a4d34",
+    "protocol/generated/read_clusters.json": "20a3ee814dc8788eabeff00702c4895ffb075ae36f7f5b56fd517740916ef80c",
+    "protocol/generated/read_plan.json": "1918aeb673dc8f190f54c76c4f4d6811a02c51f16d3bf2a7d83701e213f5bbdd",
+    "protocol/generated/write_registry.json": "c866825aed44506e0cdd8d43c408e7b43aa5c6060669d7d9883b930ef2611a4d",
+    "protocol/generated/protocol_entity_routes.json": "e5819b6f12f2af6f846f02447a5a7addafce33a17e8dc51a3f90259073c1c012"
   },
-  "total_lines": 6072,
+  "total_lines": 6144,
   "runtime_bindings": [
     {
       "source_path": "batterylifepo4.yaml",
@@ -30,17 +30,17 @@
     },
     {
       "source_path": "batterylifepo4.yaml",
-      "line": 107,
+      "line": 111,
       "text": "protocol/generated/read_plan_decode.h"
     },
     {
       "source_path": "batterylifepo4.yaml",
-      "line": 112,
+      "line": 116,
       "text": "protocol/generated/read_clusters_table.h"
     },
     {
       "source_path": "batterylifepo4.yaml",
-      "line": 140,
+      "line": 144,
       "text": "protocol/generated/write_registry_table.h"
     }
   ],
@@ -29661,5 +29661,5 @@
       }
     ]
   },
-  "release_generation_id": "8b67847614dbfb04"
+  "release_generation_id": "e6b6ea23b74106a7"
 }

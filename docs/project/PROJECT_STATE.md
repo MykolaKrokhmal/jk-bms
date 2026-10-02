@@ -90,8 +90,17 @@ generated inventories linked below, not in prose.
     reads; it is queued only on a provably idle hub after every precondition
     is re-checked, within 3000 ms or refused. Simulation: 0 reads between
     ACK and readback; 6 mutants killed.
-  - Next: compile and deploy M8.1, then gate D with per-field approval (not
-    started), then M9 and M10. L16 measurement (W0/W1) is on hold.
+  - **Transport retry (found 2026-10-02, L18):** ESPHome's `ModbusCommandItem`
+    resent an unanswered FC16 write up to 4 more times, also after the slot
+    was WRITE_UNCERTAIN.
+  - **M8.2 no-transport-retry: host-complete (2026-10-02), not compiled or
+    deployed.** Every transaction frame goes through its own no-retry
+    `ModbusClientDevice`; phase ends cancel it; reads wait for transport
+    cleanup. One write = one FC16. Derived read pause ≤ 10,540 ms (default
+    send-wait). Simulation 162 checks; 9 mutants killed.
+  - Next: owner compile and deploy of M8.1 + M8.2, then gate D with
+    per-field approval (not started), then M9 and M10. L16 measurement
+    (W0/W1) is on hold.
   - **Settings writes stay prohibited until gate D.**
 
   ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not

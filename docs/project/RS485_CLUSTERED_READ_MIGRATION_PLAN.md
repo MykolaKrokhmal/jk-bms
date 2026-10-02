@@ -3,7 +3,8 @@
 **Status: AUTHORITATIVE active architecture-migration sub-plan** of
 [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
 Approved as a design by the owner on 2026-09-27. **M0–M8 are implemented;
-M8.1 (pre-write quiescence barrier) is host-complete, not deployed.
+M8.1 (pre-write quiescence barrier) and M8.2 (no transport retry of
+transaction frames) are host-complete, not deployed.
 `3e1981c` (M5–M8) has been the deployed production firmware since
 2026-10-01** (M8 runtime evidence: `protocol/evidence/stage1_corrective_evidence/m8_production_runtime_20261001.md`; M6/M7 runtime evidence:
 `protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`;
@@ -1317,9 +1318,10 @@ Rules that apply to every phase:
 >   bound are unchanged.
 >
 > **Proven bounds:** drain ≤ 3000 ms (+ one 20 ms barrier tick); a refused
-> drain ends the pause at ≤ 3014 ms in simulation; whole read pause ≤ drain
-> + 20 + 7500 ms ≈ 10.5 s. These are loop-time bounds; a main-loop block
-> (L16) delays each decision by its own length.
+> drain ends the pause at ≤ 3014 ms in simulation. The whole read-pause
+> bound is derived in M8.2 below (it depends on the transport fix): the
+> earlier "≈ 10.5 s" here ignored the hub's transport retries and is
+> withdrawn.
 >
 > **Simulation** (`test/jk_write_tx/test_write_quiesce_barrier.cpp`, 81
 > checks): a ms model of the 2026.9.1 hub (one waiting frame, 50 ms
@@ -1354,8 +1356,97 @@ Rules that apply to every phase:
 > - the ESPHome API (`hub()`, `tx_buffer_empty()`, `tx_blocked()`) is checked
 >   against the 2026.9.1 source and host stubs only — the owner's compile is
 >   the first real check;
-> - unchanged from before: after an ACK timeout the hub itself may retry the
->   write frame (up to ~10 s); WRITE_UNCERTAIN and its probe resolve the truth.
+> - after an ACK timeout the hub itself could still resend the write frame
+>   (up to ~10 s) — **closed by M8.2 below**.
+
+#### M8.2 — No transport retry of transaction frames — HOST-COMPLETE (2026-10-02); not compiled, not deployed
+
+> **Fact (ESPHome 2026.9.1 source, `modbus_controller.cpp`
+> `ModbusCommandItem::on_no_response`):** an unanswered `ModbusCommandItem`
+> frame is re-queued by the hub while the controller's shared
+> `cmd_non_responses_ <= max_cmd_retries`. `max_cmd_retries` defaults to 4
+> and is not set in `batterylifepo4.yaml`; there is no exception for writes.
+> So the FC16 write, its forced readback and the WRITE_UNCERTAIN probe (all
+> `ModbusCommandItem`s up to M8.1) were each sent up to 5 times, every
+> `send_wait_time` (2000 ms). A write nobody acknowledged went out at about
+> 0/2/4/6/8 s: still in the hub at the 3 s ACK timeout, and resent after the
+> slot was already WRITE_UNCERTAIN. A late answer to one attempt was matched
+> to the next.
+>
+> **Design:**
+> - Every frame a transaction owns is sent by its own
+>   `jk_write_tx_bus::TxDevice` (`components/jk_write_tx/jk_write_tx_hub_device.h`,
+>   a `ModbusClientDevice` queued through the hub's public `queue_pdu` API):
+>   the FC16 write, the forced readback, the WRITE_UNCERTAIN probe, and the
+>   CellCount, topology-recovery and passcode reads. Its `on_no_response()`
+>   returns `jk_write_tx::transaction_frame_retry()` — never. **One
+>   confirmed write = at most one FC16 frame**; `gps_heartbeat = 1` is never
+>   repeated. One device per slot (write, then readback, then probes — one
+>   frame at a time) and one per CellCount / topology / passcode read.
+> - Every phase end (ACK, readback or probe outcome or timeout, slot free,
+>   CellCount, topology recovery, passcode) calls `cancel()` →
+>   `clear_tx_queue_for_device()`: a queued frame never goes out; one on the
+>   wire becomes a device-less shell (no callback, no retry) until its
+>   response or send-wait timeout.
+> - The cleanup latch `g_tx_cleanup_pending` then holds the read pause
+>   (`bus_owner` → `register_write`, a new argument) until
+>   `transport_clean()`: no transaction frame outstanding AND the hub
+>   quiescent (`transport_cleanup_step`, every 20 ms, before the barrier).
+>   Ordinary reads, the next write and recovery probes all wait for it.
+> - After an ACK or readback timeout only the slot's FC03 recovery probe is
+>   sent, once the previous probe has ended and cleanup is done.
+> - Ordinary cluster reads keep `ModbusCommandItem` and their retries: no
+>   global `max_cmd_retries` / `send_wait_time` change.
+> - ACK/readback semantics, the written register and the 3 s / 4 s
+>   timeouts are unchanged; an exception response still counts as no ACK.
+>
+> **Read-pause bound (loop time), derived:** from intent acceptance,
+> - drain ≤ `kQuiesceTimeoutMs` 3000 ms + one 20 ms barrier tick;
+> - ownership ≤ 7500 ms (3250 ACK edge + 4250 readback edge, 250 ms ticks);
+> - transport cleanup ≤ one 20 ms tick: each transaction frame is queued on
+>   an idle hub and, with no retry, ends ≤ send-wait 2000 ms + 50 ms
+>   turnaround after it is sent — the write before the 3000 ms ACK timeout,
+>   the readback (sent ≤ ~3300 ms) by ~5350 ms, before the readback edge.
+>
+> So the pause is ≤ 3020 + 7500 + 20 = **10,540 ms** with the default
+> send-wait. In general it is ≤ 3020 + max(7500, last frame send +
+> send_wait + 50) + 20. A main-loop block (L16) delays each decision by its
+> own length.
+>
+> **Simulation** (`test_write_quiesce_barrier.cpp`, now 162 checks; hub model
+> with the shared retry counter, offline teardown, late responses,
+> device-less shells): each scenario swept over 400 request times, against
+> the M8.1 transport as a control:
+>
+> | Scenario | M8.2 | M8.1 transport |
+> |---|---|---|
+> | no ACK | 1 FC16, then recovery FC03 → RECOVERED_CONFIRMED | 5 FC16, 3 of them after WRITE_UNCERTAIN |
+> | late ACK (2500 ms) | 1 FC16; the ACK is dropped; probe confirms | 2 FC16 |
+> | ACK at 1900 ms | 1 FC16, CONFIRMED | same |
+> | readback never answered | 1 readback frame | up to 12 |
+> | late readback (2500 ms) | 1 readback frame, dropped | 214 late answers taken by another read |
+> | `gps_heartbeat = 1`, no ACK | 1 FC16 (raw 0x0004) | 5 FC16 |
+> | hub busy past the ACK timeout (send-wait 5 s) | 1 FC16; no read or probe until the shell ended (cleanup up to 1984 ms) | 5 FC16, 4 after ownership |
+>
+> In every M8.2 run: 0 FC16 after ownership, 0 ordinary reads resumed while
+> the hub held the write or its readback, 0 probes during cleanup, 0
+> read-pause bound violations; worst observed pause 4554 ms (5114 ms with
+> send-wait 5 s).
+>
+> **Mutations** (`run_quiesce_barrier_mutations.sh`, 9 killed): the old
+> transport retry (`kTransactionFrameAttempts` = 5) is killed by the
+> simulation ("exactly one FC16 frame"); cleanup not pausing reads and
+> cleanup ignoring the hub are killed by the simulation too.
+>
+> **Residual:**
+> - the `TxDevice` subclass, `queue_pdu`-based helpers and
+>   `device_address()` are checked against the 2026.9.1 source and host
+>   stubs only — the owner's compile is the first real check;
+> - a response later than the hub's send-wait is dropped (or, if another
+>   FC03 is then waiting, could be taken as its answer — a Modbus RTU limit
+>   with no transaction id); the transaction then times out and the probe
+>   resolves the truth. Not observed (BMS latency ≈ 30 ms);
+> - our transaction frames no longer feed `bms0`'s online/offline counter.
 
 - **Prerequisite:** M7.
 - **Files:** the write-tx loop in `batterylifepo4.yaml`, the scheduler

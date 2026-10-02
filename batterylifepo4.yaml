@@ -86,6 +86,10 @@ esphome:
   # below). Desktop-testable — see test/jk_write_tx/test_jk_write_tx_core.cpp.
   includes:
     - components/jk_write_tx/jk_write_tx_core.h
+    # Plan M8.2: the no-retry Modbus client device every write-transaction
+    # frame (write, forced readback, recovery probes, CellCount / passcode /
+    # topology reads) is sent by -- never a transport retry.
+    - components/jk_write_tx/jk_write_tx_hub_device.h
     # Second corrective pass (2026-09-21): main-loop-published atomic
     # snapshots RegisterWritePreflightHandler reads instead of the plain
     # g_rp_*/g_wtx_* globals directly -- see this header's own module
@@ -1644,6 +1648,14 @@ globals:
     type: bool
     restore_value: false
     initial_value: "false"
+  # Plan M8.2: set when a transaction phase ends (its device cancelled);
+  # holds the read pause (bus_owner: register_write) until the hub has let
+  # go of the phase's last frame -- transport_cleanup_step clears it once no
+  # transaction frame is outstanding and the hub is quiescent.
+  - id: g_tx_cleanup_pending
+    type: bool
+    restore_value: false
+    initial_value: "false"
   - id: g_passcode_tx_id
     type: uint32_t
     restore_value: false
@@ -1789,6 +1801,9 @@ interval:
                 ESP_LOGW("jk_topology", "CellCount write not acknowledged within 3s (tx_id=%u target=%d) -- WRITE_UNCERTAIN",
                          unsigned(id(g_cellcount_tx_id)), int(id(g_cellcount_tx_target)));
                 id(g_cellcount_tx_pending) = false;
+                jk_write_tx_bus::g_cellcount_cc_device.cancel();
+                jk_write_tx_bus::g_cellcount_mask_device.cancel();
+                id(g_tx_cleanup_pending) = true;
                 id(g_topology_uncertain) = true;
                 id(cellcount_tx_status_code)->publish_state(7.0f);  // ack_timeout
                 id(resolve_topology)->execute();
@@ -1808,17 +1823,17 @@ interval:
               // real block.
               constexpr uint16_t cellcount_register_count = 2;
               constexpr size_t cellcount_expected_payload_bytes = size_t(cellcount_register_count) * 2U;
-              auto cc_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-                  id(bms0), esphome::modbus::EntityType::HOLDING, 0x106C, cellcount_register_count,
-                  [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
+              // Plan M8.2: each read by its own no-retry device.
+              auto on_cc = [](std::span<const uint8_t> data) {
                     if (data.size() == cellcount_expected_payload_bytes) {
                       const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
                                           (uint32_t(data[2]) << 8) | uint32_t(data[3]);
                       id(cell_count)->publish_state(float(v));
                     }
                     id(g_cellcount_readback_cellcount_done) = true;
-                  });
-              id(bms0)->queue_command(std::move(cc_cmd));
+                  };
+              jk_write_tx_bus::g_cellcount_cc_device.read_registers(id(bms0)->hub(), id(bms0)->device_address(),
+                                                                    0x106C, cellcount_register_count, on_cc);
 
               // cell_connected_mask (0x1240) is also word_count=2 -- same
               // 2-register/4-byte contract as cell_count above. The prior
@@ -1826,9 +1841,7 @@ interval:
               // the real block.
               constexpr uint16_t mask_register_count = 2;
               constexpr size_t mask_expected_payload_bytes = size_t(mask_register_count) * 2U;
-              auto mask_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-                  id(bms0), esphome::modbus::EntityType::HOLDING, 0x1240, mask_register_count,
-                  [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
+              auto on_mask = [](std::span<const uint8_t> data) {
                     if (data.size() == mask_expected_payload_bytes) {
                       const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
                                           (uint32_t(data[2]) << 8) | uint32_t(data[3]);
@@ -1838,14 +1851,18 @@ interval:
                       id(g_cell_connected_mask_valid) = true;
                     }
                     id(g_cellcount_readback_mask_done) = true;
-                  });
-              id(bms0)->queue_command(std::move(mask_cmd));
+                  };
+              jk_write_tx_bus::g_cellcount_mask_device.read_registers(id(bms0)->hub(), id(bms0)->device_address(),
+                                                                      0x1240, mask_register_count, on_mask);
               return;
             }
 
             const bool have_fresh_cells = id(g_last_bms_response_ms) > id(g_cellcount_tx_started_ms);
             if (id(g_cellcount_readback_cellcount_done) && id(g_cellcount_readback_mask_done) && have_fresh_cells) {
               id(g_cellcount_tx_pending) = false;
+              jk_write_tx_bus::g_cellcount_cc_device.cancel();
+              jk_write_tx_bus::g_cellcount_mask_device.cancel();
+              id(g_tx_cleanup_pending) = true;
               id(resolve_topology)->execute();
               const uint8_t target = id(g_cellcount_tx_target);
               const float readback_raw = id(cell_count).state;
@@ -1870,6 +1887,9 @@ interval:
                        unsigned(id(g_cellcount_tx_id)), int(id(g_cellcount_readback_cellcount_done)),
                        int(id(g_cellcount_readback_mask_done)), int(have_fresh_cells));
               id(g_cellcount_tx_pending) = false;
+              jk_write_tx_bus::g_cellcount_cc_device.cancel();
+              jk_write_tx_bus::g_cellcount_mask_device.cancel();
+              id(g_tx_cleanup_pending) = true;
               id(g_topology_uncertain) = true;
               id(cellcount_tx_status_code)->publish_state(8.0f);  // readback_timeout
               id(resolve_topology)->execute();
@@ -1889,13 +1909,20 @@ interval:
           if (id(g_topology_recovery_pending)) {
             if (id(g_topology_recovery_cellcount_done) && id(g_topology_recovery_mask_done)) {
               id(g_topology_recovery_pending) = false;
+              jk_write_tx_bus::g_topology_cc_device.cancel();
+              jk_write_tx_bus::g_topology_mask_device.cancel();
+              id(g_tx_cleanup_pending) = true;
               id(g_topology_uncertain) = false;
               ESP_LOGI("jk_topology", "Uncertainty recovery probe succeeded -- re-resolving topology");
               id(resolve_topology)->execute();
             } else if (now - id(g_topology_recovery_last_ms) > 4000U) {
               // This probe attempt stalled; fall through to the throttle
-              // below and simply try again.
+              // below and simply try again (plan M8.2: its reads end here --
+              // never resent by the hub).
               id(g_topology_recovery_pending) = false;
+              jk_write_tx_bus::g_topology_cc_device.cancel();
+              jk_write_tx_bus::g_topology_mask_device.cancel();
+              id(g_tx_cleanup_pending) = true;
             }
             return;
           }
@@ -1905,7 +1932,7 @@ interval:
           // never land between a write's ACK and its forced readback.
           if (!jk_write_tx::recovery_probe_allowed(jk_write_tx::bus_owner(
                   id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),
-                  id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active))) return;
+                  id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active, id(g_tx_cleanup_pending)))) return;
           if (now - id(g_topology_recovery_last_ms) < 5000U) return;
           id(g_topology_recovery_last_ms) = now;
           id(g_topology_recovery_pending) = true;
@@ -1918,23 +1945,21 @@ interval:
           // registers, 4 bytes each).
           constexpr uint16_t cellcount_register_count = 2;
           constexpr size_t cellcount_expected_payload_bytes = size_t(cellcount_register_count) * 2U;
-          auto rec_cc_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-              id(bms0), esphome::modbus::EntityType::HOLDING, 0x106C, cellcount_register_count,
-              [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
+          // Plan M8.2: each read by its own no-retry device.
+          auto on_rec_cc = [](std::span<const uint8_t> data) {
                 if (data.size() == cellcount_expected_payload_bytes) {
                   const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
                                       (uint32_t(data[2]) << 8) | uint32_t(data[3]);
                   id(cell_count)->publish_state(float(v));
                 }
                 id(g_topology_recovery_cellcount_done) = true;
-              });
-          id(bms0)->queue_command(std::move(rec_cc_cmd));
+              };
+          jk_write_tx_bus::g_topology_cc_device.read_registers(id(bms0)->hub(), id(bms0)->device_address(),
+                                                               0x106C, cellcount_register_count, on_rec_cc);
 
           constexpr uint16_t mask_register_count = 2;
           constexpr size_t mask_expected_payload_bytes = size_t(mask_register_count) * 2U;
-          auto rec_mask_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-              id(bms0), esphome::modbus::EntityType::HOLDING, 0x1240, mask_register_count,
-              [](esphome::modbus::EntityType, uint16_t, std::span<const uint8_t> data) {
+          auto on_rec_mask = [](std::span<const uint8_t> data) {
                 if (data.size() == mask_expected_payload_bytes) {
                   const uint32_t v = (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) |
                                       (uint32_t(data[2]) << 8) | uint32_t(data[3]);
@@ -1944,8 +1969,9 @@ interval:
                   id(g_cell_connected_mask_valid) = true;
                 }
                 id(g_topology_recovery_mask_done) = true;
-              });
-          id(bms0)->queue_command(std::move(rec_mask_cmd));
+              };
+          jk_write_tx_bus::g_topology_mask_device.read_registers(id(bms0)->hub(), id(bms0)->device_address(),
+                                                                 0x1240, mask_register_count, on_rec_mask);
 
   # ---- Generic write transaction servicer (jk_write_tx) — drives EVERY
   # in-use slot in g_write_tx_slots through ACK_WAIT -> READBACK_WAIT ->
@@ -2026,6 +2052,14 @@ interval:
             id(g_wtx_readback_started_ms)[i] = s.readback_started_ms;
             if (s.status != prev_status) changed = true;
 
+            // Plan M8.2: the write/readback phase is over (any outcome) --
+            // its frame can never be delivered, resent or sent any more, and
+            // reads stay paused until the hub has let go of it.
+            if (jk_write_tx::owns_bus(prev_status) && !jk_write_tx::owns_bus(s.status)) {
+              jk_write_tx_bus::g_slot_devices[i].cancel();
+              id(g_tx_cleanup_pending) = true;
+            }
+
             // Uncertainty recovery probe -- only runs while WRITE_UNCERTAIN
             // and no probe is already in flight for this slot; re-issued
             // every 2s if a prior probe never got a response (mirrors the
@@ -2039,11 +2073,15 @@ interval:
             // once no write intent drains the hub and no transaction owns
             // the bus (this slot itself, WRITE_UNCERTAIN, does not) -- it can
             // never land between another write's ACK and its readback.
+            // Plan M8.2: and only by this slot's no-retry device, once its
+            // previous probe has ended (answered, or no response within the
+            // hub's send-wait) and transport cleanup is done -- after an ACK
+            // or readback timeout this FC03 is the only frame the slot sends.
             if (s.status == jk_write_tx::WRITE_UNCERTAIN && id(g_wtx_recovery_pending)[i] &&
-                now >= id(g_wtx_recovery_next_ms)[i] &&
+                now >= id(g_wtx_recovery_next_ms)[i] && !jk_write_tx_bus::g_slot_devices[i].outstanding() &&
                 jk_write_tx::recovery_probe_allowed(jk_write_tx::bus_owner(
                     id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),
-                    id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active))) {
+                    id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active, id(g_tx_cleanup_pending)))) {
               id(g_wtx_recovery_next_ms)[i] = now + 2000U;
               const uint16_t addr = s.address;
               // register_count is Modbus REGISTERS (word_count itself --
@@ -2056,10 +2094,8 @@ interval:
               const uint32_t recovery_tx_id = s.tx_id;
               const uint16_t recovery_addr = s.address;
               const uint32_t recovery_generation = s.generation;
-              auto recovery_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-                  id(bms0), esphome::modbus::EntityType::HOLDING, addr, register_count,
-                  [i, recovery_tx_id, recovery_addr, recovery_generation, expected_payload_bytes](esphome::modbus::EntityType, uint16_t,
-                      std::span<const uint8_t> data) {
+              auto on_probe =
+                  [i, recovery_tx_id, recovery_addr, recovery_generation, expected_payload_bytes](std::span<const uint8_t> data) {
                     if (id(g_wtx_generation)[i] != recovery_generation || id(g_wtx_tx_id)[i] != recovery_tx_id ||
                         id(g_wtx_address)[i] != recovery_addr || id(g_wtx_status)[i] != jk_write_tx::WRITE_UNCERTAIN) {
                       ESP_LOGW("jk_write_tx", "Stale recovery-probe response for tx_id=%u addr=0x%04X ignored (slot %d no longer WRITE_UNCERTAIN on this generation)",
@@ -2088,8 +2124,10 @@ interval:
                              unsigned(recovery_tx_id), unsigned(recovery_addr), unsigned(id(g_wtx_status)[i]),
                              unsigned(id(g_wtx_requested_raw)[i]), unsigned(v));
                     id(publish_write_tx_snapshot)->execute();
-                  });
-              id(bms0)->queue_command(std::move(recovery_cmd));
+                  };
+              if (!jk_write_tx_bus::g_slot_devices[i].read_registers(id(bms0)->hub(), id(bms0)->device_address(), addr,
+                                                                     register_count, on_probe))
+                ESP_LOGW("jk_write_tx", "tx_id=%u addr=0x%04X: recovery probe refused by the Modbus hub", unsigned(recovery_tx_id), unsigned(addr));
             }
 
             if (result.issue_readback) {
@@ -2110,10 +2148,10 @@ interval:
               const uint32_t readback_tx_id = s.tx_id;
               const uint16_t readback_addr = s.address;
               const uint32_t readback_generation = s.generation;
-              auto read_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-                  id(bms0), esphome::modbus::EntityType::HOLDING, addr, register_count,
-                  [i, readback_tx_id, readback_addr, readback_generation, expected_payload_bytes](esphome::modbus::EntityType, uint16_t,
-                      std::span<const uint8_t> data) {
+              // Plan M8.2: one FC03 by the slot's no-retry device (its write
+              // frame has ended -- the ACK came); never a transport retry.
+              auto on_readback =
+                  [i, readback_tx_id, readback_addr, readback_generation, expected_payload_bytes](std::span<const uint8_t> data) {
                     if (id(g_wtx_generation)[i] != readback_generation || id(g_wtx_tx_id)[i] != readback_tx_id ||
                         id(g_wtx_address)[i] != readback_addr) {
                       ESP_LOGW("jk_write_tx", "Stale readback for tx_id=%u addr=0x%04X ignored (slot %d now on a newer transaction)",
@@ -2203,8 +2241,10 @@ interval:
                       id(dry_contact_1_trigger_source)->publish_state(float(v & 0xFF));
                     }
                     else if (a == 0x14E6) { id(dry_contact_2_trigger_source)->publish_state(float((v >> 8) & 0xFF)); }
-                  });
-              id(bms0)->queue_command(std::move(read_cmd));
+                  };
+              if (!jk_write_tx_bus::g_slot_devices[i].read_registers(id(bms0)->hub(), id(bms0)->device_address(), addr,
+                                                                     register_count, on_readback))
+                ESP_LOGW("jk_write_tx", "tx_id=%u addr=0x%04X: forced readback refused by the Modbus hub", unsigned(readback_tx_id), unsigned(addr));
             }
 
             if (terminal) {
@@ -2218,6 +2258,8 @@ interval:
                                         s.status == jk_write_tx::READBACK_WAIT;
             const uint32_t finished_ms = id(g_wtx_finished_ms)[i];
             if (!still_pending && finished_ms != 0 && now - finished_ms > 3000U) {
+              if (jk_write_tx_bus::g_slot_devices[i].outstanding()) id(g_tx_cleanup_pending) = true;
+              jk_write_tx_bus::g_slot_devices[i].cancel();
               id(g_wtx_in_use)[i] = 0;
               changed = true;
             }
@@ -2277,6 +2319,8 @@ interval:
             if (now - id(g_passcode_tx_started_ms) > 3000U) {
               ESP_LOGW("jk_passcode", "Passcode write not acknowledged within 3s -- WRITE_UNCERTAIN");
               id(g_passcode_tx_pending) = false;
+              jk_write_tx_bus::g_passcode_device.cancel();
+              id(g_tx_cleanup_pending) = true;
               id(setup_passcode_tx_status_code)->publish_state(7.0f);  // ack_timeout
             }
             return;
@@ -2295,23 +2339,24 @@ interval:
             // block.
             constexpr uint16_t register_count = 8;
             constexpr size_t expected_payload_bytes = size_t(register_count) * 2U;
-            auto read_cmd = esphome::modbus_controller::ModbusCommandItem::create_read_command(
-                id(bms0), esphome::modbus::EntityType::HOLDING, 0x1470, register_count,
-                [tx_id](esphome::modbus::EntityType, uint16_t,
-                        std::span<const uint8_t> data) {
+            // Plan M8.2: one FC03 by the passcode's no-retry device.
+            auto on_passcode = [tx_id](std::span<const uint8_t> data) {
                   // EXACT match, not a floor.
                   if (id(g_passcode_tx_id) != tx_id || data.size() != expected_payload_bytes) return;
                   for (size_t i = 0; i < 8; i++) {
                     id(g_passcode_readback_words)[i] = (uint16_t(data[i * 2]) << 8) | uint16_t(data[i * 2 + 1]);
                   }
                   id(g_passcode_readback_done) = true;
-                });
-            id(bms0)->queue_command(std::move(read_cmd));
+                };
+            jk_write_tx_bus::g_passcode_device.read_registers(id(bms0)->hub(), id(bms0)->device_address(), 0x1470, register_count,
+                                                              on_passcode);
             return;
           }
 
           if (id(g_passcode_readback_done)) {
             id(g_passcode_tx_pending) = false;
+            jk_write_tx_bus::g_passcode_device.cancel();
+            id(g_tx_cleanup_pending) = true;
             bool matches = true;
             for (size_t i = 0; i < 8; i++) {
               if (id(g_passcode_readback_words)[i] != id(g_passcode_expected_words)[i]) { matches = false; break; }
@@ -2324,6 +2369,8 @@ interval:
           if (now - id(g_passcode_readback_started_ms) > 4000U) {
             ESP_LOGW("jk_passcode", "Passcode readback incomplete after 4s -- WRITE_UNCERTAIN");
             id(g_passcode_tx_pending) = false;
+            jk_write_tx_bus::g_passcode_device.cancel();
+            id(g_tx_cleanup_pending) = true;
             id(setup_passcode_tx_status_code)->publish_state(8.0f);  // readback_timeout
           }
 
@@ -2497,7 +2544,7 @@ interval:
           // hub has drained, re-validating everything first. Refused at once
           // while another intent drains or any transaction owns the bus.
           const auto owner = jk_write_tx::bus_owner(id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending),
-                                                    id(g_topology_recovery_pending), id(g_passcode_tx_pending), false);
+                                                    id(g_topology_recovery_pending), id(g_passcode_tx_pending), false, false);
           auto &intent = jk_cluster_runtime::g_write_intent;
           if (!jk_cluster_runtime::accept_write_intent(intent, jk_cluster_runtime::IntentSource::REGISTER_REQUEST, w, rmw_queued, now, owner)) {
             ESP_LOGW("jk_write_tx", "register-write request_id=%u key=%s refused: another write is draining the bus or owns it",
@@ -2518,10 +2565,12 @@ interval:
 
   # Pre-write quiescence barrier (plan M8.1): re-decides the one write
   # intent every 20 ms (the read servicer's cadence) -- queue the write once
-  # the hub has drained, or refuse it at kQuiesceTimeoutMs. A no-op return
-  # when no intent is draining.
+  # the hub has drained, or refuse it at kQuiesceTimeoutMs -- after the
+  # transport cleanup of a finished phase (plan M8.2). Both are no-op
+  # returns when nothing is pending.
   - interval: 20ms
     then:
+      - script.execute: transport_cleanup_step
       - script.execute: write_barrier_step
 
   # Second corrective pass (2026-09-21): publishes the read-plan block
@@ -4361,8 +4410,9 @@ script:
           std::vector<uint16_t> words;
           if (word_count >= 2) words = {uint16_t(uint32_t(raw) >> 16), uint16_t(uint32_t(raw) & 0xFFFFU)};
           else words = {uint16_t(raw)};
-          auto command = esphome::modbus_controller::ModbusCommandItem::create_write_multiple_command(
-              id(bms0), addr, words.size(), words);
+          // Plan M8.2: the slot's own no-retry device sends exactly one FC16
+          // frame -- never a transport retry (ModbusCommandItem resent an
+          // unanswered write up to 4 more times).
           // Third critical audit (2026-09-10, item 6): capture the
           // immutable {idx, tx_id, address, generation} quadruple this ACK
           // belongs to, and verify ALL FOUR still match before mutating
@@ -4372,8 +4422,7 @@ script:
           const uint32_t ack_tx_id = s.tx_id;
           const uint16_t ack_addr = s.address;
           const uint32_t ack_generation = s.generation;
-          command.on_data_func = [idx, ack_tx_id, ack_addr, ack_generation](esphome::modbus::EntityType, uint16_t,
-                                        std::span<const uint8_t>) {
+          auto on_ack = [idx, ack_tx_id, ack_addr, ack_generation](std::span<const uint8_t>) {
             if (id(g_wtx_generation)[idx] != ack_generation || id(g_wtx_tx_id)[idx] != ack_tx_id ||
                 id(g_wtx_address)[idx] != ack_addr) {
               ESP_LOGW("jk_write_tx", "Stale ACK for tx_id=%u addr=0x%04X ignored (slot %d now on a newer transaction)",
@@ -4382,7 +4431,12 @@ script:
             }
             id(g_wtx_acked)[idx] = 1;
           };
-          id(bms0)->queue_command(std::move(command));
+          if (!jk_write_tx_bus::g_slot_devices[idx].write_registers(id(bms0)->hub(), id(bms0)->device_address(), addr,
+                                                                    std::span<const uint16_t>(words), on_ack)) {
+            // Not queued: no frame exists; the ACK timeout makes the slot
+            // WRITE_UNCERTAIN and the recovery probe reads the truth.
+            ESP_LOGW("jk_write_tx", "tx_id=%u addr=0x%04X: write frame refused by the Modbus hub", unsigned(s.tx_id), unsigned(addr));
+          }
           id(publish_write_tx_snapshot)->execute();
 
   # Write coordination (plan M8): who owns the bus, from the same
@@ -4396,8 +4450,26 @@ script:
       - lambda: |-
           const char *pause = jk_write_tx::bus_owner_name(jk_write_tx::bus_owner(
               id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending), id(g_topology_recovery_pending),
-              id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active));
+              id(g_passcode_tx_pending), jk_cluster_runtime::g_write_intent.active, id(g_tx_cleanup_pending)));
           if (id(read_pause_reason).state != pause) id(read_pause_reason).publish_state(pause);
+
+  # ---- Transport cleanup (plan M8.2): after a transaction phase ends its
+  # device is cancelled, so none of its frames can be delivered, resent or
+  # sent; a frame already on the wire still holds the hub (a device-less
+  # shell) until its response or the hub's send-wait timeout. Ordinary
+  # reads, recovery probes and the next write stay paused (bus_owner:
+  # register_write) until no transaction frame is outstanding AND the hub
+  # is quiescent. Run every 20 ms, before the barrier.
+  - id: transport_cleanup_step
+    then:
+      - lambda: |-
+          if (!id(g_tx_cleanup_pending)) return;
+          auto *hub = id(bms0)->hub();
+          if (!jk_write_tx::transport_clean(jk_write_tx::hub_quiescent(hub->tx_buffer_empty(), hub->tx_blocked()),
+                                            jk_write_tx_bus::any_outstanding()))
+            return;
+          id(g_tx_cleanup_pending) = false;
+          id(publish_read_pause_reason)->execute();
 
   # ---- Pre-write quiescence barrier (plan M8.1) -- the ONLY caller of
   # begin_write_tx, so the only way a Modbus write is ever queued. M8 paused
@@ -4429,7 +4501,7 @@ script:
           auto *hub = id(bms0)->hub();
           const bool quiet = jk_write_tx::hub_quiescent(hub->tx_buffer_empty(), hub->tx_blocked());
           const auto other = jk_write_tx::bus_owner(id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending),
-                                                    id(g_topology_recovery_pending), id(g_passcode_tx_pending), false);
+                                                    id(g_topology_recovery_pending), id(g_passcode_tx_pending), false, id(g_tx_cleanup_pending));
           const auto qs = jk_write_tx::quiesce_step(in.active, in.accepted_ms, now, quiet, other);
           if (qs == jk_write_tx::QuiesceStep::WAIT) return;
 
@@ -4647,7 +4719,7 @@ script:
           const uint32_t now = millis();
           auto &intent = jk_cluster_runtime::g_write_intent;
           const auto owner = jk_write_tx::bus_owner(id(g_wtx_in_use), id(g_wtx_status), 6, id(g_cellcount_tx_pending),
-                                                    id(g_topology_recovery_pending), id(g_passcode_tx_pending), false);
+                                                    id(g_topology_recovery_pending), id(g_passcode_tx_pending), false, false);
           if (intent.active || owner != jk_write_tx::BusOwner::NONE) return;
           for (auto &req : jk_cluster_runtime::g_entity_write_requests) {
             if (!req.active()) continue;

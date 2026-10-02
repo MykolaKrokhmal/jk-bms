@@ -206,7 +206,42 @@ namespace modbus { enum class EntityType { COIL, DISCRETE_INPUT, HOLDING, READ }
 // ModbusClientHub's two public queries the pre-write quiescence barrier
 // (plan M8.1) reads -- the real 2026.9.1 declarations in modbus.h are
 // \`bool tx_buffer_empty();\` and \`bool tx_blocked() override;\`.
-struct ModbusClientHub { bool tx_buffer_empty() { return true; } bool tx_blocked() { return false; } }; }
+struct ModbusClientDevice;
+// Plan M8.2: the hub/device surface jk_write_tx_hub_device.h uses, with the
+// real 2026.9.1 declarations (modbus.h / modbus_helpers.h / modbus_definitions.h).
+enum class ExceptionCode : uint8_t { ILLEGAL_FUNCTION = 1 };
+struct CommandOptions { bool continuous : 1 {false}; };
+struct ModbusClientHub {
+  bool tx_buffer_empty() { return true; }
+  bool tx_blocked() { return false; }
+  bool queue_pdu(uint8_t, std::span<const uint8_t>, ModbusClientDevice * = nullptr, CommandOptions = {}) { return true; }
+  void clear_tx_queue_for_device(ModbusClientDevice *) {}
+};
+namespace helpers { inline std::span<const uint8_t> server_pdu_payload(std::span<const uint8_t> pdu) { return pdu; } }
+class ModbusClientDevice {
+ public:
+  ModbusClientDevice() = default;
+  ModbusClientDevice(ModbusClientHub *parent, uint8_t address) : parent_(parent), address_(address) {}
+  virtual ~ModbusClientDevice() = default;
+  ModbusClientDevice(const ModbusClientDevice &) = delete;
+  ModbusClientDevice &operator=(const ModbusClientDevice &) = delete;
+  ModbusClientDevice(ModbusClientDevice &&) = delete;
+  ModbusClientDevice &operator=(ModbusClientDevice &&) = delete;
+  void set_parent(ModbusClientHub *parent) { this->parent_ = parent; }
+  void set_address(uint8_t address) { this->address_ = address; }
+  virtual void on_response(std::span<const uint8_t> request_pdu, std::span<const uint8_t> response_pdu) {}
+  virtual void on_error(std::span<const uint8_t> request_pdu, ExceptionCode exception_code) {}
+  virtual void on_not_sent(std::span<const uint8_t> request_pdu) {}
+  virtual void on_sent(std::span<const uint8_t> request_pdu) {}
+  virtual bool on_no_response(std::span<const uint8_t> request_pdu) { return false; }
+  bool read_holding_registers(uint16_t start_address, uint16_t number_of_registers, CommandOptions options = {}) { return true; }
+  bool write_multiple_registers(uint16_t start_address, std::span<const uint16_t> values, CommandOptions options = {}) { return true; }
+  inline void clear_tx_queue_for_device() { this->parent_->clear_tx_queue_for_device(this); }
+ protected:
+  ModbusClientHub *parent_{nullptr};
+  uint8_t address_{0};
+};
+}
 namespace modbus_controller {
 struct ModbusController;
 using Handler = std::function<void(modbus::EntityType, uint16_t, std::span<const uint8_t>)>;
@@ -215,8 +250,10 @@ struct ModbusCommandItem {
   static ModbusCommandItem create_write_multiple_command(ModbusController *, uint16_t, uint16_t, const std::vector<uint16_t> &) { return {}; }
   Handler on_data_func;
 };
-// hub(): the real 2026.9.1 \`modbus::ModbusClientHub *hub() const\` (modbus_controller.h).
-struct ModbusController { void queue_command(const ModbusCommandItem &) {} modbus::ModbusClientHub *hub() const { return nullptr; } };
+// hub() / device_address(): the real 2026.9.1 \`modbus::ModbusClientHub *hub() const\` and
+// \`uint8_t device_address() const\` (modbus_controller.h).
+struct ModbusController { void queue_command(const ModbusCommandItem &) {} modbus::ModbusClientHub *hub() const { return nullptr; }
+  uint8_t device_address() const { return 1; } };
 }
 }
 `;
