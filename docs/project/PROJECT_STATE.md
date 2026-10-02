@@ -98,9 +98,18 @@ generated inventories linked below, not in prose.
     `ModbusClientDevice`; phase ends cancel it; reads wait for transport
     cleanup. One write = one FC16. Derived read pause ≤ 10,540 ms (default
     send-wait). Simulation 162 checks; 9 mutants killed.
-  - Next: owner compile and deploy of M8.1 + M8.2, then gate D with
-    per-field approval (not started), then M9 and M10. L16 measurement
-    (W0/W1) is on hold.
+  - **M8.1 + M8.2 deployed in `ca7d337` (2026-10-02 13:56,
+    `config_hash 0x9965ace9`)**; read-only audit passed.
+  - **Write confirmation fix (2026-10-02, host-complete, not deployed):**
+    a controlled reproduction showed the native `window.confirm()` froze the
+    page (no SSE, no lease renewal): the device lease expired, the page
+    reconnected in a ~20 s loop and showed fresh C2 values as stale. The
+    confirmation is now an in-page, non-blocking dialog; after OK the page
+    revalidates (link LIVE, same epoch, write-ready, read not older, a new
+    read-only preflight with the same raw/merged values) before the one POST.
+  - Next: deploy `jk_bms.js`/`jk_bms.css`, then gate D with per-field
+    approval (not started), then M9 and M10. L16 measurement (W0/W1) is on
+    hold.
   - **Settings writes stay prohibited until gate D.**
 
   ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not

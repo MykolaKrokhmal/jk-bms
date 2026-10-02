@@ -78,8 +78,24 @@ check("submitRegisterWrite() calls the real POST /settings/register-write endpoi
   /`\/settings\/register-write\?key=\$\{encodeURIComponent\(entry\.key\)\}&value=\$\{encodeURIComponent\(String\(value\)\)\}&submit_policy=live`/.test(jsSource));
 check("fetchRegisterWritePreflight() calls the real GET /settings/register-write/preflight endpoint",
   /\/settings\/register-write\/preflight\?key=/.test(jsSource));
-check("submitRegisterWrite() requires an explicit confirmation (window.confirm) before submitting",
-  /window\.confirm\(t\("writeRegistry\.confirmPrompt"/.test(jsSource));
+// 2026-10-02: the confirmation is an in-page, non-blocking dialog. A native
+// window.confirm() froze the page (SSE, freshness sweep, watchdog, Settings
+// lease renewal), so the device lease expired and the page reconnected.
+check("the write flow requires an explicit in-page confirmation (openWriteConfirmation) before submitting, and never calls window.confirm()",
+  /await openWriteConfirmation\(t\("writeRegistry\.confirmPrompt"/.test(jsSource) &&
+  !/\bwindow\.confirm\(|[^.\w]confirm\(/.test(jsSource.split("\n").filter((l) => !/^\s*\/\//.test(l)).join("\n")));
+check("the confirmation dialog is accessible: alertdialog, aria-modal, labelled and described, Escape cancels, Tab is trapped, focus returns",
+  /setAttribute\("role", "alertdialog"\)/.test(jsSource) && /setAttribute\("aria-modal", "true"\)/.test(jsSource) &&
+  /aria-labelledby", "writeConfirmTitle"/.test(jsSource) && /aria-describedby", "writeConfirmText"/.test(jsSource) &&
+  /event\.key === "Escape"[\s\S]{0,120}active\.finish\(false\)/.test(jsSource) && /event\.key === "Tab"/.test(jsSource) &&
+  /returnFocus\.focus\(\)/.test(jsSource));
+check("after OK, revalidateWriteConfirmation() runs before the POST; a problem returns without any POST",
+  (() => {
+    const body = (jsSource.match(/async function confirmAndSubmitRegisterWrite\s*\([^)]*\)\s*\{[\s\S]*?\n  \}/) || [""])[0];
+    const reval = body.indexOf("await revalidateWriteConfirmation(entry, value, shown)");
+    const post = body.indexOf("runRegisterWriteTransaction(");
+    return reval > 0 && post > reval && /if \(problem\) \{[\s\S]{0,200}return;\n    \}/.test(body.slice(reval, post));
+  })());
 check("submitRegisterWrite() rejects submission when preflight did not report ready:true",
   /body\.ready !== true/.test(jsSource));
 check("submitRegisterWrite() blocks a resubmit while this key's transaction is already active (single-flight)",
@@ -98,9 +114,9 @@ check("pollRegisterWriteStatus() is defined and bounded (a real timeout budget c
   /function pollRegisterWriteStatus\s*\(/.test(jsSource) && /REGISTER_WRITE_POLL_TIMEOUT_MS/.test(jsSource));
 check("runRegisterWriteTransaction() is defined (the dedicated async register-write state machine)",
   /function runRegisterWriteTransaction\s*\(/.test(jsSource));
-check("submitRegisterWrite() calls runRegisterWriteTransaction(), not the generic writeTransaction()",
+check("the register write flow (confirmAndSubmitRegisterWrite) calls runRegisterWriteTransaction(), not the generic writeTransaction()",
   (() => {
-    const fnMatch = jsSource.match(/async function submitRegisterWrite\s*\([^)]*\)\s*\{[\s\S]*?\n  \}/);
+    const fnMatch = jsSource.match(/async function confirmAndSubmitRegisterWrite\s*\([^)]*\)\s*\{[\s\S]*?\n  \}/);
     if (!fnMatch) return false;
     const body = fnMatch[0];
     return body.includes("runRegisterWriteTransaction({") && !/[^.]\bwriteTransaction\(\{/.test(body);

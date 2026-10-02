@@ -1655,3 +1655,12 @@ button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--accent);
 }
 
 .fatal-error{ margin:24px; padding:20px; border:1px solid var(--danger); border-radius:12px; background:var(--danger-dim); color:var(--danger); white-space:pre-wrap; font-family:ui-monospace, monospace; font-size:13px; }
+
+/* Write confirmation (in-page, non-blocking): keeps SSE, the freshness sweep
+   and the Settings lease running while the user reads the RMW preview. */
+.write-confirm-dialog{ max-width:420px; }
+.write-confirm-text{ margin:0 0 16px; white-space:pre-line; font-size:14px; line-height:1.5; color:var(--ink); }
+.write-confirm-actions{ display:flex; justify-content:flex-end; gap:8px; }
+.write-confirm-actions button{ min-width:88px; padding:8px 14px; border-radius:10px; border:1px solid var(--hair-strong); background:var(--panel); color:var(--ink); cursor:pointer; }
+.write-confirm-actions button[data-confirm-action="ok"]{ border-color:var(--accent); color:var(--accent); }
+.write-confirm-actions button:disabled{ opacity:.5; cursor:default; }

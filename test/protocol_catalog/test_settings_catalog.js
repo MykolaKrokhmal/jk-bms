@@ -37,7 +37,8 @@ const vm = require("vm");
 const { TimerQueue, FakeEventSource, ListenerRegistry, flush } = require("./sse_test_harness");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const source = fs.readFileSync(path.join(ROOT, "jk_bms.js"), "utf8");
+// JK_BMS_JS_UNDER_TEST: a mutated copy (test/protocol_catalog/run_write_confirmation_mutations.sh).
+const source = fs.readFileSync(process.env.JK_BMS_JS_UNDER_TEST || path.join(ROOT, "jk_bms.js"), "utf8");
 
 let checks = 0;
 let failures = 0;
@@ -221,6 +222,12 @@ class ControlledDate extends Date {
 // /settings/read-freshness snapshot the real onopen fetches. Kept apart from
 // fetchCallLog, which must stay empty (no write is ever dispatched).
 let harness = null;
+// In-page write confirmation (2026-10-02): the page opens a non-blocking
+// dialog instead of window.confirm(). The harness answers it the way a user
+// does -- a click on its real OK (or, with confirmAnswer = "cancel", Cancel)
+// button. After OK the page revalidates with one more read-only preflight.
+// "hold" leaves the dialog open for the scenario to drive by hand.
+let confirmAnswer = "ok";
 // The firmware's /settings/read-freshness clusters[] (M5 schema), built from
 // the GENERATED cluster table rather than a copied address map. All clusters
 // in cluster mode unless `modes` says otherwise; a fallback entry has no age.
@@ -280,6 +287,14 @@ function loadRealClosures() {
   fetchCallLog = [];
   const documentElement = new FakeNode("html");
   const body = new FakeNode("body");
+  const appendToBody = body.appendChild.bind(body);
+  body.appendChild = (child) => {
+    const added = appendToBody(child);
+    if (child.classList && child.classList.contains("write-confirm-overlay") && confirmAnswer !== "hold") {
+      setImmediate(() => fakeClick(child.querySelector(`[data-confirm-action='${confirmAnswer}']`)));
+    }
+    return added;
+  };
   const window = {
     __JK_BMS_TEST_HOOKS__: {},
     location: { href: "http://jk-bms.local/" },
@@ -292,7 +307,7 @@ function loadRealClosures() {
     setTimeout: (cb, ms) => (harness ? harness.timers.setTimeout(cb, ms) : setTimeout(cb, 0)),
     clearTimeout: (id) => (harness ? harness.timers.clear(id) : clearTimeout(id)),
     fetch: (...args) => fakeFetch(...args),
-    confirm: () => true,
+    confirm: () => { throw new Error("window.confirm() called -- the write confirmation must be the in-page dialog"); },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
   };
   const document = {
@@ -313,7 +328,8 @@ function loadRealClosures() {
   const sandbox = {
     window, document, navigator: { language: "en", onLine: true }, URL, console, Map, HTMLInputElement, AbortController,
     Date: ControlledDate, EventSource: FakeEventSource,
-    fetch: (...args) => fakeFetch(...args), confirm: () => true,
+    fetch: (...args) => fakeFetch(...args),
+    confirm: () => { throw new Error("confirm() called -- the write confirmation must be the in-page dialog"); },
   };
   vm.createContext(sandbox);
   vm.runInContext(source, sandbox, { filename: "jk_bms.js" });
@@ -720,7 +736,7 @@ function main() {
   runFalseStaleScenario();
 
   runRealReconnectScenario("visible").then(() => runRealReconnectScenario("ping")).then(() => runUnifiedWriteContractScenario())
-    .then(() => runSettingsLeaseScenario()).then(() => runBusPauseScenario()).then(() => {
+    .then(() => runSettingsLeaseScenario()).then(() => runBusPauseScenario()).then(() => runWriteConfirmationScenario()).then(() => {
     console.log(`\nsettings catalog DOM test summary: ${checks - failures}/${checks} passed`);
     process.exit(failures ? 1 : 0);
   }, (error) => { console.error(error); process.exit(1); });
@@ -810,8 +826,8 @@ async function runUnifiedWriteContractScenario() {
   await settle();
   const pre = fetchCallLog.filter((f) => f.url.includes("/preflight"));
   const posts = fetchCallLog.filter((f) => f.method === "POST");
-  check("U3: pressing the row's OK starts exactly one preflight and one POST",
-    pre.length === 1 && posts.length === 1, JSON.stringify(fetchCallLog));
+  check("U3: pressing the row's OK starts one preflight, one revalidation preflight after the dialog's OK, and exactly one POST",
+    pre.length === 2 && posts.length === 1 && fetchCallLog.indexOf(posts[0]) > fetchCallLog.indexOf(pre[1]), JSON.stringify(fetchCallLog));
   check("U4: the POST carries that row's exact canonical key and value, submit_policy=live",
     /key=smart_sleep_timeout_hours(&|$)/.test(posts[0].url) && /[?&]value=48(&|$)/.test(posts[0].url) && /submit_policy=live/.test(posts[0].url), posts[0] && posts[0].url);
   check("U9: the OK of one row never includes another row's draft", !fetchCallLog.some((f) => /lcd_always_on/.test(f.url)));
@@ -877,8 +893,8 @@ async function runUnifiedWriteContractScenario() {
   fakeClick(sleepOk);
   await settle();
   const sleepPosts = fetchCallLog.filter((f) => f.method === "POST");
-  check("U3m: a migrated field's own OK: one preflight + one POST with key=smart_sleep&value=3.3, nothing for any other row",
-    fetchCallLog.filter((f) => f.url.includes("/preflight")).length === 1 && sleepPosts.length === 1 &&
+  check("U3m: a migrated field's own OK: preflight + revalidation preflight + one POST with key=smart_sleep&value=3.3, nothing for any other row",
+    fetchCallLog.filter((f) => f.url.includes("/preflight")).length === 2 && sleepPosts.length === 1 &&
     /key=smart_sleep(&|$)/.test(sleepPosts[0].url) && /[?&]value=3\.3(&|$)/.test(sleepPosts[0].url) &&
     !fetchCallLog.some((f) => /smart_sleep_timeout_hours|\/number\//.test(f.url)), JSON.stringify(fetchCallLog));
   check("U6m: its NO_CHANGE lands on its own row as success",
@@ -1877,6 +1893,219 @@ async function runSettingsLeaseScenario() {
 
 // M8: the firmware's read_pause_reason (who owns the bus) through the real
 // SSE ingest path; the browser never runs a pause timer of its own.
+// Write confirmation (owner report 2026-10-02: LCD 0x1114 turned stale after
+// a 45 s native window.confirm(); the device lease expired and the page
+// reconnected). The real page, a real connect(), the real lease requests and
+// a real SSE stream on a controlled clock: the in-page dialog stays open for
+// 60 s while time passes normally (timers fire, C2 is read every 3 s under
+// the lease, health every 2 s, a ping every 10 s). Device model for 0x1114:
+// raw 0x3210 = 12816, LCD is bit 4 (mask 0x0010), other bits 0x3200 = 12800.
+async function runWriteConfirmationScenario() {
+  const T = "WC";
+  const settle = async () => { for (let i = 0; i < 16; i += 1) await new Promise((r) => setImmediate(r)); };
+  fakeNow = 3600000;
+  const clock = { now: () => fakeNow, get value() { return fakeNow; }, set value(v) { fakeNow = v; } };
+  harness = { timers: new TimerQueue(clock), win: new ListenerRegistry(), doc: new ListenerRegistry(), snapshotGets: 0,
+    snapshot: { blocks: [[0x1118, 0, 1], [0x1114, 0, 1], [0x1240, 0, 1], [0x1290, 0, 1]], clusters: clusterSnapshot(0) } };
+  FakeEventSource.reset();
+  confirmAnswer = "hold";
+  const p = bootStartupPage({ connect: false });
+  const { hooks } = p;
+  leaseTtlMs = 30000;
+  leaseCallLog = [];
+  let deviceRaw = 0x3210;
+  let txId = 500;
+  let requestId = 900;
+  fetchResponder = (url, method) => {
+    if (method === "GET" && url.endsWith("/settings/read-freshness")) { harness.snapshotGets += 1; return { status: 200, body: harness.snapshot }; }
+    if (method === "GET" && url.includes("/settings/register-write/preflight")) {
+      const value = Number(new URL(url).searchParams.get("value"));
+      const key = new URL(url).searchParams.get("key");
+      if (key === "lcd_always_on") {
+        const merged = (deviceRaw & ~0x10) | ((value & 1) << 4);
+        return { status: 200, body: { ready: true, current_raw: deviceRaw, merged_raw: merged, sibling_bits_before: deviceRaw & ~0x10, reject_reason: null } };
+      }
+      return { status: 200, body: { ready: true, current_raw: 24, merged_raw: value, sibling_bits_before: 0, reject_reason: null } };
+    }
+    if (method === "POST" && url.includes("/settings/register-write?")) { requestId += 1; return { status: 200, body: { ok: true, status: "accepted", key: "x", request_id: requestId } }; }
+    if (method === "GET" && url.includes("/settings/register-write/status")) return { status: 200, body: { status: "accepted", request_id: requestId, tx_id: txId } };
+    return { status: 404, body: null };
+  };
+  hooks.connect();
+  const es = FakeEventSource.instances[0];
+  es.open();
+  hooks.activateTab("configuration");
+  await settle();
+  ingestStartupValues(p);
+  let c2rev = 1;
+  let seq = 1000;
+  const sse = (payload) => es.emit("state", payload);
+  const c2Read = () => { c2rev += 1; seq += 1; sse({ id: "text_sensor/read plan success", state: `C2:${c2rev}:${seq}`, value: `C2:${c2rev}:${seq}` }); };
+  const healthLive = () => sse({ id: "text_sensor/bms health", state: "LIVE", value: "LIVE" });
+  healthLive();
+  fakeNow += 1;
+  c2Read();
+  hooks.renderFreshness();
+  hooks.updateSettingsCatalogValue("LCD Always On");
+  const lcdKey = "lcd_always_on";
+  const lcdButton = p.binaryButton;
+  const lcdMsg = () => idRegistry.get("wrMsg_lcd_always_on");
+  const ready = () => hooks.settingsWriteReadiness(lcdKey).kind;
+  const overlay = () => p.document.body.querySelector(".write-confirm-overlay");
+  const posts = () => fetchCallLog.filter((f) => f.method === "POST");
+  const preflights = () => fetchCallLog.filter((f) => f.url.includes("/register-write/preflight"));
+  check(`${T}0: LCD 0x1114 is fresh under the Settings lease with an enabled OK`, ready() === "fresh" && lcdButton.disabled === false, ready());
+
+  // Time passes with the dialog open: every 1 s step fires the page's own
+  // timers; the device keeps streaming (C2 every 3 s, health every 2 s,
+  // ping every 10 s) unless told otherwise.
+  const live = async (ms, { c2 = true } = {}) => {
+    const kinds = new Set();
+    for (let t = 0; t < ms; t += 1000) {
+      harness.timers.advance(1000);
+      const second = Math.round((fakeNow - 3600000) / 1000);
+      if (second % 2 === 0) healthLive();
+      if (c2 && second % 3 === 0) c2Read();
+      if (second % 10 === 0) es.emit("ping", JSON.stringify({ uptime: second }));
+      await settle();
+      kinds.add(ready());
+    }
+    return kinds;
+  };
+  const openLcdConfirmation = async () => {
+    p.binarySelect.value = "1";
+    lcdButton.focus();
+    fakeClick(lcdButton);
+    await settle();
+    return overlay();
+  };
+  const finishTx = async () => {  // the device's terminal snapshot for the POSTed write
+    sse({ id: "text_sensor-write_tx_snapshot", domain: "text_sensor",
+      value: JSON.stringify([{ addr: 0x1114, tx_id: txId, status: 4, req: deviceRaw, rb: deviceRaw }]),
+      state: JSON.stringify([{ addr: 0x1114, tx_id: txId, status: 4, req: deviceRaw, rb: deviceRaw }]) });
+    txId += 1;
+    await settle();
+  };
+
+  // A. 60 s open, then Cancel.
+  fetchCallLog = [];
+  const leaseBefore = leaseCallLog.length;
+  const ov = await openLcdConfirmation();
+  const dialog = ov && ov.querySelector(".write-confirm-dialog");
+  const text = ov ? ov.querySelector(".write-confirm-text").textContent : "";
+  check(`${T}1: OK opens one in-page dialog (role alertdialog, aria-modal, labelled + described) after one preflight; nothing posted`,
+    !!ov && dialog.getAttribute("role") === "alertdialog" && dialog.getAttribute("aria-modal") === "true" &&
+    dialog.getAttribute("aria-labelledby") === "writeConfirmTitle" && dialog.getAttribute("aria-describedby") === "writeConfirmText" &&
+    preflights().length === 1 && posts().length === 0, JSON.stringify(fetchCallLog));
+  check(`${T}2: the LCD 0x1114 RMW preview is the audited text (raw 12816, value 1, merged 12816, other bits 12800)`,
+    /Write LCD always on|Write .*LCD/i.test(text) && text.includes("Current raw: 12816") && text.includes("Proposed value: 1") &&
+    text.includes("Merged raw after write: 12816") && text.includes("Other bits in this register (unaffected): 12800"), text);
+  check(`${T}3: initial focus is on Cancel (the safe default)`, activeElement === ov.querySelector("[data-confirm-action='cancel']"));
+  harness.doc.dispatch("keydown", { key: "Tab" });
+  check(`${T}3b: Tab moves focus inside the dialog (trap) to OK`, activeElement === ov.querySelector("[data-confirm-action='ok']"));
+  harness.doc.dispatch("keydown", { key: "Tab" });
+  const kindsA = await live(60000);
+  check(`${T}4: during 60 s open the SSE stream keeps applying C2 reads -- LCD stays fresh every second`,
+    kindsA.size === 1 && kindsA.has("fresh") && !!overlay(), [...kindsA].join(","));
+  check(`${T}5: the Settings lease is renewed on its cadence while the dialog is open (ttl 30 s -> every 10 s)`,
+    leaseCallLog.length - leaseBefore >= 5, `${leaseCallLog.length - leaseBefore} renewals`);
+  check(`${T}6: no resume/reconnect while the dialog is open (one EventSource, still open)`,
+    FakeEventSource.instances.length === 1 && es.readyState !== 2);
+  fakeClick(ov.querySelector("[data-confirm-action='cancel']"));
+  await settle();
+  check(`${T}7: Cancel closes the dialog, returns focus to the row OK, posts nothing, leaves LCD fresh and the OK enabled`,
+    !overlay() && activeElement === lcdButton && posts().length === 0 && preflights().length === 1 && ready() === "fresh" &&
+    lcdButton.disabled === false && lcdMsg().textContent === "", JSON.stringify(fetchCallLog));
+  check(`${T}8: Cancel starts no reconnect`, FakeEventSource.instances.length === 1 && es.readyState !== 2);
+
+  // B. Escape.
+  fetchCallLog = [];
+  await openLcdConfirmation();
+  await live(5000);
+  harness.doc.dispatch("keydown", { key: "Escape" });
+  await settle();
+  check(`${T}9: Escape closes the dialog with zero POST and no reconnect`,
+    !overlay() && posts().length === 0 && FakeEventSource.instances.length === 1 && lcdButton.disabled === false);
+
+  // C. 60 s open, unchanged fresh raw, OK -> exactly one POST (after one revalidation preflight).
+  fetchCallLog = [];
+  const ovC = await openLcdConfirmation();
+  await live(60000);
+  fakeClick(ovC.querySelector("[data-confirm-action='ok']"));
+  await settle();
+  check(`${T}10: OK after 60 s with the raw unchanged and fresh: revalidation preflight, then exactly one POST`,
+    preflights().length === 2 && posts().length === 1 && fetchCallLog.indexOf(posts()[0]) > fetchCallLog.indexOf(preflights()[1]),
+    JSON.stringify(fetchCallLog));
+  await finishTx();
+
+  // D. The register changes on the device while the dialog is open.
+  fetchCallLog = [];
+  const ovD = await openLcdConfirmation();
+  await live(10000);
+  deviceRaw = 0x3200;  // another writer cleared the LCD bit
+  await live(6000);
+  fakeClick(ovD.querySelector("[data-confirm-action='ok']"));
+  await settle();
+  check(`${T}11: raw changed while open -> zero POST, the dialog is closed and the exact reason asks to repeat`,
+    posts().length === 0 && !overlay() && lcdMsg().dataset.kind === "error" && /changed/.test(lcdMsg().textContent) &&
+    /12816/.test(lcdMsg().textContent) && /12800/.test(lcdMsg().textContent) && /repeat/i.test(lcdMsg().textContent), lcdMsg().textContent);
+  deviceRaw = 0x3210;
+
+  // E. Freshness lost while open: C2 stops being read (other events keep flowing).
+  fetchCallLog = [];
+  const ovE = await openLcdConfirmation();
+  await live(25000, { c2: false });
+  fakeClick(ovE.querySelector("[data-confirm-action='ok']"));
+  await settle();
+  check(`${T}12: freshness lost while open -> zero POST and a not-ready reason`,
+    posts().length === 0 && !overlay() && lcdMsg().dataset.kind === "error" && /nothing was written/.test(lcdMsg().textContent), lcdMsg().textContent);
+  await live(4000);
+
+  // F. Lease lost while open: the device stops granting it.
+  fetchCallLog = [];
+  const ovF = await openLcdConfirmation();
+  leaseTtlMs = 0;
+  await live(40000);
+  fakeClick(ovF.querySelector("[data-confirm-action='ok']"));
+  await settle();
+  check(`${T}13: lease lost while open -> zero POST and a not-ready reason`,
+    posts().length === 0 && !overlay() && lcdMsg().dataset.kind === "error" && /nothing was written/.test(lcdMsg().textContent), lcdMsg().textContent);
+  leaseTtlMs = 30000;
+  await live(12000);
+  fakeNow += 1;
+  c2Read();
+  await settle();
+
+  // G. Double OK -> at most one POST.
+  fetchCallLog = [];
+  const ovG = await openLcdConfirmation();
+  await live(3000);
+  const okG = ovG.querySelector("[data-confirm-action='ok']");
+  fakeClick(okG);
+  fakeClick(okG);
+  await settle();
+  check(`${T}14: a double OK click posts at most once`, posts().length === 1, JSON.stringify(fetchCallLog));
+  await finishTx();
+
+  // H. A second confirmation while one is open: refused, no second preflight.
+  fetchCallLog = [];
+  const ovH = await openLcdConfirmation();
+  const legacyEntry = hooks.WRITE_REGISTRY.live.find((e) => e.key === "smart_sleep_timeout_hours");
+  p.legacyInput.value = "48";
+  await hooks.submitRegisterWrite(legacyEntry, p.legacyInput, p.legacyButton);
+  await settle();
+  check(`${T}15: a second confirmation while one is open is refused (no second preflight, no second dialog)`,
+    preflights().length === 1 && p.document.body.querySelectorAll(".write-confirm-overlay").length === 1 &&
+    /already open/.test(idRegistry.get("wrMsg_smart_sleep_timeout_hours").textContent), JSON.stringify(fetchCallLog));
+  fakeClick(ovH.querySelector("[data-confirm-action='cancel']"));
+  await settle();
+  check(`${T}16: no window.confirm() was reached and only one EventSource ever existed`, FakeEventSource.instances.length === 1);
+
+  confirmAnswer = "ok";
+  fetchResponder = null;
+  harness = null;
+}
+
 async function runBusPauseScenario() {
   fakeNow = 2900000;
   const p = bootStartupPage();                       // connected + Settings lease held

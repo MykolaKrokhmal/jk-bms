@@ -1,7 +1,7 @@
 {
   "$schema": "settings-view-model-generated-v3",
   "generated_by": "tools/protocol/authoring/build_settings_view_model.js",
-  "source_hash": "c758189a9cf919f8",
+  "source_hash": "d307f9d0ce973800",
   "eligibility_rule": "manifest parameter with access in {R,RW,W} and classification != 'reserved'",
   "row_count": 260,
   "counts_by_access": {

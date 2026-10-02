@@ -278,6 +278,7 @@ async function fakeFetch(url, opts) {
   }
   const [entry] = fetchQueue.splice(idx, 1);
   const result = entry.respond(String(url), method);
+  if (method === "GET" && String(url).includes("/settings/register-write/preflight")) lastPreflightResult = result;
   return { ok: result.status >= 200 && result.status < 300, status: result.status, json: async () => result.body };
 }
 
@@ -306,12 +307,35 @@ function queueRegisterWriteAccepted(key, requestId, txId, { onPost } = {}) {
 }
 
 let currentConfirmResult = true;
+// In-page write confirmation (2026-10-02): the page opens a non-blocking
+// dialog instead of window.confirm(). This harness answers it the way a
+// user does -- a click on its real OK or Cancel button -- per
+// currentConfirmResult. After OK the page revalidates with one more
+// read-only preflight; the device is modelled as unchanged, so that
+// preflight gets the same answer as the first one.
+let lastPreflightResult = null;
+function answerWriteConfirmation(overlay) {
+  setImmediate(() => {
+    const ok = currentConfirmResult;
+    if (ok && lastPreflightResult) {
+      const again = lastPreflightResult;
+      queueFetch((url, method) => method === "GET" && url.includes("/settings/register-write/preflight"), () => again);
+    }
+    fakeClick(overlay.querySelector(`[data-confirm-action='${ok ? "ok" : "cancel"}']`));
+  });
+}
 
 function loadRealClosures() {
   idRegistry = new Map();
   activeElement = null;
   const documentElement = new FakeNode("html");
   const body = new FakeNode("body");
+  const appendToBody = body.appendChild.bind(body);
+  body.appendChild = (child) => {
+    const added = appendToBody(child);
+    if (child.classList && child.classList.contains("write-confirm-overlay")) answerWriteConfirmation(child);
+    return added;
+  };
   const localStorageStore = new Map();
   const window = {
     __JK_BMS_TEST_HOOKS__: {},
@@ -322,7 +346,8 @@ function loadRealClosures() {
     clearInterval() {}, setInterval() {},
     setTimeout: fakeSetTimeout, clearTimeout: fakeClearTimeout,
     fetch: (...args) => fakeFetch(...args),
-    confirm: () => currentConfirmResult,
+    // A native confirm() must never be reached again (it froze the page).
+    confirm: () => { throw new Error("window.confirm() called -- the write confirmation must be the in-page dialog"); },
     localStorage: {
       getItem(k) { return localStorageStore.has(k) ? localStorageStore.get(k) : null; },
       setItem(k, v) { localStorageStore.set(k, String(v)); },
@@ -349,7 +374,7 @@ function loadRealClosures() {
     // browser global scope) -- the vm sandbox's global object is `sandbox`
     // itself, not `window`, so these must be mirrored at top level too.
     fetch: (...args) => fakeFetch(...args),
-    confirm: () => currentConfirmResult,
+    confirm: () => { throw new Error("confirm() called -- the write confirmation must be the in-page dialog"); },
     __getFakeNow: () => fakeNow,
   };
   vm.createContext(sandbox);

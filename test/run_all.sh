@@ -448,6 +448,10 @@ echo "=== Finish-Settings-architecture batch: generic Settings catalog DOM behav
 node test/protocol_catalog/test_settings_catalog.js
 
 echo
+echo "=== write confirmation (in-page, non-blocking): mutants of the real jk_bms.js (blocking confirm, no revalidation, POST after Cancel, concurrent confirmations) must fail ==="
+bash test/protocol_catalog/run_write_confirmation_mutations.sh
+
+echo
 echo "=== Browser resume fix: SSE reconnect after sleep/offline/bfcache (controlled clock, one EventSource, fail-closed) ==="
 node test/protocol_catalog/test_sse_reconnect.js
 
