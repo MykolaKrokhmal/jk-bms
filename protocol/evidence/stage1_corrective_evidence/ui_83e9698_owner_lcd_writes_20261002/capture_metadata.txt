@@ -1,0 +1,4 @@
+# Capture metadata (one SSE connection, curl -m 480; snapshots every ~5 s; GET /0.js before)
+t_start 2026-10-02T14:47:22Z
+t_end 2026-10-02T14:55:22Z
+sse curl: curl: (28) Operation timed out after 480005 milliseconds with 5195178 bytes received

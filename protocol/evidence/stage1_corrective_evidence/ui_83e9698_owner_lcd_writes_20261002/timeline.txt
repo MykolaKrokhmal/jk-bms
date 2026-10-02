@@ -1,0 +1,5 @@
+== snapshots: lease C1/C2, C2 rev/age, 0x1114 age
+lease changes: [('17:47:22', (0, 0)), ('17:48:05', (1, 1)), ('17:51:19', (0, 0))]
+max 0x1114 age in snapshots: 14929 ms; max C2 age 14929 ms
+C2 under lease: rev 25->88 over 189 s = 3.00 s/read
+SSE 17:47:22 -> 17:55:22 ; new sessions: [('17:47:22', 319), ('17:48:12', 319), ('17:53:48', 318)]

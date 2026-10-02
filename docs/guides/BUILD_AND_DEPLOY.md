@@ -51,7 +51,18 @@ in the same commit.
 
 ## Deployed baseline (test ESP32)
 
-- **Currently deployed code (2026-10-01, 23:13):** commit `3e1981c` (M5–M8:
+- **Currently deployed code (2026-10-02):** firmware commit `ca7d337`
+  (M8.1 pre-write quiescence barrier + M8.2 no transport retry), OTA
+  13:56, `config_hash 0x9965ace9`; then the UI files `jk_bms.js` /
+  `jk_bms.css` from `83e9698` (non-blocking write confirmation), OTA 17:41,
+  flash 1,268,271 B, `config_hash` unchanged (`js_include`/`css_include`
+  enter the hash only as paths). Plus the owner-local overlay below.
+  - Source identity: UI cryptographic (`/0.js` = `jk_bms.js@83e9698`,
+    sha256 `e0f20be0…7fbfa6`; `protocol/evidence/stage1_corrective_evidence/ui_83e9698_owner_lcd_writes_20261002.md`).
+  - Owner-executed 0x1114 writes on this build were CONFIRMED (same file).
+    **Gate D is not completed; Settings writes stay prohibited without
+    per-field owner approval.**
+- **Previous deployment (2026-10-01, 23:13):** commit `3e1981c` (M5–M8:
   adds M8 write coordination and `read_pause_reason`) plus the owner-local
   overlay below.
   - It was applied as an incremental patch from `bfa2b44` (2 hunks).
@@ -121,7 +132,8 @@ in the same commit.
   the observation window. No endpoint required authentication (the overlay
   above).
 - **Delta reports:** until the owner deploys a newer commit, every deployment
-  delta is computed against `3e1981c`. A commit is recorded here as deployed
+  delta is computed against firmware `ca7d337` with UI `83e9698` (for
+  `jk_bms.js`/`jk_bms.css`, against `83e9698`). A commit is recorded here as deployed
   only after the owner has transferred, compiled and uploaded it.
 - **Local YAML:** when `batterylifepo4.yaml` did not change since the
   deployed baseline, the owner keeps their local copy (with the overlay). When
@@ -130,7 +142,8 @@ in the same commit.
 ## Deployment-delta reporting rule
 
 Every change that touches the build must be reported as an exact deployment
-delta against the previously deployed commit (currently `3e1981c`, see
+delta against the previously deployed commit (currently `ca7d337`, UI files
+`83e9698`, see
 above). For each changed file in the set above, give its path, size, full
 SHA-256 and its destination in the owner's layout (the `jk_bms_ui/` mapping). Exclude tests, docs,
 evidence-only files, `demo/mock-server.js` and unchanged files. For example:

@@ -2,11 +2,11 @@
 
 **Status: AUTHORITATIVE active architecture-migration sub-plan** of
 [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
-Approved as a design by the owner on 2026-09-27. **M0–M8 are implemented;
-M8.1 (pre-write quiescence barrier) and M8.2 (no transport retry of
-transaction frames) are host-complete, not deployed.
-`3e1981c` (M5–M8) has been the deployed production firmware since
-2026-10-01** (M8 runtime evidence: `protocol/evidence/stage1_corrective_evidence/m8_production_runtime_20261001.md`; M6/M7 runtime evidence:
+Approved as a design by the owner on 2026-09-27. **M0–M8.2 are implemented
+and deployed: production firmware `ca7d337` (M5–M8.2, 2026-10-02 13:56,
+`config_hash 0x9965ace9`) with UI files from `83e9698` (write-confirmation
+fix, 2026-10-02 17:41). Gate D is NOT completed** (UI `83e9698` check and two owner-executed 0x1114
+writes: `protocol/evidence/stage1_corrective_evidence/ui_83e9698_owner_lcd_writes_20261002.md`; M8 runtime evidence: `protocol/evidence/stage1_corrective_evidence/m8_production_runtime_20261001.md`; M6/M7 runtime evidence:
 `protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`;
 M5: `protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`). Any address range, latency, budget or timing below
 that is not marked [measured] stays a proposal or a model output until the
@@ -1188,7 +1188,7 @@ Rules that apply to every phase:
 - **Commit:** `feat(settings): refresh Settings under an active lease`.
 - **Deploy:** `jk_bms.js`, `batterylifepo4.yaml` patch, generated files.
 
-### M8 — Write interleaving or explicit write pause; gate D — DEPLOYED (`3e1981c`, 2026-10-01); gate D not started
+### M8 — Write interleaving or explicit write pause; gate D — DEPLOYED (`3e1981c`, 2026-10-01; M8.1/M8.2 in `ca7d337`, 2026-10-02); gate D NOT completed
 
 > **Production (2026-10-01, 23:13): DEPLOYED in `3e1981c`.**
 > - Compile: 0 new warnings, `config_hash 0x761ac342`.
@@ -1198,13 +1198,22 @@ Rules that apply to every phase:
 >   361–638 ms and a 5.3 s SSE gap, cause unknown.
 > - No BMS write is authorized; gate D has not started.
 >
+> **Gate D status (2026-10-02): NOT completed.** On `ca7d337` + UI
+> `83e9698` the owner executed two NO_CHANGE requests and two 0x1114
+> bit writes (12816 → 12800 → 12816), both CONFIRMED with ACK/readback in
+> ≈1 s, initial state restored, other bits kept
+> (`protocol/evidence/stage1_corrective_evidence/ui_83e9698_owner_lcd_writes_20261002.md`). The functional RMW of
+> 0x1114 is observed; **do not change 0x1114 again without a new reason.**
+> The FC16 frame count on the wire, the absence of a transport retry and
+> every other field type remain unverified.
+>
 > **Correction (2026-10-02):** the "full read pause, no interleaving" claim
 > below was incomplete. M8 stops NEW reads once a write owns the bus, but a
 > read the ESPHome 2026.9.1 Modbus hub had already accepted still ran: one in
 > flight finished before the write frame; one still queued (READY, e.g. in
 > the 50 ms turnaround) was overtaken by the WRITE-class frame and then sent
-> after the ACK, before the forced readback. The deployed `3e1981c` has this
-> gap. **M8.1 (below) closes it on the host; it is not deployed.**
+> after the ACK, before the forced readback. `3e1981c` had this gap.
+> **M8.1 (below) closes it; deployed in `ca7d337` on 2026-10-02.**
 >
 > **Host status (2026-10-01): HOST-COMPLETE.**
 >
@@ -1268,7 +1277,7 @@ Rules that apply to every phase:
 > pauses reads for up to about 4.25 s every 5 s. After a failed CellCount
 > the worst contiguous pause is about 7.5 + 4.25 s.
 
-#### M8.1 — Pre-write quiescence barrier — HOST-COMPLETE (2026-10-02); not compiled, not deployed
+#### M8.1 — Pre-write quiescence barrier — DEPLOYED (`ca7d337`, 2026-10-02 13:56)
 
 > **Owner decision (2026-10-02):** close the M8 gap before gate D.
 >
@@ -1359,7 +1368,7 @@ Rules that apply to every phase:
 > - after an ACK timeout the hub itself could still resend the write frame
 >   (up to ~10 s) — **closed by M8.2 below**.
 
-#### M8.2 — No transport retry of transaction frames — HOST-COMPLETE (2026-10-02); not compiled, not deployed
+#### M8.2 — No transport retry of transaction frames — DEPLOYED (`ca7d337`, 2026-10-02 13:56)
 
 > **Fact (ESPHome 2026.9.1 source, `modbus_controller.cpp`
 > `ModbusCommandItem::on_no_response`):** an unanswered `ModbusCommandItem`

@@ -1,0 +1,38 @@
+# Fragments extracted from sse_timed.log (local time EEST = UTC+3; epoch s in brackets).
+# 1) every SSE 'log' event (device logger as streamed), 2) value changes of write-related entities.
+17:47:22.897 [1790952442.897] STATE binary_sensor/lcd always on = ON
+17:47:29.707 [1790952449.707] STATE text_sensor/read pause reason = none
+17:47:29.851 [1790952449.851] STATE text_sensor/write transaction snapshot = "" (empty)
+17:47:29.900 [1790952449.900] STATE text_sensor/last write crash stage = IDLE
+17:47:32.487 [1790952452.487] LOG [W][component:419]: modbus took a long time for an operation (230 ms), max is 170 ms
+17:47:33.493 [1790952453.493] LOG [W][component:419]: modbus took a long time for an operation (249 ms), max is 240 ms
+17:47:34.587 [1790952454.587] LOG [I][app:151]: ESPHome version 2026.9.1 compiled on 2026-10-02 17:41:14 +0300
+17:47:34.587 [1790952454.587] LOG [I][app:153]: Project syssi.esphome-jk-bms version 3.0.0
+17:47:34.587 [1790952454.587] LOG [I][app:158]: ESP32 Chip: ESP32 rev3.1, 2 core(s)
+17:47:34.587 [1790952454.587] LOG [W][app:171]: Chip rev >= 3.0 detected. Set minimum_chip_revision: "3.1" under esp32 > framework > advanced to reduce binary size
+17:47:34.587 [1790952454.587] LOG [W][app:198]: Bootloader supports SRAM1 as IRAM (+40KB). Set sram1_as_iram: true under esp32 > framework > advanced
+17:47:37.965 [1790952457.965] LOG [W][api.connection:2675]: ESPHome Logs 2026.9.1 (192.168.27.44): Reading failed CONNECTION_CLOSED errno=128
+17:48:00.520 [1790952480.520] LOG [W][component:419]: modbus took a long time for an operation (261 ms), max is 250 ms
+17:48:46.531 [1790952526.531] LOG [I][jk_write_tx:2514]: register-write request_id=1 key=lcd_always_on: no change -- 0x1114 already holds the value, no Modbus command
+17:49:57.206 [1790952597.206] LOG [I][jk_write_tx:2514]: register-write request_id=2 key=lcd_always_on: no change -- 0x1114 already holds the value, no Modbus command
+17:50:23.571 [1790952623.571] LOG [W][component:419]: modbus took a long time for an operation (294 ms), max is 270 ms
+17:50:23.571 [1790952623.571] STATE text_sensor/read pause reason = register_write
+17:50:23.680 [1790952623.680] STATE text_sensor/write transaction snapshot = [{"addr":4372,"tx_id":1,"status":1,"req":12800,"rb":0}]
+17:50:23.801 [1790952623.801] STATE text_sensor/write transaction snapshot = [{"addr":4372,"tx_id":1,"status":3,"req":12800,"rb":0}]
+17:50:24.058 [1790952624.058] LOG [I][jk_write_tx:2252]: Transaction tx_id=1 addr=0x1114 terminal status=4 (requested=12800 readback=12800)
+17:50:24.080 [1790952624.080] STATE text_sensor/write transaction snapshot = [{"addr":4372,"tx_id":1,"status":4,"req":12800,"rb":12800}]
+17:50:24.080 [1790952624.080] STATE text_sensor/read pause reason = none
+17:50:25.870 [1790952625.870] STATE binary_sensor/lcd always on = OFF
+17:50:27.219 [1790952627.219] STATE text_sensor/write transaction snapshot = []
+17:50:35.238 [1790952635.238] STATE text_sensor/read pause reason = register_write
+17:50:35.507 [1790952635.507] STATE text_sensor/write transaction snapshot = [{"addr":4372,"tx_id":2,"status":1,"req":12816,"rb":0}]
+17:50:35.507 [1790952635.507] STATE text_sensor/write transaction snapshot = [{"addr":4372,"tx_id":2,"status":2,"req":12816,"rb":0}]
+17:50:35.732 [1790952635.732] STATE text_sensor/write transaction snapshot = [{"addr":4372,"tx_id":2,"status":3,"req":12816,"rb":0}]
+17:50:35.980 [1790952635.980] LOG [I][jk_write_tx:2252]: Transaction tx_id=2 addr=0x1114 terminal status=4 (requested=12816 readback=12816)
+17:50:36.006 [1790952636.006] STATE text_sensor/write transaction snapshot = [{"addr":4372,"tx_id":2,"status":4,"req":12816,"rb":12816}]
+17:50:36.006 [1790952636.006] STATE text_sensor/read pause reason = none
+17:50:37.879 [1790952637.879] STATE binary_sensor/lcd always on = ON
+17:50:38.984 [1790952638.984] STATE text_sensor/write transaction snapshot = []
+17:52:19.591 [1790952739.591] LOG [W][component:419]: web_server took a long time for an operation (131 ms), max is 90 ms
+17:52:22.586 [1790952742.586] LOG [W][component:419]: modbus took a long time for an operation (326 ms), max is 300 ms
+17:53:51.899 [1790952831.899] LOG [W][component:419]: template.sensor took a long time for an operation (64 ms), max is 50 ms

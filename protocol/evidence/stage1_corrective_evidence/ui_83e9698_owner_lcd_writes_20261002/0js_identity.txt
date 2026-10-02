@@ -1,0 +1,12 @@
+GET http://<device>/0.js at capture start
+response headers:
+  HTTP/1.1 200 OK
+  Content-Type: text/javascript
+  Content-Length: 182746
+  Accept-Ranges: none
+  Access-Control-Allow-Origin: *
+  Content-Encoding: gzip
+
+raw (gzip) body: 182746 B sha256 c77eda0054db68ac499142d8af0154ad5cdc18e887edeefcdc22a923fc12e3b9
+body: 952288 B, sha256 e0f20be0d467ea9e7dd847d4df65b71962041575db9d81b39ed60007ec7fbfa6
+git show 83e9698:jk_bms.js: 952288 B sha256 e0f20be0d467ea9e7dd847d4df65b71962041575db9d81b39ed60007ec7fbfa6 -> byte-identical

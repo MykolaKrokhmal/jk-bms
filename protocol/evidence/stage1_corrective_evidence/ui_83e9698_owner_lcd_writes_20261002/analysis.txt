@@ -1,0 +1,42 @@
+window: 403.7 s, state events 57444, logs 17, pings 41
+read_plan_success events: 993; non-cluster (fallback block) events: 0
+cluster | events | rev first..last (delta) | rev gaps (coalesced) | mean interval s | max interval s | max rev step
+A1 | 382 | 319..703 (384) | 3 (non-increasing: 1) | 1.035 | 11.199 | 3
+A2 | 384 | 316..702 (386) | 3 (non-increasing: 1) | 1.007 | 3.084 | 3
+C1 | 76 | 23..98 (75) | 0 (non-increasing: 0) | 4.627 | 15.087 | 1
+C2 | 76 | 23..98 (75) | 0 (non-increasing: 0) | 4.627 | 15.122 | 1
+S1 | 25 | 23..47 (24) | 0 (non-increasing: 0) | 14.990 | 15.532 | 1
+S2 | 25 | 23..47 (24) | 0 (non-increasing: 0) | 14.989 | 15.484 | 1
+S3 | 25 | 23..47 (24) | 0 (non-increasing: 0) | 14.989 | 15.398 | 1
+global success seq: 737..1744, non-monotonic steps: 2
+text_sensor/bms health: 195 events, distinct sequence: ['LIVE']
+text_sensor/read cluster mode: 3 events, distinct sequence: ['clusters']
+text_sensor/reset reason: 3 events, distinct sequence: ['SW (esp_restart)']
+sensor/reset count since power on: 3 events, distinct sequence: ['4']
+text_sensor/write transaction snapshot: 12 events, distinct sequence: ['', '[{"addr":4372,"tx_id":1,"status":1,"req":12800,"rb":0}]', '[{"addr":4372,"tx_id":1,"status":3,"req":12800,"rb":0}]', '[{"addr":4372,"tx_id":1,"status":4,"req":12800,"rb":12800}]', '[]', '[{"addr":4372,"tx_id":2,"status":1,"req":12816,"rb":0}]', '[{"addr":4372,"tx_id":2,"status":2,"req":12816,"rb":0}]', '[{"addr":4372,"tx_id":2,"status":3,"req":12816,"rb":0}]', '[{"addr":4372,"tx_id":2,"status":4,"req":12816,"rb":12816}]', '[]']
+text_sensor/last write crash stage: 3 events, distinct sequence: ['IDLE']
+sensor/cell count transaction status code: 3 events, distinct sequence: ['NA']
+sensor/setup passcode transaction status code: 3 events, distinct sequence: ['NA']
+sensor/cell count transaction id: 3 events, distinct sequence: ['NA']
+text_sensor/topology state: 385 events, distinct sequence: ['CONFIRMED']
+system uptime: 304.0 -> 694.0 s, decreases: 0
+ping uptime: 311 -> 704, decreases: 0
+logs:
+  +    9.7s [W][component:419]: modbus took a long time for an operation (230 ms), max is 170 ms
+  +   10.7s [W][component:419]: modbus took a long time for an operation (249 ms), max is 240 ms
+  +   11.8s [I][app:151]: ESPHome version 2026.9.1 compiled on 2026-10-02 17:41:14 +0300
+  +   11.8s [I][app:153]: Project syssi.esphome-jk-bms version 3.0.0
+  +   11.8s [I][app:158]: ESP32 Chip: ESP32 rev3.1, 2 core(s)
+  +   11.8s [W][app:171]: Chip rev >= 3.0 detected. Set minimum_chip_revision: "3.1" under esp32 > framework > advanced to reduce binary size
+  +   11.8s [W][app:198]: Bootloader supports SRAM1 as IRAM (+40KB). Set sram1_as_iram: true under esp32 > framework > advanced
+  +   15.1s [W][api.connection:2675]: ESPHome Logs 2026.9.1 (192.168.27.44): Reading failed CONNECTION_CLOSED errno=128
+  +   37.7s [W][component:419]: modbus took a long time for an operation (261 ms), max is 250 ms
+  +   83.7s [I][jk_write_tx:2514]: register-write request_id=1 key=lcd_always_on: no change -- 0x1114 already holds the value, no Modbus command
+  +  154.4s [I][jk_write_tx:2514]: register-write request_id=2 key=lcd_always_on: no change -- 0x1114 already holds the value, no Modbus command
+  +  180.7s [W][component:419]: modbus took a long time for an operation (294 ms), max is 270 ms
+  +  181.2s [I][jk_write_tx:2252]: Transaction tx_id=1 addr=0x1114 terminal status=4 (requested=12800 readback=12800)
+  +  193.2s [I][jk_write_tx:2252]: Transaction tx_id=2 addr=0x1114 terminal status=4 (requested=12816 readback=12816)
+  +  296.8s [W][component:419]: web_server took a long time for an operation (131 ms), max is 90 ms
+  +  299.8s [W][component:419]: modbus took a long time for an operation (326 ms), max is 300 ms
+  +  389.1s [W][component:419]: template.sensor took a long time for an operation (64 ms), max is 50 ms
+flagged logs: 4

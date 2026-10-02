@@ -67,8 +67,12 @@ By owner decision the formal Gate B metrics were folded into one combined
 Gate C, which passed on 2026-10-01 (`protocol/evidence/stage1_corrective_evidence/gate_c_20261001.md`). M8 and Gate D remain open, and
 Settings writes stay prohibited until Gate D passes. M8.1 (a pre-write
 quiescence barrier closing the M8 read-interleaving gap) and M8.2 (no
-transport retry of transaction frames: one write = one FC16) are
-host-complete and must be deployed before Gate D.
+transport retry of transaction frames: one write = one FC16) are deployed
+in `ca7d337` (2026-10-02), and the non-blocking write confirmation in UI
+`83e9698` (2026-10-02). Gate D is **not completed**: two owner-executed
+0x1114 bit writes were CONFIRMED
+(`protocol/evidence/stage1_corrective_evidence/ui_83e9698_owner_lcd_writes_20261002.md`), and
+0x1114 should not be changed again without a new reason.
 Stage 4 below (freshness from physical reads for the bespoke cell keys) is
 delivered by that sub-plan's step M6, unless the owner decides otherwise.
 

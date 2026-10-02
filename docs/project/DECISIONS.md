@@ -742,7 +742,8 @@ add FIFO/readback-ordering risk. Holding the pause through
 - treating a paused value as fresh.
 
 **Status:** Active from 2026-10-01. Deployed in `3e1981c` with its runtime
-audit passed; gate D is not started. **Amended 2026-10-02 by the pre-write
+audit passed; M8.1/M8.2 deployed in `ca7d337` (2026-10-02). Gate D is not
+completed. **Amended 2026-10-02 by the pre-write
 quiescence barrier (M8.1, next decision):** the pause above covered only
 new reads, not a read the hub had already accepted.
 
@@ -788,7 +789,7 @@ window for a read between the write and its readback.
 - an unbounded wait for the hub.
 
 **Status:** Host-complete on 2026-10-02 (`test_write_quiesce_barrier.cpp`,
-6 mutants killed). Not compiled or deployed; required before gate D. Its
+6 mutants killed). Deployed in `ca7d337` (2026-10-02 13:56). Its
 "≈ 10.5 s" read-pause figure is superseded by the M8.2 derivation.
 
 ## Decision: No transport retry for transaction frames (M8.2)
@@ -827,5 +828,5 @@ happens after a timeout.
 **Rejected approaches:** relying on idempotent registers (`gps_heartbeat`
 is a trigger), or on the ACK timeout being longer than the retries.
 
-**Status:** Host-complete on 2026-10-02. Not compiled or deployed; required
-before gate D.
+**Status:** Host-complete on 2026-10-02. Deployed in `ca7d337` (2026-10-02
+13:56); the on-wire frame count is not yet observed on hardware.

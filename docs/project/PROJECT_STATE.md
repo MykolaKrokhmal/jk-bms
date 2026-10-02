@@ -84,32 +84,46 @@ generated inventories linked below, not in prose.
     - a "paused for write" browser state that is never fresh.
   - **M8 gap (found 2026-10-02, L17):** the pause stopped only new reads; a
     read the Modbus hub had already accepted could still run between a
-    write's ACK and its forced readback. The deployed `3e1981c` has it.
-  - **M8.1 pre-write quiescence barrier: host-complete (2026-10-02), not
-    compiled or deployed.** A write first becomes a write intent that pauses
+    write's ACK and its forced readback. `3e1981c` had it; fixed by M8.1.
+  - **M8.1 pre-write quiescence barrier: host-complete (2026-10-02),
+    deployed in `ca7d337`.** A write first becomes a write intent that pauses
     reads; it is queued only on a provably idle hub after every precondition
     is re-checked, within 3000 ms or refused. Simulation: 0 reads between
     ACK and readback; 6 mutants killed.
   - **Transport retry (found 2026-10-02, L18):** ESPHome's `ModbusCommandItem`
     resent an unanswered FC16 write up to 4 more times, also after the slot
     was WRITE_UNCERTAIN.
-  - **M8.2 no-transport-retry: host-complete (2026-10-02), not compiled or
-    deployed.** Every transaction frame goes through its own no-retry
+  - **M8.2 no-transport-retry: host-complete (2026-10-02), deployed in
+    `ca7d337`.** Every transaction frame goes through its own no-retry
     `ModbusClientDevice`; phase ends cancel it; reads wait for transport
     cleanup. One write = one FC16. Derived read pause ≤ 10,540 ms (default
     send-wait). Simulation 162 checks; 9 mutants killed.
   - **M8.1 + M8.2 deployed in `ca7d337` (2026-10-02 13:56,
     `config_hash 0x9965ace9`)**; read-only audit passed.
-  - **Write confirmation fix (2026-10-02, host-complete, not deployed):**
+  - **Write confirmation fix `83e9698` (2026-10-02): deployed 17:41 (UI
+    files only, `config_hash` unchanged `0x9965ace9`) and checked on
+    production (`protocol/evidence/stage1_corrective_evidence/ui_83e9698_owner_lcd_writes_20261002.md`):**
     a controlled reproduction showed the native `window.confirm()` froze the
     page (no SSE, no lease renewal): the device lease expired, the page
     reconnected in a ~20 s loop and showed fresh C2 values as stale. The
     confirmation is now an in-page, non-blocking dialog; after OK the page
     revalidates (link LIVE, same epoch, write-ready, read not older, a new
     read-only preflight with the same raw/merged values) before the one POST.
-  - Next: deploy `jk_bms.js`/`jk_bms.css`, then gate D with per-field
-    approval (not started), then M9 and M10. L16 measurement (W0/W1) is on
-    hold.
+    - Production check: lease held, C1/C2 every 3 s, no SSE reconnect,
+      Cancel created no write intent.
+  - **Owner-executed writes (2026-10-02, NOT a completed gate D):** two
+    NO_CHANGE requests (LCD = Так, no Modbus command), then 0x1114
+    12816 → 12800 → 12816. Both writes were CONFIRMED with ACK and readback in
+    ≈1 s, with no WRITE_UNCERTAIN, timeout, fallback or reset. The initial
+    state was restored and the other bits (0x3200) were preserved.
+    - Not proven: the FC16 frame count on the wire, the absence of a
+      transport retry (no direct send-attempt counter exists), and gate D for
+      other field types.
+    - **The functional RMW of 0x1114 is observed; do not change 0x1114 again
+      without a new reason.**
+  - Next: gate D is **not completed**. The remaining per-field matrix needs
+    owner approval for each write. Then M9 and M10. L16 measurement (W0/W1)
+    is on hold.
   - **Settings writes stay prohibited until gate D.**
 
   ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not
@@ -124,7 +138,7 @@ generated inventories linked below, not in prose.
 - **Protocol model:** the official V1.1 manifest, canonical registers,
   non-register entities and service actions, plus blockers and evidence. All
   runtime definitions are generated from them.
-- **Read path:** the deployed firmware (`3e1981c`) services the
+- **Read path:** the deployed firmware (`ca7d337`) services the
   generated plan through seven wide clusters, with latched per-group
   narrow/bespoke fallback and an isolated on-demand passcode read. Every
   implemented key is published through exactly one ESPHome entity, which HA
@@ -150,9 +164,12 @@ generated inventories linked below, not in prose.
 
 ## Deployment and open security items
 
-- **Deployed baseline (2026-10-01, 23:13):** `3e1981c` (M5–M8) plus the
-  owner's local overlay (web auth commented out; UI files, and at least the
-  generated package, under `jk_bms_ui/`). The previous deployment was
+- **Deployed baseline (2026-10-02):** firmware `ca7d337` (M5–M8.2, 13:56,
+  `config_hash 0x9965ace9`) with UI files `jk_bms.js`/`jk_bms.css` from
+  `83e9698` (17:41, flash 1,268,271 B; `/0.js` byte-identical to
+  `jk_bms.js@83e9698`), plus the owner's local overlay (web auth commented
+  out; UI files, and at least the generated package, under `jk_bms_ui/`).
+  The previous deployments were `3e1981c` (2026-10-01, 23:13) and
   `bfa2b44`.
   - Built with ESPHome 2026.9.1.
   - Source confidence: the UI is cryptographically matched; the firmware
