@@ -1,0 +1,6 @@
+# Read-only audit capture (one SSE connection, curl -m 280; GET /0.js once; GET /settings/read-freshness at start and end; no POST)
+t_start 2026-10-03T18:36:45Z
+t_end 2026-10-03T18:41:26Z
+sse curl: curl: (28) Operation timed out after 280002 milliseconds with 3533243 bytes received
+sse_timed.log uncompressed: 5310263 B sha256 6ea1d38a0d54bc553e6f4b5862d9797597620c76f5ff5e6beaa4dd58ea618b73
+compile/OTA log (owner, Device Builder): 141757 B sha256 b811d34195a8225eded73a9fd7a68304cc2b79b7da25928049b2f673e228a30e

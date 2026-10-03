@@ -1,0 +1,30 @@
+window: 279.9 s, state events 39434, logs 5, pings 29
+read_plan_success events: 685; non-cluster (fallback block) events: 0
+cluster | events | rev first..last (delta) | rev gaps (coalesced) | mean interval s | max interval s | max rev step
+A1 | 270 | 792..1061 (269) | 0 (non-increasing: 0) | 1.000 | 1.308 | 1
+A2 | 270 | 792..1061 (269) | 0 (non-increasing: 0) | 1.000 | 1.533 | 1
+C1 | 45 | 103..147 (44) | 0 (non-increasing: 0) | 6.067 | 15.034 | 1
+C2 | 46 | 102..147 (45) | 0 (non-increasing: 0) | 6.000 | 15.035 | 1
+S1 | 18 | 54..71 (17) | 0 (non-increasing: 0) | 14.999 | 15.279 | 1
+S2 | 18 | 54..71 (17) | 0 (non-increasing: 0) | 14.997 | 15.275 | 1
+S3 | 18 | 54..71 (17) | 0 (non-increasing: 0) | 14.997 | 15.297 | 1
+global success seq: 1941..2629, non-monotonic steps: 0
+text_sensor/bms health: 135 events, distinct sequence: ['LIVE']
+text_sensor/read cluster mode: 1 events, distinct sequence: ['clusters']
+text_sensor/reset reason: 1 events, distinct sequence: ['SW (esp_restart)']
+sensor/reset count since power on: 1 events, distinct sequence: ['6']
+text_sensor/write transaction snapshot: 1 events, distinct sequence: ['']
+text_sensor/last write crash stage: 1 events, distinct sequence: ['IDLE']
+sensor/cell count transaction status code: 1 events, distinct sequence: ['NA']
+sensor/setup passcode transaction status code: 1 events, distinct sequence: ['NA']
+sensor/cell count transaction id: 1 events, distinct sequence: ['NA']
+text_sensor/topology state: 271 events, distinct sequence: ['CONFIRMED']
+system uptime: 785.0 -> 1055.0 s, decreases: 0
+ping uptime: 784 -> 1064, decreases: 0
+logs:
+  +   10.4s [W][component:419]: modbus took a long time for an operation (304 ms), max is 170 ms
+  +   12.4s [W][component:419]: modbus took a long time for an operation (335 ms), max is 310 ms
+  +   14.5s [W][component:419]: modbus took a long time for an operation (356 ms), max is 340 ms
+  +   24.5s [W][component:419]: modbus took a long time for an operation (368 ms), max is 360 ms
+  +   73.5s [W][component:419]: modbus took a long time for an operation (374 ms), max is 370 ms
+flagged logs: 0

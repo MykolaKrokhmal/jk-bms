@@ -3,9 +3,10 @@
 **Status: AUTHORITATIVE active architecture-migration sub-plan** of
 [`RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md`](RS485_UNIFIED_PARAMETER_PIPELINE_PLAN.md).
 Approved as a design by the owner on 2026-09-27. **M0–M8.2 are implemented
-and deployed: production firmware `ca7d337` (M5–M8.2, 2026-10-02 13:56,
-`config_hash 0x9965ace9`) with UI files from `83e9698` (write-confirmation
-fix, 2026-10-02 17:41). Gate D is NOT completed** (UI `83e9698` check and two owner-executed 0x1114
+and deployed. Production: firmware `c531ba1` (M5–M8.2 + send-attempt
+diagnostics, 2026-10-03, `config_hash 0xcb0075fd`); embedded UI byte-identical
+to `jk_bms.js@83e9698` (write-confirmation fix). Gate D has not started**
+(`c531ba1` audit: `protocol/evidence/stage1_corrective_evidence/c531ba1_send_attempt_runtime_20261003.md`; UI `83e9698` check and two owner-executed 0x1114
 writes: `protocol/evidence/stage1_corrective_evidence/ui_83e9698_owner_lcd_writes_20261002.md`; M8 runtime evidence: `protocol/evidence/stage1_corrective_evidence/m8_production_runtime_20261001.md`; M6/M7 runtime evidence:
 `protocol/evidence/stage1_corrective_evidence/m6_m7_production_runtime_20261001.md`;
 M5: `protocol/evidence/stage1_corrective_evidence/m5_production_runtime_20261001.md`). Any address range, latency, budget or timing below
@@ -1207,8 +1208,8 @@ Rules that apply to every phase:
 > The FC16 frame count on the wire, the absence of a transport retry and
 > every other field type remain unverified.
 >
-> **Gate D send-attempt evidence (host-complete 2026-10-02, needs a production
-> compile + OTA before use).** Every `write_tx_snapshot` entry carries the
+> **Gate D send-attempt evidence (deployed in `c531ba1` on 2026-10-03; read-only
+> audit passed; not yet observed in a real transaction).** Every `write_tx_snapshot` entry carries the
 > transaction's own `fn`, `qty`, `fc16_send_attempts`,
 > `readback_send_attempts` and `probe_send_attempts`, counted in
 > `TxDevice::on_sent()` -- ESPHome 2026.9.1 fires it once per transmitted

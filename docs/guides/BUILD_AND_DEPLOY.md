@@ -51,7 +51,17 @@ in the same commit.
 
 ## Deployed baseline (test ESP32)
 
-- **Currently deployed code (2026-10-02):** firmware commit `ca7d337`
+- **Currently deployed code (2026-10-03):** firmware/backend `c531ba1`
+  (send-attempt diagnostics), owner compile + OTA 2026-10-03 21:22.
+  - ESPHome 2026.9.1, `config_hash 0xcb0075fd`, RAM 108,968 B, flash
+    1,268,847 B, the 10 known warnings (`batterylifepo4.yaml:5678`).
+  - Embedded UI: byte-identical to `jk_bms.js@83e9698` (sha256
+    `e0f20be0…7fbfa6`). This is expected: the package did not ship
+    `jk_bms.js`, which differs in c531ba1 only in two generated hash lines.
+  - Read-only runtime audit passed (`protocol/evidence/stage1_corrective_evidence/c531ba1_send_attempt_runtime_20261003.md`).
+  - **Gate D has not started; Settings writes need separate per-field owner
+    approval.**
+- **Previous deployment (2026-10-02):** firmware commit `ca7d337`
   (M8.1 pre-write quiescence barrier + M8.2 no transport retry), OTA
   13:56, `config_hash 0x9965ace9`; then the UI files `jk_bms.js` /
   `jk_bms.css` from `83e9698` (non-blocking write confirmation), OTA 17:41,
@@ -132,7 +142,7 @@ in the same commit.
   the observation window. No endpoint required authentication (the overlay
   above).
 - **Delta reports:** until the owner deploys a newer commit, every deployment
-  delta is computed against firmware `ca7d337` with UI `83e9698` (for
+  delta is computed against firmware `c531ba1` with UI `83e9698` (for
   `jk_bms.js`/`jk_bms.css`, against `83e9698`). A commit is recorded here as deployed
   only after the owner has transferred, compiled and uploaded it.
 - **Local YAML:** when `batterylifepo4.yaml` did not change since the
@@ -142,7 +152,7 @@ in the same commit.
 ## Deployment-delta reporting rule
 
 Every change that touches the build must be reported as an exact deployment
-delta against the previously deployed commit (currently `ca7d337`, UI files
+delta against the previously deployed commit (currently `c531ba1`, UI files
 `83e9698`, see
 above). For each changed file in the set above, give its path, size, full
 SHA-256 and its destination in the owner's layout (the `jk_bms_ui/` mapping). Exclude tests, docs,

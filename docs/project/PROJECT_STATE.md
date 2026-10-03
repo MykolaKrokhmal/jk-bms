@@ -121,9 +121,15 @@ generated inventories linked below, not in prose.
       other field types.
     - **The functional RMW of 0x1114 is observed; do not change 0x1114 again
       without a new reason.**
-  - Next: gate D is **not completed**. The remaining per-field matrix needs
-    owner approval for each write. Then M9 and M10. L16 measurement (W0/W1)
-    is on hold.
+  - **Send-attempt diagnostics `c531ba1`: deployed 2026-10-03
+    (`config_hash 0xcb0075fd`); read-only runtime audit passed
+    (`protocol/evidence/stage1_corrective_evidence/c531ba1_send_attempt_runtime_20261003.md`).** Each
+    `write_tx_snapshot` entry carries the transaction's `fc16_send_attempts`,
+    `readback_send_attempts` and `probe_send_attempts`, counted at the hub's
+    `on_sent`. These fields have not yet been observed in a real transaction.
+  - Next: gate D has **not started**. Its matrix is U32, S32 and U8 high-byte
+    RMW, one step and a revert each, and every write needs separate owner
+    approval. Then M9 and M10. L16 measurement (W0/W1) is on hold.
   - **Settings writes stay prohibited until gate D.**
 
   ESPHome 2026.9.1 is the controlled build baseline (2026-10-01). Do not
@@ -138,7 +144,7 @@ generated inventories linked below, not in prose.
 - **Protocol model:** the official V1.1 manifest, canonical registers,
   non-register entities and service actions, plus blockers and evidence. All
   runtime definitions are generated from them.
-- **Read path:** the deployed firmware (`ca7d337`) services the
+- **Read path:** the deployed firmware (`c531ba1`) services the
   generated plan through seven wide clusters, with latched per-group
   narrow/bespoke fallback and an isolated on-demand passcode read. Every
   implemented key is published through exactly one ESPHome entity, which HA
@@ -164,13 +170,11 @@ generated inventories linked below, not in prose.
 
 ## Deployment and open security items
 
-- **Deployed baseline (2026-10-02):** firmware `ca7d337` (M5–M8.2, 13:56,
-  `config_hash 0x9965ace9`) with UI files `jk_bms.js`/`jk_bms.css` from
-  `83e9698` (17:41, flash 1,268,271 B; `/0.js` byte-identical to
-  `jk_bms.js@83e9698`), plus the owner's local overlay (web auth commented
-  out; UI files, and at least the generated package, under `jk_bms_ui/`).
-  The previous deployments were `3e1981c` (2026-10-01, 23:13) and
-  `bfa2b44`.
+- **Deployed baseline (2026-10-03):** firmware/backend `c531ba1` (send-attempt diagnostics; OTA 2026-10-03, `config_hash 0xcb0075fd`); embedded UI byte-identical to `jk_bms.js@83e9698` (sha256 `e0f20be0d467ea9e7dd847d4df65b71962041575db9d81b39ed60007ec7fbfa6`) -- the expected result, since the c531ba1 package did not ship `jk_bms.js`, which differs in c531ba1 only in two generated hash lines. Plus the owner's local
+  overlay (web auth commented out; UI files, and at least the generated
+  package, under `jk_bms_ui/`). RAM 108,968 B, flash 1,268,847 B.
+  - The previous deployments were `ca7d337` with UI `83e9698` (2026-10-02),
+    `3e1981c` (2026-10-01, 23:13) and `bfa2b44`.
   - Built with ESPHome 2026.9.1.
   - Source confidence: the UI is cryptographically matched; the firmware
     match is high but not cryptographic.

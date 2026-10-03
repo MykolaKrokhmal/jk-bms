@@ -72,7 +72,11 @@ in `ca7d337` (2026-10-02), and the non-blocking write confirmation in UI
 `83e9698` (2026-10-02). Gate D is **not completed**: two owner-executed
 0x1114 bit writes were CONFIRMED
 (`protocol/evidence/stage1_corrective_evidence/ui_83e9698_owner_lcd_writes_20261002.md`), and
-0x1114 should not be changed again without a new reason.
+0x1114 should not be changed again without a new reason. Production since
+2026-10-03 is `c531ba1` (send-attempt diagnostics; embedded UI
+`jk_bms.js@83e9698`), audited read-only
+(`protocol/evidence/stage1_corrective_evidence/c531ba1_send_attempt_runtime_20261003.md`); Gate D has not
+started.
 Stage 4 below (freshness from physical reads for the bespoke cell keys) is
 delivered by that sub-plan's step M6, unless the owner decides otherwise.
 
